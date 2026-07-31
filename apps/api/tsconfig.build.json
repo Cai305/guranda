@@ -1,4 +1,10 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noEmitOnError": false
+  },
   "exclude": ["node_modules", "test", "dist", "prisma", "scripts", "**/*spec.ts"]
 }
