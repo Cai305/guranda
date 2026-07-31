@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npm run build --prefix ../../packages/types && npx expo export -p web",
   "rewrites": [
     {
       "source": "/(.*)",
