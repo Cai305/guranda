@@ -1,0 +1,206 @@
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import LifeScreen from '../screens/LifeScreen';
+import HubScreen from '../screens/HubScreen';
+import GamesScreen from '../screens/hub/GamesScreen';
+import ArcadeScreen from '../screens/hub/ArcadeScreen';
+import RideScreen from '../screens/hub/RideScreen';
+import FoodScreen from '../screens/hub/FoodScreen';
+import CategoryScreen from '../screens/hub/CategoryScreen';
+import ChessLobbyScreen from '../screens/hub/ChessLobbyScreen';
+import ChessGameScreen from '../screens/hub/ChessGameScreen';
+import LudoLobbyScreen from '../screens/hub/LudoLobbyScreen';
+import LudoGameScreen from '../screens/hub/LudoGameScreen';
+import MurabarabaLobbyScreen from '../screens/hub/MurabarabaLobbyScreen';
+import MurabarabaGameScreen from '../screens/hub/MurabarabaGameScreen';
+import PoolLobbyScreen from '../screens/hub/PoolLobbyScreen';
+import PoolGameScreen from '../screens/hub/PoolGameScreen';
+import TurboRacingLobbyScreen from '../screens/hub/TurboRacingLobbyScreen';
+import TurboRacingGameScreen from '../screens/hub/TurboRacingGameScreen';
+import WordBattleLobbyScreen from '../screens/hub/WordBattleLobbyScreen';
+import WordleDuelScreen from '../screens/hub/WordleDuelScreen';
+import BoggleScreen from '../screens/hub/BoggleScreen';
+import ScrabbleScreen from '../screens/hub/ScrabbleScreen';
+import ExternalAppScreen from '../screens/hub/ExternalAppScreen';
+import EatHomeScreen from '../screens/eat/EatHomeScreen';
+import EatStoreScreen from '../screens/eat/EatStoreScreen';
+import EatCartScreen from '../screens/eat/EatCartScreen';
+import EatOrdersScreen from '../screens/eat/EatOrdersScreen';
+import EatOrderTrackingScreen from '../screens/eat/EatOrderTrackingScreen';
+import ShoppingHomeScreen from '../screens/shopping/ShoppingHomeScreen';
+import ShoppingProductScreen from '../screens/shopping/ShoppingProductScreen';
+import ShoppingStoreScreen from '../screens/shopping/ShoppingStoreScreen';
+import ShoppingCartScreen from '../screens/shopping/ShoppingCartScreen';
+import ShoppingOrdersScreen from '../screens/shopping/ShoppingOrdersScreen';
+import ShoppingOrderTrackingScreen from '../screens/shopping/ShoppingOrderTrackingScreen';
+import TravelHomeScreen from '../screens/travel/TravelHomeScreen';
+import TravelStayDetailScreen from '../screens/travel/TravelStayDetailScreen';
+import TravelCarDetailScreen from '../screens/travel/TravelCarDetailScreen';
+import TravelFlightDetailScreen from '../screens/travel/TravelFlightDetailScreen';
+import TravelPackageDetailScreen from '../screens/travel/TravelPackageDetailScreen';
+import TravelTripsScreen from '../screens/travel/TravelTripsScreen';
+import WorkHomeScreen from '../screens/work/WorkHomeScreen';
+import WorkJobDetailScreen from '../screens/work/WorkJobDetailScreen';
+import WorkGigDetailScreen from '../screens/work/WorkGigDetailScreen';
+import WorkCompanyDetailScreen from '../screens/work/WorkCompanyDetailScreen';
+import WorkApplicationsScreen from '../screens/work/WorkApplicationsScreen';
+import HealthHomeScreen from '../screens/health/HealthHomeScreen';
+import HealthAddLogScreen from '../screens/health/HealthAddLogScreen';
+import HealthPractitionerDetailScreen from '../screens/health/HealthPractitionerDetailScreen';
+import HealthPharmacyDetailScreen from '../screens/health/HealthPharmacyDetailScreen';
+import HealthWellnessDetailScreen from '../screens/health/HealthWellnessDetailScreen';
+import HealthAppointmentsScreen from '../screens/health/HealthAppointmentsScreen';
+import HealthOrdersScreen from '../screens/health/HealthOrdersScreen';
+import FinanceHomeScreen from '../screens/finance/FinanceHomeScreen';
+import CreateStokvelScreen from '../screens/finance/CreateStokvelScreen';
+import StokvelDetailScreen from '../screens/finance/StokvelDetailScreen';
+import CreateFundingRequestScreen from '../screens/finance/CreateFundingRequestScreen';
+import FundingRequestDetailScreen from '../screens/finance/FundingRequestDetailScreen';
+import StokvelAuditLogScreen from '../screens/finance/StokvelAuditLogScreen';
+import LearningHomeScreen from '../screens/learning/LearningHomeScreen';
+import CourseDetailScreen from '../screens/learning/CourseDetailScreen';
+import TutorDetailScreen from '../screens/learning/TutorDetailScreen';
+import CommunityDetailScreen from '../screens/learning/CommunityDetailScreen';
+import MyLearningScreen from '../screens/learning/MyLearningScreen';
+import MySessionsScreen from '../screens/learning/MySessionsScreen';
+import EntertainmentHomeScreen from '../screens/entertainment/EntertainmentHomeScreen';
+import MovieDetailScreen from '../screens/entertainment/MovieDetailScreen';
+import ConcertDetailScreen from '../screens/entertainment/ConcertDetailScreen';
+import EventDetailScreen from '../screens/entertainment/EventDetailScreen';
+import MyEntertainmentBookingsScreen from '../screens/entertainment/MyEntertainmentBookingsScreen';
+import MyEventsScreen from '../screens/entertainment/MyEventsScreen';
+import EventFormScreen from '../screens/entertainment/EventFormScreen';
+import ManageEventScreen from '../screens/entertainment/ManageEventScreen';
+import JoinEventTeamScreen from '../screens/entertainment/JoinEventTeamScreen';
+import VerifyTicketScreen from '../screens/entertainment/VerifyTicketScreen';
+import EventTicketsScreen from '../screens/entertainment/EventTicketsScreen';
+import CarFindHomeScreen from '../screens/carfind/CarFindHomeScreen';
+import CarFindDetailScreen from '../screens/carfind/CarFindDetailScreen';
+import MyCarListingsScreen from '../screens/carfind/MyCarListingsScreen';
+import MyCarEnquiriesScreen from '../screens/carfind/MyCarEnquiriesScreen';
+import CarListingFormScreen from '../screens/carfind/CarListingFormScreen';
+import CarWashHomeScreen from '../screens/carwash/CarWashHomeScreen';
+import CarWashDetailScreen from '../screens/carwash/CarWashDetailScreen';
+import ManageCarWashScreen from '../screens/carwash/ManageCarWashScreen';
+import MyCarWashBookingsScreen from '../screens/carwash/MyCarWashBookingsScreen';
+import CardsHomeScreen from '../screens/hub/cards/CardsHomeScreen';
+import FiveCardsLobbyScreen from '../screens/hub/cards/FiveCardsLobbyScreen';
+import FiveCardsGameScreen from '../screens/hub/cards/FiveCardsGameScreen';
+import CassinoLobbyScreen from '../screens/hub/cards/CassinoLobbyScreen';
+import CassinoGameScreen from '../screens/hub/cards/CassinoGameScreen';
+import CardRoomScreen from '../screens/hub/cards/CardRoomScreen';
+import CardsMatchHistoryScreen from '../screens/hub/cards/CardsMatchHistoryScreen';
+import CardsReplayViewerScreen from '../screens/hub/cards/CardsReplayViewerScreen';
+import CardsLeaderboardScreen from '../screens/hub/cards/CardsLeaderboardScreen';
+import CardsTournamentListScreen from '../screens/hub/cards/CardsTournamentListScreen';
+import CardsTournamentBracketScreen from '../screens/hub/cards/CardsTournamentBracketScreen';
+import CardsDailyChallengesScreen from '../screens/hub/cards/CardsDailyChallengesScreen';
+import CardsAchievementsScreen from '../screens/hub/cards/CardsAchievementsScreen';
+import FriendsListScreen from '../screens/friends/FriendsListScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default function HubStackNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="LifeHome" component={LifeScreen} />
+      <Stack.Screen name="Hub" component={HubScreen} />
+      <Stack.Screen name="Games" component={GamesScreen} />
+      <Stack.Screen name="HubHome" component={HubScreen} />
+      <Stack.Screen name="Arcade" component={ArcadeScreen} />
+      <Stack.Screen name="ChessLobby" component={ChessLobbyScreen} />
+      <Stack.Screen name="ChessGame" component={ChessGameScreen} />
+      <Stack.Screen name="LudoLobby" component={LudoLobbyScreen} />
+      <Stack.Screen name="LudoGame" component={LudoGameScreen} />
+      <Stack.Screen name="MurabarabaLobby" component={MurabarabaLobbyScreen} />
+      <Stack.Screen name="MurabarabaGame" component={MurabarabaGameScreen} />
+      <Stack.Screen name="PoolLobby" component={PoolLobbyScreen} />
+      <Stack.Screen name="PoolGame" component={PoolGameScreen} />
+      <Stack.Screen name="TurboRacingLobby" component={TurboRacingLobbyScreen} />
+      <Stack.Screen name="TurboRacingGame" component={TurboRacingGameScreen} />
+      <Stack.Screen name="WordBattleLobby" component={WordBattleLobbyScreen} />
+      <Stack.Screen name="WordleDuel" component={WordleDuelScreen} />
+      <Stack.Screen name="Boggle" component={BoggleScreen} />
+      <Stack.Screen name="Scrabble" component={ScrabbleScreen} />
+      <Stack.Screen name="Ride" component={RideScreen} />
+      <Stack.Screen name="Food" component={FoodScreen} />
+      <Stack.Screen name="Category" component={CategoryScreen} />
+      <Stack.Screen name="ExternalApp" component={ExternalAppScreen} />
+      <Stack.Screen name="EatHome" component={EatHomeScreen} />
+      <Stack.Screen name="EatStore" component={EatStoreScreen} />
+      <Stack.Screen name="EatCart" component={EatCartScreen} />
+      <Stack.Screen name="EatOrders" component={EatOrdersScreen} />
+      <Stack.Screen name="EatOrderTracking" component={EatOrderTrackingScreen} />
+      <Stack.Screen name="ShoppingHome" component={ShoppingHomeScreen} />
+      <Stack.Screen name="ShoppingProduct" component={ShoppingProductScreen} />
+      <Stack.Screen name="ShoppingStore" component={ShoppingStoreScreen} />
+      <Stack.Screen name="ShoppingCart" component={ShoppingCartScreen} />
+      <Stack.Screen name="ShoppingOrders" component={ShoppingOrdersScreen} />
+      <Stack.Screen name="ShoppingOrderTracking" component={ShoppingOrderTrackingScreen} />
+      <Stack.Screen name="TravelHome" component={TravelHomeScreen} />
+      <Stack.Screen name="TravelStayDetail" component={TravelStayDetailScreen} />
+      <Stack.Screen name="TravelCarDetail" component={TravelCarDetailScreen} />
+      <Stack.Screen name="TravelFlightDetail" component={TravelFlightDetailScreen} />
+      <Stack.Screen name="TravelPackageDetail" component={TravelPackageDetailScreen} />
+      <Stack.Screen name="TravelTrips" component={TravelTripsScreen} />
+      <Stack.Screen name="WorkHome" component={WorkHomeScreen} />
+      <Stack.Screen name="WorkJobDetail" component={WorkJobDetailScreen} />
+      <Stack.Screen name="WorkGigDetail" component={WorkGigDetailScreen} />
+      <Stack.Screen name="WorkCompanyDetail" component={WorkCompanyDetailScreen} />
+      <Stack.Screen name="WorkApplications" component={WorkApplicationsScreen} />
+      <Stack.Screen name="HealthHome" component={HealthHomeScreen} />
+      <Stack.Screen name="HealthAddLog" component={HealthAddLogScreen} />
+      <Stack.Screen name="HealthPractitionerDetail" component={HealthPractitionerDetailScreen} />
+      <Stack.Screen name="HealthPharmacyDetail" component={HealthPharmacyDetailScreen} />
+      <Stack.Screen name="HealthWellnessDetail" component={HealthWellnessDetailScreen} />
+      <Stack.Screen name="HealthAppointments" component={HealthAppointmentsScreen} />
+      <Stack.Screen name="HealthOrders" component={HealthOrdersScreen} />
+      <Stack.Screen name="FinanceHome" component={FinanceHomeScreen} />
+      <Stack.Screen name="CreateStokvel" component={CreateStokvelScreen} />
+      <Stack.Screen name="StokvelDetail" component={StokvelDetailScreen} />
+      <Stack.Screen name="CreateFundingRequest" component={CreateFundingRequestScreen} />
+      <Stack.Screen name="FundingRequestDetail" component={FundingRequestDetailScreen} />
+      <Stack.Screen name="StokvelAuditLog" component={StokvelAuditLogScreen} />
+      <Stack.Screen name="LearningHome" component={LearningHomeScreen} />
+      <Stack.Screen name="CourseDetail" component={CourseDetailScreen} />
+      <Stack.Screen name="TutorDetail" component={TutorDetailScreen} />
+      <Stack.Screen name="CommunityDetail" component={CommunityDetailScreen} />
+      <Stack.Screen name="MyLearning" component={MyLearningScreen} />
+      <Stack.Screen name="MySessions" component={MySessionsScreen} />
+      <Stack.Screen name="EntertainmentHome" component={EntertainmentHomeScreen} />
+      <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
+      <Stack.Screen name="ConcertDetail" component={ConcertDetailScreen} />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+      <Stack.Screen name="MyEntertainmentBookings" component={MyEntertainmentBookingsScreen} />
+      <Stack.Screen name="MyEvents" component={MyEventsScreen} />
+      <Stack.Screen name="EventForm" component={EventFormScreen} />
+      <Stack.Screen name="ManageEvent" component={ManageEventScreen} />
+      <Stack.Screen name="JoinEventTeam" component={JoinEventTeamScreen} />
+      <Stack.Screen name="VerifyTicket" component={VerifyTicketScreen} />
+      <Stack.Screen name="EventTickets" component={EventTicketsScreen} />
+      <Stack.Screen name="CarFindHome" component={CarFindHomeScreen} />
+      <Stack.Screen name="CarFindDetail" component={CarFindDetailScreen} />
+      <Stack.Screen name="MyCarListings" component={MyCarListingsScreen} />
+      <Stack.Screen name="MyCarEnquiries" component={MyCarEnquiriesScreen} />
+      <Stack.Screen name="CarListingForm" component={CarListingFormScreen} />
+      <Stack.Screen name="CarWashHome" component={CarWashHomeScreen} />
+      <Stack.Screen name="CarWashDetail" component={CarWashDetailScreen} />
+      <Stack.Screen name="ManageCarWash" component={ManageCarWashScreen} />
+      <Stack.Screen name="MyCarWashBookings" component={MyCarWashBookingsScreen} />
+      <Stack.Screen name="CardsHome" component={CardsHomeScreen} />
+      <Stack.Screen name="FiveCardsLobby" component={FiveCardsLobbyScreen} />
+      <Stack.Screen name="FiveCardsGame" component={FiveCardsGameScreen} />
+      <Stack.Screen name="CassinoLobby" component={CassinoLobbyScreen} />
+      <Stack.Screen name="CassinoGame" component={CassinoGameScreen} />
+      <Stack.Screen name="CardRoom" component={CardRoomScreen} />
+      <Stack.Screen name="CardsMatchHistory" component={CardsMatchHistoryScreen} />
+      <Stack.Screen name="CardsReplayViewer" component={CardsReplayViewerScreen} />
+      <Stack.Screen name="CardsLeaderboard" component={CardsLeaderboardScreen} />
+      <Stack.Screen name="CardsTournamentList" component={CardsTournamentListScreen} />
+      <Stack.Screen name="CardsTournamentBracket" component={CardsTournamentBracketScreen} />
+      <Stack.Screen name="CardsDailyChallenges" component={CardsDailyChallengesScreen} />
+      <Stack.Screen name="CardsAchievements" component={CardsAchievementsScreen} />
+      <Stack.Screen name="FriendsList" component={FriendsListScreen} />
+    </Stack.Navigator>
+  );
+}

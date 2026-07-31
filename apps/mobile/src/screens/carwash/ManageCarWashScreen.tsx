@@ -1,0 +1,189 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { fetchApi } from '../../utils/api';
+
+export default function ManageCarWashScreen({ navigation }: any) {
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [address, setAddress] = useState('');
+  const [services, setServices] = useState([{ id: 1, name: '', description: '', price: '' }]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const addService = () => {
+    setServices([...services, { id: Date.now(), name: '', description: '', price: '' }]);
+  };
+
+  const updateService = (id: number, field: string, value: string) => {
+    setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const removeService = (id: number) => {
+    setServices(services.filter(s => s.id !== id));
+  };
+
+  const handleSubmit = async () => {
+    if (!name || !address) {
+      Alert.alert('Missing fields', 'Please provide a name and address.');
+      return;
+    }
+    
+    const validServices = services.filter(s => s.name && s.price);
+
+    try {
+      setSubmitting(true);
+      const res = await fetchApi('/carwash', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          description: desc,
+          address,
+          services: validServices,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to create car wash');
+      }
+
+      Alert.alert('Success', 'Car wash created successfully!');
+      navigation.goBack();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={TYPOGRAPHY.h2}>Manage Car Wash</Text>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={submitting}>
+          {submitting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.saveText}>Save</Text>}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
+        <Text style={styles.label}>Car Wash Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Sparkle Wash"
+          placeholderTextColor={COLORS.textMuted}
+          value={name}
+          onChangeText={setName}
+        />
+
+        <Text style={styles.label}>Address</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. 123 Main St"
+          placeholderTextColor={COLORS.textMuted}
+          value={address}
+          onChangeText={setAddress}
+        />
+
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+          placeholder="Tell customers about your car wash"
+          placeholderTextColor={COLORS.textMuted}
+          multiline
+          value={desc}
+          onChangeText={setDesc}
+        />
+
+        <View style={styles.servicesHeader}>
+          <Text style={styles.sectionTitle}>Services & Prices</Text>
+          <TouchableOpacity onPress={addService}>
+            <Ionicons name="add-circle" size={24} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {services.map((service) => (
+          <View key={service.id} style={styles.serviceRow}>
+            <View style={{ flex: 1, gap: 8 }}>
+              <TextInput
+                style={styles.input}
+                placeholder="Service Name (e.g. Full Wash)"
+                placeholderTextColor={COLORS.textMuted}
+                value={service.name}
+                onChangeText={t => updateService(service.id, 'name', t)}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Description"
+                placeholderTextColor={COLORS.textMuted}
+                value={service.description}
+                onChangeText={t => updateService(service.id, 'description', t)}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Price (MSH)"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={service.price}
+                onChangeText={t => updateService(service.id, 'price', t)}
+              />
+            </View>
+            {services.length > 1 && (
+              <TouchableOpacity onPress={() => removeService(service.id)} style={styles.removeBtn}>
+                <Ionicons name="trash" size={20} color="#EF4444" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  backBtn: {
+    width: 40, height: 40,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.glass,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  saveBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: RADIUS.pill,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  saveText: { color: '#FFF', fontWeight: 'bold' },
+  label: { ...TYPOGRAPHY.label, marginBottom: 8, marginTop: 16 },
+  input: {
+    backgroundColor: COLORS.glass,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    color: COLORS.text,
+  },
+  servicesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, marginBottom: 16 },
+  sectionTitle: { ...TYPOGRAPHY.h3 },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    marginBottom: SPACING.md,
+  },
+  removeBtn: { padding: 8, marginLeft: 8 },
+});

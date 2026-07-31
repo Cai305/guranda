@@ -1,0 +1,76 @@
+{
+  "expo": {
+    "name": "Guranda",
+    "slug": "lifeos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07070C",
+    "scheme": "lifeos",
+    "splash": {
+      "backgroundColor": "#07070C",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#07070C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.lifeos"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Guranda",
+      "shortName": "Guranda",
+      "themeColor": "#8B5CF6",
+      "backgroundColor": "#07070C",
+      "description": "Guranda — One Identity. One Economy. One Life."
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-audio",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Guranda uses your photo library so you can share photos and videos in chat.",
+          "cameraPermission": "Guranda uses the camera so you can take and send a photo or video in chat.",
+          "microphonePermission": "Guranda uses the microphone to record video with sound when you take a video in chat."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Guranda uses the camera to scan QR codes for adding contacts."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#8B5CF6"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Guranda uses your location so your AI companion can help with nearby recommendations, rides, weather, and travel planning."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Guranda uses the microphone so you can talk to your AI companion.",
+          "speechRecognitionPermission": "Guranda uses on-device speech recognition to turn what you say to your AI companion into text."
+        }
+      ]
+    ]
+  }
+}
