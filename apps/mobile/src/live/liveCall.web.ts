@@ -7,6 +7,7 @@ import { Room, RoomEvent, Track, RemoteTrack } from 'livekit-client';
 
 export interface CallSession {
   room: Room;
+  cameraEnabled: boolean;
   disconnect: () => Promise<void>;
 }
 
@@ -32,7 +33,19 @@ export async function connectToCall(
 
   await room.connect(wsUrl, token);
   await room.localParticipant.setMicrophoneEnabled(true);
-  if (video) await room.localParticipant.setCameraEnabled(true);
+
+  // A camera failure (permission denied, device busy, no camera present)
+  // must not take the whole call down with it — fall back to audio-only
+  // and let the caller know via `cameraEnabled` instead of throwing.
+  let cameraEnabled = false;
+  if (video) {
+    try {
+      await room.localParticipant.setCameraEnabled(true);
+      cameraEnabled = true;
+    } catch (e) {
+      console.warn('Camera unavailable, continuing call as audio-only:', e);
+    }
+  }
 
   // Pick up anything the other participant already published before we
   // subscribed (they may have connected first while we were still ringing).
@@ -47,9 +60,10 @@ export async function connectToCall(
 
   return {
     room,
+    cameraEnabled,
     disconnect: async () => {
       await room.localParticipant.setMicrophoneEnabled(false);
-      if (video) await room.localParticipant.setCameraEnabled(false);
+      if (cameraEnabled) await room.localParticipant.setCameraEnabled(false);
       room.disconnect();
     },
   };

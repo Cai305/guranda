@@ -5,6 +5,7 @@
 
 export interface CallSession {
   room: any;
+  cameraEnabled: boolean;
   disconnect: () => Promise<void>;
 }
 
