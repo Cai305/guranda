@@ -15,6 +15,7 @@ import * as Linking from 'expo-linking';
 import { navigationRef } from './src/navigation/navigationRef';
 import AiFloatingOrb from './src/components/ai/AiFloatingOrb';
 import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
+import UploadStatusOverlay from './src/components/UploadStatusOverlay';
 
 const prefix = Linking.createURL('/');
 const linking = {
@@ -62,6 +63,7 @@ export default function App() {
             </NavigationContainer>
             <AiFloatingOrb />
             <IncomingCallOverlay />
+            <UploadStatusOverlay />
           </SocketProvider>
           </ShoppingCartProvider>
           </CartProvider>
