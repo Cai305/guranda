@@ -84,6 +84,7 @@ export default function CallScreen({ navigation, route }: any) {
         () => endCall(),
       );
       sessionRef.current = session;
+      if (video && !session.cameraEnabled) setCamOn(false);
       setStatus('connected');
     } catch (e: any) {
       setEndReason(e.message || 'Could not connect to the call.');
