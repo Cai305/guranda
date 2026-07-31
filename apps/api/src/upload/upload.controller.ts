@@ -9,7 +9,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Request } from 'express';
-import { uploadToBlob } from '../blob.util';
+import { uploadToSupabase } from '../supabase.util';
 import { JwtAuthGuard } from '../auth/auth.guard';
 
 // Was fully unauthenticated — anyone, with no account at all, could upload
@@ -48,7 +48,7 @@ export class UploadController {
     const isVideo = file.mimetype.startsWith('video/');
     const isAudio = file.mimetype.startsWith('audio/');
     const folder = isVideo ? 'videos' : isAudio ? 'audio' : 'images';
-    const url = await uploadToBlob(folder, file);
+    const url = await uploadToSupabase(folder, file);
     return { url, mediaType: isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : 'IMAGE' };
   }
 }

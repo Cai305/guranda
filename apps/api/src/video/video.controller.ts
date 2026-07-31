@@ -17,7 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Request as ExpressRequest } from 'express';
 import { VideoService } from './video.service';
-import { uploadToBlob } from '../blob.util';
+import { uploadToSupabase } from '../supabase.util';
 import { JwtAuthGuard } from '../auth/auth.guard';
 
 // Previously every route here read a client-supplied `x-user-id` header
@@ -59,7 +59,7 @@ export class VideoController {
     if (!duration || duration <= 45)
       throw new BadRequestException('Video must be longer than 45 seconds');
 
-    const url = await uploadToBlob('videos', file);
+    const url = await uploadToSupabase('videos', file);
 
     return this.video.createVideo(req.user.userId, {
       title: body.title || 'Untitled',
