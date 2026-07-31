@@ -33,7 +33,7 @@ export class ChatService {
       memberships.map(async (m) => {
         const chat = m.chat;
         let name = chat.name;
-        let targetUserId = null;
+        let targetUserId: string | null = null;
 
         // If it's a DIRECT chat, use the other user's name
         if (chat.type === 'DIRECT') {

@@ -84,8 +84,8 @@ export class UsersService {
       });
 
       // Generate XRPL Wallet
-      let xrplAddress = null;
-      let encryptedSeed = null;
+      let xrplAddress: string | null = null;
+      let encryptedSeed: string | null = null;
 
       if (!dto.isSelfCustodial) {
         // Platform Managed: We generate and store it
