@@ -18,7 +18,10 @@
       "Bash(curl -s -X POST http://localhost:3000/users/register -H \"Content-Type: application/json\" -d \"{\\\\\"username\\\\\":\\\\\"cardtest_alice\\\\\",\\\\\"passwordHash\\\\\":\\\\\"Test1234!\\\\\",\\\\\"isSelfCustodial\\\\\":true,\\\\\"firstName\\\\\":\\\\\"Alice\\\\\",\\\\\"lastName\\\\\":\\\\\"Test\\\\\",\\\\\"occupation\\\\\":\\\\\"Tester\\\\\"}\")",
       "Bash(curl -s http://localhost:3000/wallets/me -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ZDQ1NDkyMS0zM2E3LTQ0YjYtOTZjYi1lMGEzNjhiNDcxMTYiLCJ1c2VybmFtZSI6ImNhcmR0ZXN0X2FsaWNlIiwiaWF0IjoxNzg1NDEwMDc1LCJleHAiOjE3ODYwMTQ4NzV9.lv5gLyt2UVNGZmZu6ndDtyuYxRuHVO5ZG3EK1hxZ190')",
       "Bash(node test_discard.js)",
-      "Bash(node verify_room_and_cassino.js)"
+      "Bash(node verify_room_and_cassino.js)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(base64 -w0 \"C:/Users/USER/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/f6d53566-8b98-4d03-9455-40d7939b9958/135306bd-6790-488f-aace-c2010d1afe4e/skills/morning/assets/fonts/fraunces-latin-600-normal.woff2\" > \"C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER-Desktop-mxit2-0/3ce5943d-4117-4a19-8981-e21262bae26f/scratchpad/fraunces_b64.txt\" && wc -c \"C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER-Desktop-mxit2-0/3ce5943d-4117-4a19-8981-e21262bae26f/scratchpad/fraunces_b64.txt\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:8934/)"
     ]
   }
 }
