@@ -14,9 +14,9 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: BLOB_READ_WRITE_TOKEN
-        sync: false
       - key: SUPABASE_URL
         value: https://iibtgxsegeisfkfqmsgl.supabase.co
       - key: SUPABASE_PUBLISHABLE_KEY
         value: sb_publishable_NnJC48d0atOQcT826tfm8Q_AUzsnUUj
+      - key: SUPABASE_SECRET_KEY
+        sync: false
