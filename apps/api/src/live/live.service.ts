@@ -139,8 +139,19 @@ export class LiveService {
     if (!room || !room.isLive)
       throw new NotFoundException('This stream has ended');
 
-    const token = await this.mintToken(room.roomName, userId, userName, false);
-    return { roomName: room.roomName, token, wsUrl: this.wsUrl };
+    // The host rejoining their own still-live room (app backgrounded,
+    // screen navigated away and back, etc.) needs a publish-capable token
+    // and a signal to the client to open the host studio, not viewer mode.
+    const isHost = room.hostId === userId;
+    const token = await this.mintToken(room.roomName, userId, userName, isHost);
+    return {
+      roomName: room.roomName,
+      token,
+      wsUrl: this.wsUrl,
+      isHost,
+      title: room.title,
+      categoryId: room.categoryId,
+    };
   }
 
   async end(roomId: string, userId: string) {

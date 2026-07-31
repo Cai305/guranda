@@ -54,26 +54,51 @@ export async function connectAsViewer(
 ): Promise<ViewerSession> {
   const room = new Room({ adaptiveStream: true });
 
+  // Video gets handed to the caller to render via LiveVideoView. Audio has
+  // no visual to render, so it's played here directly — attach() with no
+  // element creates a real HTMLAudioElement, which just needs to stay in
+  // the DOM for the browser to actually play it.
+  const audioElements = new Set<HTMLMediaElement>();
+  const attachAudio = (track: RemoteTrack) => {
+    const el = track.attach() as HTMLAudioElement;
+    el.autoplay = true;
+    document.body.appendChild(el);
+    audioElements.add(el);
+  };
+  const detachAudio = (track: RemoteTrack) => {
+    track.detach().forEach(el => { el.remove(); audioElements.delete(el); });
+  };
+
   const reportCount = () => onParticipantCountChange(room.numParticipants + 1);
 
   room.on(RoomEvent.TrackSubscribed, (track) => {
     if (track.kind === Track.Kind.Video) onRemoteVideoTrack(track);
+    else if (track.kind === Track.Kind.Audio) attachAudio(track);
   });
   room.on(RoomEvent.TrackUnsubscribed, (track) => {
     if (track.kind === Track.Kind.Video) onRemoteVideoTrack(null);
+    else if (track.kind === Track.Kind.Audio) detachAudio(track);
   });
   room.on(RoomEvent.ParticipantConnected, reportCount);
   room.on(RoomEvent.ParticipantDisconnected, reportCount);
-  room.on(RoomEvent.Disconnected, () => onRemoteVideoTrack(null));
+  room.on(RoomEvent.Disconnected, () => {
+    onRemoteVideoTrack(null);
+    audioElements.forEach(el => el.remove());
+    audioElements.clear();
+  });
 
   await room.connect(wsUrl, token);
   reportCount();
 
-  // Pick up any video track the host published before we subscribed.
+  // Pick up any tracks the host published before we subscribed.
   room.remoteParticipants.forEach(participant => {
     participant.videoTrackPublications.forEach(pub => {
       const track = pub.videoTrack as RemoteTrack | undefined;
       if (track) onRemoteVideoTrack(track);
+    });
+    participant.audioTrackPublications.forEach(pub => {
+      const track = pub.audioTrack as RemoteTrack | undefined;
+      if (track) attachAudio(track);
     });
   });
 

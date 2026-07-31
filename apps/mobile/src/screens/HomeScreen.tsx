@@ -19,7 +19,7 @@ import { useSocket } from '../context/SocketContext';
 import { useStore } from '../context/StoreContext';
 import { fetchApi } from '../utils/api';
 import { MOCK_STREAMS } from '../data/mockLiveStreams';
-import { fetchLiveRooms, RealLiveStream } from '../data/liveApi';
+import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../data/liveApi';
 import { GAMES } from './hub/GamesScreen';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 
@@ -231,7 +231,7 @@ export default function HomeScreen({ navigation }: any) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.hList}
           renderItem={({ item }) => (
-            <LiveStreamCard stream={item} size="compact" onPress={stream => navigation.navigate('LiveViewer', { stream })} />
+            <LiveStreamCard stream={item} size="compact" onPress={stream => enterLiveStream(stream, user?.userId, navigation)} />
           )}
           ListFooterComponent={
             <TouchableOpacity style={styles.seeAllLiveCard} onPress={() => navigation.navigate('Live')}>
