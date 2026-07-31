@@ -73,6 +73,16 @@ export default function LiveHostScreen({ navigation, route }: any) {
     return () => {
       cancelled = true;
       sessionRef.current?.disconnect();
+      // Leaving this screen by ANY means (back button, closing the tab,
+      // navigating elsewhere) must end the stream server-side too — not
+      // just the explicit End Stream button below. Otherwise the room
+      // stays isLive:true forever with no one left who can stop it, since
+      // only the host can end their own stream. Safe to call even if
+      // endStream() already ended it (idempotent update on an already-
+      // ended room).
+      if (isReal && roomId) {
+        endRoom(roomId).catch(() => {});
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReal]);
