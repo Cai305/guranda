@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
-import { API_BASE_URL } from '../../utils/api';
+import { API_BASE_URL, xhrUploadFormData } from '../../utils/api';
+import { startUpload, updateUploadProgress, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
 
 const CATEGORIES = ['Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
 const MIN_DURATION_S = 45;
@@ -21,7 +22,7 @@ export default function VideoUploadScreen({ navigation }: any) {
 
   const pickVideo = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission needed', 'Allow access to your media library.'); return; }
+    if (!perm.granted) { notify('warning', 'Allow access to your media library.'); return; }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'],
@@ -71,50 +72,51 @@ export default function VideoUploadScreen({ navigation }: any) {
   };
 
   const upload = async () => {
-    if (!title.trim()) { Alert.alert('Missing title', 'Please enter a title'); return; }
-    if (!category) { Alert.alert('Missing category', 'Please select a category'); return; }
-    if (!videoUri) { Alert.alert('No video', 'Please pick a video'); return; }
+    if (!title.trim()) { notify('warning', 'Please enter a title'); return; }
+    if (!category) { notify('warning', 'Please select a category'); return; }
+    if (!videoUri) { notify('warning', 'Please pick a video'); return; }
     if (videoDuration !== null && videoDuration <= MIN_DURATION_S) {
       setDurationError(`Video must be longer than ${MIN_DURATION_S} seconds`);
       return;
     }
 
     setUploading(true);
+
+    let token: string | null = null;
+    if (Platform.OS === 'web') {
+      try { token = localStorage.getItem('userToken'); } catch {}
+    } else {
+      const { default: SecureStore } = await import('expo-secure-store');
+      token = await SecureStore.getItemAsync('userToken');
+    }
+
+    const form = new FormData();
+    if (Platform.OS === 'web') {
+      const blob = await fetch(videoUri).then(r => r.blob());
+      form.append('file', blob, 'video.mp4');
+    } else {
+      (form as any).append('file', { uri: videoUri, name: 'video.mp4', type: 'video/mp4' });
+    }
+    form.append('title', title.trim());
+    form.append('description', description.trim());
+    form.append('category', category);
+    form.append('tags', tags);
+    form.append('duration', String(videoDuration ?? 60));
+
+    // xhrUploadFormData (not fetch) is what makes the real percentage in the
+    // progress bar possible — fetch has no upload-progress event.
+    const uploadId = startUpload('Uploading video…');
     try {
-      let token: string | null = null;
-      let userId: string | null = null;
-      try {
-        token = localStorage.getItem('userToken');
-        const raw = localStorage.getItem('userData');
-        if (raw) userId = JSON.parse(raw).userId;
-      } catch {}
-
-      const form = new FormData();
-      if (Platform.OS === 'web') {
-        const blob = await fetch(videoUri).then(r => r.blob());
-        form.append('file', blob, 'video.mp4');
-      } else {
-        (form as any).append('file', { uri: videoUri, name: 'video.mp4', type: 'video/mp4' });
-      }
-      form.append('title', title.trim());
-      form.append('description', description.trim());
-      form.append('category', category);
-      form.append('tags', tags);
-      form.append('duration', String(videoDuration ?? 60));
-
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      if (userId) headers['x-user-id'] = userId;
-
-      const res = await fetch(`${API_BASE_URL}/videos/upload`, { method: 'POST', headers, body: form });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Upload failed');
-      }
-
-      Alert.alert('Uploaded!', 'Your video is now live on Discovery.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      await xhrUploadFormData(
+        `${API_BASE_URL}/videos/upload`,
+        form,
+        token,
+        (percent) => updateUploadProgress(uploadId, percent),
+      );
+      finishUpload(uploadId, 'Your video is now live on Discovery');
+      navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Upload failed', e.message || 'Something went wrong');
+      failUpload(uploadId, e.message || 'Upload failed');
     }
     setUploading(false);
   };

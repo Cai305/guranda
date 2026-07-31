@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { startUpload, updateUploadProgress, finishUpload, failUpload } from './uploadStatusStore';
 
 const LOCAL_API_BASE_URL = 'http://localhost:3000';
 const NGROK_API_BASE_URL = 'https://oppressed-vertical-semicolon.ngrok-free.dev';
@@ -92,6 +93,37 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   return response;
 }
 
+// fetch() has no way to report upload progress — only XMLHttpRequest does
+// (both on web and inside React Native's own networking layer), so this is
+// the one place any multipart upload in the app should go through if it
+// wants a real percentage rather than an indeterminate spinner.
+export function xhrUploadFormData(
+  url: string,
+  formData: FormData,
+  token: string | null,
+  onProgress: (percent: number) => void,
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      let parsed: any = null;
+      try { parsed = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(parsed ?? {});
+      } else {
+        reject(new Error(parsed?.message || `Upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(formData);
+  });
+}
+
 export async function uploadImage(uri: string): Promise<string> {
   const { url } = await uploadMedia(uri, 'image');
   return url;
@@ -133,14 +165,23 @@ export async function uploadMedia(
     (formData as any).append('file', { uri, name, type });
   }
 
-  const res = await fetch(`${API_BASE_URL}/upload`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
-  });
-  const data = await res.json();
-  if (!data.url) throw new Error('Upload failed');
-  const url = /^https?:\/\//.test(data.url) ? data.url : `${API_BASE_URL}${data.url}`;
-  const mediaType = data.mediaType === 'VIDEO' ? 'VIDEO' : data.mediaType === 'AUDIO' ? 'AUDIO' : 'IMAGE';
-  return { url, mediaType };
+  const uploadId = startUpload(
+    isVideo ? 'Uploading video…' : isAudio ? 'Uploading audio…' : 'Uploading image…',
+  );
+  try {
+    const data = await xhrUploadFormData(
+      `${API_BASE_URL}/upload`,
+      formData,
+      token,
+      (percent) => updateUploadProgress(uploadId, percent),
+    );
+    if (!data.url) throw new Error('Upload failed');
+    const url = /^https?:\/\//.test(data.url) ? data.url : `${API_BASE_URL}${data.url}`;
+    const mediaType = data.mediaType === 'VIDEO' ? 'VIDEO' : data.mediaType === 'AUDIO' ? 'AUDIO' : 'IMAGE';
+    finishUpload(uploadId, 'Uploaded');
+    return { url, mediaType };
+  } catch (e) {
+    failUpload(uploadId, e instanceof Error ? e.message : 'Upload failed');
+    throw e;
+  }
 }
