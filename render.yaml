@@ -2,16 +2,21 @@ services:
   - type: web
     name: guranda-api
     env: node
-    buildCommand: npm install && cd apps/api && npx prisma generate && npm run build
-    startCommand: cd apps/api && npm run start:prod
+    rootDir: apps/api
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: FRONTEND_URL
-        value: https://guranda.co.za
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: BLOB_READ_WRITE_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        value: https://iibtgxsegeisfkfqmsgl.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_NnJC48d0atOQcT826tfm8Q_AUzsnUUj
