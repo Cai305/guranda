@@ -1,0 +1,2488 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  MEMBER
+  ADMIN
+}
+
+model User {
+  id                           String                    @id @default(uuid())
+  username                     String                    @unique
+  phoneNumber                  String?                   @unique
+  passwordHash                 String
+  role                         UserRole                  @default(MEMBER)
+  isSuspended                  Boolean                   @default(false)
+  isSelfCustodial              Boolean                   @default(false)
+  expoPushToken                String?
+  locationLat                  Float?
+  locationLng                  Float?
+  locationLabel                String?
+  locationUpdatedAt            DateTime?
+  activeUsernameId             String?                   @unique
+  activeUsername               Username?                 @relation("userActiveUsername", fields: [activeUsernameId], references: [id])
+  usernamesOwned               Username[]                @relation("usernameOwner")
+  usernameBids                 UsernameBid[]             @relation("usernameBids")
+  adCampaigns                  AdCampaign[]
+  createdAt                    DateTime                  @default(now())
+  profile                      UserProfile?
+  wallet                       Wallet?
+  depositRequests              DepositRequest[]
+  toolExecutionLogs            ToolExecutionLog[]
+  sentMessages                 Message[]
+  chatMemberships              ChatMember[]
+  posts                        Post[]
+  postLikes                    PostLike[]
+  comments                     Comment[]
+  communityMemberships         CommunityMember[]
+  storyLikes                   StoryLike[]
+  storyComments                StoryComment[]
+  storyRanks                   StoryRank[]
+  storyItemsSold               StoryItem[]               @relation("storyItemsSold")
+  storyItemsBought             StoryItem[]               @relation("storyItemsBought")
+  whiteGames                   ChessGame[]               @relation("whiteGames")
+  blackGames                   ChessGame[]               @relation("blackGames")
+  storeApps                    StoreApp[]
+  liveRooms                    LiveRoom[]
+  ludoGames                    LudoGame[]
+  driverProfile                DriverProfile?
+  ridesAsRider                 Ride[]                    @relation("ridesAsRider")
+  ridesAsDriver                Ride[]                    @relation("ridesAsDriver")
+  eatStores                    EatStore[]                @relation("eatStores")
+  eatOrders                    EatOrder[]                @relation("eatOrders")
+  videos                       Video[]                   @relation("videosUploaded")
+  videoLikes                   VideoLike[]
+  videoComments                VideoComment[]
+  playlists                    Playlist[]
+  watchLater                   WatchLater[]
+  watchHistory                 WatchHistory[]
+  interests                    UserInterest[]
+  aiAgent                      AiAgent?
+  stories                      Story[]
+  propertiesManaged            Property[]                @relation("propertiesManaged")
+  tenancies                    Tenancy[]                 @relation("tenancies")
+  carListingsSold              CarListing[]              @relation("carListingsSold")
+  carEnquiriesMade             CarEnquiry[]              @relation("carEnquiriesMade")
+  verification                 Verification?
+  wordBattleGames              WordBattleGame[]
+  marketplaceListings          MarketplaceListing[]      @relation("marketplaceListings")
+  marketplaceBids              MarketplaceBid[]
+  invoicesReceived             Invoice[]                 @relation("invoicesReceived")
+  invoicesIssued               Invoice[]                 @relation("invoicesIssued")
+  giftsSent                    Gift[]                    @relation("giftsSent")
+  giftsReceived                Gift[]                    @relation("giftsReceived")
+  poolGames                    PoolGame[]
+  murabarabaGames              MurabarabaGame[]
+  turboRaces                   TurboRacingRace[]
+  turboCarUpgrades             TurboCarUpgrades?
+  shoppingStores               ShoppingStore[]           @relation("shoppingStores")
+  shoppingOrders               ShoppingOrder[]           @relation("shoppingOrders")
+  travelStaysHosted            TravelStay[]              @relation("travelStaysHosted")
+  travelStayBookings           TravelStayBooking[]       @relation("travelStayBookings")
+  travelCarsHosted             TravelCar[]               @relation("travelCarsHosted")
+  travelCarBookings            TravelCarBooking[]        @relation("travelCarBookings")
+  travelFlightBookings         TravelFlightBooking[]
+  travelPackageBookings        TravelPackageBooking[]
+  liveQuizAnswers              LiveQuizAnswer[]
+  livePollVotes                LivePollVote[]
+  livePredictionBets           LivePredictionBet[]
+  liveJobApplications          LiveJobApplication[]
+  liveQuestionsAsked           LiveQuestion[]
+  workCompaniesOwned           WorkCompany[]             @relation("workCompaniesOwned")
+  workJobsPosted               WorkJob[]                 @relation("workJobsPosted")
+  workJobApplications          WorkJobApplication[]      @relation("workJobApplications")
+  workGigsPosted               WorkGig[]                 @relation("workGigsPosted")
+  workGigsAssigned             WorkGig[]                 @relation("workGigsAssigned")
+  workGigProposals             WorkGigProposal[]         @relation("workGigProposals")
+  healthFitnessLogs            HealthFitnessLog[]
+  healthPractitionersOwned     HealthPractitioner[]      @relation("healthPractitionersOwned")
+  healthAppointmentsBooked     HealthAppointment[]       @relation("healthAppointmentsBooked")
+  healthPharmaciesOwned        HealthPharmacy[]          @relation("healthPharmaciesOwned")
+  healthPharmacyOrders         HealthPharmacyOrder[]     @relation("healthPharmacyOrders")
+  healthWellnessPosts          HealthWellnessPost[]      @relation("healthWellnessPosts")
+  healthWellnessLikes          HealthWellnessLike[]      @relation("healthWellnessLikes")
+  stokvelsCreated              Stokvel[]                 @relation("stokvelsCreated")
+  stokvelMemberships           StokvelMember[]
+  stokvelRequestsMade          StokvelFundingRequest[]   @relation("stokvelRequestsMade")
+  learningCoursesCreated       LearningCourse[]          @relation("learningCoursesCreated")
+  learningEnrollments          LearningEnrollment[]
+  learningTutorProfile         LearningTutor?            @relation("learningTutorProfile")
+  learningSessionsBooked       LearningTutorSession[]    @relation("learningSessionsBooked")
+  learningCommunitiesCreated   LearningCommunity[]       @relation("learningCommunitiesCreated")
+  learningCommunityMemberships LearningCommunityMember[]
+  learningCommunityPosts       LearningCommunityPost[]
+  hairdresserProfile           HairdresserProfile?       @relation("hairdresserProfile")
+  hairBookings                 HairBooking[]             @relation("hairBookings")
+  entertainmentMovieBookings   MovieBooking[]            @relation("entertainmentMovieBookings")
+  entertainmentConcertBookings ConcertBooking[]          @relation("entertainmentConcertBookings")
+  entertainmentEventBookings   EventBooking[]            @relation("entertainmentEventBookings")
+  eventsOrganized              EventListing[]            @relation("eventOrganizer")
+  eventManagerships            EventManager[]            @relation("eventManagerships")
+  eventScannerships            EventScanner[]            @relation("eventScannerships")
+  adminActionLogs              AdminActionLog[]
+  carWashes                    CarWash[]                 @relation("userCarWashes")
+  carWashBookings              CarWashBooking[]          @relation("userCarWashBookings")
+  referralCode                 String?                   @unique
+  cardGamesCreated             CardGame[]                @relation("cardGamesCreated")
+  cardRoomsHosted              CardRoom[]
+  cardGameStats                CardGameStats[]
+  friendRequestsSent           Friendship[]              @relation("friendRequestsSent")
+  friendRequestsReceived       Friendship[]              @relation("friendRequestsReceived")
+  cardTournamentsCreated       CardTournament[]
+  cardTournamentEntries        CardTournamentEntry[]
+  achievementsUnlocked         UserAchievement[]
+  challengeProgress            UserChallengeProgress[]
+  referralsMade                Referral[]                @relation("referralsMade")
+  referredBy                   Referral?                 @relation("referredBy")
+  reportsFiled                 PlayerReport[]            @relation("reportsFiled")
+  reportsReceived              PlayerReport[]            @relation("reportsReceived")
+}
+
+model UserProfile {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id])
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
+  statusMessage String?
+}
+
+model Wallet {
+  id               String           @id @default(uuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id])
+  balanceMasheleni Float            @default(0.0)
+  xrplAddress      String?
+  encryptedSeed    String?
+  transactions     Transaction[]
+  depositRequests  DepositRequest[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  txHash    String?
+  amount    Decimal
+  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE
+  status    String // PENDING, SUCCESS, FAILED
+  timestamp DateTime @default(now())
+}
+
+// A request to add real-world money (via PayShap or another rail) onto the
+// MSH ledger. No live PSP is wired in yet — this tracks the request and its
+// manual/admin confirmation; once a real PayShap merchant integration exists,
+// its webhook can call the same confirm() path this admin action uses.
+model DepositRequest {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  walletId    String
+  wallet      Wallet    @relation(fields: [walletId], references: [id])
+  reference   String    @unique
+  method      String    @default("PAYSHAP")
+  amountZar   Float
+  status      String    @default("PENDING") // PENDING, PAID, REJECTED
+  adminNote   String?
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+}
+
+model Chat {
+  id          String       @id @default(uuid())
+  type        String // DIRECT, GROUP, CHANNEL
+  name        String?
+  communityId String?
+  community   Community?   @relation(fields: [communityId], references: [id])
+  createdAt   DateTime     @default(now())
+  members     ChatMember[]
+  messages    Message[]
+}
+
+model ChatMember {
+  id         String   @id @default(uuid())
+  chatId     String
+  chat       Chat     @relation(fields: [chatId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  role       String   @default("MEMBER") // ADMIN, MOD, MEMBER
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime @default(now())
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id            String    @id @default(uuid())
+  chatId        String
+  chat          Chat      @relation(fields: [chatId], references: [id])
+  senderId      String
+  sender        User      @relation(fields: [senderId], references: [id])
+  content       String
+  mediaUrl      String?
+  isAiGenerated Boolean   @default(false)
+  isForwarded   Boolean   @default(false)
+  replyToId     String?
+  replyTo       Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies       Message[] @relation("MessageReplies")
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  @@index([replyToId])
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id])
+  content   String
+  mediaUrl  String?
+  mediaType String?
+  likes     PostLike[]
+  comments  Comment[]
+  createdAt DateTime   @default(now())
+}
+
+model PostLike {
+  id     String @id @default(uuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Community {
+  id          String            @id @default(uuid())
+  name        String
+  description String?
+  iconUrl     String?
+  createdAt   DateTime          @default(now())
+  members     CommunityMember[]
+  rooms       Chat[]
+}
+
+model CommunityMember {
+  id          String    @id @default(uuid())
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  role        String    @default("MEMBER") // ADMIN, MOD, MEMBER
+  joinedAt    DateTime  @default(now())
+
+  @@unique([communityId, userId])
+}
+
+// Paid, once-per-user-per-story interactions on labeled ("of the Day") stories.
+// Each charges CCR_RATE MSH straight to the story's author — see story.service.ts.
+model StoryLike {
+  id        String   @id @default(uuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+model StoryComment {
+  id        String   @id @default(uuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+model StoryRank {
+  id        String   @id @default(uuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  value     Int // 1-10
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+model StoryItem {
+  id        String    @id @default(uuid())
+  storyId   String
+  story     Story     @relation(fields: [storyId], references: [id])
+  name      String
+  brand     String?
+  price     Decimal?
+  isForSale Boolean   @default(false)
+  sellerId  String?
+  seller    User?     @relation("storyItemsSold", fields: [sellerId], references: [id])
+  buyerId   String?
+  buyer     User?     @relation("storyItemsBought", fields: [buyerId], references: [id])
+  soldAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model ChessGame {
+  id          String   @id @default(uuid())
+  whiteId     String
+  blackId     String
+  whitePlayer User     @relation("whiteGames", fields: [whiteId], references: [id])
+  blackPlayer User     @relation("blackGames", fields: [blackId], references: [id])
+  pgn         String   @db.Text
+  fen         String   @db.Text
+  status      String // "active", "draw", "white_won", "black_won"
+  timeControl Int // seconds, 0 for infinite
+  whiteTime   Int // remaining seconds
+  blackTime   Int // remaining seconds
+  lastMoveAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LiveRoom {
+  id         String    @id @default(uuid())
+  roomName   String    @unique // LiveKit room name
+  title      String
+  categoryId String
+  hostId     String
+  host       User      @relation(fields: [hostId], references: [id])
+  isLive     Boolean   @default(true)
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+
+  // Category-specific live state. Denormalized onto the room since
+  // each field is a single "current" value per stream, not a
+  // collection — Live Shopping/Food pin one product at a time,
+  // Gaming Live links one game at a time, Sports Live tracks one
+  // scoreboard. Collections (quizzes, polls, predictions, jobs,
+  // questions) get their own tables below.
+  pinnedShoppingProductId String?
+  pinnedEatProductId      String?
+  linkedGameType          String? // 'pool' | 'ludo' | 'chess' | 'murabaraba' | 'wordbattle'
+  linkedGameId            String?
+  scoreTeamA              String?
+  scoreTeamB              String?
+  scoreA                  Int     @default(0)
+  scoreB                  Int     @default(0)
+
+  quizzes     LiveQuiz[]
+  polls       LivePoll[]
+  predictions LivePrediction[]
+  jobPostings LiveJobPosting[]
+  questions   LiveQuestion[]
+}
+
+// ── Education Live: real quizzes with an optional host-funded prize ──────
+model LiveQuiz {
+  id           String           @id @default(uuid())
+  roomId       String
+  room         LiveRoom         @relation(fields: [roomId], references: [id])
+  question     String
+  options      String[]
+  correctIndex Int
+  prizePool    Float            @default(0)
+  status       String           @default("OPEN") // OPEN | RESOLVED
+  createdAt    DateTime         @default(now())
+  answers      LiveQuizAnswer[]
+}
+
+model LiveQuizAnswer {
+  id          String   @id @default(uuid())
+  quizId      String
+  quiz        LiveQuiz @relation(fields: [quizId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  optionIndex Int
+  correct     Boolean
+  answeredAt  DateTime @default(now())
+
+  @@unique([quizId, userId])
+}
+
+// ── Entertainment Live: real-time polls ──────────────────────────────────
+model LivePoll {
+  id        String         @id @default(uuid())
+  roomId    String
+  room      LiveRoom       @relation(fields: [roomId], references: [id])
+  question  String
+  options   String[]
+  status    String         @default("OPEN") // OPEN | CLOSED
+  createdAt DateTime       @default(now())
+  votes     LivePollVote[]
+}
+
+model LivePollVote {
+  id          String   @id @default(uuid())
+  pollId      String
+  poll        LivePoll @relation(fields: [pollId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  optionIndex Int
+  votedAt     DateTime @default(now())
+
+  @@unique([pollId, userId])
+}
+
+// ── Sports Live: pari-mutuel prediction pool funded by bettors ───────────
+model LivePrediction {
+  id        String              @id @default(uuid())
+  roomId    String
+  room      LiveRoom            @relation(fields: [roomId], references: [id])
+  question  String
+  optionA   String
+  optionB   String
+  status    String              @default("OPEN") // OPEN | RESOLVED_A | RESOLVED_B
+  createdAt DateTime            @default(now())
+  bets      LivePredictionBet[]
+}
+
+model LivePredictionBet {
+  id           String         @id @default(uuid())
+  predictionId String
+  prediction   LivePrediction @relation(fields: [predictionId], references: [id])
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  pick         String // 'A' | 'B'
+  amount       Float
+  payout       Float?
+  createdAt    DateTime       @default(now())
+
+  @@unique([predictionId, userId])
+}
+
+// ── Career Live: real job postings + applications ────────────────────────
+model LiveJobPosting {
+  id           String               @id @default(uuid())
+  roomId       String
+  room         LiveRoom             @relation(fields: [roomId], references: [id])
+  title        String
+  description  String?
+  salary       String?
+  createdAt    DateTime             @default(now())
+  applications LiveJobApplication[]
+}
+
+model LiveJobApplication {
+  id          String         @id @default(uuid())
+  jobId       String
+  job         LiveJobPosting @relation(fields: [jobId], references: [id])
+  applicantId String
+  applicant   User           @relation(fields: [applicantId], references: [id])
+  message     String?
+  createdAt   DateTime       @default(now())
+}
+
+// ── Social Live: live Q&A queue ───────────────────────────────────────────
+model LiveQuestion {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      LiveRoom @relation(fields: [roomId], references: [id])
+  askerId   String
+  asker     User     @relation(fields: [askerId], references: [id])
+  text      String
+  answered  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model LudoGame {
+  id               String   @id @default(uuid())
+  mode             String // '1v1' | '2v2' | '2v2v2' | '4v4' | '1v5'
+  seats            Json // [{ seatIndex, userId, isAI, displayName }]
+  tokens           Json // number[][] — local step count per seat per token
+  currentSeat      Int      @default(0)
+  diceValue        Int?
+  consecutiveSixes Int      @default(0)
+  status           String   @default("active") // 'active' | 'finished'
+  winnerTeam       Int?
+  createdById      String
+  createdBy        User     @relation(fields: [createdById], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// 8-Ball Pool: physics runs client-side (deterministic, no randomness), so
+// the server doesn't simulate shots itself — it just persists whatever
+// authoritative result the on-turn player's client reports (turn ownership
+// is checked before accepting it) and relays raw shot inputs so the other
+// client can replay the identical animation locally.
+model PoolGame {
+  id          String   @id @default(uuid())
+  seats       Json // [{ seatIndex, userId, isAI, displayName }]
+  balls       Json // Ball[]
+  state       Json // { turn, groups, openTable, winner, winReason, message, shotsTaken }
+  wager       Float    @default(0)
+  status      String   @default("active") // 'active' | 'finished'
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Murabaraba online play: rules run authoritatively on the server
+// (packages/types/src/morabarabaRules.ts). Team modes (2v2, 1v3) don't
+// change the 2-sided board itself — `seats` maps each human seat to a
+// side (0|1) and `turnCursor` round-robins whichever teammate acts next.
+model MurabarabaGame {
+  id          String   @id @default(uuid())
+  mode        String // '1v1' | '2v2' | '1v3'
+  seats       Json // [{ seatIndex, side, userId, isAI, displayName }]
+  state       Json // GameState (board, turn, cowsToPlace, captured, ...)
+  activeSeat  Int      @default(0)
+  turnCursor  Json // [number, number] — next local seat index per side
+  status      String   @default("active") // 'active' | 'finished'
+  winnerSide  Int?
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Turbo Racing: an endless-lane-runner sprint to a fixed finish
+// distance. Physics runs entirely client-side (deterministic given the
+// shared `seed`, same trust model as PoolGame) — the server just relays
+// each racer's self-reported progress to the other racer and persists
+// final standings + rewards.
+model TurboRacingRace {
+  id             String   @id @default(uuid())
+  seed           Int
+  finishDistance Int      @default(3000)
+  seats          Json // [{ seatIndex, userId, displayName, distance, lane, crashed, coins, rank, finishedAt }]
+  status         String   @default("active") // 'active' | 'finished'
+  createdById    String
+  createdBy      User     @relation(fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model TurboCarUpgrades {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  speedLevel    Int      @default(0)
+  accelLevel    Int      @default(0)
+  handlingLevel Int      @default(0)
+  color         String   @default("#DC2626")
+  updatedAt     DateTime @updatedAt
+}
+
+model StoreApp {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String // "Game" or "Plugin"
+  iconUrl     String? // Could be an ionic icon name or a real URL
+  color       String? // Color for the card
+  sourceUrl   String? // The URL of the external web app
+  developerId String? // Optional for built-in apps
+  developer   User?    @relation(fields: [developerId], references: [id])
+  isNative    Boolean  @default(false)
+  nativeRoute String? // e.g. "Category", "Arcade"
+  routeParams String? // JSON string for params
+  createdAt   DateTime @default(now())
+}
+
+model EatStore {
+  id          String       @id @default(uuid())
+  ownerId     String
+  owner       User         @relation("eatStores", fields: [ownerId], references: [id])
+  name        String
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+  address     String
+  category    String
+  isOpen      Boolean      @default(true)
+  rating      Float        @default(0)
+  products    EatProduct[]
+  orders      EatOrder[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model EatProduct {
+  id          String         @id @default(uuid())
+  storeId     String
+  store       EatStore       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  category    String?
+  isAvailable Boolean        @default(true)
+  orderItems  EatOrderItem[]
+  createdAt   DateTime       @default(now())
+}
+
+model EatOrder {
+  id              String         @id @default(uuid())
+  customerId      String
+  customer        User           @relation("eatOrders", fields: [customerId], references: [id])
+  storeId         String
+  store           EatStore       @relation(fields: [storeId], references: [id])
+  items           EatOrderItem[]
+  status          String         @default("PENDING")
+  subtotal        Float
+  serviceFee      Float
+  deliveryFee     Float
+  total           Float
+  deliveryAddress String
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model EatOrderItem {
+  id        String     @id @default(uuid())
+  orderId   String
+  order     EatOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   EatProduct @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+// ============================================================
+// Shopping — "Brand stores" general retail, same one-store-per-user
+// model as Eat, minus delivery logistics. The differentiator is
+// cashback: every paid order credits a percentage of the subtotal
+// straight back to the buyer's wallet as a 'REWARD' transaction.
+// ============================================================
+
+model ShoppingStore {
+  id          String            @id @default(uuid())
+  ownerId     String
+  owner       User              @relation("shoppingStores", fields: [ownerId], references: [id])
+  name        String
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+  category    String
+  isOpen      Boolean           @default(true)
+  rating      Float             @default(0)
+  products    ShoppingProduct[]
+  orders      ShoppingOrder[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model ShoppingProduct {
+  id          String              @id @default(uuid())
+  storeId     String
+  store       ShoppingStore       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  category    String?
+  isAvailable Boolean             @default(true)
+  orderItems  ShoppingOrderItem[]
+  createdAt   DateTime            @default(now())
+}
+
+model ShoppingOrder {
+  id              String              @id @default(uuid())
+  customerId      String
+  customer        User                @relation("shoppingOrders", fields: [customerId], references: [id])
+  storeId         String
+  store           ShoppingStore       @relation(fields: [storeId], references: [id])
+  items           ShoppingOrderItem[]
+  status          String              @default("PLACED") // PLACED | CONFIRMED | SHIPPED | DELIVERED | CANCELLED
+  subtotal        Float
+  total           Float
+  rewardEarned    Float               @default(0)
+  shippingAddress String
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+model ShoppingOrderItem {
+  id        String          @id @default(uuid())
+  orderId   String
+  order     ShoppingOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   ShoppingProduct @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model DriverProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  isOnline     Boolean  @default(false)
+  currentLat   Float?
+  currentLng   Float?
+  vehicleMake  String?
+  vehicleModel String?
+  vehiclePlate String?
+  rating       Float    @default(5.0)
+  totalRides   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Ride {
+  id             String   @id @default(uuid())
+  riderId        String
+  rider          User     @relation("ridesAsRider", fields: [riderId], references: [id])
+  driverId       String?
+  driver         User?    @relation("ridesAsDriver", fields: [driverId], references: [id])
+  pickupLat      Float
+  pickupLng      Float
+  pickupAddress  String?
+  dropoffLat     Float
+  dropoffLng     Float
+  dropoffAddress String?
+  status         String // REQUESTED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED
+  fare           Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ── Discover / Video ──────────────────────────────────────────────────────────
+
+model Video {
+  id           String          @id @default(uuid())
+  title        String
+  description  String?         @db.Text
+  url          String
+  thumbnailUrl String?
+  duration     Int // seconds
+  views        Int             @default(0)
+  category     String
+  tags         String[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  creatorId    String
+  creator      User            @relation("videosUploaded", fields: [creatorId], references: [id])
+  likes        VideoLike[]
+  comments     VideoComment[]
+  playlists    PlaylistVideo[]
+  watchHistory WatchHistory[]
+  watchLater   WatchLater[]
+}
+
+model VideoLike {
+  id        String   @id @default(uuid())
+  videoId   String
+  userId    String
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([videoId, userId])
+}
+
+model VideoComment {
+  id        String   @id @default(uuid())
+  text      String
+  videoId   String
+  userId    String
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Playlist {
+  id        String          @id @default(uuid())
+  name      String
+  isPublic  Boolean         @default(true)
+  userId    String
+  createdAt DateTime        @default(now())
+  user      User            @relation(fields: [userId], references: [id])
+  videos    PlaylistVideo[]
+}
+
+model PlaylistVideo {
+  id         String   @id @default(uuid())
+  playlistId String
+  videoId    String
+  position   Int      @default(0)
+  addedAt    DateTime @default(now())
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, videoId])
+}
+
+model WatchLater {
+  id      String   @id @default(uuid())
+  userId  String
+  videoId String
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id])
+  video   Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+}
+
+model WatchHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  videoId   String
+  progress  Int      @default(0)
+  watchedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+}
+
+model UserInterest {
+  id       String @id @default(uuid())
+  userId   String
+  category String
+  user     User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, category])
+}
+
+model AiAgent {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  name        String   @default("Aura")
+  gender      String   @default("neutral")
+  voice       String   @default("warm")
+  personality String   @default("companion")
+  permissions Json     @default("{}")
+  onboarded   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AiReminder {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  fireAt    DateTime
+  prepNote  String?
+  done      Boolean   @default(false)
+  firedAt   DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// Audit trail for every AI tool invocation (Tool Registry / Action Executor).
+// Bare userId (no relation), matching AiReminder — operational/audit table.
+model ToolExecutionLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  toolName   String
+  input      Json
+  output     Json?
+  status     String   @default("PENDING") // PENDING | SUCCESS | FAILED
+  error      String?
+  durationMs Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([toolName])
+}
+
+// One row per user: what the AI agent is currently focused on, persisted
+// across chat turns (the Context Manager's backing store).
+model AiSession {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  activeModule String?
+  taskSummary  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Durable log of every real user/assistant exchange (not intermediate tool
+// chatter) — backs "access to old conversations": the mobile chat screen
+// loads this on open instead of starting blank, and a recent slice is folded
+// into the system prompt so the AI has continuity across separate sessions,
+// not just within one still-open conversation. Bare userId, no relation,
+// matching AiReminder/ToolExecutionLog — an operational/audit-style table.
+model AiConversationMessage {
+  id          String   @id @default(uuid())
+  userId      String
+  // null = the user's own personal AiAgent (Aura/Zed/etc, existing behavior).
+  // Set to a FIXED_COMPANIONS id ('sipho' | 'thandi' | 'guranda-assistant')
+  // for the platform-provided friend/FAQ personas, so each persona's history
+  // stays isolated from the personal companion's and from each other's.
+  companionId String?
+  role        String // user | assistant
+  content     String
+  createdAt   DateTime @default(now())
+
+  @@index([userId, companionId, createdAt])
+}
+
+// CarFind — a car classifieds mini app (modeled on carfind.co.za): sellers
+// list a car with specs and photos, buyers browse/filter and send an
+// enquiry. No in-app payment for the vehicle itself — like the real site,
+// buyer and seller connect and complete the sale outside the app.
+model CarListing {
+  id           String       @id @default(uuid())
+  sellerId     String
+  seller       User         @relation("carListingsSold", fields: [sellerId], references: [id])
+  title        String
+  make         String
+  model        String
+  year         Int
+  price        Float // asking price in MSH
+  mileage      Int // km
+  transmission String // MANUAL, AUTOMATIC
+  fuelType     String // PETROL, DIESEL, HYBRID, ELECTRIC
+  bodyType     String // SEDAN, HATCHBACK, SUV, BAKKIE, COUPE, VAN
+  condition    String       @default("USED") // NEW, USED
+  location     String
+  description  String?
+  images       String[]     @default([])
+  sold         Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  enquiries    CarEnquiry[]
+
+  @@index([make, model])
+  @@index([price])
+}
+
+model CarEnquiry {
+  id        String     @id @default(uuid())
+  listingId String
+  listing   CarListing @relation(fields: [listingId], references: [id])
+  buyerId   String
+  buyer     User       @relation("carEnquiriesMade", fields: [buyerId], references: [id])
+  message   String
+  createdAt DateTime   @default(now())
+}
+
+// Server-side install state for mini apps and modules, keyed by the same
+// string ids the mobile client already uses locally (module ids like
+// 'travel', 'work', game ids, or a StoreApp row's id). Bare userId (no
+// relation), matching AiReminder/ToolExecutionLog — lets the AI runtime see
+// and change install state, not just the mobile client's local AsyncStorage.
+model InstalledApp {
+  id          String   @id @default(uuid())
+  userId      String
+  appId       String
+  installedAt DateTime @default(now())
+
+  @@unique([userId, appId])
+  @@index([userId])
+}
+
+model Story {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  mediaUrl        String?
+  textContent     String?
+  backgroundColor String?
+  musicUrl        String?
+  musicTitle      String?
+  stickers        Json?
+  // Freeform, uppercase-normalized "of the Day" tag (e.g. "OOTD", "COTD").
+  // null = general story. Non-null makes it eligible for the labeled/trending
+  // feed and its paid interactions below.
+  label           String?
+  expiresAt       DateTime
+  createdAt       DateTime       @default(now())
+  likes           StoryLike[]
+  comments        StoryComment[]
+  ranks           StoryRank[]
+  items           StoryItem[]
+
+  @@index([label, expiresAt])
+}
+
+// ── Property module ────────────────────────────────────────────
+// Any user can be an estate agent: list properties, assign tenants,
+// track rent, issue receipts and leases. Tenants pay rent from the
+// Guranda wallet and report issues.
+
+model Property {
+  id          String    @id @default(uuid())
+  agentId     String
+  agent       User      @relation("propertiesManaged", fields: [agentId], references: [id])
+  title       String
+  kind        String // HOUSE, APARTMENT, COMMERCIAL
+  listingType String // RENT, SALE
+  price       Float // monthly rent or sale price in MSH
+  address     String
+  description String?
+  images      String[]  @default([])
+  bedrooms    Int       @default(0)
+  bathrooms   Int       @default(0)
+  available   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  tenancies   Tenancy[]
+}
+
+model Tenancy {
+  id         String          @id @default(uuid())
+  propertyId String
+  property   Property        @relation(fields: [propertyId], references: [id])
+  tenantId   String
+  tenant     User            @relation("tenancies", fields: [tenantId], references: [id])
+  rentAmount Float
+  startDate  DateTime        @default(now())
+  active     Boolean         @default(true)
+  payments   RentPayment[]
+  issues     PropertyIssue[]
+}
+
+model RentPayment {
+  id        String   @id @default(uuid())
+  tenancyId String
+  tenancy   Tenancy  @relation(fields: [tenancyId], references: [id])
+  amount    Float
+  period    String // e.g. "2026-07"
+  receiptNo String
+  paidAt    DateTime @default(now())
+}
+
+model PropertyIssue {
+  id          String   @id @default(uuid())
+  tenancyId   String
+  tenancy     Tenancy  @relation(fields: [tenancyId], references: [id])
+  title       String
+  description String?
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  createdAt   DateTime @default(now())
+}
+
+// ============================================================
+// Account verification (KYC-style) — gates wallet use and
+// creator funds. Personal info is collected at registration;
+// ID/business/certificates are submitted later to unlock
+// verified status.
+// ============================================================
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model Verification {
+  id     String             @id @default(uuid())
+  userId String             @unique
+  user   User               @relation(fields: [userId], references: [id])
+  status VerificationStatus @default(UNVERIFIED)
+
+  // Mandatory personal info, collected at registration
+  firstName   String
+  lastName    String
+  occupation  String
+  dateOfBirth DateTime?
+
+  // ID document, submitted later to request verification
+  idType        String? // NATIONAL_ID, PASSPORT, DRIVERS_LICENSE
+  idNumber      String?
+  idDocumentUrl String?
+
+  hasBusiness Boolean @default(false)
+  isGraduate  Boolean @default(false)
+
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+
+  businesses   Business[]
+  certificates Certificate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Business {
+  id                 String       @id @default(uuid())
+  verificationId     String
+  verification       Verification @relation(fields: [verificationId], references: [id])
+  name               String
+  registrationNumber String?
+  documents          String[]     @default([])
+  createdAt          DateTime     @default(now())
+}
+
+model Certificate {
+  id             String       @id @default(uuid())
+  verificationId String
+  verification   Verification @relation(fields: [verificationId], references: [id])
+  title          String
+  issuer         String?
+  fileUrl        String
+  createdAt      DateTime     @default(now())
+}
+
+enum FeatureAccess {
+  ALL
+  VERIFIED_ONLY
+  OFF
+}
+
+model FeatureFlag {
+  id        String        @id @default(uuid())
+  key       String        @unique
+  access    FeatureAccess @default(ALL)
+  updatedAt DateTime      @updatedAt
+}
+
+// ============================================================
+// Word Battle — three modes (Wordle Duel, Boggle, Scrabble)
+// sharing one authoritative game row. State is a mode-specific
+// JSON blob; secrets (Wordle's word, Scrabble racks/bag) never
+// leave the server except through per-seat sanitized payloads.
+// ============================================================
+
+enum WordBattleMode {
+  WORDLE
+  BOGGLE
+  SCRABBLE
+}
+
+model WordBattleGame {
+  id          String         @id @default(uuid())
+  mode        WordBattleMode
+  seats       Json // [{ seatIndex, userId, isAI, displayName }]
+  state       Json // mode-specific authoritative state
+  status      String         @default("active") // 'active' | 'finished'
+  winnerSeat  Int?
+  wager       Float          @default(0)
+  createdById String
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// ============================================================
+// Marketplace — buy, sell and auction anything, paid straight
+// from the Guranda wallet. Fixed-price listings settle instantly;
+// auctions accumulate bids and settle when they expire.
+// ============================================================
+
+enum ListingType {
+  FIXED
+  AUCTION
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  EXPIRED
+  CANCELLED
+}
+
+model MarketplaceListing {
+  id              String           @id @default(uuid())
+  sellerId        String
+  seller          User             @relation("marketplaceListings", fields: [sellerId], references: [id])
+  title           String
+  description     String?
+  category        String
+  condition       String // NEW, LIKE_NEW, GOOD, FAIR
+  images          String[]         @default([])
+  listingType     ListingType
+  price           Float // fixed price, or auction starting price
+  status          ListingStatus    @default(ACTIVE)
+  auctionEndsAt   DateTime?
+  currentBid      Float?
+  currentBidderId String?
+  buyerId         String?
+  soldAt          DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  bids            MarketplaceBid[]
+  invoices        Invoice[]
+}
+
+model MarketplaceBid {
+  id        String             @id @default(uuid())
+  listingId String
+  listing   MarketplaceListing @relation(fields: [listingId], references: [id])
+  bidderId  String
+  bidder    User               @relation(fields: [bidderId], references: [id])
+  amount    Float
+  createdAt DateTime           @default(now())
+}
+
+model Invoice {
+  id            String             @id @default(uuid())
+  invoiceNumber String             @unique
+  listingId     String
+  listing       MarketplaceListing @relation(fields: [listingId], references: [id])
+  buyerId       String
+  buyer         User               @relation("invoicesReceived", fields: [buyerId], references: [id])
+  sellerId      String
+  seller        User               @relation("invoicesIssued", fields: [sellerId], references: [id])
+  itemTitle     String
+  amount        Float
+  createdAt     DateTime           @default(now())
+}
+
+enum UsernameSaleStatus {
+  NONE
+  FIXED
+  AUCTION
+}
+
+enum UsernameAcquiredVia {
+  FREE_CLAIM
+  MINT
+  MARKETPLACE_BUY
+  AUCTION_WIN
+  ADMIN_SEED
+}
+
+// A username is a permanent, ownable, tradeable asset — distinct from
+// User.username (which mirrors whichever Username row is currently active,
+// so every existing screen reading user.username keeps working untouched).
+// Reputation lives here (not on User) precisely so it can freeze and
+// transfer with a sale: see UsernameService.activate() for the baseline+
+// delta mechanic that keeps this in sync with real account activity while
+// active, and snapshots it the instant the user switches away.
+model Username {
+  id    String @id @default(uuid())
+  label String @unique // normalized lowercase [a-z0-9_]{3,}
+
+  ownerId   String
+  owner     User   @relation("usernameOwner", fields: [ownerId], references: [id])
+  activeFor User?  @relation("userActiveUsername")
+
+  isActive Boolean @default(false)
+
+  reputationScore                   Float  @default(0)
+  subscribersScore                  Float  @default(0)
+  level                             String @default("Nano")
+  activationLiveReputationBaseline  Float  @default(0)
+  activationLiveSubscribersBaseline Float  @default(0)
+
+  acquiredVia UsernameAcquiredVia
+  acquiredAt  DateTime            @default(now())
+
+  saleStatus      UsernameSaleStatus @default(NONE)
+  price           Float?
+  auctionEndsAt   DateTime?
+  currentBid      Float?
+  currentBidderId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bids UsernameBid[]
+
+  @@index([ownerId])
+  @@index([saleStatus])
+}
+
+model UsernameBid {
+  id         String   @id @default(uuid())
+  usernameId String
+  username   Username @relation(fields: [usernameId], references: [id])
+  bidderId   String
+  bidder     User     @relation("usernameBids", fields: [bidderId], references: [id])
+  amount     Float
+  createdAt  DateTime @default(now())
+}
+
+// Lightweight sale-history record — not reused from Invoice, which is
+// FK-tight to MarketplaceListing specifically.
+model UsernameSale {
+  id         String   @id @default(uuid())
+  usernameId String
+  sellerId   String
+  buyerId    String
+  price      Float
+  createdAt  DateTime @default(now())
+}
+
+model ReservedUsername {
+  id        String   @id @default(uuid())
+  label     String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+enum AdCampaignStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+// Deliberately minimal — no budget pacing/bidding/billing. Reach is decided
+// by the same ContentRankingService used for organic content, keyed off the
+// advertiser's own activeUsername reputation + location.
+model AdCampaign {
+  id             String           @id @default(uuid())
+  advertiserId   String
+  advertiser     User             @relation(fields: [advertiserId], references: [id])
+  title          String
+  creativeUrl    String
+  targetAudience String?
+  status         AdCampaignStatus @default(ACTIVE)
+  impressions    Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([advertiserId])
+  @@index([status])
+}
+
+// A gift is a wallet transfer wrapped with catalog metadata (which preset
+// item, an optional message) and tagged with where it happened — a Live
+// stream (viewer supporting a streamer) or a game (player to player).
+model Gift {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("giftsSent", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation("giftsReceived", fields: [recipientId], references: [id])
+  giftType    String // catalog key: rose | heart | confetti | trophy | diamond | rocket
+  amount      Float
+  context     String // 'live' | 'game'
+  contextId   String? // roomName or gameId
+  message     String?
+  createdAt   DateTime @default(now())
+}
+
+// ── Travel ─────────────────────────────────────────────────────────────
+// Stays and Car Hire follow the same any-user-can-host model as
+// Eat/Property/Shopping. Flights and Holiday Packages are a curated,
+// seeded catalog — no individual user realistically runs an airline or
+// tour operator, so those two are booking-only against fixed inventory.
+
+model TravelStay {
+  id            String              @id @default(uuid())
+  hostId        String
+  host          User                @relation("travelStaysHosted", fields: [hostId], references: [id])
+  title         String
+  description   String?
+  location      String
+  pricePerNight Float
+  maxGuests     Int                 @default(2)
+  amenities     String[]            @default([])
+  imageUrl      String?
+  isActive      Boolean             @default(true)
+  rating        Float               @default(0)
+  bookings      TravelStayBooking[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model TravelStayBooking {
+  id         String     @id @default(uuid())
+  stayId     String
+  stay       TravelStay @relation(fields: [stayId], references: [id])
+  guestId    String
+  guest      User       @relation("travelStayBookings", fields: [guestId], references: [id])
+  checkIn    DateTime
+  checkOut   DateTime
+  guests     Int        @default(1)
+  nights     Int
+  totalPrice Float
+  status     String     @default("CONFIRMED") // CONFIRMED | CANCELLED
+  createdAt  DateTime   @default(now())
+}
+
+model TravelCar {
+  id          String             @id @default(uuid())
+  hostId      String
+  host        User               @relation("travelCarsHosted", fields: [hostId], references: [id])
+  make        String
+  model       String
+  category    String // Economy | SUV | Luxury | Van | Convertible
+  location    String
+  pricePerDay Float
+  imageUrl    String?
+  isActive    Boolean            @default(true)
+  rating      Float              @default(0)
+  bookings    TravelCarBooking[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model TravelCarBooking {
+  id         String    @id @default(uuid())
+  carId      String
+  car        TravelCar @relation(fields: [carId], references: [id])
+  guestId    String
+  guest      User      @relation("travelCarBookings", fields: [guestId], references: [id])
+  pickupDate DateTime
+  returnDate DateTime
+  days       Int
+  totalPrice Float
+  status     String    @default("CONFIRMED")
+  createdAt  DateTime  @default(now())
+}
+
+model TravelFlight {
+  id             String                @id @default(uuid())
+  airline        String
+  flightNumber   String
+  origin         String
+  destination    String
+  departureTime  DateTime
+  arrivalTime    DateTime
+  price          Float
+  seatsTotal     Int                   @default(150)
+  seatsAvailable Int                   @default(150)
+  bookings       TravelFlightBooking[]
+  createdAt      DateTime              @default(now())
+}
+
+model TravelFlightBooking {
+  id         String       @id @default(uuid())
+  flightId   String
+  flight     TravelFlight @relation(fields: [flightId], references: [id])
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  passengers Int          @default(1)
+  totalPrice Float
+  status     String       @default("CONFIRMED")
+  createdAt  DateTime     @default(now())
+}
+
+model TravelPackage {
+  id           String                 @id @default(uuid())
+  title        String
+  description  String?
+  destination  String
+  imageUrl     String?
+  durationDays Int
+  price        Float
+  includes     String[]               @default([])
+  bookings     TravelPackageBooking[]
+  createdAt    DateTime               @default(now())
+}
+
+model TravelPackageBooking {
+  id         String        @id @default(uuid())
+  packageId  String
+  package    TravelPackage @relation(fields: [packageId], references: [id])
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  travelers  Int           @default(1)
+  totalPrice Float
+  status     String        @default("CONFIRMED")
+  createdAt  DateTime      @default(now())
+}
+
+// ── Work ───────────────────────────────────────────────────────────────
+// Jobs, Freelancing, Businesses and Hiring — any user can register a
+// company and post openings (mirrors Shopping/Eat's any-user-can-host
+// model, not gated behind verification since a job posting itself moves
+// no money). Freelance gigs are the one part of Work that touches the
+// wallet: the client's budget is debited when they accept a proposal
+// (held, same "debit now / credit on resolve" pattern as Live's
+// pari-mutuel sports predictions) and paid out to the freelancer when
+// the client approves the submitted work.
+
+model WorkCompany {
+  id          String    @id @default(uuid())
+  ownerId     String
+  owner       User      @relation("workCompaniesOwned", fields: [ownerId], references: [id])
+  name        String
+  description String?
+  logoUrl     String?
+  website     String?
+  industry    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  jobs        WorkJob[]
+}
+
+model WorkJob {
+  id             String               @id @default(uuid())
+  companyId      String
+  company        WorkCompany          @relation(fields: [companyId], references: [id])
+  postedById     String
+  postedBy       User                 @relation("workJobsPosted", fields: [postedById], references: [id])
+  title          String
+  description    String
+  category       String?
+  employmentType String // 'Full-time' | 'Part-time' | 'Contract' | 'Internship'
+  locationType   String // 'Remote' | 'Onsite' | 'Hybrid'
+  location       String?
+  salaryMin      Float?
+  salaryMax      Float?
+  status         String               @default("OPEN") // OPEN | CLOSED
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  applications   WorkJobApplication[]
+}
+
+model WorkJobApplication {
+  id           String   @id @default(uuid())
+  jobId        String
+  job          WorkJob  @relation(fields: [jobId], references: [id])
+  applicantId  String
+  applicant    User     @relation("workJobApplications", fields: [applicantId], references: [id])
+  coverMessage String?
+  resumeUrl    String?
+  status       String   @default("PENDING") // PENDING | REVIEWED | ACCEPTED | REJECTED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([jobId, applicantId])
+}
+
+model WorkGig {
+  id           String            @id @default(uuid())
+  clientId     String
+  client       User              @relation("workGigsPosted", fields: [clientId], references: [id])
+  title        String
+  description  String
+  category     String?
+  budget       Float
+  deadline     DateTime?
+  status       String            @default("OPEN") // OPEN | IN_PROGRESS | SUBMITTED | COMPLETED | CANCELLED
+  freelancerId String?
+  freelancer   User?             @relation("workGigsAssigned", fields: [freelancerId], references: [id])
+  escrowAmount Float             @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  proposals    WorkGigProposal[]
+}
+
+model WorkGigProposal {
+  id             String   @id @default(uuid())
+  gigId          String
+  gig            WorkGig  @relation(fields: [gigId], references: [id])
+  freelancerId   String
+  freelancer     User     @relation("workGigProposals", fields: [freelancerId], references: [id])
+  message        String?
+  proposedBudget Float
+  status         String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt      DateTime @default(now())
+
+  @@unique([gigId, freelancerId])
+}
+
+// ── Health ───────────────────────────────────────────────────────────────
+// Fitness tracking is personal (no marketplace). Doctor bookings and
+// Pharmacy follow the same any-user-can-host model as Shopping/Eat/Work —
+// booking a doctor debits the patient and credits the practitioner
+// immediately (same pattern as Travel stays, not held escrow, since the
+// "service" is the consultation slot itself, already delivered by being
+// booked). Wellness is a lightweight content feed, no payment involved.
+
+model HealthFitnessLog {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  type     String // 'workout' | 'weight' | 'steps' | 'water'
+  value    Float
+  unit     String
+  note     String?
+  loggedAt DateTime @default(now())
+}
+
+model HealthPractitioner {
+  id              String              @id @default(uuid())
+  ownerId         String
+  owner           User                @relation("healthPractitionersOwned", fields: [ownerId], references: [id])
+  name            String
+  specialty       String
+  bio             String?
+  consultationFee Float
+  avatarUrl       String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  appointments    HealthAppointment[]
+}
+
+model HealthAppointment {
+  id             String             @id @default(uuid())
+  practitionerId String
+  practitioner   HealthPractitioner @relation(fields: [practitionerId], references: [id])
+  patientId      String
+  patient        User               @relation("healthAppointmentsBooked", fields: [patientId], references: [id])
+  scheduledAt    DateTime
+  reason         String?
+  fee            Float
+  status         String             @default("CONFIRMED") // CONFIRMED | COMPLETED | CANCELLED
+  createdAt      DateTime           @default(now())
+}
+
+model HealthPharmacy {
+  id          String                  @id @default(uuid())
+  ownerId     String
+  owner       User                    @relation("healthPharmaciesOwned", fields: [ownerId], references: [id])
+  name        String
+  description String?
+  logoUrl     String?
+  address     String?
+  isOpen      Boolean                 @default(true)
+  rating      Float                   @default(0)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  products    HealthPharmacyProduct[]
+  orders      HealthPharmacyOrder[]
+}
+
+model HealthPharmacyProduct {
+  id                   String                    @id @default(uuid())
+  pharmacyId           String
+  pharmacy             HealthPharmacy            @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  name                 String
+  description          String?
+  price                Float
+  imageUrl             String?
+  category             String? // 'Medicine' | 'Vitamins' | 'First Aid' | 'Personal Care'
+  requiresPrescription Boolean                   @default(false)
+  isAvailable          Boolean                   @default(true)
+  createdAt            DateTime                  @default(now())
+  orderItems           HealthPharmacyOrderItem[]
+}
+
+model HealthPharmacyOrder {
+  id              String                    @id @default(uuid())
+  customerId      String
+  customer        User                      @relation("healthPharmacyOrders", fields: [customerId], references: [id])
+  pharmacyId      String
+  pharmacy        HealthPharmacy            @relation(fields: [pharmacyId], references: [id])
+  items           HealthPharmacyOrderItem[]
+  status          String                    @default("PLACED") // PLACED | CONFIRMED | READY | COMPLETED | CANCELLED
+  subtotal        Float
+  total           Float
+  deliveryAddress String
+  notes           String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+}
+
+model HealthPharmacyOrderItem {
+  id        String                @id @default(uuid())
+  orderId   String
+  order     HealthPharmacyOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   HealthPharmacyProduct @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model HealthWellnessPost {
+  id          String               @id @default(uuid())
+  authorId    String
+  author      User                 @relation("healthWellnessPosts", fields: [authorId], references: [id])
+  title       String
+  description String
+  category    String // 'Meditation' | 'Nutrition' | 'Sleep' | 'Exercise' | 'Mental Health'
+  imageUrl    String?
+  createdAt   DateTime             @default(now())
+  likes       HealthWellnessLike[]
+}
+
+model HealthWellnessLike {
+  id        String             @id @default(uuid())
+  postId    String
+  post      HealthWellnessPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User               @relation("healthWellnessLikes", fields: [userId], references: [id])
+  createdAt DateTime           @default(now())
+
+  @@unique([postId, userId])
+}
+
+// ============================================================
+// Finance / Stokvel — member-owned group savings & investment
+// circles, each with its own real XRPL multisig wallet. Guranda
+// never holds the funds; the committee's on-chain signatures do.
+// ============================================================
+
+model Stokvel {
+  id          String  @id @default(uuid())
+  name        String
+  category    String // Savings, Grocery, Building Material, Construction, Business Funding, Franchise Funding, Property Investment, Equipment, Farming, Livestock, School Fees, Funeral Support, Wedding/Event, Church, Taxi Association, or custom
+  description String?
+  creatorId   String
+  creator     User    @relation("stokvelsCreated", fields: [creatorId], references: [id])
+
+  // Governance rules — configured per stokvel at creation
+  contributionAmount    Float
+  contributionFrequency String // WEEKLY | MONTHLY | QUARTERLY
+  joiningFee            Float   @default(0)
+  votingThresholdPct    Int     @default(80)
+  minMembers            Int     @default(3)
+  signerQuorum          Int     @default(2)
+  withdrawalRules       String?
+  loanRules             String?
+  fundingRules          String?
+  latePenaltyPct        Float   @default(0)
+  approvalWorkflow      String?
+
+  // XRPL multisig wallet — the stokvel's own on-chain account.
+  // Once activated, the creator's key is disabled; only a
+  // signerQuorum of committee members can move funds.
+  xrplAddress         String?
+  xrplSeed            String? // custodial, base64 — used only to set up SignerListSet + disable master
+  multisigActive      Boolean   @default(false)
+  multisigActivatedAt DateTime?
+
+  status String @default("ACTIVE") // ACTIVE | CLOSED
+
+  members       StokvelMember[]
+  contributions StokvelContribution[]
+  requests      StokvelFundingRequest[]
+  auditLogs     StokvelAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StokvelMember {
+  id        String   @id @default(uuid())
+  stokvelId String
+  stokvel   Stokvel  @relation(fields: [stokvelId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      String   @default("MEMBER") // ADMIN | COMMITTEE | MEMBER
+  status    String   @default("ACTIVE") // ACTIVE | REMOVED
+  joinedAt  DateTime @default(now())
+
+  contributions StokvelContribution[]
+  votes         StokvelVote[]
+  signatures    StokvelSignature[]
+
+  @@unique([stokvelId, userId])
+}
+
+model StokvelContribution {
+  id         String        @id @default(uuid())
+  stokvelId  String
+  stokvel    Stokvel       @relation(fields: [stokvelId], references: [id])
+  memberId   String
+  member     StokvelMember @relation(fields: [memberId], references: [id])
+  amountXrp  Float
+  xrplTxHash String?
+  status     String        @default("SUCCESS") // PENDING | SUCCESS | FAILED
+  createdAt  DateTime      @default(now())
+}
+
+model StokvelFundingRequest {
+  id               String  @id @default(uuid())
+  stokvelId        String
+  stokvel          Stokvel @relation(fields: [stokvelId], references: [id])
+  requesterId      String
+  requester        User    @relation("stokvelRequestsMade", fields: [requesterId], references: [id])
+  title            String
+  description      String?
+  amountXrp        Float
+  recipientAddress String?
+
+  status String @default("VOTING") // VOTING | APPROVED | REJECTED | RELEASED
+
+  // Prepared once voting threshold is reached, so every committee
+  // signer signs byte-for-byte the same transaction.
+  preparedTx String?
+
+  votes      StokvelVote[]
+  signatures StokvelSignature[]
+
+  xrplTxHash String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+}
+
+model StokvelVote {
+  id        String                @id @default(uuid())
+  requestId String
+  request   StokvelFundingRequest @relation(fields: [requestId], references: [id])
+  memberId  String
+  member    StokvelMember         @relation(fields: [memberId], references: [id])
+  choice    String // APPROVE | REJECT
+  createdAt DateTime              @default(now())
+
+  @@unique([requestId, memberId])
+}
+
+model StokvelSignature {
+  id        String                @id @default(uuid())
+  requestId String
+  request   StokvelFundingRequest @relation(fields: [requestId], references: [id])
+  memberId  String
+  member    StokvelMember         @relation(fields: [memberId], references: [id])
+  txBlob    String
+  createdAt DateTime              @default(now())
+
+  @@unique([requestId, memberId])
+}
+
+model StokvelAuditLog {
+  id        String   @id @default(uuid())
+  stokvelId String
+  stokvel   Stokvel  @relation(fields: [stokvelId], references: [id])
+  actorId   String?
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Learning — courses with lessons/progress/certificates, a
+// paid tutor marketplace, and topic-based study communities.
+// ============================================================
+
+model LearningCourse {
+  id           String   @id @default(uuid())
+  creatorId    String
+  creator      User     @relation("learningCoursesCreated", fields: [creatorId], references: [id])
+  title        String
+  description  String?
+  category     String
+  level        String   @default("Beginner") // Beginner | Intermediate | Advanced
+  price        Float    @default(0)
+  thumbnailUrl String?
+  status       String   @default("PUBLISHED") // DRAFT | PUBLISHED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lessons     LearningLesson[]
+  enrollments LearningEnrollment[]
+}
+
+model LearningLesson {
+  id          String         @id @default(uuid())
+  courseId    String
+  course      LearningCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  content     String?
+  videoUrl    String?
+  order       Int            @default(0)
+  durationMin Int            @default(10)
+
+  progress LearningLessonProgress[]
+}
+
+model LearningEnrollment {
+  id          String         @id @default(uuid())
+  courseId    String
+  course      LearningCourse @relation(fields: [courseId], references: [id])
+  studentId   String
+  student     User           @relation(fields: [studentId], references: [id])
+  progressPct Float          @default(0)
+  status      String         @default("ACTIVE") // ACTIVE | COMPLETED
+  enrolledAt  DateTime       @default(now())
+  completedAt DateTime?
+
+  lessonProgress LearningLessonProgress[]
+  certificate    LearningCertificate?
+
+  @@unique([courseId, studentId])
+}
+
+model LearningLessonProgress {
+  id           String             @id @default(uuid())
+  enrollmentId String
+  enrollment   LearningEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       LearningLesson     @relation(fields: [lessonId], references: [id])
+  completed    Boolean            @default(false)
+  completedAt  DateTime?
+
+  @@unique([enrollmentId, lessonId])
+}
+
+model LearningCertificate {
+  id              String             @id @default(uuid())
+  enrollmentId    String             @unique
+  enrollment      LearningEnrollment @relation(fields: [enrollmentId], references: [id])
+  certificateCode String             @unique
+  issuedAt        DateTime           @default(now())
+}
+
+model LearningTutor {
+  id         String   @id @default(uuid())
+  ownerId    String   @unique
+  owner      User     @relation("learningTutorProfile", fields: [ownerId], references: [id])
+  name       String
+  bio        String?
+  subjects   String
+  hourlyRate Float
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sessions LearningTutorSession[]
+}
+
+model LearningTutorSession {
+  id          String        @id @default(uuid())
+  tutorId     String
+  tutor       LearningTutor @relation(fields: [tutorId], references: [id])
+  studentId   String
+  student     User          @relation("learningSessionsBooked", fields: [studentId], references: [id])
+  scheduledAt DateTime
+  topic       String?
+  fee         Float
+  status      String        @default("CONFIRMED") // CONFIRMED | COMPLETED | CANCELLED
+  createdAt   DateTime      @default(now())
+}
+
+model LearningCommunity {
+  id          String   @id @default(uuid())
+  creatorId   String
+  creator     User     @relation("learningCommunitiesCreated", fields: [creatorId], references: [id])
+  name        String
+  description String?
+  topic       String
+  createdAt   DateTime @default(now())
+
+  members LearningCommunityMember[]
+  posts   LearningCommunityPost[]
+}
+
+model LearningCommunityMember {
+  id          String            @id @default(uuid())
+  communityId String
+  community   LearningCommunity @relation(fields: [communityId], references: [id])
+  userId      String
+  user        User              @relation(fields: [userId], references: [id])
+  joinedAt    DateTime          @default(now())
+
+  @@unique([communityId, userId])
+}
+
+model LearningCommunityPost {
+  id          String            @id @default(uuid())
+  communityId String
+  community   LearningCommunity @relation(fields: [communityId], references: [id])
+  authorId    String
+  author      User              @relation(fields: [authorId], references: [id])
+  content     String
+  createdAt   DateTime          @default(now())
+}
+
+// ── Hair & Beauty Mini App ────────────────────────────────────────────────
+
+model HairdresserProfile {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  user         User          @relation("hairdresserProfile", fields: [userId], references: [id])
+  businessName String
+  bio          String?
+  lat          Float
+  lng          Float
+  address      String?
+  rating       Float         @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  services     HairService[]
+  products     HairProduct[]
+  bookings     HairBooking[]
+}
+
+model HairService {
+  id            String             @id @default(uuid())
+  hairdresserId String
+  hairdresser   HairdresserProfile @relation(fields: [hairdresserId], references: [id])
+  title         String
+  description   String?
+  price         Float
+  duration      Int // minutes
+  images        String[] // showcase work
+  requiredItems HairProduct[]      @relation("ServiceRequiredItems")
+  bookings      HairBooking[]
+}
+
+model HairProduct {
+  id                String             @id @default(uuid())
+  hairdresserId     String
+  hairdresser       HairdresserProfile @relation(fields: [hairdresserId], references: [id])
+  name              String
+  description       String?
+  price             Float
+  imageUrl          String?
+  inStock           Boolean            @default(true)
+  servicesRequiring HairService[]      @relation("ServiceRequiredItems")
+}
+
+model HairBooking {
+  id                String             @id @default(uuid())
+  customerId        String
+  customer          User               @relation("hairBookings", fields: [customerId], references: [id])
+  hairdresserId     String
+  hairdresser       HairdresserProfile @relation(fields: [hairdresserId], references: [id])
+  serviceId         String
+  service           HairService        @relation(fields: [serviceId], references: [id])
+  status            String             @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  appointmentAt     DateTime
+  totalPrice        Float
+  purchasedItemsIds String[] // array of HairProduct IDs purchased
+  createdAt         DateTime           @default(now())
+}
+
+// ── Entertainment ────────────────────────────────────────────────────────
+// Movies, Music (concerts) and Live Events — a curated, platform-owned
+// catalog (seeded, no user hosting) mirroring Travel's Flight/Package
+// verticals rather than Stay/Car's any-user-can-host model. Streaming is
+// intentionally NOT a new catalog here — it reuses the existing Live
+// module's 'entertainment' category (see liveCategories.ts) instead of
+// duplicating it.
+
+model Movie {
+  id           String          @id @default(uuid())
+  title        String
+  posterUrl    String?
+  genre        String
+  rating       String // age rating, e.g. PG13
+  synopsis     String?
+  durationMins Int
+  showtimes    MovieShowtime[]
+  createdAt    DateTime        @default(now())
+}
+
+model MovieShowtime {
+  id             String         @id @default(uuid())
+  movieId        String
+  movie          Movie          @relation(fields: [movieId], references: [id])
+  cinema         String
+  startsAt       DateTime
+  price          Float
+  seatsTotal     Int            @default(80)
+  seatsAvailable Int            @default(80)
+  bookings       MovieBooking[]
+}
+
+model MovieBooking {
+  id         String        @id @default(uuid())
+  showtimeId String
+  showtime   MovieShowtime @relation(fields: [showtimeId], references: [id])
+  userId     String
+  user       User          @relation("entertainmentMovieBookings", fields: [userId], references: [id])
+  seats      Int           @default(1)
+  totalPrice Float
+  status     String        @default("CONFIRMED")
+  createdAt  DateTime      @default(now())
+}
+
+model Concert {
+  id               String           @id @default(uuid())
+  artist           String
+  title            String
+  genre            String
+  venue            String
+  city             String
+  startsAt         DateTime
+  posterUrl        String?
+  price            Float
+  ticketsTotal     Int              @default(500)
+  ticketsAvailable Int              @default(500)
+  bookings         ConcertBooking[]
+  createdAt        DateTime         @default(now())
+}
+
+model ConcertBooking {
+  id         String   @id @default(uuid())
+  concertId  String
+  concert    Concert  @relation(fields: [concertId], references: [id])
+  userId     String
+  user       User     @relation("entertainmentConcertBookings", fields: [userId], references: [id])
+  tickets    Int      @default(1)
+  totalPrice Float
+  status     String   @default("CONFIRMED")
+  createdAt  DateTime @default(now())
+}
+
+// Live Events are open, any-user-hosted (like Eat/Shopping) — organizerId is
+// nullable so the platform-curated/seeded events keep working with no owner.
+// An organizer can bring on co-managers (full edit rights, added by username
+// or by sharing a manager invite code) and scanners (ticket check-in only,
+// added the same two ways via a separate scanner invite code).
+model EventListing {
+  id                String         @id @default(uuid())
+  organizerId       String?
+  organizer         User?          @relation("eventOrganizer", fields: [organizerId], references: [id])
+  title             String
+  category          String // Comedy | Theatre | Sports | Festival
+  venue             String
+  city              String
+  startsAt          DateTime
+  posterUrl         String?
+  description       String?
+  price             Float
+  ticketsTotal      Int            @default(300)
+  ticketsAvailable  Int            @default(300)
+  managerInviteCode String?        @unique
+  scannerInviteCode String?        @unique
+  bookings          EventBooking[]
+  managers          EventManager[]
+  scanners          EventScanner[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now()) @updatedAt
+}
+
+model EventManager {
+  id        String       @id @default(uuid())
+  eventId   String
+  event     EventListing @relation(fields: [eventId], references: [id])
+  userId    String
+  user      User         @relation("eventManagerships", fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model EventScanner {
+  id        String       @id @default(uuid())
+  eventId   String
+  event     EventListing @relation(fields: [eventId], references: [id])
+  userId    String
+  user      User         @relation("eventScannerships", fields: [userId], references: [id])
+  createdAt DateTime     @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model EventBooking {
+  id          String        @id @default(uuid())
+  eventId     String
+  event       EventListing  @relation(fields: [eventId], references: [id])
+  userId      String
+  user        User          @relation("entertainmentEventBookings", fields: [userId], references: [id])
+  tickets     Int           @default(1)
+  totalPrice  Float
+  status      String        @default("CONFIRMED")
+  ticketItems EventTicket[]
+  createdAt   DateTime      @default(now())
+}
+
+// One row per individual, independently scannable ticket — a booking of 3
+// tickets creates 3 of these so friends can walk in separately.
+model EventTicket {
+  id          String       @id @default(uuid())
+  bookingId   String
+  booking     EventBooking @relation(fields: [bookingId], references: [id])
+  code        String       @unique
+  checkedIn   Boolean      @default(false)
+  checkedInAt DateTime?
+  checkedInBy String?
+  createdAt   DateTime     @default(now())
+}
+
+// ============================================================
+// Admin audit trail. adminId is nullable: the admin surface currently
+// supports two auth modes (see admin/admin-access.guard.ts) — a per-user
+// JWT from a User with role=ADMIN (adminId recorded), or the legacy shared
+// ADMIN_API_KEY used by the website's ops dashboard today, which carries no
+// individual identity (adminId left null, actorLabel records "shared-key").
+// ============================================================
+model AdminActionLog {
+  id         String   @id @default(uuid())
+  adminId    String?
+  admin      User?    @relation(fields: [adminId], references: [id])
+  actorLabel String // e.g. the admin's username, or "shared-key"
+  action     String // e.g. "user.suspend", "feature-flag.set"
+  targetType String? // e.g. "User", "FeatureFlag"
+  targetId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([adminId])
+}
+
+// -----------------------------------------------------------------------------
+// Car Wash Mini App
+// -----------------------------------------------------------------------------
+
+model CarWash {
+  id          String  @id @default(uuid())
+  ownerId     String
+  owner       User    @relation("userCarWashes", fields: [ownerId], references: [id])
+  name        String
+  description String?
+  address     String
+  isOpen      Boolean @default(true)
+  rating      Float   @default(0)
+
+  services CarWashService[]
+  bookings CarWashBooking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CarWashService {
+  id          String  @id @default(uuid())
+  carWashId   String
+  carWash     CarWash @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  isAvailable Boolean @default(true)
+
+  bookings CarWashBooking[]
+
+  createdAt DateTime @default(now())
+}
+
+enum CarWashBookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model CarWashBooking {
+  id        String         @id @default(uuid())
+  carWashId String
+  carWash   CarWash        @relation(fields: [carWashId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   CarWashService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation("userCarWashBookings", fields: [userId], references: [id])
+
+  status      CarWashBookingStatus @default(PENDING)
+  totalAmount Float
+
+  scheduledFor DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// Cards platform — 5 Cards + Cassino (South African house rules).
+// seats/state JSON blobs mirror WordBattleGame/LudoGame's shape;
+// state is always the full authoritative blob, never sent to a
+// client unsanitized (see cards.service.ts sanitizeGameForSeat).
+// ============================================================
+
+enum CardGameMode {
+  FIVE_CARDS
+  CASSINO
+}
+
+enum CassinoMode {
+  ONE_V_ONE
+  TWO_V_TWO
+  FFA
+}
+
+model CardGame {
+  id                String         @id @default(uuid())
+  mode              CardGameMode
+  cassinoMode       CassinoMode?
+  roomId            String?
+  room              CardRoom?      @relation(fields: [roomId], references: [id])
+  tournamentMatchId String?        @unique
+  seats             Json
+  state             Json
+  status            String         @default("active")
+  winnerSeat        Int?
+  winnerTeam        Int?
+  ranked            Boolean        @default(false)
+  wager             Float          @default(0)
+  createdById       String
+  createdBy         User           @relation("cardGamesCreated", fields: [createdById], references: [id])
+  moves             CardGameMove[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+// NET-NEW room/lobby concept — no equivalent exists for the other games in
+// this codebase. Every room gets a roomCode regardless of privacy so it
+// always has a shareable deep-link; public rooms are additionally listable.
+model CardRoom {
+  id        String       @id @default(uuid())
+  mode      CardGameMode
+  hostId    String
+  host      User         @relation(fields: [hostId], references: [id])
+  isPrivate Boolean      @default(false)
+  roomCode  String       @unique @default(cuid())
+  maxSeats  Int          @default(4)
+  settings  Json
+  status    String       @default("waiting")
+  games     CardGame[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// Per-user, per-mode aggregate stats/rating — powers ranked matchmaking,
+// leaderboards, and achievement criteria from one row.
+model CardGameStats {
+  id           String       @id @default(uuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  mode         CardGameMode
+  rating       Int          @default(1200)
+  wins         Int          @default(0)
+  losses       Int          @default(0)
+  fastestWinMs Int?
+  gamesPlayed  Int          @default(0)
+  sweeps       Int          @default(0)
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([userId, mode])
+}
+
+// Full move ledger — powers match history AND replay. Each move stores the
+// resulting full authoritative state snapshot, so replay is "step through
+// stored snapshots," never "re-simulate and hope the engine version matches."
+model CardGameMove {
+  id            String   @id @default(uuid())
+  gameId        String
+  game          CardGame @relation(fields: [gameId], references: [id])
+  seatIndex     Int
+  action        String
+  payload       Json
+  stateSnapshot Json
+  createdAt     DateTime @default(now())
+}
+
+// Cross-game friend graph — NET-NEW, no Friend/Friendship model existed
+// anywhere in this schema before. Used for real friend-invites into a room,
+// on top of the shareable room-code deep-link.
+model Friendship {
+  id          String   @id @default(uuid())
+  requesterId String
+  requester   User     @relation("friendRequestsSent", fields: [requesterId], references: [id])
+  addresseeId String
+  addressee   User     @relation("friendRequestsReceived", fields: [addresseeId], references: [id])
+  status      String   @default("pending") // pending | accepted | declined | blocked
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([requesterId, addresseeId])
+}
+
+// Single-elimination bracket tournaments.
+model CardTournament {
+  id          String                @id @default(uuid())
+  mode        CardGameMode
+  name        String
+  entryFee    Float                 @default(0)
+  prizePool   Float                 @default(0)
+  maxPlayers  Int
+  status      String                @default("registration") // registration | active | completed | cancelled
+  startAt     DateTime?
+  createdById String
+  createdBy   User                  @relation(fields: [createdById], references: [id])
+  entries     CardTournamentEntry[]
+  rounds      CardTournamentRound[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model CardTournamentEntry {
+  id           String         @id @default(uuid())
+  tournamentId String
+  tournament   CardTournament @relation(fields: [tournamentId], references: [id])
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  seedIndex    Int?
+  eliminated   Boolean        @default(false)
+  placement    Int?
+  joinedAt     DateTime       @default(now())
+
+  @@unique([tournamentId, userId])
+}
+
+model CardTournamentRound {
+  id           String         @id @default(uuid())
+  tournamentId String
+  tournament   CardTournament @relation(fields: [tournamentId], references: [id])
+  roundNumber  Int
+  matchups     Json // [{ entryAId, entryBId|null (bye), gameId?, winnerEntryId? }]
+  status       String         @default("pending") // pending | active | complete
+  createdAt    DateTime       @default(now())
+}
+
+model Achievement {
+  id          String            @id @default(uuid())
+  code        String            @unique
+  name        String
+  description String
+  icon        String?
+  criteria    Json // { type: 'wins'|'sweeps'|'fastestWinMs'|'gamesPlayed', threshold: number, mode?: CardGameMode }
+  createdAt   DateTime          @default(now())
+  unlocks     UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model DailyChallenge {
+  id              String                  @id @default(uuid())
+  mode            CardGameMode?
+  description     String
+  criteria        Json // { type: 'playGames'|'winGames'|'sweep'|'winWithoutBuilds', target: number }
+  rewardMasheleni Float                   @default(0)
+  activeDate      DateTime                @db.Date
+  progress        UserChallengeProgress[]
+  createdAt       DateTime                @default(now())
+
+  @@unique([mode, activeDate, description])
+}
+
+model UserChallengeProgress {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  challengeId String
+  challenge   DailyChallenge @relation(fields: [challengeId], references: [id])
+  progress    Int            @default(0)
+  completed   Boolean        @default(false)
+  claimedAt   DateTime?
+
+  @@unique([userId, challengeId])
+}
+
+model Referral {
+  id           String   @id @default(uuid())
+  referrerId   String
+  referrer     User     @relation("referralsMade", fields: [referrerId], references: [id])
+  refereeId    String   @unique
+  referee      User     @relation("referredBy", fields: [refereeId], references: [id])
+  rewardStatus String   @default("pending") // pending | paid
+  rewardAmount Float    @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model PlayerReport {
+  id             String   @id @default(uuid())
+  reporterId     String
+  reporter       User     @relation("reportsFiled", fields: [reporterId], references: [id])
+  reportedUserId String
+  reportedUser   User     @relation("reportsReceived", fields: [reportedUserId], references: [id])
+  gameId         String?
+  reason         String // 'cheating' | 'abusive_chat' | 'afk' | 'other'
+  details        String?
+  status         String   @default("open") // open | reviewed | actioned | dismissed
+  reviewedById   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

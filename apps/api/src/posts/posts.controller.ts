@@ -1,0 +1,49 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { PostsService } from './posts.service';
+import { JwtAuthGuard } from '../auth/auth.guard';
+
+@Controller('posts')
+@UseGuards(JwtAuthGuard)
+export class PostsController {
+  constructor(private readonly postsService: PostsService) {}
+
+  @Get()
+  getFeed(@Request() req: any) {
+    return this.postsService.getFeed(req.user?.userId);
+  }
+
+  @Post()
+  createPost(
+    @Request() req: any,
+    @Body() body: { content: string; mediaUrl?: string; mediaType?: string },
+  ) {
+    return this.postsService.createPost(
+      req.user.userId,
+      body.content,
+      body.mediaUrl,
+      body.mediaType,
+    );
+  }
+
+  @Post(':id/like')
+  likePost(@Request() req: any, @Param('id') postId: string) {
+    return this.postsService.likePost(req.user.userId, postId);
+  }
+
+  @Post(':id/comments')
+  addComment(
+    @Request() req: any,
+    @Param('id') postId: string,
+    @Body() body: { content: string },
+  ) {
+    return this.postsService.addComment(req.user.userId, postId, body.content);
+  }
+}

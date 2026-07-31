@@ -1,0 +1,101 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { sendPushNotification } from '../common/push';
+
+@Injectable()
+export class FriendsService {
+  constructor(private prisma: PrismaService) {}
+
+  async sendRequest(requesterId: string, addresseeId: string) {
+    if (requesterId === addresseeId) {
+      throw new BadRequestException('You cannot friend yourself');
+    }
+    const existing = await this.prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { requesterId, addresseeId },
+          { requesterId: addresseeId, addresseeId: requesterId },
+        ],
+      },
+    });
+    if (existing) {
+      if (existing.status === 'accepted') return existing;
+      if (existing.status === 'pending' && existing.requesterId === addresseeId) {
+        // They'd already asked us — treat this as accepting their request.
+        return this.acceptRequest(existing.id, requesterId);
+      }
+      if (existing.status === 'pending') return existing; // already sent, no-op
+      // declined/blocked: allow a fresh request by updating the row.
+      return this.prisma.friendship.update({
+        where: { id: existing.id },
+        data: { requesterId, addresseeId, status: 'pending' },
+      });
+    }
+
+    const friendship = await this.prisma.friendship.create({ data: { requesterId, addresseeId, status: 'pending' } });
+    const addressee = await this.prisma.user.findUnique({ where: { id: addresseeId } });
+    if (addressee?.expoPushToken) {
+      await sendPushNotification(addressee.expoPushToken, 'New friend request', 'Someone wants to add you as a friend on Guranda');
+    }
+    return friendship;
+  }
+
+  async acceptRequest(friendshipId: string, userId: string) {
+    const friendship = await this.prisma.friendship.findUnique({ where: { id: friendshipId } });
+    if (!friendship || friendship.addresseeId !== userId) {
+      throw new NotFoundException('Friend request not found');
+    }
+    return this.prisma.friendship.update({ where: { id: friendshipId }, data: { status: 'accepted' } });
+  }
+
+  async declineRequest(friendshipId: string, userId: string) {
+    const friendship = await this.prisma.friendship.findUnique({ where: { id: friendshipId } });
+    if (!friendship || friendship.addresseeId !== userId) {
+      throw new NotFoundException('Friend request not found');
+    }
+    return this.prisma.friendship.update({ where: { id: friendshipId }, data: { status: 'declined' } });
+  }
+
+  async removeFriend(friendshipId: string, userId: string) {
+    const friendship = await this.prisma.friendship.findUnique({ where: { id: friendshipId } });
+    if (!friendship || (friendship.requesterId !== userId && friendship.addresseeId !== userId)) {
+      throw new NotFoundException('Friendship not found');
+    }
+    return this.prisma.friendship.delete({ where: { id: friendshipId } });
+  }
+
+  async listFriends(userId: string) {
+    const rows = await this.prisma.friendship.findMany({
+      where: { status: 'accepted', OR: [{ requesterId: userId }, { addresseeId: userId }] },
+      include: {
+        requester: { select: { id: true, username: true, profile: true } },
+        addressee: { select: { id: true, username: true, profile: true } },
+      },
+    });
+    return rows.map((r) => ({
+      friendshipId: r.id,
+      user: r.requesterId === userId ? r.addressee : r.requester,
+    }));
+  }
+
+  async listPending(userId: string) {
+    return this.prisma.friendship.findMany({
+      where: { status: 'pending', addresseeId: userId },
+      include: { requester: { select: { id: true, username: true, profile: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async areFriends(userIdA: string, userIdB: string): Promise<boolean> {
+    const friendship = await this.prisma.friendship.findFirst({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: userIdA, addresseeId: userIdB },
+          { requesterId: userIdB, addresseeId: userIdA },
+        ],
+      },
+    });
+    return !!friendship;
+  }
+}

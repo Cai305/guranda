@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/USER/Desktop/mxit2.0/packages/types/src/**)",
+      "Bash(npx tsc *)",
+      "Bash(docker --version)",
+      "Bash(npx prisma *)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -X POST http://localhost:3000/auth/register -H \"Content-Type: application/json\" -d '{\"username\":\"vemojitestb\",\"password\":\"TestPass123!\",\"isSelfCustodial\":false,\"firstName\":\"Vemoji\",\"lastName\":\"TesterB\",\"occupation\":\"QA\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/users/register -H \"Content-Type: application/json\" -d '{\"username\":\"vemojitestb\",\"passwordHash\":\"TestPass123!\",\"isSelfCustodial\":false,\"firstName\":\"Vemoji\",\"lastName\":\"TesterB\",\"occupation\":\"QA\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/users/login -H \"Content-Type: application/json\" -d '{\"username\":\"vemojitesta\",\"password\":\"TestPass123!\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/chats/direct -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOGJjNjJjOS02NWUwLTRlYTgtOWUzNS0zMWY2ODVmM2E0ZGMiLCJ1c2VybmFtZSI6InZlbW9qaXRlc3RhIiwiaWF0IjoxNzg1MDkwMDI1LCJleHAiOjE3ODU2OTQ4MjV9.nVzdJ0Oa1VrRjW6EB541iT2mH-M0uDtUxLcqmm5ab44' -d '{\"targetUserId\":\"3c5744ae-8f1a-44e9-86e6-9e9f13fdd09f\"}')",
+      "Bash(curl -s http://localhost:3000/chats -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOGJjNjJjOS02NWUwLTRlYTgtOWUzNS0zMWY2ODVmM2E0ZGMiLCJ1c2VybmFtZSI6InZlbW9qaXRlc3RhIiwiaWF0IjoxNzg1MDkwMDI1LCJleHAiOjE3ODU2OTQ4MjV9.nVzdJ0Oa1VrRjW6EB541iT2mH-M0uDtUxLcqmm5ab44')",
+      "Bash(curl -s http://localhost:3000/chats -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYzU3NDRhZS04ZjFhLTQ0ZTktODZlNi05ZTlmMTNmZGQwOWYiLCJ1c2VybmFtZSI6InZlbW9qaXRlc3RiIiwiaWF0IjoxNzg1MDkwMDAxLCJleHAiOjE3ODU2OTQ4MDF9.uwFz_eUxtRzo40YyPatDmbGyKfknT1htKEbhYnlryCs')",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(powershell -Command \"Get-Process -Id 484 | Select-Object Id,ProcessName,Path\")",
+      "Bash(npx jest *)",
+      "Bash(curl -s -X POST http://localhost:3000/users/register -H \"Content-Type: application/json\" -d \"{\\\\\"username\\\\\":\\\\\"cardtest_alice\\\\\",\\\\\"passwordHash\\\\\":\\\\\"Test1234!\\\\\",\\\\\"isSelfCustodial\\\\\":true,\\\\\"firstName\\\\\":\\\\\"Alice\\\\\",\\\\\"lastName\\\\\":\\\\\"Test\\\\\",\\\\\"occupation\\\\\":\\\\\"Tester\\\\\"}\")",
+      "Bash(curl -s http://localhost:3000/wallets/me -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ZDQ1NDkyMS0zM2E3LTQ0YjYtOTZjYi1lMGEzNjhiNDcxMTYiLCJ1c2VybmFtZSI6ImNhcmR0ZXN0X2FsaWNlIiwiaWF0IjoxNzg1NDEwMDc1LCJleHAiOjE3ODYwMTQ4NzV9.lv5gLyt2UVNGZmZu6ndDtyuYxRuHVO5ZG3EK1hxZ190')",
+      "Bash(node test_discard.js)",
+      "Bash(node verify_room_and_cassino.js)"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mxit2_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mxit_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - mxit2_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Self-hosted WebRTC media server for LifeOS Live. Dev mode uses
+  # LiveKit's well-known local dev credentials (devkey/secret) —
+  # fine for localhost-only development, never expose this port
+  # range publicly with --dev credentials.
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: mxit2_livekit
+    # --node-ip pins the advertised WebRTC candidate to localhost: the
+    # container's auto-detected internal IP (e.g. 172.21.0.3) isn't
+    # reachable from outside the Docker network, but Docker Desktop's
+    # port publishing makes 127.0.0.1:<port> work from the host.
+    command: --dev --bind 0.0.0.0 --node-ip=127.0.0.1
+    ports:
+      - "7880:7880"   # HTTP + WebSocket signaling
+      - "7881:7881"   # TCP fallback for restrictive networks
+      - "7882:7882/udp" # WebRTC media (ICE/RTP UDP mux)
+    restart: unless-stopped
+
+volumes:
+  mxit2_postgres_data:
