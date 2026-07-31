@@ -31,7 +31,13 @@ export default function VideoUploadScreen({ navigation }: any) {
 
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    const durationSec = asset.duration ? Math.floor(asset.duration / 1000) : null;
+    // expo-image-picker reports `duration` in milliseconds on native, but on
+    // web it comes straight from the HTML5 <video> element's `duration`
+    // property, which is already in seconds — dividing by 1000 there turned
+    // every real video into ~0 seconds and rejected it outright.
+    const durationSec = asset.duration
+      ? Math.floor(Platform.OS === 'web' ? asset.duration : asset.duration / 1000)
+      : null;
 
     if (durationSec !== null && durationSec <= MIN_DURATION_S) {
       setDurationError(`Video must be longer than ${MIN_DURATION_S} seconds (yours is ${durationSec}s)`);
