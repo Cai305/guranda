@@ -82,20 +82,24 @@ export default function LiveHostScreen({ navigation, route }: any) {
   const timeLabel = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   const endStream = () => {
-    Alert.alert('End Stream', 'Are you sure you want to end this live stream?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'End Stream',
-        style: 'destructive',
-        onPress: async () => {
-          await sessionRef.current?.disconnect();
-          if (isReal && roomId) {
-            try { await endRoom(roomId); } catch { /* room may already be gone */ }
-          }
-          navigation.navigate('Live');
-        },
-      },
-    ]);
+    const doEnd = async () => {
+      await sessionRef.current?.disconnect();
+      if (isReal && roomId) {
+        try { await endRoom(roomId); } catch { /* room may already be gone */ }
+      }
+      navigation.navigate('Live');
+    };
+    // Alert.alert is a no-op on react-native-web (no confirm dialog ever
+    // appears there), so the End button would silently do nothing — use
+    // the browser's native confirm() on web instead.
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to end this live stream?')) doEnd();
+    } else {
+      Alert.alert('End Stream', 'Are you sure you want to end this live stream?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'End Stream', style: 'destructive', onPress: doEnd },
+      ]);
+    }
   };
 
   const toggleMic = async () => {

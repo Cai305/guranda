@@ -7,11 +7,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { LIVE_CATEGORIES, openLiveCategory } from '../../config/liveCategories';
 import { streamsForTag, LiveStream } from '../../data/mockLiveStreams';
-import { fetchLiveRooms, RealLiveStream } from '../../data/liveApi';
+import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../../data/liveApi';
 import LiveStreamCard from '../../components/LiveStreamCard';
 import LiveCategoryCard from '../../components/LiveCategoryCard';
 import SectionHeader from '../../components/SectionHeader';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { useAuth } from '../../context/AuthContext';
 
 // Discover Live: the entry point into the whole Live module.
 // Quick tag filters cut across categories (Trending, Nearby...);
@@ -19,6 +20,7 @@ import SessionHeaderActions from '../../components/SessionHeaderActions';
 // Real rooms currently being broadcast (fetched from the backend)
 // are merged in ahead of the illustrative mock catalog.
 export default function LiveScreen({ navigation }: any) {
+  const { user } = useAuth();
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState('');
   const [realRooms, setRealRooms] = useState<RealLiveStream[]>([]);
@@ -40,7 +42,7 @@ export default function LiveScreen({ navigation }: any) {
     return base.filter(s => s.title.toLowerCase().includes(q) || s.creator.name.toLowerCase().includes(q));
   }, [activeTag, query, realRooms]);
 
-  const openStream = (stream: LiveStream) => navigation.navigate('LiveViewer', { stream });
+  const openStream = (stream: LiveStream) => enterLiveStream(stream, user?.userId, navigation);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

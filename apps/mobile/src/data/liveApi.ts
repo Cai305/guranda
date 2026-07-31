@@ -93,7 +93,37 @@ export async function goLive(title: string, categoryId: string) {
 export async function joinRoom(roomId: string) {
   const res = await fetchApi(`/live/rooms/${roomId}/join`, { method: 'POST' });
   if (!res.ok) throw new Error('This stream is no longer available.');
-  return res.json() as Promise<{ roomName: string; token: string; wsUrl: string }>;
+  return res.json() as Promise<{
+    roomName: string; token: string; wsUrl: string; isHost: boolean; title: string; categoryId: string;
+  }>;
+}
+
+// Shared entry point for tapping a live tile anywhere in the app (Home,
+// Live feed, etc.) — routes the host straight back into their own studio
+// instead of the read-only viewer screen when the stream is theirs.
+export async function enterLiveStream(stream: LiveStream, currentUserId: string | undefined, navigation: any) {
+  const real = stream as RealLiveStream;
+  if (real.real && currentUserId && stream.creator.id === currentUserId) {
+    try {
+      const room = await joinRoom(real.roomId);
+      if (room.isHost) {
+        navigation.navigate('LiveHost', {
+          roomId: real.roomId,
+          roomName: room.roomName,
+          token: room.token,
+          wsUrl: room.wsUrl,
+          title: room.title,
+          categoryId: room.categoryId,
+          guestCount: 0,
+          moderatorsOn: false,
+        });
+        return;
+      }
+    } catch {
+      // fall through to the viewer experience below
+    }
+  }
+  navigation.navigate('LiveViewer', { stream });
 }
 
 export async function endRoom(roomId: string) {
