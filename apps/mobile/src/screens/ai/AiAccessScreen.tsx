@@ -61,6 +61,7 @@ export default function AiAccessScreen({ navigation, route }: any) {
   const [config, setConfig] = useState(setupConfig || { name: 'AI', gender: 'neutral', voice: 'warm', personality: 'companion' });
   const [tools, setTools] = useState<PermissionItem[]>([]);
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+  const [handsFreeMode, setHandsFreeMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -88,6 +89,7 @@ export default function AiAccessScreen({ navigation, route }: any) {
 
         if (existingPerms && !isOnboarding) {
           setConfig({ name: agent.name, gender: agent.gender, voice: agent.voice, personality: agent.personality });
+          setHandsFreeMode(!!agent.handsFreeMode);
         }
 
         const initial: Record<string, boolean> = {};
@@ -114,7 +116,9 @@ export default function AiAccessScreen({ navigation, route }: any) {
       // In settings-edit mode, send permissions only — omitting name/gender/
       // voice/personality means the update leaves those fields untouched
       // rather than overwriting the real agent with placeholder defaults.
-      const body = isOnboarding ? { ...config, permissions: perms } : { permissions: perms };
+      const body = isOnboarding
+        ? { ...config, permissions: perms, handsFreeMode }
+        : { permissions: perms, handsFreeMode };
       const res = await fetchApi('/ai/agent', { method: 'POST', body: JSON.stringify(body) });
       if (!res.ok) throw new Error('Could not save your AI setup');
       if (isOnboarding) {
@@ -149,6 +153,25 @@ export default function AiAccessScreen({ navigation, route }: any) {
             approved by you first, every time.
           </Text>
         </LinearGradient>
+
+        <Text style={styles.sectionLabel}>TALK MODE</Text>
+        <View style={styles.list}>
+          <View style={styles.permRow}>
+            <View style={styles.permIcon}>
+              <Ionicons name="mic-outline" size={18} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.permLabel}>Hands-free mode</Text>
+              <Text style={styles.permBlurb}>Talk to {config.name} out loud instead of typing — it listens and replies with voice.</Text>
+            </View>
+            <Switch
+              value={handsFreeMode}
+              onValueChange={setHandsFreeMode}
+              trackColor={{ false: COLORS.surfaceElevated, true: COLORS.primary }}
+              thumbColor="#FFF"
+            />
+          </View>
+        </View>
 
         <View style={styles.sectionRow}>
           <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0, paddingHorizontal: 0 }]}>

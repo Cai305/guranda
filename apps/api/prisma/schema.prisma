@@ -981,6 +981,7 @@ model AiAgent {
   personality String   @default("companion")
   permissions Json     @default("{}")
   onboarded   Boolean  @default(false)
+  handsFreeMode Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

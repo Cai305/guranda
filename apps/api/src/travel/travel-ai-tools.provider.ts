@@ -45,12 +45,20 @@ export class TravelAiToolsProvider implements OnModuleInit {
         },
         {
           name: 'myTrips',
-          description: "List the user's booked trips.",
+          description: "List the user's booked trips (stays, cars, flights, packages) as a single unified itinerary.",
           inputSchema: { type: 'object', properties: {} },
           permissionKey: 'travel.read',
           sensitive: false,
           defaultGranted: true,
+          renderAs: 'trip-list',
           handler: (ctx) => this.travel.myTrips(ctx.userId),
+          describeResult: (_i, output: any[]) =>
+            output.length === 0
+              ? 'No booked trips yet.'
+              : output
+                  .slice(0, 10)
+                  .map((t) => `${t.type}: ${t.title} — ${t.subtitle} — ${t.dateLabel} — ${t.totalPrice} MSH — ${t.status}`)
+                  .join('\n'),
         },
         {
           name: 'bookStay',

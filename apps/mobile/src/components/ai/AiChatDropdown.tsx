@@ -168,7 +168,7 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
             </View>
             <Text style={styles.aiWidgetLabel}>{agentName}</Text>
           </View>
-          <Text style={styles.bubbleText}>{item.text}</Text>
+          <Text style={styles.aiReplyText} numberOfLines={4}>{item.text}</Text>
         </View>
         {item.widgets && item.widgets.length > 0 && (
           <AiWidgetRenderer widgets={item.widgets} navigation={{ navigate }} />
@@ -322,8 +322,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     borderRadius: RADIUS.md,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.primary,
     padding: 10,
   },
+  aiReplyText: { color: COLORS.text, fontSize: 13, lineHeight: 17, fontWeight: '500' },
   aiWidgetHeader: {
     flexDirection: 'row',
     alignItems: 'center',

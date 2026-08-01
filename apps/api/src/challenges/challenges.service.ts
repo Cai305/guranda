@@ -352,6 +352,43 @@ export class ChallengesService {
     for (const c of toEnd) {
       await this.finalizeChallenge(c.id);
     }
+    await this.ensureActiveChallenge();
+  }
+
+  // There should always be at least one challenge people can jump into —
+  // the 6am daily batch normally covers this (its DRAFT challenges go ACTIVE
+  // at the next hourly sweep since startAt is already in the past), but if
+  // every active challenge ends before the next batch, or a day's batch came
+  // back empty, this closes that gap within an hour instead of leaving the
+  // feed empty until 6am tomorrow.
+  private async ensureActiveChallenge() {
+    const activeCount = await this.prisma.challenge.count({ where: { status: 'ACTIVE' } });
+    if (activeCount > 0) return;
+
+    const [proposal] = await this.generator.generate(1);
+    const now = new Date();
+    const windowMs = ChallengesService.TYPE_WINDOW_MS.DAILY;
+
+    if (!proposal) {
+      this.logger.warn('No ACTIVE challenge exists and AI generation returned nothing (feature off, no API key, or provider error) — the challenge feed will be empty until the next admin action or daily batch.');
+      return;
+    }
+
+    await this.prisma.challenge.create({
+      data: {
+        title: proposal.title,
+        description: proposal.description,
+        promptText: proposal.promptText,
+        category: proposal.category,
+        type: 'DAILY',
+        startAt: now,
+        endAt: new Date(now.getTime() + windowMs),
+        xpReward: proposal.xpReward,
+        bonusXpReward: proposal.bonusXpReward,
+        status: 'ACTIVE',
+      },
+    });
+    this.logger.log('Auto-activated a fallback challenge to keep at least one challenge running.');
   }
 
   /** Picks a winner (highest average vote, like count as tiebreak) and marks the challenge ENDED. */

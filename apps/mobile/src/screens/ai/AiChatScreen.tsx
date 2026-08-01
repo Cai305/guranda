@@ -146,7 +146,7 @@ export default function AiChatScreen({ navigation, route }: any) {
             </View>
             <Text style={styles.aiWidgetLabel}>{agentName}</Text>
           </View>
-          <Text style={styles.bubbleText}>{item.text}</Text>
+          <Text style={styles.aiReplyText} numberOfLines={4}>{item.text}</Text>
         </View>
         {item.widgets && item.widgets.length > 0 && (
           <AiWidgetRenderer widgets={item.widgets} navigation={navigation} />
@@ -281,9 +281,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.glass,
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.primary,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
   },
+  aiReplyText: { color: COLORS.text, fontSize: 14, lineHeight: 19, fontWeight: '500' },
   aiWidgetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
