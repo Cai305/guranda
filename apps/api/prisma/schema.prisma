@@ -39,6 +39,8 @@ model User {
   chatMemberships              ChatMember[]
   posts                        Post[]
   postLikes                    PostLike[]
+  postReposts                  PostRepost[]
+  postBookmarks                PostBookmark[]
   comments                     Comment[]
   communityMemberships         CommunityMember[]
   storyLikes                   StoryLike[]
@@ -247,15 +249,17 @@ model Message {
 }
 
 model Post {
-  id        String     @id @default(uuid())
+  id        String         @id @default(uuid())
   authorId  String
-  author    User       @relation(fields: [authorId], references: [id])
+  author    User           @relation(fields: [authorId], references: [id])
   content   String
   mediaUrl  String?
   mediaType String?
   likes     PostLike[]
   comments  Comment[]
-  createdAt DateTime   @default(now())
+  reposts   PostRepost[]
+  bookmarks PostBookmark[]
+  createdAt DateTime       @default(now())
 }
 
 model PostLike {
@@ -264,6 +268,31 @@ model PostLike {
   post   Post   @relation(fields: [postId], references: [id])
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model PostRepost {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+// Private — unlike likes/reposts, who bookmarked what is never shown to
+// other users, so getFeed() must only ever expose the viewer's own
+// bookmark state (isBookmarkedByMe), never the full relation.
+model PostBookmark {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 
   @@unique([postId, userId])
 }

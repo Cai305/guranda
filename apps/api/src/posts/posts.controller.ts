@@ -45,6 +45,16 @@ export class PostsController {
     return this.postsService.likePost(req.user.userId, postId);
   }
 
+  @Post(':id/repost')
+  repostPost(@Request() req: any, @Param('id') postId: string) {
+    return this.postsService.repostPost(req.user.userId, postId);
+  }
+
+  @Post(':id/bookmark')
+  bookmarkPost(@Request() req: any, @Param('id') postId: string) {
+    return this.postsService.bookmarkPost(req.user.userId, postId);
+  }
+
   @Post(':id/comments')
   addComment(
     @Request() req: any,

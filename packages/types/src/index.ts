@@ -103,15 +103,25 @@ export interface PresenceEvent {
   status: UserStatus;
 }
 
+// Post/comment author shape — a UserProfile plus the fields only exposed on
+// this narrower, public-safe select (see AUTHOR_SELECT in posts.service.ts).
+export interface PostAuthor extends UserProfile {
+  username?: string;
+  verified?: boolean;
+}
+
 export interface PostDto {
   id: string;
   authorId: string;
-  author?: UserProfile;
+  author?: PostAuthor;
   content: string;
   mediaUrl?: string;
   mediaType?: 'IMAGE' | 'VIDEO';
   likes?: { id: string, userId: string }[];
   comments?: CommentDto[];
+  reposts?: { id: string, userId: string }[];
+  // Private — never a full list of who bookmarked, just the viewer's own state.
+  isBookmarkedByMe?: boolean;
   createdAt: Date;
 }
 
@@ -119,7 +129,7 @@ export interface CommentDto {
   id: string;
   postId: string;
   authorId: string;
-  author?: UserProfile;
+  author?: PostAuthor;
   content: string;
   createdAt: Date;
 }
