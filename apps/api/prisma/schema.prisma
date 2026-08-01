@@ -179,7 +179,7 @@ model Transaction {
   wallet    Wallet   @relation(fields: [walletId], references: [id])
   txHash    String?
   amount    Decimal
-  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE
+  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT
   status    String // PENDING, SUCCESS, FAILED
   timestamp DateTime @default(now())
 }

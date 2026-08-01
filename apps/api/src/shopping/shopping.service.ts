@@ -294,6 +294,38 @@ export class ShoppingService {
     });
     if (!order) throw new NotFoundException();
     if (order.store.ownerId !== userId) throw new ForbiddenException();
+
+    // Store owner is paid once the order is actually delivered. Guarded on
+    // the current status so re-marking an already-delivered order DELIVERED
+    // can't double-pay the owner. The buyer's cashback (rewardEarned) is
+    // platform-funded, not deducted from this — see REWARD_RATE above.
+    if (status === 'DELIVERED' && order.status !== 'DELIVERED') {
+      const ownerWallet = await this.prisma.wallet.findUnique({
+        where: { userId: order.store.ownerId },
+      });
+      if (!ownerWallet)
+        throw new BadRequestException("Store owner's wallet not found");
+      const [, updated] = await this.prisma.$transaction([
+        this.prisma.wallet.update({
+          where: { id: ownerWallet.id },
+          data: { balanceMasheleni: { increment: order.subtotal } },
+        }),
+        this.prisma.transaction.create({
+          data: {
+            walletId: ownerWallet.id,
+            amount: order.subtotal,
+            type: 'SHOPPING_ORDER_PAYOUT',
+            status: 'SUCCESS',
+          },
+        }),
+        this.prisma.shoppingOrder.update({
+          where: { id: orderId },
+          data: { status },
+        }),
+      ]);
+      return updated;
+    }
+
     return this.prisma.shoppingOrder.update({
       where: { id: orderId },
       data: { status },
