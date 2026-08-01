@@ -91,4 +91,16 @@ export class UsersController {
     if (!userId) throw new BadRequestException('Missing user id');
     return this.usersService.searchUsers(query, userId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/follow')
+  async followUser(@Request() req: any, @Param('id') id: string) {
+    return this.usersService.followUser(req.user.userId, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/follow-stats')
+  async followStats(@Request() req: any, @Param('id') id: string) {
+    return this.usersService.getFollowStats(id, req.user.userId);
+  }
 }

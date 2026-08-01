@@ -55,6 +55,12 @@ export class StoryController {
     return this.storyService.getTrendingLabels(days ? Number(days) : undefined);
   }
 
+  // Literal route before ':id' below, so Nest doesn't try to match "mine".
+  @Get('mine/stats')
+  async myStats(@Request() req: any) {
+    return this.storyService.getMyStats(req.user.userId);
+  }
+
   @Post(':id/like')
   async like(@Param('id') id: string, @Request() req: any) {
     return this.storyService.like(id, req.user.userId);

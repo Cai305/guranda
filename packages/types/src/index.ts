@@ -108,6 +108,8 @@ export interface PresenceEvent {
 export interface PostAuthor extends UserProfile {
   username?: string;
   verified?: boolean;
+  // Only ever set on feed responses — a per-viewer computed flag, not stored.
+  isFollowedByMe?: boolean;
 }
 
 export interface PostDto {
@@ -122,7 +124,15 @@ export interface PostDto {
   reposts?: { id: string, userId: string }[];
   // Private — never a full list of who bookmarked, just the viewer's own state.
   isBookmarkedByMe?: boolean;
+  // Impression count — see PostsService.recordView. Not a unique-viewer count.
+  views?: number;
   createdAt: Date;
+}
+
+export interface FollowStatsDto {
+  followerCount: number;
+  followingCount: number;
+  isFollowedByMe: boolean;
 }
 
 export interface CommentDto {

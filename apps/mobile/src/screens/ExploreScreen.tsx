@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, RADIUS } from '../theme';
@@ -36,9 +36,13 @@ function timeAgo(iso: string): string {
 export default function ExploreScreen({ navigation }: any) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'feed' | 'discover' | 'trending'>('feed');
+  const [feedMode, setFeedMode] = useState<'forYou' | 'following'>('forYou');
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [communities, setCommunities] = useState<CommunityDto[]>([]);
   const [loading, setLoading] = useState(false);
+  // Dedupes view-impression calls per post per screen visit — reset only on
+  // a real feed refetch (mode switch or pull-to-refresh), not on scroll.
+  const viewedIds = useRef(new Set<string>());
 
   useFocusEffect(
     useCallback(() => {
@@ -47,7 +51,7 @@ export default function ExploreScreen({ navigation }: any) {
       } else {
         fetchCommunities();
       }
-    }, [activeTab])
+    }, [activeTab, feedMode])
   );
 
   const fetchCommunities = async () => {
@@ -67,7 +71,8 @@ export default function ExploreScreen({ navigation }: any) {
   const fetchFeed = async () => {
     try {
       setLoading(true);
-      const res = await fetchApi('/posts');
+      viewedIds.current.clear();
+      const res = await fetchApi(feedMode === 'following' ? '/posts/following' : '/posts');
       if (res.ok) {
         const data = await res.json();
         setPosts(data);
@@ -78,6 +83,29 @@ export default function ExploreScreen({ navigation }: any) {
       setLoading(false);
     }
   };
+
+  const handleFollow = async (authorId: string) => {
+    try {
+      setPosts(prev => prev.map(p => (
+        p.authorId === authorId && p.author
+          ? { ...p, author: { ...p.author, isFollowedByMe: !p.author.isFollowedByMe } }
+          : p
+      )));
+      await fetchApi(`/users/${authorId}/follow`, { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+      fetchFeed();
+    }
+  };
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    for (const v of viewableItems) {
+      const postId = v.item?.id;
+      if (!postId || viewedIds.current.has(postId)) continue;
+      viewedIds.current.add(postId);
+      fetchApi(`/posts/${postId}/view`, { method: 'POST' }).catch(() => {});
+    }
+  }).current;
 
   const handleLike = async (postId: string) => {
     try {
@@ -185,6 +213,11 @@ export default function ExploreScreen({ navigation }: any) {
               {item.author?.username ? `@${item.author.username} · ` : ''}{timeAgo(item.createdAt as any)}
             </Text>
           </View>
+          {item.authorId !== user?.userId && !item.author?.isFollowedByMe && (
+            <TouchableOpacity style={styles.followBtn} onPress={() => handleFollow(item.authorId)}>
+              <Text style={styles.followBtnText}>Follow</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
         {item.mediaUrl ? (
@@ -205,6 +238,10 @@ export default function ExploreScreen({ navigation }: any) {
             <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={18} color={hasLiked ? '#F43F5E' : COLORS.textMuted} />
             <Text style={[styles.actionText, hasLiked && { color: '#F43F5E' }]}>{item.likes?.length || 0}</Text>
           </TouchableOpacity>
+          <View style={styles.actionButton}>
+            <Ionicons name="stats-chart-outline" size={16} color={COLORS.textMuted} />
+            <Text style={styles.actionText}>{item.views ?? 0}</Text>
+          </View>
           <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleBookmark(item.id)}>
             <Ionicons name={isBookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color={isBookmarked ? COLORS.gold : COLORS.textMuted} />
           </TouchableOpacity>
@@ -279,11 +316,33 @@ export default function ExploreScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
           refreshing={loading}
           onRefresh={fetchFeed}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 60, minimumViewTime: 500 }}
+          ListHeaderComponent={
+            <View style={styles.feedModeRow}>
+              <TouchableOpacity
+                style={[styles.feedModeTab, feedMode === 'forYou' && styles.feedModeTabActive]}
+                onPress={() => setFeedMode('forYou')}
+              >
+                <Text style={[styles.feedModeText, feedMode === 'forYou' && styles.feedModeTextActive]}>For You</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.feedModeTab, feedMode === 'following' && styles.feedModeTabActive]}
+                onPress={() => setFeedMode('following')}
+              >
+                <Text style={[styles.feedModeText, feedMode === 'following' && styles.feedModeTextActive]}>Following</Text>
+              </TouchableOpacity>
+            </View>
+          }
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyState}>
                 <Ionicons name="newspaper-outline" size={48} color={COLORS.textMuted} />
-                <Text style={styles.emptyText}>No posts yet. Be the first to share!</Text>
+                <Text style={styles.emptyText}>
+                  {feedMode === 'following'
+                    ? "You're not following anyone yet. Follow people to see their posts here."
+                    : 'No posts yet. Be the first to share!'}
+                </Text>
               </View>
             ) : null
           }
@@ -403,6 +462,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  followBtn: {
+    backgroundColor: COLORS.text,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+  },
+  followBtnText: {
+    color: COLORS.background,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  feedModeRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    marginBottom: 12,
+  },
+  feedModeTab: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    marginRight: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  feedModeTabActive: {
+    borderBottomColor: COLORS.primary,
+  },
+  feedModeText: {
+    ...TYPOGRAPHY.body2,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+  feedModeTextActive: {
+    color: COLORS.text,
   },
   postAvatar: {
     width: 40,

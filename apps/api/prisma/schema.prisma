@@ -41,6 +41,10 @@ model User {
   postLikes                    PostLike[]
   postReposts                  PostRepost[]
   postBookmarks                PostBookmark[]
+  // Follow rows where I'm the follower — people I follow.
+  follows                      Follow[]                  @relation("UserFollows")
+  // Follow rows where I'm being followed — my followers.
+  followedBy                   Follow[]                  @relation("UserFollowedBy")
   comments                     Comment[]
   communityMemberships         CommunityMember[]
   storyLikes                   StoryLike[]
@@ -259,7 +263,27 @@ model Post {
   comments  Comment[]
   reposts   PostRepost[]
   bookmarks PostBookmark[]
+  // Impression count — incremented once per client-side render via
+  // POST /posts/:id/view (debounced by viewport visibility, not per-fetch),
+  // not a unique-viewer count. See PostsService.recordView.
+  views     Int            @default(0)
   createdAt DateTime       @default(now())
+}
+
+// General user-to-user follow graph, backing the Social Feed's Following
+// tab (GET /posts/following). Distinct from CreatorSubscription (Discovery
+// video creators) — different feature, already shipped, not unified here.
+model Follow {
+  id          String   @id @default(uuid())
+  // The person doing the following. Back-relation on User: `follows`.
+  followerId  String
+  follower    User     @relation("UserFollows", fields: [followerId], references: [id])
+  // The person being followed. Back-relation on User: `followedBy`.
+  followingId String
+  following   User     @relation("UserFollowedBy", fields: [followingId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
 }
 
 model PostLike {

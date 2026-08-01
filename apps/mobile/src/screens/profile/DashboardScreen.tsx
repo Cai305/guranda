@@ -183,7 +183,9 @@ export default function DashboardScreen({ navigation }: any) {
   const [manageSummaries, setManageSummaries] = useState<Record<string, MiniAppManageSummary>>({});
   const [loadingManage, setLoadingManage] = useState(true);
   const [socialStats, setSocialStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number } | null>(null);
-  const [videoStats, setVideoStats] = useState<{ videoCount: number; totalViews: number; totalLikes: number } | null>(null);
+  const [videoStats, setVideoStats] = useState<{ videoCount: number; totalViews: number; totalLikes: number; totalComments: number } | null>(null);
+  const [storyStats, setStoryStats] = useState<{ storyCount: number; likesReceived: number; commentsReceived: number; ranksReceived: number } | null>(null);
+  const [creatorFunds, setCreatorFunds] = useState<{ accumulatedThisMonth: number; nextPayoutDate: string } | null>(null);
   const [myCommunities, setMyCommunities] = useState<any[]>([]);
 
   useEffect(() => {
@@ -225,6 +227,16 @@ export default function DashboardScreen({ navigation }: any) {
     fetchApi('/communities/my')
       .then(r => (r.ok ? r.json() : []))
       .then(d => Array.isArray(d) && setMyCommunities(d.filter((c: any) => c.myRole === 'ADMIN')))
+      .catch(() => {});
+
+    fetchApi('/stories/mine/stats')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setStoryStats(d))
+      .catch(() => {});
+
+    fetchApi('/wallets/creator-funds/summary')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setCreatorFunds(d))
       .catch(() => {});
   }, []);
 
@@ -393,8 +405,41 @@ export default function DashboardScreen({ navigation }: any) {
             { value: videoStats?.videoCount ?? '—', label: 'Videos' },
             { value: videoStats?.totalViews ?? '—', label: 'Total views' },
             { value: videoStats?.totalLikes ?? '—', label: 'Total likes' },
+            { value: videoStats?.totalComments ?? '—', label: 'Comments' },
           ]}
         />
+        <AnalyticsCard
+          icon="ribbon"
+          iconColor={COLORS.gold}
+          title="Stories & Content Earnings"
+          stats={[
+            { value: storyStats?.storyCount ?? '—', label: 'Stories' },
+            { value: storyStats?.likesReceived ?? '—', label: 'Likes' },
+            { value: storyStats?.commentsReceived ?? '—', label: 'Comments' },
+            { value: storyStats?.ranksReceived ?? '—', label: 'Ranks' },
+          ]}
+        />
+        <View style={dash.ccrCard}>
+          <View style={dash.cardHeaderRow}>
+            <Ionicons name="wallet" size={16} color={COLORS.gold} />
+            <Text style={dash.cardTitle}>Content Contribution Remuneration</Text>
+          </View>
+          <Text style={dash.ccrCaption}>
+            Earned from likes, comments and ranks on your "of the Day" stories — paid out in one lump sum on the 14th of every month.
+          </Text>
+          <View style={dash.ccrRow}>
+            <View>
+              <Text style={dash.bigNumber}>{creatorFunds ? creatorFunds.accumulatedThisMonth.toFixed(2) : '—'} MSH</Text>
+              <Text style={dash.bigNumberLabel}>Accumulated this month</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={[dash.bigNumberLabel, { marginBottom: 2 }]}>Next payout</Text>
+              <Text style={{ color: COLORS.text, fontWeight: '600', fontSize: 13 }}>
+                {creatorFunds ? new Date(creatorFunds.nextPayoutDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+              </Text>
+            </View>
+          </View>
+        </View>
 
         <Text style={styles.sectionLabel}>MY ACTIVITY</Text>
 
@@ -537,6 +582,12 @@ const dash = StyleSheet.create({
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
   chartLabel: { color: COLORS.textMuted, fontSize: 9, width: 20, textAlign: 'center' },
+  ccrCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.lg,
+  },
+  ccrCaption: { color: COLORS.textMuted, fontSize: 11.5, lineHeight: 16, marginBottom: 14 },
+  ccrRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
 
   bentoTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   bentoLabel: { color: COLORS.textMuted, fontSize: 11.5, marginBottom: 2 },
