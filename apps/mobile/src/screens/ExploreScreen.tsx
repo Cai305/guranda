@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, RADIUS } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,20 @@ function PostMedia({ mediaUrl, mediaType }: { mediaUrl: string, mediaType?: 'IMA
     return <VideoView style={styles.postMedia} player={player} contentFit="cover" nativeControls />;
   }
   return <Image source={{ uri: mediaUrl }} style={styles.postMedia} resizeMode="cover" />;
+}
+
+// Compact X-style relative time — "13h", "3d", "just now" — instead of a
+// full locale date string, matching the reference feed's density.
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 export default function ExploreScreen({ navigation }: any) {
@@ -88,6 +102,50 @@ export default function ExploreScreen({ navigation }: any) {
     }
   };
 
+  const handleRepost = async (postId: string) => {
+    try {
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          const hasReposted = p.reposts?.some(r => r.userId === user?.userId);
+          return {
+            ...p,
+            reposts: hasReposted
+              ? p.reposts?.filter(r => r.userId !== user?.userId)
+              : [...(p.reposts || []), { id: 'temp', userId: user?.userId as string }]
+          };
+        }
+        return p;
+      }));
+
+      await fetchApi(`/posts/${postId}/repost`, { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+      fetchFeed();
+    }
+  };
+
+  const handleBookmark = async (postId: string) => {
+    try {
+      setPosts(prev => prev.map(p => (
+        p.id === postId ? { ...p, isBookmarkedByMe: !p.isBookmarkedByMe } : p
+      )));
+      await fetchApi(`/posts/${postId}/bookmark`, { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+      fetchFeed();
+    }
+  };
+
+  const handleShare = async (item: PostDto) => {
+    try {
+      await Share.share({
+        message: item.content ? `${item.content}\n\n— ${item.author?.displayName || 'Guranda'}` : 'Shared from Guranda',
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const renderRoom = ({ item }: { item: CommunityDto }) => (
     <TouchableOpacity style={styles.roomCard} activeOpacity={0.7} onPress={() => navigation.navigate('Community', { communityId: item.id, communityName: item.name })}>
       <View style={[styles.roomIcon, { backgroundColor: '#3A86FF' }]}>  
@@ -106,16 +164,26 @@ export default function ExploreScreen({ navigation }: any) {
 
   const renderPost = ({ item }: { item: PostDto }) => {
     const hasLiked = item.likes?.some(l => l.userId === user?.userId);
+    const hasReposted = item.reposts?.some(r => r.userId === user?.userId);
+    const isBookmarked = !!item.isBookmarkedByMe;
+    const displayName = item.author?.displayName || item.author?.username || 'User';
     return (
       <View style={styles.postCard}>
         <View style={styles.postHeader}>
-          <Image 
-            source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.author?.displayName || 'User'}` }}
+          <Image
+            source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
             style={styles.postAvatar}
           />
           <View style={styles.postAuthorInfo}>
-            <Text style={styles.postAuthorName}>{item.author?.displayName || 'User'}</Text>
-            <Text style={styles.postTime}>{new Date(item.createdAt).toLocaleString()}</Text>
+            <View style={styles.postNameRow}>
+              <Text style={styles.postAuthorName} numberOfLines={1}>{displayName}</Text>
+              {item.author?.verified && (
+                <Ionicons name="checkmark-circle" size={15} color={COLORS.primary} style={{ marginLeft: 3 }} />
+              )}
+            </View>
+            <Text style={styles.postTime} numberOfLines={1}>
+              {item.author?.username ? `@${item.author.username} · ` : ''}{timeAgo(item.createdAt as any)}
+            </Text>
           </View>
         </View>
         {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
@@ -125,13 +193,23 @@ export default function ExploreScreen({ navigation }: any) {
           </View>
         ) : null}
         <View style={styles.postActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
-            <Ionicons name={hasLiked ? "heart" : "heart-outline"} size={20} color={hasLiked ? COLORS.primary : COLORS.textMuted} />
-            <Text style={[styles.actionText, hasLiked && { color: COLORS.primary }]}>{item.likes?.length || 0}</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('PostComments', { postId: item.id })}>
-            <Ionicons name="chatbubble-outline" size={20} color={COLORS.textMuted} />
+            <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
             <Text style={styles.actionText}>{item.comments?.length || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleRepost(item.id)}>
+            <Ionicons name="repeat-outline" size={18} color={hasReposted ? '#10B981' : COLORS.textMuted} />
+            <Text style={[styles.actionText, hasReposted && { color: '#10B981' }]}>{item.reposts?.length || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+            <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={18} color={hasLiked ? '#F43F5E' : COLORS.textMuted} />
+            <Text style={[styles.actionText, hasLiked && { color: '#F43F5E' }]}>{item.likes?.length || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleBookmark(item.id)}>
+            <Ionicons name={isBookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color={isBookmarked ? COLORS.gold : COLORS.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleShare(item)}>
+            <Ionicons name="share-outline" size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -335,14 +413,20 @@ const styles = StyleSheet.create({
   postAuthorInfo: {
     flex: 1,
   },
+  postNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   postAuthorName: {
     ...TYPOGRAPHY.body1,
     fontWeight: 'bold',
+    flexShrink: 1,
   },
   postTime: {
     ...TYPOGRAPHY.body2,
     fontSize: 12,
     color: COLORS.textMuted,
+    marginTop: 1,
   },
   postContent: {
     ...TYPOGRAPHY.body1,
@@ -361,19 +445,23 @@ const styles = StyleSheet.create({
   },
   postActions: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 12,
-    gap: 20,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
+  actionButtonSolo: {
+    alignItems: 'center',
+  },
   actionText: {
     color: COLORS.textMuted,
-    fontSize: 14,
+    fontSize: 13,
   },
   emptyState: {
     alignItems: 'center',

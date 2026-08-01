@@ -5,6 +5,36 @@ import {
   ReputationLevel,
 } from '../ranking/content-ranking.service';
 
+// Author fields safe to return to any client. Was previously fetched via
+// `include: { author: { include: { profile: true } } }`, which returns the
+// FULL User row — passwordHash, phoneNumber, etc. — to every caller of the
+// feed/comments/create endpoints. `select` instead of `include` keeps only
+// what a post card actually needs.
+const AUTHOR_SELECT = {
+  id: true,
+  username: true,
+  profile: {
+    select: { displayName: true, avatarUrl: true, bio: true, statusMessage: true },
+  },
+  activeUsername: { select: { reputationScore: true, level: true } },
+  verification: { select: { status: true } },
+} as const;
+
+// Feed-only select — same as AUTHOR_SELECT plus location, needed for the
+// ranking service's geo-proximity scoring but stripped back out by
+// toPostAuthor() before the post ever reaches a client response.
+const FEED_AUTHOR_SELECT = {
+  ...AUTHOR_SELECT,
+  locationLat: true,
+  locationLng: true,
+} as const;
+
+function toPostAuthor(author: any) {
+  if (!author) return author;
+  const { verification, locationLat, locationLng, ...rest } = author;
+  return { ...rest, verified: verification?.status === 'VERIFIED' };
+}
+
 @Injectable()
 export class PostsService {
   constructor(
@@ -18,7 +48,7 @@ export class PostsService {
     mediaUrl?: string,
     mediaType?: string,
   ) {
-    return this.prisma.post.create({
+    const post = await this.prisma.post.create({
       data: {
         authorId: userId,
         content,
@@ -26,9 +56,10 @@ export class PostsService {
         mediaType,
       },
       include: {
-        author: { include: { profile: true } },
+        author: { select: AUTHOR_SELECT },
       },
     });
+    return { ...post, author: toPostAuthor(post.author) };
   }
 
   async getFeed(viewerId?: string) {
@@ -38,10 +69,11 @@ export class PostsService {
       this.prisma.post.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
-          author: { include: { profile: true, activeUsername: true } },
+          author: { select: FEED_AUTHOR_SELECT },
           likes: true,
+          reposts: true,
           comments: {
-            include: { author: { include: { profile: true } } },
+            include: { author: { select: AUTHOR_SELECT } },
             orderBy: { createdAt: 'asc' },
           },
         },
@@ -55,7 +87,7 @@ export class PostsService {
         : null,
     ]);
 
-    return this.ranking.rank(
+    const ranked = this.ranking.rank(
       posts,
       (p) =>
         this.ranking.scoreItem({
@@ -70,6 +102,27 @@ export class PostsService {
         }),
       50,
     );
+
+    // Bookmarks are private — only ever resolve the viewer's own state here,
+    // never return the full relation (that would leak who else bookmarked
+    // each post).
+    const bookmarkedIds = viewerId
+      ? new Set(
+          (
+            await this.prisma.postBookmark.findMany({
+              where: { userId: viewerId, postId: { in: ranked.map((p) => p.id) } },
+              select: { postId: true },
+            })
+          ).map((b) => b.postId),
+        )
+      : new Set<string>();
+
+    return ranked.map((p) => ({
+      ...p,
+      author: toPostAuthor(p.author),
+      comments: p.comments.map((c: any) => ({ ...c, author: toPostAuthor(c.author) })),
+      isBookmarkedByMe: bookmarkedIds.has(p.id),
+    }));
   }
 
   async getMyStats(userId: string) {
@@ -95,10 +148,39 @@ export class PostsService {
     }
   }
 
+  async repostPost(userId: string, postId: string) {
+    try {
+      await this.prisma.postRepost.create({
+        data: { userId, postId },
+      });
+      return { status: 'reposted' };
+    } catch {
+      await this.prisma.postRepost.delete({
+        where: { postId_userId: { postId, userId } },
+      });
+      return { status: 'unreposted' };
+    }
+  }
+
+  async bookmarkPost(userId: string, postId: string) {
+    try {
+      await this.prisma.postBookmark.create({
+        data: { userId, postId },
+      });
+      return { status: 'bookmarked' };
+    } catch {
+      await this.prisma.postBookmark.delete({
+        where: { postId_userId: { postId, userId } },
+      });
+      return { status: 'unbookmarked' };
+    }
+  }
+
   async addComment(userId: string, postId: string, content: string) {
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: { authorId: userId, postId, content },
-      include: { author: { include: { profile: true } } },
+      include: { author: { select: AUTHOR_SELECT } },
     });
+    return { ...comment, author: toPostAuthor(comment.author) };
   }
 }
