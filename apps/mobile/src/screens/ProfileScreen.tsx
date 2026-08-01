@@ -41,11 +41,21 @@ export default function ProfileScreen({ navigation }: any) {
   const [appUrl, setAppUrl] = useState('');
   const [appType, setAppType] = useState('Plugin'); // or Game
   const [creatorFunds, setCreatorFunds] = useState<{ pendingBalance: number; nextPayoutDate: string } | null>(null);
+  const [relationship, setRelationship] = useState<any>(null);
+  const [canSponsor, setCanSponsor] = useState(false);
 
   useEffect(() => {
     fetchApi('/wallets/creator-funds/summary')
       .then(r => (r.ok ? r.json() : null))
       .then(d => d && setCreatorFunds(d))
+      .catch(() => {});
+    fetchApi('/relationships/mine')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setRelationship(d))
+      .catch(() => {});
+    fetchApi('/challenges/sponsorships/eligibility')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setCanSponsor(!!d?.eligible))
       .catch(() => {});
   }, []);
 
@@ -105,6 +115,8 @@ export default function ProfileScreen({ navigation }: any) {
     { icon: 'grid-outline', label: 'Dashboard', onPress: () => navigation.navigate('Dashboard') },
     { icon: 'code-working-outline', label: 'Developer Hub (Publish App)', onPress: () => setDevModalVisible(true) },
     { icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
+    { icon: 'heart-outline', label: 'Relationship Requests', onPress: () => navigation.navigate('RelationshipRequests') },
+    ...(canSponsor ? [{ icon: 'ribbon-outline', label: 'Sponsor a Challenge', onPress: () => navigation.navigate('SponsorChallenge') }] : []),
     { icon: 'shield-checkmark-outline', label: 'Security & Privacy', onPress: () => navigation.navigate('SecurityPrivacy') },
     { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
     { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('NotificationsSettings') },
@@ -137,6 +149,17 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.username}>{username}</Text>
           {!!(user?.effectiveStatus || user?.bio) && (
             <Text style={styles.statusLine} numberOfLines={2}>{user?.effectiveStatus || user?.bio}</Text>
+          )}
+          {relationship?.partner && (
+            <View style={styles.partnerRow}>
+              <Image
+                source={{ uri: relationship.partner.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${relationship.partner.username}` }}
+                style={styles.partnerAvatar}
+              />
+              <Text style={styles.partnerText}>
+                With {relationship.partner.displayName || relationship.partner.username} · {relationship.rank}
+              </Text>
+            </View>
           )}
 
           <View style={styles.repRow}>
@@ -420,6 +443,18 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body2,
     marginTop: 2,
   },
+  partnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(244,63,94,0.12)',
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  partnerAvatar: { width: 18, height: 18, borderRadius: 9 },
+  partnerText: { color: '#F43F5E', fontSize: 12, fontWeight: '700' },
   statusLine: {
     ...TYPOGRAPHY.body2,
     color: COLORS.textMuted,

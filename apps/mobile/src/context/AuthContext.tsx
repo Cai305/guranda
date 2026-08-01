@@ -56,6 +56,7 @@ export interface AuthUser {
   statusMessage?: string;
   autoStatusEnabled?: boolean;
   effectiveStatus?: string | null;
+  relationshipStatus?: string | null;
   subscribers?: number;
   reputation?: number;
   level?: string;
@@ -191,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           statusMessage: p.statusMessage ?? prev.statusMessage,
           autoStatusEnabled: p.autoStatusEnabled ?? prev.autoStatusEnabled,
           effectiveStatus: p.effectiveStatus ?? null,
+          relationshipStatus: p.relationshipStatus ?? null,
           subscribers: p.subscribers ?? prev.subscribers,
           reputation: p.reputation ?? prev.reputation,
           level: p.level ?? prev.level,

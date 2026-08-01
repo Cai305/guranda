@@ -57,6 +57,8 @@ import { AdsModule } from './ads/ads.module';
 import { GifModule } from './gif/gif.module';
 import { CarwashModule } from './carwash/carwash.module';
 import { ChallengesModule } from './challenges/challenges.module';
+import { RelationshipsModule } from './relationships/relationships.module';
+import { CouplesModule } from './couples/couples.module';
 
 @Module({
   imports: [
@@ -118,6 +120,8 @@ import { ChallengesModule } from './challenges/challenges.module';
     GifModule,
     CarwashModule,
     ChallengesModule,
+    RelationshipsModule,
+    CouplesModule,
   ],
   controllers: [AppController],
   providers: [

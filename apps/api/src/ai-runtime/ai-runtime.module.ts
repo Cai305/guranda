@@ -24,6 +24,7 @@ import { LLM_ADAPTER } from './llm-adapter.token';
     ContextManagerService,
     ConversationHistoryService,
     CompanionChatService,
+    LLM_ADAPTER,
   ],
 })
 export class AiRuntimeModule {}

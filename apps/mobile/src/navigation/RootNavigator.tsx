@@ -10,6 +10,10 @@ import PostCommentsScreen from '../screens/PostCommentsScreen';
 import ChallengeDetailScreen from '../screens/ChallengeDetailScreen';
 import SubmitChallengeEntryScreen from '../screens/SubmitChallengeEntryScreen';
 import ChallengesLeaderboardScreen from '../screens/ChallengesLeaderboardScreen';
+import SendRelationshipRequestScreen from '../screens/SendRelationshipRequestScreen';
+import RelationshipRequestsScreen from '../screens/RelationshipRequestsScreen';
+import CouplesChallengesScreen from '../screens/CouplesChallengesScreen';
+import SponsorChallengeScreen from '../screens/SponsorChallengeScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
@@ -129,6 +133,10 @@ export default function RootNavigator() {
           <Stack.Screen name="ChallengeDetail" component={ChallengeDetailScreen} />
           <Stack.Screen name="SubmitChallengeEntry" component={SubmitChallengeEntryScreen} />
           <Stack.Screen name="ChallengesLeaderboard" component={ChallengesLeaderboardScreen} />
+          <Stack.Screen name="SendRelationshipRequest" component={SendRelationshipRequestScreen} />
+          <Stack.Screen name="RelationshipRequests" component={RelationshipRequestsScreen} />
+          <Stack.Screen name="CouplesChallenges" component={CouplesChallengesScreen} />
+          <Stack.Screen name="SponsorChallenge" component={SponsorChallengeScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />
