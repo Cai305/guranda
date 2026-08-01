@@ -24,7 +24,7 @@ export class CommunitiesService {
         },
       },
     });
-    return memberships.map((m) => m.community);
+    return memberships.map((m) => ({ ...m.community, myRole: m.role }));
   }
 
   async getCommunityDetails(id: string) {

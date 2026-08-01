@@ -102,7 +102,13 @@ function ManageAppCard({
   locked: boolean;
   onPress: () => void;
 }) {
-  const hasChart = !loading && !!summary && summary.dates.length > 0;
+  const hasRevenue = !loading && !!summary && summary.revenue !== undefined;
+  // Prefer the earnings chart when there's dated revenue data — money made
+  // is more useful to see trending than raw item count — falling back to
+  // the item-count chart otherwise. Only one chart per card to stay compact.
+  const revenueChartDates = summary?.revenueDates;
+  const chartDates = revenueChartDates && revenueChartDates.length > 0 ? revenueChartDates : summary?.dates;
+  const hasChart = !loading && !!summary && !!chartDates && chartDates.length > 0;
   return (
     <TouchableOpacity
       style={[dash.gridTile, locked && dash.manageCardLocked]}
@@ -124,12 +130,44 @@ function ManageAppCard({
       <Text style={dash.bentoLabel} numberOfLines={1}>
         {locked ? 'Locked by admin' : loading ? '—' : summary ? `${summary.count} ${summary.countLabel}` : '—'}
       </Text>
-      {hasChart && (
+      {hasRevenue && !locked && (
+        <Text style={dash.earningsLabel} numberOfLines={1}>{summary!.revenue!.toFixed(0)} MSH earned</Text>
+      )}
+      {hasChart && !locked && (
         <View style={{ marginTop: 10 }}>
-          <MiniBarChart buckets={buildDayBuckets(summary!.dates)} />
+          <MiniBarChart buckets={buildDayBuckets(chartDates!)} />
         </View>
       )}
     </TouchableOpacity>
+  );
+}
+
+function AnalyticsCard({
+  icon,
+  iconColor,
+  title,
+  stats,
+}: {
+  icon: string;
+  iconColor: string;
+  title: string;
+  stats: { value: string | number; label: string }[];
+}) {
+  return (
+    <View style={dash.card}>
+      <View style={dash.cardHeaderRow}>
+        <Ionicons name={icon as any} size={16} color={iconColor} />
+        <Text style={dash.cardTitle}>{title}</Text>
+      </View>
+      <View style={dash.analyticsStatsRow}>
+        {stats.map(s => (
+          <View key={s.label}>
+            <Text style={dash.bigNumber}>{s.value}</Text>
+            <Text style={dash.bigNumberLabel}>{s.label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -144,6 +182,9 @@ export default function DashboardScreen({ navigation }: any) {
   const [recentGifts, setRecentGifts] = useState<any[]>([]);
   const [manageSummaries, setManageSummaries] = useState<Record<string, MiniAppManageSummary>>({});
   const [loadingManage, setLoadingManage] = useState(true);
+  const [socialStats, setSocialStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number } | null>(null);
+  const [videoStats, setVideoStats] = useState<{ videoCount: number; totalViews: number; totalLikes: number } | null>(null);
+  const [myCommunities, setMyCommunities] = useState<any[]>([]);
 
   useEffect(() => {
     fetchApi('/wallets/me')
@@ -169,6 +210,21 @@ export default function DashboardScreen({ navigation }: any) {
     fetchApi('/gifts/received')
       .then(r => (r.ok ? r.json() : []))
       .then(d => Array.isArray(d) && setRecentGifts(d.slice(0, 4)))
+      .catch(() => {});
+
+    fetchApi('/posts/mine/stats')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setSocialStats(d))
+      .catch(() => {});
+
+    fetchApi('/videos/mine/stats')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setVideoStats(d))
+      .catch(() => {});
+
+    fetchApi('/communities/my')
+      .then(r => (r.ok ? r.json() : []))
+      .then(d => Array.isArray(d) && setMyCommunities(d.filter((c: any) => c.myRole === 'ADMIN')))
       .catch(() => {});
   }, []);
 
@@ -305,6 +361,40 @@ export default function DashboardScreen({ navigation }: any) {
             </LinearGradient>
           </TouchableOpacity>
         )}
+
+        {/* My Analytics — platform-wide engagement, separate from mini-app
+            inventory above: your posts/likes, communities you run, and your
+            Discovery video reach. */}
+        <Text style={styles.sectionLabel}>MY ANALYTICS</Text>
+        <AnalyticsCard
+          icon="chatbubbles"
+          iconColor={COLORS.secondary}
+          title="Social Feed"
+          stats={[
+            { value: socialStats?.postCount ?? '—', label: 'Posts' },
+            { value: socialStats?.likesReceived ?? '—', label: 'Likes received' },
+            { value: socialStats?.commentsReceived ?? '—', label: 'Comments' },
+          ]}
+        />
+        <AnalyticsCard
+          icon="people-circle"
+          iconColor="#34D399"
+          title="Community"
+          stats={[
+            { value: myCommunities.length, label: myCommunities.length === 1 ? 'Community run' : 'Communities run' },
+            { value: myCommunities.reduce((sum, c) => sum + (c._count?.members ?? 0), 0), label: 'Total members' },
+          ]}
+        />
+        <AnalyticsCard
+          icon="play-circle"
+          iconColor={COLORS.accent}
+          title="Discovery"
+          stats={[
+            { value: videoStats?.videoCount ?? '—', label: 'Videos' },
+            { value: videoStats?.totalViews ?? '—', label: 'Total views' },
+            { value: videoStats?.totalLikes ?? '—', label: 'Total likes' },
+          ]}
+        />
 
         <Text style={styles.sectionLabel}>MY ACTIVITY</Text>
 
@@ -451,6 +541,7 @@ const dash = StyleSheet.create({
   bentoTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   bentoLabel: { color: COLORS.textMuted, fontSize: 11.5, marginBottom: 2 },
   bentoValue: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  earningsLabel: { color: '#34D399', fontSize: 11.5, fontWeight: '700', marginTop: 4 },
 
   // Manage My Apps grid tiles — flat-card language, width-based so tiles
   // wrap 2-per-row instead of always splitting evenly in pairs.
@@ -463,6 +554,12 @@ const dash = StyleSheet.create({
     width: 38, height: 38, borderRadius: 10, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
+
+  // My Analytics cards (Social/Community/Discovery) — reuses the same flat
+  // `card` shell as Active Journeys, just with a row of stat pairs inside.
+  analyticsStatsRow: { flexDirection: 'row', gap: 24, flexWrap: 'wrap' },
+  bigNumber: { color: '#A78BFA', fontSize: 22, fontWeight: '800' },
+  bigNumberLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
 
   // Active journeys
   journeyBlock: { marginBottom: 14 },

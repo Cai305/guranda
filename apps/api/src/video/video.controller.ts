@@ -99,6 +99,11 @@ export class VideoController {
     return this.video.getWatchLater(req.user.userId);
   }
 
+  @Get('mine/stats')
+  getMyStats(@Request() req: any) {
+    return this.video.getMyStats(req.user.userId);
+  }
+
   // ── Interests ─────────────────────────────────────────────────────────────
   @Get('interests')
   getInterests(@Request() req: any) {

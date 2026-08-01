@@ -123,6 +123,23 @@ export class VideoService {
     return scored.sort((a, b) => b.score - a.score).slice(0, 30);
   }
 
+  // ── My stats (creator dashboard) ─────────────────────────────────────────
+  async getMyStats(userId: string) {
+    const [agg, totalLikes] = await Promise.all([
+      this.prisma.video.aggregate({
+        where: { creatorId: userId },
+        _sum: { views: true },
+        _count: true,
+      }),
+      this.prisma.videoLike.count({ where: { video: { creatorId: userId } } }),
+    ]);
+    return {
+      videoCount: agg._count,
+      totalViews: agg._sum.views ?? 0,
+      totalLikes,
+    };
+  }
+
   // ── Trending ──────────────────────────────────────────────────────────────
   async getTrending(userId?: string) {
     const videos = await this.prisma.video.findMany({

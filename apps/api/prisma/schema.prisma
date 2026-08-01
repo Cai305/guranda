@@ -161,6 +161,10 @@ model Wallet {
   userId           String           @unique
   user             User             @relation(fields: [userId], references: [id])
   balanceMasheleni Float            @default(0.0)
+  // Content Contribution Remuneration earned from likes/comments/ranks on
+  // labeled stories, held here until the weekly payout batch moves it into
+  // balanceMasheleni in one lump sum — see CreatorFundsService.
+  pendingCreatorFunds Float         @default(0.0)
   xrplAddress      String?
   encryptedSeed    String?
   transactions     Transaction[]

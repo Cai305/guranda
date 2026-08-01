@@ -172,9 +172,12 @@ export class StoryService {
         where: { id: wallet.id },
         data: { balanceMasheleni: { decrement: CCR_RATE } },
       }),
+      // Creator's share accrues into pendingCreatorFunds, not spendable
+      // balance — the weekly payout batch (CreatorFundsService) moves it
+      // into balanceMasheleni in one lump sum.
       this.prisma.wallet.update({
         where: { id: creatorWallet.id },
-        data: { balanceMasheleni: { increment: CCR_RATE } },
+        data: { pendingCreatorFunds: { increment: CCR_RATE } },
       }),
       this.prisma.transaction.createMany({
         data: [
@@ -188,7 +191,7 @@ export class StoryService {
             walletId: creatorWallet.id,
             amount: CCR_RATE,
             type: 'STORY_LIKE',
-            status: 'SUCCESS',
+            status: 'PENDING',
           },
         ],
       }),
@@ -218,7 +221,7 @@ export class StoryService {
       }),
       this.prisma.wallet.update({
         where: { id: creatorWallet.id },
-        data: { balanceMasheleni: { increment: CCR_RATE } },
+        data: { pendingCreatorFunds: { increment: CCR_RATE } },
       }),
       this.prisma.transaction.createMany({
         data: [
@@ -232,7 +235,7 @@ export class StoryService {
             walletId: creatorWallet.id,
             amount: CCR_RATE,
             type: 'STORY_COMMENT',
-            status: 'SUCCESS',
+            status: 'PENDING',
           },
         ],
       }),
@@ -265,7 +268,7 @@ export class StoryService {
       }),
       this.prisma.wallet.update({
         where: { id: creatorWallet.id },
-        data: { balanceMasheleni: { increment: CCR_RATE } },
+        data: { pendingCreatorFunds: { increment: CCR_RATE } },
       }),
       this.prisma.transaction.createMany({
         data: [
@@ -279,7 +282,7 @@ export class StoryService {
             walletId: creatorWallet.id,
             amount: CCR_RATE,
             type: 'STORY_RANK',
-            status: 'SUCCESS',
+            status: 'PENDING',
           },
         ],
       }),
