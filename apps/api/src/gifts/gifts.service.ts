@@ -48,8 +48,43 @@ export class GiftsService {
         'Choose a valid recipient — you cannot gift yourself',
       );
     }
-    if (!['live', 'game'].includes(dto.context)) {
+    if (!['live', 'game', 'video', 'story'].includes(dto.context)) {
       throw new BadRequestException('Invalid gift context');
+    }
+    // For content gifts, recipientId is trust-but-verify: the client already
+    // knows the creator/owner id from the video/story it loaded, but we
+    // don't take its word for it — otherwise a client could send a
+    // 'video'-context gift to any arbitrary user by lying about recipientId.
+    if (dto.context === 'video' || dto.context === 'story') {
+      if (!dto.contextId) {
+        throw new BadRequestException(
+          `contextId is required for a ${dto.context} gift`,
+        );
+      }
+      const ownerId =
+        dto.context === 'video'
+          ? (
+              await this.prisma.video.findUnique({
+                where: { id: dto.contextId },
+                select: { creatorId: true },
+              })
+            )?.creatorId
+          : (
+              await this.prisma.story.findUnique({
+                where: { id: dto.contextId },
+                select: { userId: true },
+              })
+            )?.userId;
+      if (!ownerId) {
+        throw new NotFoundException(
+          `${dto.context === 'video' ? 'Video' : 'Story'} not found`,
+        );
+      }
+      if (ownerId !== dto.recipientId) {
+        throw new BadRequestException(
+          `Recipient does not match this ${dto.context}'s owner`,
+        );
+      }
     }
     const item = GIFT_CATALOG.find((g) => g.key === dto.giftType);
     if (!item) {
@@ -147,6 +182,30 @@ export class GiftsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // Gifts sent to a specific piece of content (a video or a story) —
+  // public total + count, and the most recent gifts with sender identity
+  // (gifts are public the same way likes are, unlike bookmarks).
+  async forContent(context: string, contextId: string) {
+    const [agg, recent] = await Promise.all([
+      this.prisma.gift.aggregate({
+        where: { context, contextId },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.gift.findMany({
+        where: { context, contextId },
+        include: { sender: { select: { id: true, username: true, profile: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+    ]);
+    return {
+      total: agg._sum.amount ?? 0,
+      count: agg._count,
+      recent,
+    };
   }
 
   async statsForUser(userId: string) {

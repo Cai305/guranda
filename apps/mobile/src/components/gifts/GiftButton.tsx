@@ -7,7 +7,7 @@ import GiftSheet, { GiftCatalogItem } from './GiftSheet';
 interface Props {
   recipientId: string;
   recipientName: string;
-  context: 'live' | 'game';
+  context: 'live' | 'game' | 'video' | 'story';
   contextId?: string;
   size?: number;
   style?: ViewStyle;

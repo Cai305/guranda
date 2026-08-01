@@ -6,6 +6,8 @@ import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
 import { fetchApi, API_BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
+import GiftButton from '../../components/gifts/GiftButton';
+import { GiftCatalogItem } from '../../components/gifts/GiftSheet';
 
 let VideoPlayer: any = null;
 if (Platform.OS === 'web') {
@@ -84,6 +86,14 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
     await fetchApi(`/videos/${videoId}/watch-later`, { method: saved ? 'POST' : 'DELETE' });
   };
 
+  const handleGiftSent = (item: GiftCatalogItem) => {
+    setVideo((v: any) => ({
+      ...v,
+      giftCount: (v.giftCount ?? 0) + 1,
+      giftTotal: (v.giftTotal ?? 0) + item.amount,
+    }));
+  };
+
   const postComment = async () => {
     if (!comment.trim()) return;
     setPosting(true);
@@ -149,6 +159,11 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
           <Text style={styles.videoMeta}>
             {video.views?.toLocaleString()} views · {new Date(video.createdAt).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
           </Text>
+          {!!video.giftCount && (
+            <Text style={styles.giftMeta}>
+              🎁 {video.giftCount.toLocaleString()} {video.giftCount === 1 ? 'gift' : 'gifts'} · {(video.giftTotal ?? 0).toLocaleString()} MSH
+            </Text>
+          )}
         </View>
 
         {/* Action row: Like, Dislike, Share, Save, Playlist */}
@@ -183,6 +198,17 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
               @{video.creator?.username} · {(video.subscriberCount ?? 0).toLocaleString()} subscribers
             </Text>
           </View>
+          {user?.userId !== video.creatorId && (
+            <GiftButton
+              recipientId={video.creatorId}
+              recipientName={displayName}
+              context="video"
+              contextId={video.id}
+              size={34}
+              style={{ marginRight: 8 }}
+              onSent={handleGiftSent}
+            />
+          )}
           {user?.userId !== video.creatorId && (
             <TouchableOpacity
               style={[styles.subscribeBtn, video.subscribed && styles.subscribedBtn]}
@@ -290,6 +316,7 @@ const styles = StyleSheet.create({
   titleBlock: { paddingHorizontal: SPACING.lg, paddingTop: 12, paddingBottom: 8 },
   videoTitle: { ...TYPOGRAPHY.h3, fontSize: 16, lineHeight: 22, marginBottom: 4 },
   videoMeta: { color: COLORS.textMuted, fontSize: 12 },
+  giftMeta: { color: COLORS.gold, fontSize: 12, fontWeight: '600', marginTop: 4 },
   actionRow: { paddingHorizontal: SPACING.lg, gap: 4, alignItems: 'center', paddingVertical: 4 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface },
   actionBtnActive: { backgroundColor: COLORS.primary + '22' },

@@ -125,7 +125,7 @@ export class VideoService {
 
   // ── My stats (creator dashboard) ─────────────────────────────────────────
   async getMyStats(userId: string) {
-    const [agg, totalLikes, totalComments] = await Promise.all([
+    const [agg, totalLikes, totalComments, myVideoIds] = await Promise.all([
       this.prisma.video.aggregate({
         where: { creatorId: userId },
         _sum: { views: true },
@@ -133,12 +133,23 @@ export class VideoService {
       }),
       this.prisma.videoLike.count({ where: { video: { creatorId: userId } } }),
       this.prisma.videoComment.count({ where: { video: { creatorId: userId } } }),
+      this.prisma.video.findMany({ where: { creatorId: userId }, select: { id: true } }),
     ]);
+    // Gift.contextId is a free-form string, not a real FK to Video, so
+    // gifts-received has to be resolved as a second query against the
+    // creator's own video ids rather than a join.
+    const giftAgg = await this.prisma.gift.aggregate({
+      where: { context: 'video', contextId: { in: myVideoIds.map((v) => v.id) } },
+      _sum: { amount: true },
+      _count: true,
+    });
     return {
       videoCount: agg._count,
       totalViews: agg._sum.views ?? 0,
       totalLikes,
       totalComments,
+      giftsReceived: giftAgg._sum.amount ?? 0,
+      giftCount: giftAgg._count,
     };
   }
 
@@ -246,7 +257,20 @@ export class VideoService {
         where: { creatorId: video.creatorId },
       }),
     ]);
-    return { ...video, liked, savedLater, subscribed, subscriberCount };
+    const giftAgg = await this.prisma.gift.aggregate({
+      where: { context: 'video', contextId: id },
+      _sum: { amount: true },
+      _count: true,
+    });
+    return {
+      ...video,
+      liked,
+      savedLater,
+      subscribed,
+      subscriberCount,
+      giftTotal: giftAgg._sum.amount ?? 0,
+      giftCount: giftAgg._count,
+    };
   }
 
   // ── View (increment + history) ────────────────────────────────────────────

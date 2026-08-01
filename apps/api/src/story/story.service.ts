@@ -93,7 +93,7 @@ export class StoryService {
   /** The "of the Day" feed: non-expired labeled stories, optionally filtered to one label. */
   async getLabeledFeed(label?: string) {
     const now = new Date();
-    return this.prisma.story.findMany({
+    const stories = await this.prisma.story.findMany({
       where: {
         expiresAt: { gt: now },
         label: label ? label.trim().toUpperCase() : { not: null },
@@ -107,6 +107,23 @@ export class StoryService {
       },
       orderBy: { likes: { _count: 'desc' } },
     });
+
+    // One grouped query instead of one gift lookup per story, same
+    // avoid-N+1 approach used for the Social Feed's bookmark resolution.
+    const giftTotals = await this.prisma.gift.groupBy({
+      by: ['contextId'],
+      where: { context: 'story', contextId: { in: stories.map((s) => s.id) } },
+      _sum: { amount: true },
+      _count: true,
+    });
+    const giftMap = new Map(
+      giftTotals.map((g) => [g.contextId, { giftTotal: g._sum.amount ?? 0, giftCount: g._count }]),
+    );
+
+    return stories.map((s) => ({
+      ...s,
+      ...(giftMap.get(s.id) ?? { giftTotal: 0, giftCount: 0 }),
+    }));
   }
 
   /** Top labels by post count, plus a day-bucketed series for the top label — used by admin and by the trending-chips row in the feed. */
@@ -134,14 +151,30 @@ export class StoryService {
   }
 
   async getMyStats(userId: string) {
-    const [storyCount, likesReceived, commentsReceived, ranksReceived] =
+    const [storyCount, likesReceived, commentsReceived, ranksReceived, myStoryIds] =
       await Promise.all([
         this.prisma.story.count({ where: { userId } }),
         this.prisma.storyLike.count({ where: { story: { userId } } }),
         this.prisma.storyComment.count({ where: { story: { userId } } }),
         this.prisma.storyRank.count({ where: { story: { userId } } }),
+        this.prisma.story.findMany({ where: { userId }, select: { id: true } }),
       ]);
-    return { storyCount, likesReceived, commentsReceived, ranksReceived };
+    // Gift.contextId is a free-form string, not a real FK to Story, so
+    // gifts-received has to be resolved as a second query against the
+    // user's own story ids rather than a join.
+    const giftAgg = await this.prisma.gift.aggregate({
+      where: { context: 'story', contextId: { in: myStoryIds.map((s) => s.id) } },
+      _sum: { amount: true },
+      _count: true,
+    });
+    return {
+      storyCount,
+      likesReceived,
+      commentsReceived,
+      ranksReceived,
+      giftsReceived: giftAgg._sum.amount ?? 0,
+      giftCount: giftAgg._count,
+    };
   }
 
   private async chargeInteraction(storyId: string, userId: string) {

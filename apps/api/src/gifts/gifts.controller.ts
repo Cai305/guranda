@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Param,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -37,5 +38,13 @@ export class GiftsController {
   @Get('stats/mine')
   stats(@Request() req: any) {
     return this.giftsService.statsForUser(req.user.userId);
+  }
+
+  @Get('for/:context/:contextId')
+  forContent(
+    @Param('context') context: string,
+    @Param('contextId') contextId: string,
+  ) {
+    return this.giftsService.forContent(context, contextId);
   }
 }
