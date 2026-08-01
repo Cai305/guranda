@@ -72,6 +72,15 @@ export class PostsService {
     );
   }
 
+  async getMyStats(userId: string) {
+    const [postCount, likesReceived, commentsReceived] = await Promise.all([
+      this.prisma.post.count({ where: { authorId: userId } }),
+      this.prisma.postLike.count({ where: { post: { authorId: userId } } }),
+      this.prisma.comment.count({ where: { post: { authorId: userId } } }),
+    ]);
+    return { postCount, likesReceived, commentsReceived };
+  }
+
   async likePost(userId: string, postId: string) {
     try {
       await this.prisma.postLike.create({

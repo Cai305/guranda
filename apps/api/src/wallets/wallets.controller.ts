@@ -47,6 +47,11 @@ export class WalletsController {
   async listMyDeposits(@Request() req: any) {
     return this.walletsService.listMyDeposits(req.user.userId);
   }
+
+  @Get('creator-funds/summary')
+  async getCreatorFundsSummary(@Request() req: any) {
+    return this.walletsService.getCreatorFundsSummary(req.user.userId);
+  }
 }
 
 // Was fully unauthenticated — anyone could POST /admin/deposits/:id/confirm

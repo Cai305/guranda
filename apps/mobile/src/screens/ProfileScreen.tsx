@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TextInput, Image, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +40,14 @@ export default function ProfileScreen({ navigation }: any) {
   const [appName, setAppName] = useState('');
   const [appUrl, setAppUrl] = useState('');
   const [appType, setAppType] = useState('Plugin'); // or Game
+  const [creatorFunds, setCreatorFunds] = useState<{ pendingBalance: number; nextPayoutDate: string } | null>(null);
+
+  useEffect(() => {
+    fetchApi('/wallets/creator-funds/summary')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setCreatorFunds(d))
+      .catch(() => {});
+  }, []);
 
   const displayName = user?.displayName || user?.username || 'Guranda Pioneer';
   const username = user?.username ? `@${user.username}` : '@pioneer';
@@ -245,11 +253,9 @@ export default function ProfileScreen({ navigation }: any) {
 
         {/* ===== Content Earnings (CCR) ===== */}
         {(() => {
-          const now = new Date();
-          const diff = ((5 - now.getDay() + 7) % 7) || 7;
-          const next = new Date(now);
-          next.setDate(now.getDate() + diff);
-          const nextPayoutDate = next.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+          const nextPayoutDate = creatorFunds
+            ? new Date(creatorFunds.nextPayoutDate).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+            : '—';
           return (
             <>
               <Text style={styles.sectionLabel}>CONTENT EARNINGS</Text>
@@ -260,14 +266,14 @@ export default function ProfileScreen({ navigation }: any) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowTitle}>Content Contribution Remuneration</Text>
-                    <Text style={styles.rowDetail}>Earned when others like, comment, or rank your "of the Day" stories (0.58 MSH each)</Text>
+                    <Text style={styles.rowDetail}>Earned when others like, comment, or rank your "of the Day" stories (0.58 MSH each) — paid out in one lump sum on your next payout date</Text>
                   </View>
                 </View>
                 <View style={[styles.cardRow, styles.rowBorder]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowDetail, { marginBottom: 2 }]}>Current balance</Text>
+                    <Text style={[styles.rowDetail, { marginBottom: 2 }]}>Pending balance</Text>
                     <Text style={[styles.rowTitle, { color: COLORS.gold, fontSize: 20, fontWeight: '800' }]}>
-                      0.00 MSH
+                      {creatorFunds ? creatorFunds.pendingBalance.toFixed(2) : '—'} MSH
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>

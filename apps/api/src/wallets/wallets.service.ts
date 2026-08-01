@@ -3,8 +3,21 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
+
+// Content Contribution Remuneration payout runs every Friday at midnight —
+// this must stay in sync with the @Cron expression on payoutCreatorFunds()
+// below, since getNextPayoutDate() is what the mobile client displays as
+// "next payout" and it has to describe the same schedule the cron enforces.
+function getNextPayoutDate(from = new Date()): Date {
+  const next = new Date(from);
+  next.setHours(0, 0, 0, 0);
+  const daysUntilFriday = (5 - next.getDay() + 7) % 7 || 7;
+  next.setDate(next.getDate() + daysUntilFriday);
+  return next;
+}
 
 // ONE WALLET · ONE ECONOMY.
 // The Masheleni (MSH) ledger balance is the single source of truth for every
@@ -213,5 +226,44 @@ export class WalletsService {
       where: { id: depositId },
       data: { status: 'REJECTED', confirmedAt: new Date(), adminNote },
     });
+  }
+
+  async getCreatorFundsSummary(userId: string) {
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) throw new NotFoundException('Wallet not found');
+    return {
+      pendingBalance: wallet.pendingCreatorFunds,
+      nextPayoutDate: getNextPayoutDate().toISOString(),
+    };
+  }
+
+  // Batches every user's accrued Content Contribution Remuneration
+  // (from story likes/comments/ranks — see StoryService) into their
+  // spendable balance in one lump sum, matching getNextPayoutDate() above.
+  @Cron('0 0 * * 5')
+  async payoutCreatorFunds() {
+    const wallets = await this.prisma.wallet.findMany({
+      where: { pendingCreatorFunds: { gt: 0 } },
+    });
+    for (const wallet of wallets) {
+      await this.prisma.$transaction([
+        this.prisma.wallet.update({
+          where: { id: wallet.id },
+          data: {
+            balanceMasheleni: { increment: wallet.pendingCreatorFunds },
+            pendingCreatorFunds: 0,
+          },
+        }),
+        this.prisma.transaction.updateMany({
+          where: {
+            walletId: wallet.id,
+            status: 'PENDING',
+            type: { in: ['STORY_LIKE', 'STORY_COMMENT', 'STORY_RANK'] },
+          },
+          data: { status: 'SUCCESS' },
+        }),
+      ]);
+    }
+    return { walletsPaid: wallets.length };
   }
 }
