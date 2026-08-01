@@ -164,7 +164,7 @@ export default function HomeScreen({ navigation }: any) {
               <View>
                 <Text style={styles.walletLabel}>ONE WALLET · ONE ECONOMY</Text>
                 <Text style={styles.walletBalance}>
-                  {wallet?.balanceMasheleni ?? '0.00'} <Text style={styles.walletCurrency}>MSH</Text>
+                  {(wallet?.balanceMasheleni ?? 0).toFixed(2)} <Text style={styles.walletCurrency}>MSH</Text>
                 </Text>
               </View>
               <View style={styles.walletIcon}>

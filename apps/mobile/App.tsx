@@ -16,6 +16,7 @@ import { navigationRef } from './src/navigation/navigationRef';
 import AiFloatingOrb from './src/components/ai/AiFloatingOrb';
 import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
 import UploadStatusOverlay from './src/components/UploadStatusOverlay';
+import WebAlertHost from './src/utils/webAlertPolyfill';
 
 const prefix = Linking.createURL('/');
 const linking = {
@@ -64,6 +65,7 @@ export default function App() {
             <AiFloatingOrb />
             <IncomingCallOverlay />
             <UploadStatusOverlay />
+            <WebAlertHost />
           </SocketProvider>
           </ShoppingCartProvider>
           </CartProvider>
