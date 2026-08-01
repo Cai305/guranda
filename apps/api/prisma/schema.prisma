@@ -59,6 +59,8 @@ model User {
   videos                       Video[]                   @relation("videosUploaded")
   videoLikes                   VideoLike[]
   videoComments                VideoComment[]
+  creatorSubscriptionsMade     CreatorSubscription[]     @relation("subscriptionsMade")
+  creatorSubscriptionsReceived CreatorSubscription[]     @relation("subscriptionsReceived")
   playlists                    Playlist[]
   watchLater                   WatchLater[]
   watchHistory                 WatchHistory[]
@@ -807,6 +809,17 @@ model VideoComment {
   createdAt DateTime @default(now())
   video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model CreatorSubscription {
+  id           String   @id @default(uuid())
+  subscriberId String
+  creatorId    String
+  createdAt    DateTime @default(now())
+  subscriber   User     @relation("subscriptionsMade", fields: [subscriberId], references: [id])
+  creator      User     @relation("subscriptionsReceived", fields: [creatorId], references: [id])
+
+  @@unique([subscriberId, creatorId])
 }
 
 model Playlist {

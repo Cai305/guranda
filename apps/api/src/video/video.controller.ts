@@ -135,6 +135,22 @@ export class VideoController {
     return this.video.unlikeVideo(id, req.user.userId);
   }
 
+  @Post('creators/:creatorId/subscribe')
+  subscribeToCreator(
+    @Param('creatorId') creatorId: string,
+    @Request() req: any,
+  ) {
+    return this.video.subscribeToCreator(req.user.userId, creatorId);
+  }
+
+  @Delete('creators/:creatorId/subscribe')
+  unsubscribeFromCreator(
+    @Param('creatorId') creatorId: string,
+    @Request() req: any,
+  ) {
+    return this.video.unsubscribeFromCreator(req.user.userId, creatorId);
+  }
+
   @Get(':id/comments')
   getComments(@Param('id') id: string) {
     return this.video.getComments(id);

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
 import { fetchApi, API_BASE_URL } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
 
 let VideoPlayer: any = null;
@@ -15,6 +16,7 @@ if (Platform.OS === 'web') {
 
 export default function VideoPlayerScreen({ navigation, route }: any) {
   const { videoId } = route.params;
+  const { user } = useAuth();
   const [video, setVideo] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [related, setRelated] = useState<VideoMeta[]>([]);
@@ -49,6 +51,30 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
     const liked = !video.liked;
     setVideo((v: any) => ({ ...v, liked, _count: { ...v._count, likes: v._count.likes + (liked ? 1 : -1) } }));
     await fetchApi(`/videos/${videoId}/like`, { method: liked ? 'POST' : 'DELETE' });
+  };
+
+  const toggleSubscribe = async () => {
+    if (!video) return;
+    const subscribed = !video.subscribed;
+    setVideo((v: any) => ({
+      ...v,
+      subscribed,
+      subscriberCount: (v.subscriberCount ?? 0) + (subscribed ? 1 : -1),
+    }));
+    try {
+      await fetchApi(`/videos/creators/${video.creatorId}/subscribe`, {
+        method: subscribed ? 'POST' : 'DELETE',
+      });
+    } catch {
+      // Revert on failure — best-effort, matches toggleLike/toggleWatchLater's
+      // lack of rollback for consistency, but subscribe state is worth
+      // getting right since it's a standing relationship, not a toggle blip.
+      setVideo((v: any) => ({
+        ...v,
+        subscribed: !subscribed,
+        subscriberCount: (v.subscriberCount ?? 0) + (subscribed ? -1 : 1),
+      }));
+    }
   };
 
   const toggleWatchLater = async () => {
@@ -153,11 +179,20 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
           </View>
           <View style={styles.creatorInfo}>
             <Text style={styles.creatorName}>{displayName}</Text>
-            <Text style={styles.creatorSub}>@{video.creator?.username}</Text>
+            <Text style={styles.creatorSub}>
+              @{video.creator?.username} · {(video.subscriberCount ?? 0).toLocaleString()} subscribers
+            </Text>
           </View>
-          <TouchableOpacity style={styles.subscribeBtn}>
-            <Text style={styles.subscribeBtnText}>Subscribe</Text>
-          </TouchableOpacity>
+          {user?.userId !== video.creatorId && (
+            <TouchableOpacity
+              style={[styles.subscribeBtn, video.subscribed && styles.subscribedBtn]}
+              onPress={toggleSubscribe}
+            >
+              <Text style={[styles.subscribeBtnText, video.subscribed && styles.subscribedBtnText]}>
+                {video.subscribed ? 'Subscribed' : 'Subscribe'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Description */}
@@ -268,6 +303,8 @@ const styles = StyleSheet.create({
   creatorSub: { color: COLORS.textMuted, fontSize: 12 },
   subscribeBtn: { backgroundColor: COLORS.text, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
   subscribeBtnText: { color: COLORS.background, fontWeight: '700', fontSize: 13 },
+  subscribedBtn: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
+  subscribedBtnText: { color: COLORS.text },
   descBlock: { paddingHorizontal: SPACING.lg, paddingVertical: 10, backgroundColor: COLORS.surface, marginHorizontal: SPACING.lg, borderRadius: 10, gap: 4 },
   descText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
   descToggle: { color: COLORS.primary, fontSize: 12, fontWeight: '600', marginTop: 2 },

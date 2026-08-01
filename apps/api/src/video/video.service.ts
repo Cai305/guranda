@@ -212,7 +212,22 @@ export class VideoService {
           where: { userId_videoId: { userId, videoId: id } },
         }))
       : false;
-    return { ...video, liked, savedLater };
+    const [subscribed, subscriberCount] = await Promise.all([
+      userId
+        ? !!(await this.prisma.creatorSubscription.findUnique({
+            where: {
+              subscriberId_creatorId: {
+                subscriberId: userId,
+                creatorId: video.creatorId,
+              },
+            },
+          }))
+        : false,
+      this.prisma.creatorSubscription.count({
+        where: { creatorId: video.creatorId },
+      }),
+    ]);
+    return { ...video, liked, savedLater, subscribed, subscriberCount };
   }
 
   // ── View (increment + history) ────────────────────────────────────────────
@@ -241,6 +256,32 @@ export class VideoService {
   async unlikeVideo(videoId: string, userId: string) {
     await this.prisma.videoLike.deleteMany({ where: { videoId, userId } });
     return { liked: false };
+  }
+
+  // ── Creator subscriptions ────────────────────────────────────────────────
+  async subscribeToCreator(subscriberId: string, creatorId: string) {
+    if (subscriberId === creatorId) {
+      throw new BadRequestException('You cannot subscribe to yourself');
+    }
+    await this.prisma.creatorSubscription.upsert({
+      where: { subscriberId_creatorId: { subscriberId, creatorId } },
+      update: {},
+      create: { subscriberId, creatorId },
+    });
+    const subscriberCount = await this.prisma.creatorSubscription.count({
+      where: { creatorId },
+    });
+    return { subscribed: true, subscriberCount };
+  }
+
+  async unsubscribeFromCreator(subscriberId: string, creatorId: string) {
+    await this.prisma.creatorSubscription.deleteMany({
+      where: { subscriberId, creatorId },
+    });
+    const subscriberCount = await this.prisma.creatorSubscription.count({
+      where: { creatorId },
+    });
+    return { subscribed: false, subscriberCount };
   }
 
   // ── Comments ──────────────────────────────────────────────────────────────
