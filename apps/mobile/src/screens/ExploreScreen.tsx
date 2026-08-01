@@ -195,36 +195,41 @@ export default function ExploreScreen({ navigation }: any) {
     const hasReposted = item.reposts?.some(r => r.userId === user?.userId);
     const isBookmarked = !!item.isBookmarkedByMe;
     const displayName = item.author?.displayName || item.author?.username || 'User';
+    const openDetail = () => navigation.navigate('PostComments', { postId: item.id });
     return (
       <View style={styles.postCard}>
-        <View style={styles.postHeader}>
-          <Image
-            source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
-            style={styles.postAvatar}
-          />
-          <View style={styles.postAuthorInfo}>
-            <View style={styles.postNameRow}>
-              <Text style={styles.postAuthorName} numberOfLines={1}>{displayName}</Text>
-              {item.author?.verified && (
-                <Ionicons name="checkmark-circle" size={15} color={COLORS.primary} style={{ marginLeft: 3 }} />
-              )}
+        <TouchableOpacity activeOpacity={0.85} onPress={openDetail}>
+          <View style={styles.postHeader}>
+            <View style={styles.postAvatarCol}>
+              <Image
+                source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
+                style={styles.postAvatar}
+              />
             </View>
-            <Text style={styles.postTime} numberOfLines={1}>
-              {item.author?.username ? `@${item.author.username} · ` : ''}{timeAgo(item.createdAt as any)}
-            </Text>
+            <View style={styles.postAuthorInfo}>
+              <View style={styles.postNameRow}>
+                <Text style={styles.postAuthorName} numberOfLines={1}>{displayName}</Text>
+                {item.author?.verified && (
+                  <Ionicons name="checkmark-circle" size={15} color={COLORS.primary} style={{ marginLeft: 3 }} />
+                )}
+              </View>
+              <Text style={styles.postTime} numberOfLines={1}>
+                {item.author?.username ? `@${item.author.username} · ` : ''}{timeAgo(item.createdAt as any)}
+              </Text>
+            </View>
+            {item.authorId !== user?.userId && !item.author?.isFollowedByMe && (
+              <TouchableOpacity style={styles.followBtn} onPress={() => handleFollow(item.authorId)}>
+                <Text style={styles.followBtnText}>Follow</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          {item.authorId !== user?.userId && !item.author?.isFollowedByMe && (
-            <TouchableOpacity style={styles.followBtn} onPress={() => handleFollow(item.authorId)}>
-              <Text style={styles.followBtnText}>Follow</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
-        {item.mediaUrl ? (
-          <View style={styles.postMediaWrap}>
-            <PostMedia mediaUrl={item.mediaUrl} mediaType={item.mediaType} />
-          </View>
-        ) : null}
+          {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
+          {item.mediaUrl ? (
+            <View style={styles.postMediaWrap}>
+              <PostMedia mediaUrl={item.mediaUrl} mediaType={item.mediaType} />
+            </View>
+          ) : null}
+        </TouchableOpacity>
         <View style={styles.postActions}>
           <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('PostComments', { postId: item.id })}>
             <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
@@ -498,14 +503,23 @@ const styles = StyleSheet.create({
   feedModeTextActive: {
     color: COLORS.text,
   },
+  // Avatar sits in its own column sized as a percentage of the card (~14%,
+  // within the 10-20% range X's layout uses), not a fixed pixel width, so
+  // the proportion holds across device sizes. Content takes the rest via
+  // postAuthorInfo's flex: 1.
+  postAvatarCol: {
+    width: '14%',
+    alignItems: 'flex-start',
+  },
   postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: '100%',
+    aspectRatio: 1,
+    maxWidth: 44,
+    borderRadius: 999,
   },
   postAuthorInfo: {
     flex: 1,
+    marginLeft: 4,
   },
   postNameRow: {
     flexDirection: 'row',

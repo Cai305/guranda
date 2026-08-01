@@ -46,6 +46,7 @@ model User {
   // Follow rows where I'm being followed — my followers.
   followedBy                   Follow[]                  @relation("UserFollowedBy")
   comments                     Comment[]
+  commentLikes                 CommentLike[]
   communityMemberships         CommunityMember[]
   storyLikes                   StoryLike[]
   storyComments                StoryComment[]
@@ -322,13 +323,30 @@ model PostBookmark {
 }
 
 model Comment {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   postId    String
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post          @relation(fields: [postId], references: [id])
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User          @relation(fields: [authorId], references: [id])
   content   String
+  createdAt DateTime      @default(now())
+  // Null = top-level comment on the post. Set = a reply to another comment
+  // (one level of nesting, matching how the client renders threads).
+  parentId  String?
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[]     @relation("CommentReplies")
+  likes     CommentLike[]
+}
+
+model CommentLike {
+  id        String   @id @default(uuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
 }
 
 model Community {
