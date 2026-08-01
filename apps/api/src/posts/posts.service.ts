@@ -29,10 +29,20 @@ const FEED_AUTHOR_SELECT = {
   locationLng: true,
 } as const;
 
+// Flattens the nested `profile: {displayName, avatarUrl, bio, statusMessage}`
+// Prisma include onto the author object — PostAuthor (packages/types) extends
+// the flat UserProfile shape, and every mobile screen reads e.g.
+// `author.avatarUrl` directly, not `author.profile.avatarUrl`. Without this
+// the real photo/bio never reach the client, they just silently fall back to
+// a placeholder.
 function toPostAuthor(author: any) {
   if (!author) return author;
-  const { verification, locationLat, locationLng, ...rest } = author;
-  return { ...rest, verified: verification?.status === 'VERIFIED' };
+  const { verification, locationLat, locationLng, profile, ...rest } = author;
+  return {
+    ...rest,
+    ...profile,
+    verified: verification?.status === 'VERIFIED',
+  };
 }
 
 @Injectable()

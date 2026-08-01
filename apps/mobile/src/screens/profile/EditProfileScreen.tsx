@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,7 +11,8 @@ export default function EditProfileScreen({ navigation }: any) {
   const { user, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState(user?.bio || '');
-  const [statusMessage, setStatusMessage] = useState(''); // Not exposed in AuthUser yet, but backend supports it
+  const [statusMessage, setStatusMessage] = useState(user?.statusMessage || '');
+  const [autoStatusEnabled, setAutoStatusEnabled] = useState(user?.autoStatusEnabled ?? true);
   const [avatarUri, setAvatarUri] = useState(user?.avatarUrl || '');
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +47,7 @@ export default function EditProfileScreen({ navigation }: any) {
           bio,
           statusMessage,
           avatarUrl,
+          autoStatusEnabled,
         }),
       });
 
@@ -114,6 +116,20 @@ export default function EditProfileScreen({ navigation }: any) {
             onChangeText={setStatusMessage}
             placeholder="What's on your mind?"
             placeholderTextColor={COLORS.textMuted}
+          />
+        </View>
+
+        <View style={styles.toggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Auto-update my status</Text>
+            <Text style={styles.toggleHint}>
+              Shows what you're currently doing (e.g. "At the car wash", "On a flight") based on your bookings, instead of the message above.
+            </Text>
+          </View>
+          <Switch
+            value={autoStatusEnabled}
+            onValueChange={setAutoStatusEnabled}
+            trackColor={{ false: COLORS.border, true: COLORS.primary }}
           />
         </View>
 
@@ -188,6 +204,23 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  toggleHint: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+    lineHeight: 16,
   },
   saveBtn: {
     backgroundColor: COLORS.primary,

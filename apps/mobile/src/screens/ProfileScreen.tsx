@@ -135,6 +135,9 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
           <Text style={styles.displayName}>{displayName}</Text>
           <Text style={styles.username}>{username}</Text>
+          {!!(user?.effectiveStatus || user?.bio) && (
+            <Text style={styles.statusLine} numberOfLines={2}>{user?.effectiveStatus || user?.bio}</Text>
+          )}
 
           <View style={styles.repRow}>
             <View style={styles.repItem}>
@@ -416,6 +419,12 @@ const styles = StyleSheet.create({
   username: {
     ...TYPOGRAPHY.body2,
     marginTop: 2,
+  },
+  statusLine: {
+    ...TYPOGRAPHY.body2,
+    color: COLORS.textMuted,
+    marginTop: 6,
+    textAlign: 'center',
   },
   repRow: {
     flexDirection: 'row',

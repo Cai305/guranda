@@ -53,6 +53,9 @@ export interface AuthUser {
   xrplAddress?: string;
   avatarUrl?: string;
   bio?: string;
+  statusMessage?: string;
+  autoStatusEnabled?: boolean;
+  effectiveStatus?: string | null;
   subscribers?: number;
   reputation?: number;
   level?: string;
@@ -185,6 +188,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatarUrl: p.avatarUrl ?? prev.avatarUrl,
           displayName: p.displayName ?? prev.displayName,
           bio: p.bio ?? prev.bio,
+          statusMessage: p.statusMessage ?? prev.statusMessage,
+          autoStatusEnabled: p.autoStatusEnabled ?? prev.autoStatusEnabled,
+          effectiveStatus: p.effectiveStatus ?? null,
           subscribers: p.subscribers ?? prev.subscribers,
           reputation: p.reputation ?? prev.reputation,
           level: p.level ?? prev.level,

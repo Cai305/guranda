@@ -3,10 +3,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usersService: UsersService,
+  ) {}
 
   async getUserChats(userId: string) {
     const memberships = await this.prisma.chatMember.findMany({
@@ -26,6 +30,17 @@ export class ChatService {
       },
     });
 
+    // Auto-status is only worth resolving for DIRECT chats (a group/channel
+    // has no single "other person" to show a status for) — collect target
+    // ids up front so it's one batched query instead of one per row.
+    const directTargetIds = memberships
+      .filter((m) => m.chat.type === 'DIRECT')
+      .map((m) => m.chat.members.find((mem) => mem.userId !== userId)?.userId)
+      .filter((id): id is string => !!id);
+    const statusByUserId = await this.usersService.resolveActiveStatuses(
+      directTargetIds,
+    );
+
     // unreadCount needs a per-chat query since it's a count over messages,
     // not something the membership include above can express — the list
     // renders the actual number (not just a boolean dot) below the envelope.
@@ -34,8 +49,10 @@ export class ChatService {
         const chat = m.chat;
         let name = chat.name;
         let targetUserId: string | null = null;
+        let avatarUrl: string | null = null;
+        let effectiveStatus: string | null = null;
 
-        // If it's a DIRECT chat, use the other user's name
+        // If it's a DIRECT chat, use the other user's name/avatar/status
         if (chat.type === 'DIRECT') {
           const otherMember = chat.members.find(
             (member) => member.userId !== userId,
@@ -45,6 +62,8 @@ export class ChatService {
               otherMember.user.profile?.displayName ||
               otherMember.user.username;
             targetUserId = otherMember.userId;
+            avatarUrl = otherMember.user.profile?.avatarUrl ?? null;
+            effectiveStatus = statusByUserId.get(otherMember.userId) ?? null;
           }
         }
 
@@ -63,6 +82,8 @@ export class ChatService {
           name: name,
           type: chat.type,
           targetUserId,
+          avatarUrl,
+          effectiveStatus,
           lastMessageAt: lastMessage ? lastMessage.createdAt : chat.createdAt,
           hasNewMessage: unreadCount > 0,
           unreadCount,

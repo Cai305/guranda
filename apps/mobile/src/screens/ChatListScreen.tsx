@@ -122,25 +122,25 @@ export default function ChatListScreen({ navigation }: any) {
     >
       <View style={styles.avatarContainer}>
         {item.type === 'Private' || item.type === 'AI' || item.type === 'DIRECT' ? (
-          <Image 
-            source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
+          <Image
+            source={{ uri: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
             style={styles.avatar}
           />
         ) : (
           <View style={styles.groupAvatar}>
-            <Ionicons 
-              name={item.type === 'Public' ? 'globe' : 'people'} 
-              size={24} 
-              color={COLORS.text} 
+            <Ionicons
+              name={item.type === 'Public' ? 'globe' : 'people'}
+              size={24}
+              color={COLORS.text}
             />
           </View>
         )}
         <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.targetUserId ? onlineUsers[item.targetUserId] || 'offline' : item.status) }]} />
       </View>
-      
+
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{item.name}</Text>
-        <Text style={styles.chatType}>{item.type}</Text>
+        <Text style={styles.chatType} numberOfLines={1}>{item.effectiveStatus || item.type}</Text>
       </View>
 
       {item.type === 'Private' || item.type === 'AI' || item.type === 'DIRECT' ? (

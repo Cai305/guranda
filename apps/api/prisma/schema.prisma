@@ -161,6 +161,11 @@ model UserProfile {
   avatarUrl     String?
   bio           String?
   statusMessage String?
+  // When true (default), the status shown to other users is derived live
+  // from any mini-app booking currently in its active time window (see
+  // UsersService.resolveActiveStatus), overriding statusMessage. Off = show
+  // statusMessage verbatim.
+  autoStatusEnabled Boolean @default(true)
 }
 
 model Wallet {

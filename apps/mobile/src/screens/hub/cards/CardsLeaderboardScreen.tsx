@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,6 +50,11 @@ export default function CardsLeaderboardScreen({ navigation }: any) {
         renderItem={({ item, index }) => (
           <View style={styles.row}>
             <Text style={styles.rank}>#{index + 1}</Text>
+            {item.user?.profile?.avatarUrl ? (
+              <Image source={{ uri: item.user.profile.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <Ionicons name="person-circle" size={26} color={COLORS.textMuted} />
+            )}
             <Text style={styles.name} numberOfLines={1}>{item.user?.profile?.displayName || item.user?.username}</Text>
             <Text style={styles.rating}>{item.rating}</Text>
             <Text style={styles.stat}>{item.wins}W-{item.losses}L</Text>
@@ -83,6 +88,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.xs,
   },
   rank: { color: COLORS.gold, fontWeight: '800', width: 32 },
+  avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surface },
   name: { flex: 1, color: COLORS.text, fontWeight: '600' },
   rating: { color: COLORS.primary, fontWeight: '800', marginRight: SPACING.sm },
   stat: { color: COLORS.textMuted, fontSize: 12 },

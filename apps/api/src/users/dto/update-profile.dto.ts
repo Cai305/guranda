@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -19,4 +19,8 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(120)
   statusMessage?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  autoStatusEnabled?: boolean;
 }

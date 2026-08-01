@@ -84,6 +84,15 @@ export class UsersController {
     return this.usersService.findById(id);
   }
 
+  // Backs the chat thread header, friends list, and any future "view
+  // profile" surface — avatar/bio plus the same auto-status resolver used
+  // on GET /users/me, so a booked car wash/flight/etc. shows up here too.
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/public-profile')
+  async publicProfile(@Param('id') id: string) {
+    return this.usersService.getPublicProfile(id);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('search')
   async search(@Query('q') query: string, @Request() req: any) {

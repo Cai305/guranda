@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Share, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Share, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
@@ -32,19 +32,22 @@ export default function CardRoomScreen({ route, navigation }: any) {
 
     sock.on('connect', () => {
       if (initialRoomId) {
-        sock.emit('join_room', { roomId: initialRoomId, userId: user.userId, displayName });
+        sock.emit('join_room', { roomId: initialRoomId, userId: user.userId, displayName, avatarUrl: user.avatarUrl });
       } else if (roomCode) {
-        sock.emit('join_room_by_code', { roomCode, userId: user.userId, displayName });
+        sock.emit('join_room_by_code', { roomCode, userId: user.userId, displayName, avatarUrl: user.avatarUrl });
       }
     });
     sock.on('room_joined', (data: { roomId: string }) => {
       setRoomId(data.roomId);
-      sock.emit('join_room', { roomId: data.roomId, userId: user.userId, displayName });
+      sock.emit('join_room', { roomId: data.roomId, userId: user.userId, displayName, avatarUrl: user.avatarUrl });
     });
     sock.on('room_updated', (data: any) => setRoom(data));
     sock.on('room_game_started', (data: { gameId: string }) => {
       const targetMode = room?.mode ?? initialMode;
-      navigation.replace(targetMode === 'CASSINO' ? 'CassinoGame' : 'FiveCardsGame', { gameId: data.gameId });
+      navigation.replace(targetMode === 'CASSINO' ? 'CassinoGame' : 'FiveCardsGame', {
+        gameId: data.gameId,
+        participants: room?.participants,
+      });
     });
     sock.on('room_message', (data: any) => {
       setChat((c) => [...c, { kind: 'message', displayName: data.displayName, content: data.content, at: data.at }]);
@@ -121,7 +124,11 @@ export default function CardRoomScreen({ route, navigation }: any) {
         contentContainerStyle={{ paddingHorizontal: SPACING.lg, gap: SPACING.sm }}
         renderItem={({ item }) => (
           <View style={styles.participantChip}>
-            <Ionicons name="person-circle" size={18} color={COLORS.primary} />
+            {item.avatarUrl ? (
+              <Image source={{ uri: item.avatarUrl }} style={styles.participantAvatar} />
+            ) : (
+              <Ionicons name="person-circle" size={18} color={COLORS.primary} />
+            )}
             <Text style={styles.participantName}>{item.displayName}{item.userId === room?.hostId ? ' (host)' : ''}</Text>
           </View>
         )}
@@ -204,6 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8,
   },
   participantName: { color: COLORS.text, fontWeight: '600', fontSize: 12 },
+  participantAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.surface },
   startBtn: {
     marginHorizontal: SPACING.lg, marginTop: SPACING.md,
     backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center',

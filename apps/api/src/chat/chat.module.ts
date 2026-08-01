@@ -5,8 +5,10 @@ import { ChatService } from './chat.service';
 import { PrismaService } from '../prisma.service';
 import { ChatAiToolsProvider } from './chat-ai-tools.provider';
 import { CallService } from '../calls/call.service';
+import { UsersModule } from '../users/users.module';
 
 @Module({
+  imports: [UsersModule],
   controllers: [ChatController],
   providers: [
     ChatGateway,
