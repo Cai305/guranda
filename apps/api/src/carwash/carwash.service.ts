@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -40,6 +45,41 @@ export class CarwashService {
       },
       include: { services: true },
     });
+  }
+
+  async myCarWashes(userId: string) {
+    return this.prisma.carWash.findMany({
+      where: { ownerId: userId },
+      include: {
+        services: true,
+        _count: { select: { bookings: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateCarWash(id: string, userId: string, data: any) {
+    const cw = await this.prisma.carWash.findUnique({ where: { id } });
+    if (!cw) throw new NotFoundException('Car wash not found');
+    if (cw.ownerId !== userId) throw new ForbiddenException();
+    return this.prisma.carWash.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.address !== undefined ? { address: data.address } : {}),
+        ...(data.isOpen !== undefined ? { isOpen: !!data.isOpen } : {}),
+      },
+      include: { services: true },
+    });
+  }
+
+  async deleteCarWash(id: string, userId: string) {
+    const cw = await this.prisma.carWash.findUnique({ where: { id } });
+    if (!cw) throw new NotFoundException('Car wash not found');
+    if (cw.ownerId !== userId) throw new ForbiddenException();
+    await this.prisma.carWash.delete({ where: { id } });
+    return { success: true };
   }
 
   async bookCarWash(userId: string, data: { carWashId: string; serviceId: string; scheduledFor?: string }) {

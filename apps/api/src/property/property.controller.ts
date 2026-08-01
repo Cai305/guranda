@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -44,6 +45,16 @@ export class PropertyController {
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.propertyService.getProperty(id);
+  }
+
+  @Patch(':id')
+  update(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.propertyService.updateProperty(id, req.user.userId, body);
+  }
+
+  @Delete(':id')
+  remove(@Request() req: any, @Param('id') id: string) {
+    return this.propertyService.deleteProperty(id, req.user.userId);
   }
 
   // Tenancies

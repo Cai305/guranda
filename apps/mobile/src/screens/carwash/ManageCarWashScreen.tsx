@@ -5,22 +5,41 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
 
-export default function ManageCarWashScreen({ navigation }: any) {
-  const [name, setName] = useState('');
-  const [desc, setDesc] = useState('');
-  const [address, setAddress] = useState('');
-  const [services, setServices] = useState([{ id: 1, name: '', description: '', price: '' }]);
+interface ServiceRow {
+  id: string | number;
+  name: string;
+  description: string;
+  price: string;
+}
+
+export default function ManageCarWashScreen({ navigation, route }: any) {
+  const existing = route?.params?.carWash;
+  const isEdit = !!existing;
+
+  const [name, setName] = useState(existing?.name || '');
+  const [desc, setDesc] = useState(existing?.description || '');
+  const [address, setAddress] = useState(existing?.address || '');
+  const [services, setServices] = useState<ServiceRow[]>(
+    existing?.services?.length
+      ? existing.services.map((s: any) => ({
+          id: s.id,
+          name: s.name || '',
+          description: s.description || '',
+          price: s.price != null ? String(s.price) : '',
+        }))
+      : [{ id: Date.now(), name: '', description: '', price: '' }]
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const addService = () => {
     setServices([...services, { id: Date.now(), name: '', description: '', price: '' }]);
   };
 
-  const updateService = (id: number, field: string, value: string) => {
+  const updateService = (id: string | number, field: string, value: string) => {
     setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
-  const removeService = (id: number) => {
+  const removeService = (id: string | number) => {
     setServices(services.filter(s => s.id !== id));
   };
 
@@ -29,26 +48,36 @@ export default function ManageCarWashScreen({ navigation }: any) {
       Alert.alert('Missing fields', 'Please provide a name and address.');
       return;
     }
-    
+
     const validServices = services.filter(s => s.name && s.price);
 
     try {
       setSubmitting(true);
-      const res = await fetchApi('/carwash', {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          description: desc,
-          address,
-          services: validServices,
-        }),
-      });
+      const res = isEdit
+        ? await fetchApi(`/carwash/${existing.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              name,
+              description: desc,
+              address,
+              services: validServices,
+            }),
+          })
+        : await fetchApi('/carwash', {
+            method: 'POST',
+            body: JSON.stringify({
+              name,
+              description: desc,
+              address,
+              services: validServices,
+            }),
+          });
 
       if (!res.ok) {
-        throw new Error('Failed to create car wash');
+        throw new Error(`Failed to ${isEdit ? 'update' : 'create'} car wash`);
       }
 
-      Alert.alert('Success', 'Car wash created successfully!');
+      Alert.alert('Success', `Car wash ${isEdit ? 'updated' : 'created'} successfully!`);
       navigation.goBack();
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -63,7 +92,7 @@ export default function ManageCarWashScreen({ navigation }: any) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={TYPOGRAPHY.h2}>Manage Car Wash</Text>
+        <Text style={TYPOGRAPHY.h2}>{isEdit ? 'Edit Car Wash' : 'Manage Car Wash'}</Text>
         <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={submitting}>
           {submitting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.saveText}>Save</Text>}
         </TouchableOpacity>

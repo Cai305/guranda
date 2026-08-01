@@ -32,6 +32,26 @@ export const FEATURE_KEYS = [
   'carfind',
 ] as const;
 
+// Per-mini-app admin lock on the Dashboard "manage my inventory" entry point
+// (create/edit/delete of the user's own listings), separate from the
+// whole-module FEATURE_KEYS above which gate browsing/using the mini app at
+// all. Same ALL/OFF-driven FeatureFlag row, just a `crud:` namespaced key.
+export const CRUD_FLAG_KEYS = [
+  'crud:property',
+  'crud:work',
+  'crud:eat',
+  'crud:shopping',
+  'crud:marketplace',
+  'crud:carfind',
+  'crud:travel',
+  'crud:entertainment',
+  'crud:finance',
+  'crud:health',
+  'crud:learning',
+  'crud:username-market',
+  'crud:carwash',
+] as const;
+
 @Injectable()
 export class FeatureFlagsService {
   constructor(private prisma: PrismaService) {}
@@ -39,7 +59,7 @@ export class FeatureFlagsService {
   async getAll() {
     const rows = await this.prisma.featureFlag.findMany();
     const map: Record<string, FeatureAccess> = {};
-    for (const key of FEATURE_KEYS) map[key] = FeatureAccess.ALL;
+    for (const key of [...FEATURE_KEYS, ...CRUD_FLAG_KEYS]) map[key] = FeatureAccess.ALL;
     for (const row of rows) map[row.key] = row.access;
     return map;
   }
