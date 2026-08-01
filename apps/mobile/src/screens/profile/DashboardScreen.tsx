@@ -310,7 +310,7 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
 
             <Text style={dash.heroBalance}>
-              {wallet?.balanceMasheleni ?? '0.00'} <Text style={dash.heroCurrency}>MSH</Text>
+              {(wallet?.balanceMasheleni ?? 0).toFixed(2)} <Text style={dash.heroCurrency}>MSH</Text>
             </Text>
 
             <View style={dash.heroActions}>

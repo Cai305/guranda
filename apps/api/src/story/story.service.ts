@@ -12,6 +12,15 @@ const CCR_RATE = 0.58;
 
 const USER_SELECT = { id: true, username: true, profile: true } as const;
 
+// Flattens the nested `profile: {displayName, avatarUrl, ...}` Prisma include
+// onto the author object, same convention as posts.service.ts's toPostAuthor
+// — mobile's StoryDto.author is a flat UserProfile, not `{profile: {...}}}`.
+function toStoryAuthor(user: any) {
+  if (!user) return user;
+  const { profile, ...rest } = user;
+  return { ...rest, ...profile };
+}
+
 @Injectable()
 export class StoryService {
   constructor(private prisma: PrismaService) {}
@@ -120,8 +129,14 @@ export class StoryService {
       giftTotals.map((g) => [g.contextId, { giftTotal: g._sum.amount ?? 0, giftCount: g._count }]),
     );
 
-    return stories.map((s) => ({
+    // Mobile's StoryDto (and every other feed — posts/comments) expects the
+    // author flattened under `author`, not Prisma's raw `user` relation name
+    // with a nested `.profile` — without this TrendingStoriesFeed silently
+    // falls back to a generic "User" name and a random-seed placeholder
+    // avatar for every labeled story.
+    return stories.map(({ user, ...s }) => ({
       ...s,
+      author: toStoryAuthor(user),
       ...(giftMap.get(s.id) ?? { giftTotal: 0, giftCount: 0 }),
     }));
   }

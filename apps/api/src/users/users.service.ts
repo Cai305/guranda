@@ -72,14 +72,19 @@ export class UsersService {
         },
       });
 
-      // Mandatory personal info — required for every account, but on its
-      // own only gets the user to UNVERIFIED (ID is still needed later).
+      // Mandatory personal info. Every account is auto-VERIFIED at signup
+      // for now (product decision to remove the ID-upload gate temporarily)
+      // instead of the normal UNVERIFIED-until-ID-submitted flow — revert to
+      // leaving `status` unset (defaults to UNVERIFIED) to restore the gate.
       await tx.verification.create({
         data: {
           userId: user.id,
           firstName: dto.firstName.trim(),
           lastName: dto.lastName.trim(),
           occupation: dto.occupation.trim(),
+          status: 'VERIFIED',
+          reviewedAt: new Date(),
+          reviewedBy: 'auto:signup-default',
         },
       });
 

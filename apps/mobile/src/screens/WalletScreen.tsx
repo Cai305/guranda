@@ -45,7 +45,7 @@ export default function WalletScreen({ navigation }: any) {
           </View>
         </View>
         <Text style={[TYPOGRAPHY.h3, { color: isPositive ? COLORS.success : COLORS.text }]}>
-          {isPositive ? '+' : ''}{item.amount} MSH
+          {isPositive ? '+' : ''}{Number(item.amount).toFixed(2)} MSH
         </Text>
       </View>
     );
@@ -56,7 +56,7 @@ export default function WalletScreen({ navigation }: any) {
   }
 
   const transactions = wallet?.transactions?.length ? wallet.transactions : fallbackTransactions;
-  const balance = wallet?.balanceMasheleni || '0.00';
+  const balance = (wallet?.balanceMasheleni ?? 0).toFixed(2);
 
   return (
     <SafeAreaView style={styles.container}>

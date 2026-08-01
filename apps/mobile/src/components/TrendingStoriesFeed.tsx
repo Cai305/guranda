@@ -194,11 +194,16 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
 
   const storyAuthors = React.useMemo(() => {
     const seen = new Set<string>();
-    const result: Array<{ id: string; name: string }> = [];
+    const result: Array<{ id: string; name: string; avatarUrl: string }> = [];
     for (const s of stories) {
       if (!seen.has(s.userId)) {
         seen.add(s.userId);
-        result.push({ id: s.userId, name: (s.author as any)?.displayName || (s.author as any)?.username || 'User' });
+        const author = s.author as any;
+        result.push({
+          id: s.userId,
+          name: author?.displayName || author?.username || 'User',
+          avatarUrl: author?.avatarUrl || dicebearUrl(author?.username || s.userId),
+        });
         if (result.length >= 8) break;
       }
     }
@@ -222,7 +227,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
         {storyAuthors.map((a, i) => (
           <View key={a.id} style={s.storyItem}>
             <LinearGradient colors={STORY_RING_COLORS[i % STORY_RING_COLORS.length]} style={s.storyRing}>
-              <Image source={{ uri: dicebearUrl(a.id) }} style={s.storyImg} />
+              <Image source={{ uri: a.avatarUrl }} style={s.storyImg} />
             </LinearGradient>
             <Text style={s.storyName} numberOfLines={1}>{a.name.split(' ')[0]}</Text>
           </View>
@@ -262,6 +267,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
     const rankCount = story.ranks?.length ?? 0;
     const authorName = (story.author as any)?.displayName || (story.author as any)?.username || 'User';
     const authorSeed = (story.author as any)?.username || story.userId;
+    const authorAvatarUrl = (story.author as any)?.avatarUrl || dicebearUrl(authorSeed);
     const firstName = authorName.split(' ')[0];
     const forSaleItems = (story.items ?? []).filter(i => i.isForSale);
     const giftCount = story.giftCount ?? 0;
@@ -271,7 +277,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
     return (
       <View style={s.post}>
         <View style={s.postHeader}>
-          <Image source={{ uri: dicebearUrl(authorSeed) }} style={s.postAvatar} />
+          <Image source={{ uri: authorAvatarUrl }} style={s.postAvatar} />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={s.postAuthorName}>{authorName}</Text>
             <Text style={s.postMeta}>{timeAgo(story.createdAt)} · #{story.label}</Text>
