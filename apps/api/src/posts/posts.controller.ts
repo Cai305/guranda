@@ -20,11 +20,16 @@ export class PostsController {
     return this.postsService.getFeed(req.user?.userId);
   }
 
-  // Literal route before any ':id'-style route below, so Nest doesn't try to
-  // match "mine" as a post id.
+  // Literal routes before any ':id'-style route below, so Nest doesn't try
+  // to match "mine"/"following" as a post id.
   @Get('mine/stats')
   getMyStats(@Request() req: any) {
     return this.postsService.getMyStats(req.user.userId);
+  }
+
+  @Get('following')
+  getFollowingFeed(@Request() req: any) {
+    return this.postsService.getFollowingFeed(req.user.userId);
   }
 
   @Post()
@@ -53,6 +58,11 @@ export class PostsController {
   @Post(':id/bookmark')
   bookmarkPost(@Request() req: any, @Param('id') postId: string) {
     return this.postsService.bookmarkPost(req.user.userId, postId);
+  }
+
+  @Post(':id/view')
+  recordView(@Param('id') postId: string) {
+    return this.postsService.recordView(postId);
   }
 
   @Post(':id/comments')

@@ -125,18 +125,20 @@ export class VideoService {
 
   // ── My stats (creator dashboard) ─────────────────────────────────────────
   async getMyStats(userId: string) {
-    const [agg, totalLikes] = await Promise.all([
+    const [agg, totalLikes, totalComments] = await Promise.all([
       this.prisma.video.aggregate({
         where: { creatorId: userId },
         _sum: { views: true },
         _count: true,
       }),
       this.prisma.videoLike.count({ where: { video: { creatorId: userId } } }),
+      this.prisma.videoComment.count({ where: { video: { creatorId: userId } } }),
     ]);
     return {
       videoCount: agg._count,
       totalViews: agg._sum.views ?? 0,
       totalLikes,
+      totalComments,
     };
   }
 

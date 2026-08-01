@@ -7,15 +7,20 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 
-// Content Contribution Remuneration payout runs every Friday at midnight —
-// this must stay in sync with the @Cron expression on payoutCreatorFunds()
-// below, since getNextPayoutDate() is what the mobile client displays as
-// "next payout" and it has to describe the same schedule the cron enforces.
+// Content Contribution Remuneration pays out once a month, on the 14th, at
+// midnight — this must stay in sync with the @Cron expression on
+// payoutCreatorFunds() below, since getNextPayoutDate() is what the mobile
+// client displays as "next payout" and it has to describe the same schedule
+// the cron enforces. pendingCreatorFunds therefore represents "accumulated
+// so far this pay period" (up to a month), not a running-forever balance.
 function getNextPayoutDate(from = new Date()): Date {
   const next = new Date(from);
   next.setHours(0, 0, 0, 0);
-  const daysUntilFriday = (5 - next.getDay() + 7) % 7 || 7;
-  next.setDate(next.getDate() + daysUntilFriday);
+  if (next.getDate() < 14) {
+    next.setDate(14);
+  } else {
+    next.setMonth(next.getMonth() + 1, 14);
+  }
   return next;
 }
 
@@ -232,6 +237,9 @@ export class WalletsService {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new NotFoundException('Wallet not found');
     return {
+      // Accrued since the last payout — with a monthly cadence this is
+      // effectively "how much you've earned this pay period so far".
+      accumulatedThisMonth: wallet.pendingCreatorFunds,
       pendingBalance: wallet.pendingCreatorFunds,
       nextPayoutDate: getNextPayoutDate().toISOString(),
     };
@@ -240,7 +248,7 @@ export class WalletsService {
   // Batches every user's accrued Content Contribution Remuneration
   // (from story likes/comments/ranks — see StoryService) into their
   // spendable balance in one lump sum, matching getNextPayoutDate() above.
-  @Cron('0 0 * * 5')
+  @Cron('0 0 14 * *')
   async payoutCreatorFunds() {
     const wallets = await this.prisma.wallet.findMany({
       where: { pendingCreatorFunds: { gt: 0 } },

@@ -133,6 +133,17 @@ export class StoryService {
     return this.prisma.story.deleteMany({ where: { id: storyId, userId } });
   }
 
+  async getMyStats(userId: string) {
+    const [storyCount, likesReceived, commentsReceived, ranksReceived] =
+      await Promise.all([
+        this.prisma.story.count({ where: { userId } }),
+        this.prisma.storyLike.count({ where: { story: { userId } } }),
+        this.prisma.storyComment.count({ where: { story: { userId } } }),
+        this.prisma.storyRank.count({ where: { story: { userId } } }),
+      ]);
+    return { storyCount, likesReceived, commentsReceived, ranksReceived };
+  }
+
   private async chargeInteraction(storyId: string, userId: string) {
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },

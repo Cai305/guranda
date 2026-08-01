@@ -433,4 +433,36 @@ export class UsersService {
         })),
       );
   }
+
+  async followUser(followerId: string, followingId: string) {
+    if (followerId === followingId) {
+      throw new BadRequestException('You cannot follow yourself');
+    }
+    try {
+      await this.prisma.follow.create({
+        data: { followerId, followingId },
+      });
+      return { status: 'followed' };
+    } catch {
+      await this.prisma.follow.delete({
+        where: { followerId_followingId: { followerId, followingId } },
+      });
+      return { status: 'unfollowed' };
+    }
+  }
+
+  async getFollowStats(userId: string, viewerId?: string) {
+    const [followerCount, followingCount, isFollowedByMe] = await Promise.all([
+      this.prisma.follow.count({ where: { followingId: userId } }),
+      this.prisma.follow.count({ where: { followerId: userId } }),
+      viewerId
+        ? this.prisma.follow
+            .findUnique({
+              where: { followerId_followingId: { followerId: viewerId, followingId: userId } },
+            })
+            .then((f) => !!f)
+        : false,
+    ]);
+    return { followerCount, followingCount, isFollowedByMe };
+  }
 }

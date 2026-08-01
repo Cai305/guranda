@@ -62,6 +62,40 @@ export class PostsService {
     return { ...post, author: toPostAuthor(post.author) };
   }
 
+  // Shared by both feed variants — resolves the viewer's private bookmark
+  // state and per-author follow state, and normalizes author shape, without
+  // leaking who else bookmarked each post.
+  private async hydrate(posts: any[], viewerId?: string) {
+    const [bookmarkedIds, followedAuthorIds] = await Promise.all([
+      viewerId
+        ? this.prisma.postBookmark
+            .findMany({
+              where: { userId: viewerId, postId: { in: posts.map((p) => p.id) } },
+              select: { postId: true },
+            })
+            .then((rows) => new Set(rows.map((b) => b.postId)))
+        : new Set<string>(),
+      viewerId
+        ? this.prisma.follow
+            .findMany({
+              where: {
+                followerId: viewerId,
+                followingId: { in: [...new Set(posts.map((p) => p.authorId))] },
+              },
+              select: { followingId: true },
+            })
+            .then((rows) => new Set(rows.map((f) => f.followingId)))
+        : new Set<string>(),
+    ]);
+
+    return posts.map((p) => ({
+      ...p,
+      author: { ...toPostAuthor(p.author), isFollowedByMe: followedAuthorIds.has(p.authorId) },
+      comments: p.comments.map((c: any) => ({ ...c, author: toPostAuthor(c.author) })),
+      isBookmarkedByMe: bookmarkedIds.has(p.id),
+    }));
+  }
+
   async getFeed(viewerId?: string) {
     // Widen the raw pool beyond what's actually shown — ranking needs
     // candidates to reorder, not just the newest 50.
@@ -103,26 +137,45 @@ export class PostsService {
       50,
     );
 
-    // Bookmarks are private — only ever resolve the viewer's own state here,
-    // never return the full relation (that would leak who else bookmarked
-    // each post).
-    const bookmarkedIds = viewerId
-      ? new Set(
-          (
-            await this.prisma.postBookmark.findMany({
-              where: { userId: viewerId, postId: { in: ranked.map((p) => p.id) } },
-              select: { postId: true },
-            })
-          ).map((b) => b.postId),
-        )
-      : new Set<string>();
+    return this.hydrate(ranked, viewerId);
+  }
 
-    return ranked.map((p) => ({
-      ...p,
-      author: toPostAuthor(p.author),
-      comments: p.comments.map((c: any) => ({ ...c, author: toPostAuthor(c.author) })),
-      isBookmarkedByMe: bookmarkedIds.has(p.id),
-    }));
+  // Following tab — plain reverse-chronological, not the "For You" ranking
+  // algorithm, matching the reference feed's distinction between the two.
+  async getFollowingFeed(viewerId: string) {
+    const follows = await this.prisma.follow.findMany({
+      where: { followerId: viewerId },
+      select: { followingId: true },
+    });
+    if (!follows.length) return [];
+
+    const posts = await this.prisma.post.findMany({
+      where: { authorId: { in: follows.map((f) => f.followingId) } },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { select: AUTHOR_SELECT },
+        likes: true,
+        reposts: true,
+        comments: {
+          include: { author: { select: AUTHOR_SELECT } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      take: 100,
+    });
+
+    return this.hydrate(posts, viewerId);
+  }
+
+  // Impression counter — called once per client-side render (debounced by
+  // viewport visibility on the client), not per-fetch. Not a unique-viewer
+  // count, same convention as view counts elsewhere in the app (Video.views).
+  async recordView(postId: string) {
+    await this.prisma.post.update({
+      where: { id: postId },
+      data: { views: { increment: 1 } },
+    });
+    return { status: 'ok' };
   }
 
   async getMyStats(userId: string) {
