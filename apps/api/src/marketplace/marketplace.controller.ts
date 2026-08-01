@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -59,6 +60,16 @@ export class MarketplaceController {
   @Patch('listings/:id/cancel')
   cancel(@Request() req: any, @Param('id') id: string) {
     return this.marketplaceService.cancelListing(req.user.userId, id);
+  }
+
+  @Patch('listings/:id')
+  update(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.marketplaceService.updateListing(req.user.userId, id, body);
+  }
+
+  @Delete('listings/:id')
+  remove(@Request() req: any, @Param('id') id: string) {
+    return this.marketplaceService.deleteListing(req.user.userId, id);
   }
 
   @Post('listings/:id/buy')

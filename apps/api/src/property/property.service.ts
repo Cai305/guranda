@@ -131,6 +131,45 @@ export class PropertyService {
     return p;
   }
 
+  async updateProperty(id: string, agentId: string, dto: any) {
+    const property = await this.prisma.property.findUnique({ where: { id } });
+    if (!property) throw new NotFoundException('Property not found');
+    if (property.agentId !== agentId) throw new ForbiddenException();
+    return this.prisma.property.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.kind !== undefined ? { kind: dto.kind } : {}),
+        ...(dto.listingType !== undefined
+          ? { listingType: dto.listingType }
+          : {}),
+        ...(dto.price !== undefined ? { price: Number(dto.price) } : {}),
+        ...(dto.address !== undefined ? { address: dto.address } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
+        ...(dto.images !== undefined ? { images: dto.images } : {}),
+        ...(dto.bedrooms !== undefined
+          ? { bedrooms: Number(dto.bedrooms) }
+          : {}),
+        ...(dto.bathrooms !== undefined
+          ? { bathrooms: Number(dto.bathrooms) }
+          : {}),
+        ...(dto.available !== undefined
+          ? { available: !!dto.available }
+          : {}),
+      },
+    });
+  }
+
+  async deleteProperty(id: string, agentId: string) {
+    const property = await this.prisma.property.findUnique({ where: { id } });
+    if (!property) throw new NotFoundException('Property not found');
+    if (property.agentId !== agentId) throw new ForbiddenException();
+    await this.prisma.property.delete({ where: { id } });
+    return { success: true };
+  }
+
   // ── Tenancies ────────────────────────────────────────────────────────
 
   async assignTenant(

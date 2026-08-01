@@ -52,8 +52,6 @@ import HealthWellnessDetailScreen from '../screens/health/HealthWellnessDetailSc
 import HealthAppointmentsScreen from '../screens/health/HealthAppointmentsScreen';
 import HealthOrdersScreen from '../screens/health/HealthOrdersScreen';
 import FinanceHomeScreen from '../screens/finance/FinanceHomeScreen';
-import CreateStokvelScreen from '../screens/finance/CreateStokvelScreen';
-import StokvelDetailScreen from '../screens/finance/StokvelDetailScreen';
 import CreateFundingRequestScreen from '../screens/finance/CreateFundingRequestScreen';
 import FundingRequestDetailScreen from '../screens/finance/FundingRequestDetailScreen';
 import StokvelAuditLogScreen from '../screens/finance/StokvelAuditLogScreen';
@@ -81,7 +79,6 @@ import MyCarEnquiriesScreen from '../screens/carfind/MyCarEnquiriesScreen';
 import CarListingFormScreen from '../screens/carfind/CarListingFormScreen';
 import CarWashHomeScreen from '../screens/carwash/CarWashHomeScreen';
 import CarWashDetailScreen from '../screens/carwash/CarWashDetailScreen';
-import ManageCarWashScreen from '../screens/carwash/ManageCarWashScreen';
 import MyCarWashBookingsScreen from '../screens/carwash/MyCarWashBookingsScreen';
 import CardsHomeScreen from '../screens/hub/cards/CardsHomeScreen';
 import FiveCardsLobbyScreen from '../screens/hub/cards/FiveCardsLobbyScreen';
@@ -156,8 +153,6 @@ export default function HubStackNavigator() {
       <Stack.Screen name="HealthAppointments" component={HealthAppointmentsScreen} />
       <Stack.Screen name="HealthOrders" component={HealthOrdersScreen} />
       <Stack.Screen name="FinanceHome" component={FinanceHomeScreen} />
-      <Stack.Screen name="CreateStokvel" component={CreateStokvelScreen} />
-      <Stack.Screen name="StokvelDetail" component={StokvelDetailScreen} />
       <Stack.Screen name="CreateFundingRequest" component={CreateFundingRequestScreen} />
       <Stack.Screen name="FundingRequestDetail" component={FundingRequestDetailScreen} />
       <Stack.Screen name="StokvelAuditLog" component={StokvelAuditLogScreen} />
@@ -185,7 +180,6 @@ export default function HubStackNavigator() {
       <Stack.Screen name="CarListingForm" component={CarListingFormScreen} />
       <Stack.Screen name="CarWashHome" component={CarWashHomeScreen} />
       <Stack.Screen name="CarWashDetail" component={CarWashDetailScreen} />
-      <Stack.Screen name="ManageCarWash" component={ManageCarWashScreen} />
       <Stack.Screen name="MyCarWashBookings" component={MyCarWashBookingsScreen} />
       <Stack.Screen name="CardsHome" component={CardsHomeScreen} />
       <Stack.Screen name="FiveCardsLobby" component={FiveCardsLobbyScreen} />

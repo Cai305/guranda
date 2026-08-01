@@ -18,6 +18,9 @@ import GoLiveScreen from '../screens/live/GoLiveScreen';
 import LiveHostScreen from '../screens/live/LiveHostScreen';
 import LiveCreatorProfileScreen from '../screens/live/LiveCreatorProfileScreen';
 import DashboardScreen from '../screens/profile/DashboardScreen';
+import MyStokvelsScreen from '../screens/finance/MyStokvelsScreen';
+import CreateStokvelScreen from '../screens/finance/CreateStokvelScreen';
+import StokvelDetailScreen from '../screens/finance/StokvelDetailScreen';
 import MyStoreScreen from '../screens/profile/eat/MyStoreScreen';
 import AddEditStoreScreen from '../screens/profile/eat/AddEditStoreScreen';
 import AddEditProductScreen from '../screens/profile/eat/AddEditProductScreen';
@@ -64,6 +67,8 @@ import ShoppingStoreOrdersScreen from '../screens/profile/shopping/ShoppingStore
 import MyTravelListingsScreen from '../screens/profile/travel/MyTravelListingsScreen';
 import AddEditTravelStayScreen from '../screens/profile/travel/AddEditTravelStayScreen';
 import AddEditTravelCarScreen from '../screens/profile/travel/AddEditTravelCarScreen';
+import MyCarWashesScreen from '../screens/carwash/MyCarWashesScreen';
+import ManageCarWashScreen from '../screens/carwash/ManageCarWashScreen';
 import MyCompanyScreen from '../screens/profile/work/MyCompanyScreen';
 import AddEditWorkCompanyScreen from '../screens/profile/work/AddEditWorkCompanyScreen';
 import AddEditWorkJobScreen from '../screens/profile/work/AddEditWorkJobScreen';
@@ -129,6 +134,9 @@ export default function RootNavigator() {
           <Stack.Screen name="LiveHost" component={LiveHostScreen} />
           <Stack.Screen name="LiveCreatorProfile" component={LiveCreatorProfileScreen} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="MyStokvels" component={MyStokvelsScreen} />
+          <Stack.Screen name="CreateStokvel" component={CreateStokvelScreen} />
+          <Stack.Screen name="StokvelDetail" component={StokvelDetailScreen} />
           <Stack.Screen name="MyStore" component={MyStoreScreen} />
           <Stack.Screen name="AddEditStore" component={AddEditStoreScreen} />
           <Stack.Screen name="AddEditProduct" component={AddEditProductScreen} />
@@ -173,6 +181,8 @@ export default function RootNavigator() {
           <Stack.Screen name="MyTravelListings" component={MyTravelListingsScreen} />
           <Stack.Screen name="AddEditTravelStay" component={AddEditTravelStayScreen} />
           <Stack.Screen name="AddEditTravelCar" component={AddEditTravelCarScreen} />
+          <Stack.Screen name="MyCarWashes" component={MyCarWashesScreen} />
+          <Stack.Screen name="ManageCarWash" component={ManageCarWashScreen} />
           <Stack.Screen name="MyCompany" component={MyCompanyScreen} />
           <Stack.Screen name="AddEditWorkCompany" component={AddEditWorkCompanyScreen} />
           <Stack.Screen name="AddEditWorkJob" component={AddEditWorkJobScreen} />

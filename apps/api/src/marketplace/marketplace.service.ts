@@ -181,6 +181,48 @@ export class MarketplaceService {
     });
   }
 
+  async updateListing(userId: string, listingId: string, dto: any) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId },
+    });
+    if (!listing) throw new NotFoundException('Listing not found');
+    if (listing.sellerId !== userId)
+      throw new ForbiddenException('Not your listing');
+    if (listing.status !== 'ACTIVE')
+      throw new BadRequestException('Only active listings can be edited');
+    return this.prisma.marketplaceListing.update({
+      where: { id: listingId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
+        ...(dto.category !== undefined ? { category: dto.category } : {}),
+        ...(dto.condition !== undefined ? { condition: dto.condition } : {}),
+        ...(dto.images !== undefined ? { images: dto.images } : {}),
+        ...(dto.price !== undefined ? { price: Number(dto.price) } : {}),
+      },
+    });
+  }
+
+  async deleteListing(userId: string, listingId: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId },
+    });
+    if (!listing) throw new NotFoundException('Listing not found');
+    if (listing.sellerId !== userId)
+      throw new ForbiddenException('Not your listing');
+    if (listing.status !== 'ACTIVE')
+      throw new BadRequestException('Only active listings can be deleted');
+    if (listing.listingType === 'AUCTION' && listing.currentBidderId) {
+      throw new BadRequestException(
+        'Cannot delete an auction that already has bids',
+      );
+    }
+    await this.prisma.marketplaceListing.delete({ where: { id: listingId } });
+    return { success: true };
+  }
+
   // ── Fixed-price purchase ────────────────────────────────────────────
 
   async buyNow(buyerId: string, listingId: string) {

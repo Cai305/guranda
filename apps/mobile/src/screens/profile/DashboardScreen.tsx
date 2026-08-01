@@ -7,6 +7,9 @@ import Svg, { Rect } from 'react-native-svg';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, GRADIENTS, SHADOW } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { useStore } from '../../context/StoreContext';
+import { useFeatureFlags } from '../../context/FeatureFlagsContext';
+import { MINI_APP_MANAGE_REGISTRY, MiniAppManageSummary } from '../../config/miniAppManage';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHART_DAYS = 7;
@@ -26,33 +29,31 @@ function timeAgo(iso?: string): string {
   return `${Math.floor(hrs / 24)}D AGO`;
 }
 
-// Buckets a seller's SOLD listings into the last CHART_DAYS days, keyed by
-// day-of-week label, for the tiny bar chart below the revenue stat card.
-function buildSalesChart(listings: any[]) {
+// Buckets an installed app's own items into the last CHART_DAYS days by
+// createdAt, keyed by day-of-week label, for the small per-app analytics
+// chart on its manage tile.
+function buildDayBuckets(dates: string[]) {
   const now = Date.now();
   const buckets = Array.from({ length: CHART_DAYS }, (_, i) => {
     const dayStart = now - (CHART_DAYS - 1 - i) * DAY_MS;
     const d = new Date(dayStart);
-    return { label: d.toLocaleDateString(undefined, { weekday: 'narrow' }), count: 0, revenue: 0 };
+    return { label: d.toLocaleDateString(undefined, { weekday: 'narrow' }), count: 0 };
   });
   const oldestBucketStart = now - CHART_DAYS * DAY_MS;
 
-  for (const l of listings) {
-    if (l.status !== 'SOLD' || !l.soldAt) continue;
-    const soldMs = new Date(l.soldAt).getTime();
-    if (soldMs < oldestBucketStart) continue;
-    const dayIndex = Math.min(CHART_DAYS - 1, Math.floor((soldMs - oldestBucketStart) / DAY_MS));
-    if (buckets[dayIndex]) {
-      buckets[dayIndex].count += 1;
-      buckets[dayIndex].revenue += Number(l.price);
-    }
+  for (const iso of dates) {
+    if (!iso) continue;
+    const ms = new Date(iso).getTime();
+    if (Number.isNaN(ms) || ms < oldestBucketStart) continue;
+    const dayIndex = Math.min(CHART_DAYS - 1, Math.floor((ms - oldestBucketStart) / DAY_MS));
+    if (buckets[dayIndex]) buckets[dayIndex].count += 1;
   }
   return buckets;
 }
 
-function SalesBarChart({ buckets }: { buckets: { label: string; count: number }[] }) {
-  const width = 260;
-  const height = 70;
+function MiniBarChart({ buckets }: { buckets: { label: string; count: number }[] }) {
+  const width = 220;
+  const height = 56;
   const barW = width / buckets.length - 8;
   const max = Math.max(1, ...buckets.map(b => b.count));
 
@@ -60,13 +61,13 @@ function SalesBarChart({ buckets }: { buckets: { label: string; count: number }[
     <View style={{ alignItems: 'center' }}>
       <Svg width={width} height={height}>
         {buckets.map((b, i) => {
-          const barH = (b.count / max) * (height - 20);
+          const barH = (b.count / max) * (height - 16);
           const x = i * (width / buckets.length) + 4;
           return (
             <Rect
               key={i}
               x={x}
-              y={height - 16 - barH}
+              y={height - 12 - barH}
               width={barW}
               height={Math.max(2, barH)}
               rx={3}
@@ -75,7 +76,7 @@ function SalesBarChart({ buckets }: { buckets: { label: string; count: number }[
           );
         })}
       </Svg>
-      <View style={{ flexDirection: 'row', width, justifyContent: 'space-between', marginTop: 4 }}>
+      <View style={{ flexDirection: 'row', width, justifyContent: 'space-between', marginTop: 3 }}>
         {buckets.map((b, i) => (
           <Text key={i} style={dash.chartLabel}>{b.label}</Text>
         ))}
@@ -84,58 +85,65 @@ function SalesBarChart({ buckets }: { buckets: { label: string; count: number }[
   );
 }
 
-interface BentoTile {
-  id: string;
-  title: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
+// One tile per installed, CRUD-capable mini app — icon, item count, and (when
+// the app has dated items) a tiny analytics chart. Locked by an admin's
+// `crud:<id>` feature flag renders it dimmed and non-navigable instead of
+// hidden entirely, so the user can see it's there but disabled.
+function ManageAppCard({
+  entry,
+  summary,
+  loading,
+  locked,
+  onPress,
+}: {
+  entry: (typeof MINI_APP_MANAGE_REGISTRY)[number];
+  summary: MiniAppManageSummary | undefined;
+  loading: boolean;
+  locked: boolean;
   onPress: () => void;
-  badge?: string | null;
-}
-
-// Flat dark card + colored icon chip — same visual language as the Digital
-// Life bento row above, so the whole dashboard reads as one system instead
-// of switching to loud gradient tiles partway down.
-function BentoGrid({ tiles }: { tiles: BentoTile[] }) {
+}) {
+  const hasChart = !loading && !!summary && summary.dates.length > 0;
   return (
-    <View style={styles.grid}>
-      {tiles.map(tile => (
-        <TouchableOpacity key={tile.id} style={dash.gridTile} onPress={tile.onPress} activeOpacity={0.85}>
-          <View style={dash.bentoTop}>
-            <View style={[dash.tileIconChip, { backgroundColor: tile.iconColor + '22', borderColor: tile.iconColor + '55' }]}>
-              <Ionicons name={tile.icon} size={19} color={tile.iconColor} />
-            </View>
-            {tile.badge ? (
-              <View style={styles.newBadge}><Text style={styles.newBadgeText}>{tile.badge}</Text></View>
-            ) : (
-              <Ionicons name="arrow-forward" size={13} color={COLORS.textMuted} />
-            )}
-          </View>
-          <Text style={dash.bentoValue} numberOfLines={1}>{tile.title}</Text>
-          <Text style={dash.bentoLabel} numberOfLines={1}>{tile.subtitle}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <TouchableOpacity
+      style={[dash.gridTile, locked && dash.manageCardLocked]}
+      activeOpacity={locked ? 1 : 0.85}
+      onPress={locked ? undefined : onPress}
+      disabled={locked}
+    >
+      <View style={dash.bentoTop}>
+        <View style={[dash.tileIconChip, { backgroundColor: entry.iconColor + '22', borderColor: entry.iconColor + '55' }]}>
+          <Ionicons name={entry.icon as any} size={19} color={locked ? COLORS.textMuted : entry.iconColor} />
+        </View>
+        {locked ? (
+          <Ionicons name="lock-closed" size={13} color={COLORS.textMuted} />
+        ) : (
+          <Ionicons name="arrow-forward" size={13} color={COLORS.textMuted} />
+        )}
+      </View>
+      <Text style={dash.bentoValue} numberOfLines={1}>{entry.label}</Text>
+      <Text style={dash.bentoLabel} numberOfLines={1}>
+        {locked ? 'Locked by admin' : loading ? '—' : summary ? `${summary.count} ${summary.countLabel}` : '—'}
+      </Text>
+      {hasChart && (
+        <View style={{ marginTop: 10 }}>
+          <MiniBarChart buckets={buildDayBuckets(summary!.dates)} />
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
 export default function DashboardScreen({ navigation }: any) {
-  const { user } = useAuth();
+  const { user, isVerified } = useAuth();
+  const { isInstalled } = useStore();
+  const { effectiveAccess } = useFeatureFlags();
   const [wallet, setWallet] = useState<any>(null);
   const [activeUsername, setActiveUsername] = useState<any>(null);
-  const [company, setCompany] = useState<any>(null);
-  const [loadingCompany, setLoadingCompany] = useState(true);
-  const [properties, setProperties] = useState<any[]>([]);
-  const [loadingProperties, setLoadingProperties] = useState(true);
-  const [store, setStore] = useState<any>(null);
-  const [loadingStore, setLoadingStore] = useState(true);
-  const [shopStore, setShopStore] = useState<any>(null);
-  const [loadingShopStore, setLoadingShopStore] = useState(true);
   const [gamesSummary, setGamesSummary] = useState<{ totalPlayed: number; byGame: { ludo: number; wordBattle: number } } | null>(null);
   const [giftStats, setGiftStats] = useState<{ totalReceived: number; receivedCount: number; totalSent: number; sentCount: number } | null>(null);
   const [recentGifts, setRecentGifts] = useState<any[]>([]);
-  const [myListings, setMyListings] = useState<any[]>([]);
+  const [manageSummaries, setManageSummaries] = useState<Record<string, MiniAppManageSummary>>({});
+  const [loadingManage, setLoadingManage] = useState(true);
 
   useEffect(() => {
     fetchApi('/wallets/me')
@@ -147,24 +155,6 @@ export default function DashboardScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : []))
       .then(d => Array.isArray(d) && setActiveUsername(d.find((u: any) => u.isActive) || null))
       .catch(() => {});
-
-    fetchApi('/work/companies/mine')
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => setCompany(d))
-      .catch(() => {})
-      .finally(() => setLoadingCompany(false));
-
-    fetchApi('/property/mine')
-      .then(r => (r.ok ? r.json() : []))
-      .then(d => Array.isArray(d) && setProperties(d))
-      .catch(() => {})
-      .finally(() => setLoadingProperties(false));
-
-    fetchApi('/eat/my-store')
-      .then(r => r.json())
-      .then(data => { if (data?.id) setStore(data); })
-      .catch(() => {})
-      .finally(() => setLoadingStore(false));
 
     fetchApi('/activity/games')
       .then(r => (r.ok ? r.json() : null))
@@ -180,79 +170,24 @@ export default function DashboardScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : []))
       .then(d => Array.isArray(d) && setRecentGifts(d.slice(0, 4)))
       .catch(() => {});
-
-    fetchApi('/marketplace/listings/mine')
-      .then(r => (r.ok ? r.json() : []))
-      .then(d => Array.isArray(d) && setMyListings(d))
-      .catch(() => {});
-
-    fetchApi('/shopping/my-store')
-      .then(r => r.json())
-      .then(data => { if (data?.id) setShopStore(data); })
-      .catch(() => {})
-      .finally(() => setLoadingShopStore(false));
   }, []);
 
-  const TILES: BentoTile[] = [
-    {
-      id: 'eat',
-      title: 'My Restaurant',
-      subtitle: store ? store.name : 'Set up your store',
-      icon: 'restaurant',
-      iconColor: COLORS.accent,
-      onPress: () => navigation.navigate('MyStore'),
-      badge: store ? null : 'NEW',
-    },
-    {
-      id: 'orders',
-      title: 'Orders',
-      subtitle: 'View incoming orders',
-      icon: 'receipt',
-      iconColor: COLORS.gold,
-      onPress: () => navigation.navigate('StoreOrders'),
-    },
-    {
-      id: 'products',
-      title: 'Products',
-      subtitle: store ? `${store.products?.length ?? 0} items` : 'Add products',
-      icon: 'pricetags',
-      iconColor: COLORS.primary,
-      onPress: () => navigation.navigate('MyStore'),
-    },
-  ];
+  const installedManageApps = MINI_APP_MANAGE_REGISTRY.filter(e => isInstalled(e.id));
+  const installedIdsKey = installedManageApps.map(e => e.id).join(',');
 
-  const SHOP_TILES: BentoTile[] = [
-    {
-      id: 'shop',
-      title: 'My Shop',
-      subtitle: shopStore ? shopStore.name : 'Set up your store',
-      icon: 'storefront',
-      iconColor: COLORS.secondary,
-      onPress: () => navigation.navigate('MyShoppingStore'),
-      badge: shopStore ? null : 'NEW',
-    },
-    {
-      id: 'shop-orders',
-      title: 'Orders',
-      subtitle: 'View incoming orders',
-      icon: 'receipt',
-      iconColor: COLORS.gold,
-      onPress: () => navigation.navigate('ShoppingStoreOrders'),
-    },
-    {
-      id: 'shop-products',
-      title: 'Products',
-      subtitle: shopStore ? `${shopStore.products?.length ?? 0} items` : 'Add products',
-      icon: 'pricetags',
-      iconColor: COLORS.primary,
-      onPress: () => navigation.navigate('MyShoppingStore'),
-    },
-  ];
-
-  const soldListings = myListings.filter(l => l.status === 'SOLD');
-  const itemsSold = soldListings.length;
-  const revenue = soldListings.reduce((sum, l) => sum + Number(l.price), 0);
-  const salesChart = buildSalesChart(myListings);
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingManage(true);
+    Promise.all(
+      installedManageApps.map(async e => [e.id, await e.fetchSummary()] as const)
+    ).then(pairs => {
+      if (cancelled) return;
+      setManageSummaries(Object.fromEntries(pairs));
+      setLoadingManage(false);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [installedIdsKey]);
 
   const feedItems = [
     ...recentGifts.map(g => ({
@@ -331,33 +266,45 @@ export default function DashboardScreen({ navigation }: any) {
           </LinearGradient>
         </View>
 
-        {/* Digital Life — quick glance at business + property ownership */}
-        <View style={dash.bentoRow}>
-          <TouchableOpacity style={dash.bentoTile} activeOpacity={0.85} onPress={() => navigation.navigate('MyCompany')}>
-            <View style={dash.bentoTop}>
-              <Ionicons name="briefcase" size={20} color={COLORS.accent} />
-              {!loadingCompany && (
-                <Ionicons name="arrow-forward" size={13} color={COLORS.textMuted} />
-              )}
-            </View>
-            <Text style={dash.bentoLabel}>Active Jobs</Text>
-            <Text style={dash.bentoValue} numberOfLines={1}>
-              {loadingCompany ? '—' : company ? `${company.jobs?.length ?? 0} Posted` : 'Set up business'}
-            </Text>
+        {/* Manage My Apps — one tile per installed mini app with owner CRUD,
+            item count and a small analytics chart. Reflects install state,
+            not a fixed hardcoded list. */}
+        <Text style={styles.sectionLabel}>MANAGE MY APPS</Text>
+        {installedManageApps.length > 0 ? (
+          <View style={styles.grid}>
+            {installedManageApps.map(entry => {
+              const locked = effectiveAccess(`crud:${entry.id}`, isVerified) !== 'open';
+              return (
+                <ManageAppCard
+                  key={entry.id}
+                  entry={entry}
+                  summary={manageSummaries[entry.id]}
+                  loading={loadingManage}
+                  locked={locked}
+                  onPress={() => {
+                    const summary = manageSummaries[entry.id];
+                    const route = entry.resolveRoute(summary ?? { count: 0, countLabel: '', dates: [], raw: null });
+                    navigation.navigate(route.name, route.params);
+                  }}
+                />
+              );
+            })}
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.setupBanner}
+            onPress={() => navigation.navigate('Main', { screen: 'Life', params: { screen: 'Hub' } })}
+          >
+            <LinearGradient colors={GRADIENTS.emerald} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.setupGradient}>
+              <Ionicons name="apps" size={24} color="#fff" />
+              <View style={styles.setupText}>
+                <Text style={styles.setupTitle}>Install a mini app</Text>
+                <Text style={styles.setupSub}>Manage your own inventory here once you do</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+            </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={dash.bentoTile} activeOpacity={0.85} onPress={() => navigation.navigate('MyProperties')}>
-            <View style={dash.bentoTop}>
-              <Ionicons name="business" size={20} color={COLORS.gold} />
-              {!loadingProperties && (
-                <Ionicons name="arrow-forward" size={13} color={COLORS.textMuted} />
-              )}
-            </View>
-            <Text style={dash.bentoLabel}>Property Portfolio</Text>
-            <Text style={dash.bentoValue} numberOfLines={1}>
-              {loadingProperties ? '—' : properties.length > 0 ? `${properties.length} Units` : 'No properties yet'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        )}
 
         <Text style={styles.sectionLabel}>MY ACTIVITY</Text>
 
@@ -416,25 +363,6 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         )}
 
-        <View style={dash.card}>
-          <View style={dash.cardHeaderRow}>
-            <Ionicons name="storefront" size={16} color="#A78BFA" />
-            <Text style={dash.cardTitle}>Marketplace</Text>
-          </View>
-          <View style={dash.marketplaceStatsRow}>
-            <View>
-              <Text style={dash.bigNumber}>{itemsSold}</Text>
-              <Text style={dash.bigNumberLabel}>Items sold</Text>
-            </View>
-            <View>
-              <Text style={[dash.bigNumber, { color: '#34D399' }]}>{revenue.toFixed(0)}</Text>
-              <Text style={dash.bigNumberLabel}>MSH revenue</Text>
-            </View>
-          </View>
-          <Text style={dash.chartCaption}>Last 7 days</Text>
-          <SalesBarChart buckets={salesChart} />
-        </View>
-
         {feedItems.length > 0 && (
           <View style={dash.card}>
             <View style={dash.cardHeaderRow}>
@@ -453,37 +381,6 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         )}
 
-        <Text style={styles.sectionLabel}>MY BUSINESS</Text>
-        <BentoGrid tiles={TILES} />
-
-        {!store && !loadingStore && (
-          <TouchableOpacity style={styles.setupBanner} onPress={() => navigation.navigate('AddEditStore')}>
-            <LinearGradient colors={GRADIENTS.crimson} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.setupGradient}>
-              <Ionicons name="add-circle" size={24} color="#fff" />
-              <View style={styles.setupText}>
-                <Text style={styles.setupTitle}>Open your restaurant</Text>
-                <Text style={styles.setupSub}>Start selling food on Guranda Eat</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
-        <Text style={styles.sectionLabel}>MY SHOP</Text>
-        <BentoGrid tiles={SHOP_TILES} />
-
-        {!shopStore && !loadingShopStore && (
-          <TouchableOpacity style={styles.setupBanner} onPress={() => navigation.navigate('AddEditShoppingStore')}>
-            <LinearGradient colors={GRADIENTS.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.setupGradient}>
-              <Ionicons name="add-circle" size={24} color="#fff" />
-              <View style={styles.setupText}>
-                <Text style={styles.setupTitle}>Open a brand store</Text>
-                <Text style={styles.setupSub}>Start selling on Guranda Shopping</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -496,8 +393,6 @@ const styles = StyleSheet.create({
   headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
   sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  newBadge: { backgroundColor: COLORS.text, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  newBadgeText: { color: COLORS.error, fontSize: 9, fontWeight: '800' },
   setupBanner: { borderRadius: 16, overflow: 'hidden', marginTop: -4 },
   setupGradient: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
   setupText: { flex: 1 },
@@ -551,29 +446,19 @@ const dash = StyleSheet.create({
   },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  marketplaceStatsRow: { flexDirection: 'row', gap: 28, marginBottom: 12 },
-  bigNumber: { color: '#A78BFA', fontSize: 24, fontWeight: '800' },
-  bigNumberLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  chartCaption: { color: COLORS.textMuted, fontSize: 10.5, marginBottom: 6 },
   chartLabel: { color: COLORS.textMuted, fontSize: 9, width: 20, textAlign: 'center' },
 
-  // Digital Life bento row
-  bentoRow: { flexDirection: 'row', gap: 12 },
-  bentoTile: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.md,
-  },
   bentoTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   bentoLabel: { color: COLORS.textMuted, fontSize: 11.5, marginBottom: 2 },
   bentoValue: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
 
-  // MY BUSINESS / MY SHOP grid tiles — same flat-card language as the bento
-  // row above, just width-based instead of flex-based so 3 tiles can wrap
-  // 2-per-row instead of always splitting evenly in pairs.
+  // Manage My Apps grid tiles — flat-card language, width-based so tiles
+  // wrap 2-per-row instead of always splitting evenly in pairs.
   gridTile: {
     width: '47%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.md,
   },
+  manageCardLocked: { opacity: 0.45 },
   tileIconChip: {
     width: 38, height: 38, borderRadius: 10, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
