@@ -113,10 +113,13 @@ export default function VideoUploadScreen({ navigation }: any) {
         token,
         (percent) => updateUploadProgress(uploadId, percent),
       );
-      finishUpload(uploadId, 'Your video is now live on Discovery');
-      navigation.goBack();
+      finishUpload(uploadId, 'Video uploaded successfully');
+      navigation.navigate('Discovery');
     } catch (e: any) {
-      failUpload(uploadId, e.message || 'Upload failed');
+      // Stay on this screen on failure — the video (title, description,
+      // category, tags) and the picked file are still right there so the
+      // user can just retry instead of re-entering everything.
+      failUpload(uploadId, e.message || 'Video upload failed');
     }
     setUploading(false);
   };
