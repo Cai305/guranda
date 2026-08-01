@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
@@ -27,7 +27,11 @@ function cardKey(c: Card | null): string {
 
 export default function FiveCardsGameScreen({ route, navigation }: any) {
   const { user } = useAuth();
-  const { gameId, offline, difficulty, jokersEnabled } = route.params ?? {};
+  const { gameId, offline, difficulty, jokersEnabled, participants } = route.params ?? {};
+  // Lobby roster carried over from CardRoomScreen (userId -> avatarUrl) —
+  // cosmetic only, the persisted game-state seat blob has no avatar field.
+  const avatarByUserId: Record<string, string> = {};
+  (participants ?? []).forEach((p: any) => { if (p.avatarUrl) avatarByUserId[p.userId] = p.avatarUrl; });
   const [socket, setSocket] = useState<Socket | null>(null);
   const [game, setGame] = useState<any>(null);
   const [mySeat, setMySeat] = useState<number | null>(null);
@@ -179,6 +183,11 @@ export default function FiveCardsGameScreen({ route, navigation }: any) {
       <View style={styles.opponentsRow}>
         {opponentSeats.map((seat: any) => (
           <View key={seat.seatIndex} style={styles.opponentBlock}>
+            {avatarByUserId[seat.userId] ? (
+              <Image source={{ uri: avatarByUserId[seat.userId] }} style={styles.opponentAvatar} />
+            ) : (
+              <Ionicons name="person-circle" size={20} color={COLORS.textMuted} />
+            )}
             <Text style={styles.opponentName} numberOfLines={1}>{seat.displayName}{seat.isAI ? ' 🤖' : ''}</Text>
             <View style={styles.miniHand}>
               {(seat.hand ?? []).map((_: any, i: number) => (
@@ -286,6 +295,7 @@ const styles = StyleSheet.create({
   timerText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
   opponentsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: SPACING.sm },
   opponentBlock: { alignItems: 'center', gap: 4 },
+  opponentAvatar: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.surface },
   opponentName: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600', maxWidth: 100 },
   miniHand: { flexDirection: 'row' },
   turnDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },

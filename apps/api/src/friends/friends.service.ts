@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class FriendsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usersService: UsersService,
+  ) {}
 
   async sendRequest(requesterId: string, addresseeId: string) {
     if (requesterId === addresseeId) {
@@ -72,9 +76,16 @@ export class FriendsService {
         addressee: { select: { id: true, username: true, profile: true } },
       },
     });
-    return rows.map((r) => ({
+    const friends = rows.map((r) => ({
       friendshipId: r.id,
       user: r.requesterId === userId ? r.addressee : r.requester,
+    }));
+    const statusByUserId = await this.usersService.resolveActiveStatuses(
+      friends.map((f) => f.user.id),
+    );
+    return friends.map((f) => ({
+      ...f,
+      effectiveStatus: statusByUserId.get(f.user.id) ?? null,
     }));
   }
 

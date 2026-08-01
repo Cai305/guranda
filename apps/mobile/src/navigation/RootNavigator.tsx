@@ -7,6 +7,9 @@ import AuthNavigator from './AuthNavigator';
 import BottomTabNavigator from './BottomTabNavigator';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import PostCommentsScreen from '../screens/PostCommentsScreen';
+import ChallengeDetailScreen from '../screens/ChallengeDetailScreen';
+import SubmitChallengeEntryScreen from '../screens/SubmitChallengeEntryScreen';
+import ChallengesLeaderboardScreen from '../screens/ChallengesLeaderboardScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
@@ -123,6 +126,9 @@ export default function RootNavigator() {
           <Stack.Screen name="Main" component={BottomTabNavigator} />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} />
           <Stack.Screen name="PostComments" component={PostCommentsScreen} />
+          <Stack.Screen name="ChallengeDetail" component={ChallengeDetailScreen} />
+          <Stack.Screen name="SubmitChallengeEntry" component={SubmitChallengeEntryScreen} />
+          <Stack.Screen name="ChallengesLeaderboard" component={ChallengesLeaderboardScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />

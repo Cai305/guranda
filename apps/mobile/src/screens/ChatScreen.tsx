@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Keyboard
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { COLORS } from '../theme';
 import { ChatMessageDto, VemojiType, encodeVemojiMessage, parseVemojiMessage } from '@mxit2/types';
@@ -68,9 +69,20 @@ export default function ChatScreen({ route, navigation }: any) {
   const { socket, onlineUsers } = useSocket();
   const voiceRecorder = useVoiceRecorder();
   const { playSound } = useLiveSound();
+  const [targetProfile, setTargetProfile] = useState<{ avatarUrl?: string; effectiveStatus?: string | null } | null>(null);
 
   const isOnline = !!targetUserId && onlineUsers[targetUserId] === 'online';
   const statusText = targetUserId ? (isOnline ? 'online' : 'offline') : (roomType || '').toLowerCase();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!targetUserId) return;
+      fetchApi(`/users/${targetUserId}/public-profile`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => setTargetProfile(data))
+        .catch(() => {});
+    }, [targetUserId])
+  );
 
   useEffect(() => {
     // 1. Fetch historical messages
@@ -397,14 +409,16 @@ export default function ChatScreen({ route, navigation }: any) {
               <Ionicons name="arrow-back" size={24} color={COLORS.text} />
             </TouchableOpacity>
             <Image
-              source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${roomName}` }}
+              source={{ uri: targetProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${roomName}` }}
               style={styles.headerAvatar}
             />
             <View style={styles.roomHeaderContent}>
               <Text style={styles.headerName} numberOfLines={1}>{roomName}</Text>
               <View style={styles.statusRow}>
                 {isOnline && <View style={styles.statusDot} />}
-                <Text style={styles.statusText}>{statusText}</Text>
+                <Text style={styles.statusText} numberOfLines={1}>
+                  {targetProfile?.effectiveStatus || statusText}
+                </Text>
               </View>
             </View>
             {!!targetUserId && (

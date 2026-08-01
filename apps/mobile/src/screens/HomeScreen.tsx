@@ -303,7 +303,10 @@ export default function HomeScreen({ navigation }: any) {
         />
 
         {/* ===== Communities ===== */}
-        <SectionHeader title="Communities" onSeeAll={() => navigation.navigate('Explore')} />
+        <SectionHeader
+          title="Communities"
+          onSeeAll={() => navigation.navigate('Main', { screen: 'Chat', params: { screen: 'ChatList' } })}
+        />
         {communities.length > 0 ? (
           <FlatList
             horizontal

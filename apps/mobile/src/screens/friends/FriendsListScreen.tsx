@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -120,8 +120,17 @@ export default function FriendsListScreen({ route, navigation }: any) {
             onPress={pickForRoomId ? () => invite(item.user.id) : undefined}
             disabled={!pickForRoomId}
           >
-            <Ionicons name="person-circle" size={28} color={COLORS.primary} />
-            <Text style={styles.friendName}>{item.user?.profile?.displayName || item.user?.username}</Text>
+            {item.user?.profile?.avatarUrl ? (
+              <Image source={{ uri: item.user.profile.avatarUrl }} style={styles.friendAvatar} />
+            ) : (
+              <Ionicons name="person-circle" size={28} color={COLORS.primary} />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.friendName}>{item.user?.profile?.displayName || item.user?.username}</Text>
+              {!!item.effectiveStatus && (
+                <Text style={styles.friendStatus} numberOfLines={1}>{item.effectiveStatus}</Text>
+              )}
+            </View>
             {pickForRoomId && <Ionicons name="send" size={16} color={COLORS.textMuted} />}
           </TouchableOpacity>
         )}
@@ -160,5 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
     borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
   },
-  friendName: { color: COLORS.text, fontWeight: '600', flex: 1 },
+  friendName: { color: COLORS.text, fontWeight: '600' },
+  friendAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface },
+  friendStatus: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
 });

@@ -27,10 +27,12 @@ export class CardsGateway implements OnGatewayDisconnect {
   private spectatorSockets = new Map<string, Set<string>>();
   private aiRunning = new Set<string>();
   private turnTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  // roomId -> userId -> { displayName, socketId } — the pre-game lobby
-  // roster. CardRoom itself only persists settings/status, not who has
+  // roomId -> userId -> { displayName, avatarUrl, socketId } — the pre-game
+  // lobby roster. CardRoom itself only persists settings/status, not who has
   // joined; that's ephemeral, tracked here exactly like gameSockets above.
-  private roomParticipants = new Map<string, Map<string, { displayName: string; socketId: string }>>();
+  // avatarUrl is client-supplied at join (from their own AuthContext), same
+  // trust level as displayName — good enough for a cosmetic lobby/seat photo.
+  private roomParticipants = new Map<string, Map<string, { displayName: string; avatarUrl?: string; socketId: string }>>();
 
   constructor(
     private readonly cards: CardsService,
@@ -48,6 +50,7 @@ export class CardsGateway implements OnGatewayDisconnect {
     const participants = [...(this.roomParticipants.get(roomId)?.entries() ?? [])].map(([userId, p]) => ({
       userId,
       displayName: p.displayName,
+      avatarUrl: p.avatarUrl,
     }));
     this.server.to(roomId).emit('room_updated', { ...room, participants });
   }
@@ -170,6 +173,7 @@ export class CardsGateway implements OnGatewayDisconnect {
     data: {
       hostId: string;
       hostDisplayName: string;
+      hostAvatarUrl?: string;
       mode: CardGameMode;
       isPrivate: boolean;
       maxSeats?: number;
@@ -184,13 +188,13 @@ export class CardsGateway implements OnGatewayDisconnect {
       data.maxSeats ?? 4,
       data.settings ?? {},
     );
-    await this.joinRoomInternal(room.id, data.hostId, data.hostDisplayName, client);
+    await this.joinRoomInternal(room.id, data.hostId, data.hostDisplayName, data.hostAvatarUrl, client);
     client.emit('room_created', { roomId: room.id, roomCode: room.roomCode });
   }
 
   @SubscribeMessage('join_room_by_code')
   async handleJoinRoomByCode(
-    @MessageBody() data: { roomCode: string; userId: string; displayName: string },
+    @MessageBody() data: { roomCode: string; userId: string; displayName: string; avatarUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const room = await this.cards.getRoomByCode(data.roomCode);
@@ -198,26 +202,26 @@ export class CardsGateway implements OnGatewayDisconnect {
       client.emit('invalid_action', { reason: 'Room not found or already started' });
       return;
     }
-    this.joinRoomInternal(room.id, data.userId, data.displayName, client);
+    this.joinRoomInternal(room.id, data.userId, data.displayName, data.avatarUrl, client);
     client.emit('room_joined', { roomId: room.id });
   }
 
   @SubscribeMessage('join_room')
   async handleJoinRoom(
-    @MessageBody() data: { roomId: string; userId: string; displayName: string },
+    @MessageBody() data: { roomId: string; userId: string; displayName: string; avatarUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    await this.joinRoomInternal(data.roomId, data.userId, data.displayName, client);
+    await this.joinRoomInternal(data.roomId, data.userId, data.displayName, data.avatarUrl, client);
   }
 
-  private async joinRoomInternal(roomId: string, userId: string, displayName: string, client: Socket) {
+  private async joinRoomInternal(roomId: string, userId: string, displayName: string, avatarUrl: string | undefined, client: Socket) {
     client.join(roomId);
     let participants = this.roomParticipants.get(roomId);
     if (!participants) {
       participants = new Map();
       this.roomParticipants.set(roomId, participants);
     }
-    participants.set(userId, { displayName, socketId: client.id });
+    participants.set(userId, { displayName, avatarUrl, socketId: client.id });
     await this.broadcastRoom(roomId);
   }
 

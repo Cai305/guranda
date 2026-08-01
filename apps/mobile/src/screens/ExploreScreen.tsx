@@ -1,14 +1,20 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Image, Share } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY, RADIUS } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { fetchApi } from '../utils/api';
-import { PostDto, CommunityDto } from '@mxit2/types';
+import { PostDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
 import TrendingStoriesFeed from '../components/TrendingStoriesFeed';
+import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
+
+const CHALLENGE_CATEGORIES = [
+  'DANCE', 'COMEDY', 'FITNESS', 'GAMING', 'PHOTOGRAPHY', 'COOKING',
+  'BUSINESS', 'MUSIC', 'LIFESTYLE', 'SPORTS', 'COUPLES', 'SPONSORED',
+];
 
 function PostMedia({ mediaUrl, mediaType }: { mediaUrl: string, mediaType?: 'IMAGE' | 'VIDEO' }) {
   const isVideo = mediaType === 'VIDEO';
@@ -35,10 +41,11 @@ function timeAgo(iso: string): string {
 
 export default function ExploreScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'feed' | 'discover' | 'trending'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'trending'>('feed');
   const [feedMode, setFeedMode] = useState<'forYou' | 'following'>('forYou');
   const [posts, setPosts] = useState<PostDto[]>([]);
-  const [communities, setCommunities] = useState<CommunityDto[]>([]);
+  const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
+  const [challengeCategory, setChallengeCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   // Dedupes view-impression calls per post per screen visit — reset only on
   // a real feed refetch (mode switch or pull-to-refresh), not on scroll.
@@ -48,18 +55,19 @@ export default function ExploreScreen({ navigation }: any) {
     useCallback(() => {
       if (activeTab === 'feed') {
         fetchFeed();
-      } else {
-        fetchCommunities();
+      } else if (activeTab === 'challenges') {
+        fetchChallenges();
       }
-    }, [activeTab, feedMode])
+    }, [activeTab, feedMode, challengeCategory])
   );
 
-  const fetchCommunities = async () => {
+  const fetchChallenges = async () => {
     try {
       setLoading(true);
-      const res = await fetchApi('/communities');
+      const qs = challengeCategory ? `?category=${challengeCategory}` : '';
+      const res = await fetchApi(`/challenges${qs}`);
       if (res.ok) {
-        setCommunities(await res.json());
+        setChallenges(await res.json());
       }
     } catch (e) {
       console.error(e);
@@ -174,20 +182,11 @@ export default function ExploreScreen({ navigation }: any) {
     }
   };
 
-  const renderRoom = ({ item }: { item: CommunityDto }) => (
-    <TouchableOpacity style={styles.roomCard} activeOpacity={0.7} onPress={() => navigation.navigate('Community', { communityId: item.id, communityName: item.name })}>
-      <View style={[styles.roomIcon, { backgroundColor: '#3A86FF' }]}>  
-        <Ionicons name="earth" size={24} color="#FFF" />
-      </View>
-      <View style={styles.roomInfo}>
-        <Text style={TYPOGRAPHY.body1}>{item.name}</Text>
-        <Text style={[TYPOGRAPHY.body2, { marginTop: 2 }]} numberOfLines={1}>{item.description}</Text>
-      </View>
-      <View style={styles.membersBadge}>
-        <Ionicons name="people-outline" size={14} color={COLORS.textMuted} />
-        <Text style={styles.membersText}>{item._count?.members || 0}</Text>
-      </View>
-    </TouchableOpacity>
+  const renderChallenge = ({ item }: { item: ChallengeSummary }) => (
+    <ChallengeCard
+      challenge={item}
+      onPress={() => navigation.navigate('ChallengeDetail', { challengeId: item.id })}
+    />
   );
 
   const renderPost = ({ item }: { item: PostDto }) => {
@@ -261,8 +260,15 @@ export default function ExploreScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={TYPOGRAPHY.h2}>Explore</Text>
-        
+        <View style={styles.titleRow}>
+          <Text style={TYPOGRAPHY.h2}>Explore</Text>
+          {activeTab === 'challenges' && (
+            <TouchableOpacity onPress={() => navigation.navigate('ChallengesLeaderboard')}>
+              <Ionicons name="trophy" size={22} color={COLORS.gold} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'feed' && styles.activeTab]}
@@ -277,10 +283,10 @@ export default function ExploreScreen({ navigation }: any) {
             <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>Trending</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
-            onPress={() => setActiveTab('discover')}
+            style={[styles.tab, activeTab === 'challenges' && styles.activeTab]}
+            onPress={() => setActiveTab('challenges')}
           >
-            <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>Community</Text>
+            <Text style={[styles.tabText, activeTab === 'challenges' && styles.activeTabText]}>Challenges</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.tab}
@@ -291,25 +297,43 @@ export default function ExploreScreen({ navigation }: any) {
         </View>
       </View>
 
-      {activeTab === 'discover' ? (
+      {activeTab === 'challenges' ? (
         <>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={COLORS.textMuted} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search communities..."
-              placeholderTextColor={COLORS.textMuted}
-            />
-          </View>
-
           <FlatList
-            data={communities}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[{ key: null, label: 'All' }, ...CHALLENGE_CATEGORIES.map((c) => ({ key: c, label: c.charAt(0) + c.slice(1).toLowerCase() }))]}
+            keyExtractor={(item) => item.key ?? 'all'}
+            contentContainerStyle={styles.categoryRow}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.categoryChip, challengeCategory === item.key && styles.categoryChipActive]}
+                onPress={() => setChallengeCategory(item.key)}
+              >
+                <Text style={[styles.categoryChipText, challengeCategory === item.key && styles.categoryChipTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+          <FlatList
+            data={challenges}
             keyExtractor={(item) => item.id}
-            renderItem={renderRoom}
+            renderItem={renderChallenge}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshing={loading}
-            onRefresh={fetchCommunities}
+            onRefresh={fetchChallenges}
+            ListEmptyComponent={
+              !loading ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="trophy-outline" size={48} color={COLORS.textMuted} />
+                  <Text style={styles.emptyText}>No active challenges right now — check back soon!</Text>
+                </View>
+              ) : null
+            }
           />
         </>
       ) : activeTab === 'feed' ? (
@@ -379,6 +403,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 15,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   tabContainer: {
     flexDirection: 'row',
     marginTop: 15,
@@ -403,57 +432,35 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: 'bold',
   },
-  searchContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchInput: {
-    flex: 1,
-    color: COLORS.text,
-    fontSize: 16,
-  },
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 80,
     gap: 12,
   },
-  roomCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
+  categoryRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.glass,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.glassBorder,
   },
-  roomIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+  categoryChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
-  roomInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  membersBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  membersText: {
+  categoryChipText: {
     color: COLORS.textMuted,
     fontSize: 12,
+    fontWeight: '700',
+  },
+  categoryChipTextActive: {
+    color: '#fff',
   },
   postCard: {
     backgroundColor: COLORS.surface,

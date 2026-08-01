@@ -151,6 +151,12 @@ model User {
   referredBy                   Referral?                 @relation("referredBy")
   reportsFiled                 PlayerReport[]            @relation("reportsFiled")
   reportsReceived              PlayerReport[]            @relation("reportsReceived")
+  challengeEntries             ChallengeEntry[]
+  challengeEntryLikes          ChallengeEntryLike[]
+  challengeEntryVotes          ChallengeEntryVote[]
+  challengeEntryComments       ChallengeEntryComment[]
+  challengeCategoryStats       ChallengeCategoryStat[]
+  challengeStreak              UserChallengeStreak?
 }
 
 model UserProfile {
@@ -161,6 +167,15 @@ model UserProfile {
   avatarUrl     String?
   bio           String?
   statusMessage String?
+  // Total Challenges XP — a distinct concept from Username.reputationScore
+  // (content-ranking/influence score). See ChallengeCategoryStat for the
+  // per-category breakdown.
+  xp            Int     @default(0)
+  // When true (default), the status shown to other users is derived live
+  // from any mini-app booking currently in its active time window (see
+  // UsersService.resolveActiveStatus), overriding statusMessage. Off = show
+  // statusMessage verbatim.
+  autoStatusEnabled Boolean @default(true)
 }
 
 model Wallet {
@@ -2573,4 +2588,139 @@ model PlayerReport {
   reviewedById   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+// ============================================================
+// Challenges — public UGC challenge platform (Explore tab). Distinct from
+// DailyChallenge/UserChallengeProgress above, which are Cards-game-only.
+// Admin-curated (see AdminAccessGuard-gated challenges-admin controller);
+// status transitions DRAFT -> ACTIVE -> ENDED on an hourly cron sweep by
+// startAt/endAt, the same idempotent-by-window approach DailyChallenge's
+// midnight cron uses, just finer-grained to support Flash Challenges (1-3h).
+// ============================================================
+
+enum ChallengeCategory {
+  DANCE
+  COMEDY
+  FITNESS
+  GAMING
+  PHOTOGRAPHY
+  COOKING
+  BUSINESS
+  MUSIC
+  LIFESTYLE
+  SPORTS
+  COUPLES
+  SPONSORED
+}
+
+enum ChallengeType {
+  DAILY
+  FLASH
+  WEEKEND
+  SEASONAL
+  SPONSORED
+}
+
+enum ChallengeStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+}
+
+model Challenge {
+  id              String            @id @default(uuid())
+  title           String
+  description     String
+  promptText      String?
+  category        ChallengeCategory
+  type            ChallengeType
+  status          ChallengeStatus   @default(DRAFT)
+  startAt         DateTime
+  endAt           DateTime
+  xpReward        Int               @default(50)
+  bonusXpReward   Int               @default(100)
+  coverImageUrl   String?
+  // Simple display label for Phase 1 ("Sponsored by X") — not a full
+  // sponsor campaign/budget system, see roadmap.
+  sponsorLabel    String?
+  createdByAdminId String?
+  // Set when the challenge transitions to ENDED — the entry with the
+  // highest average vote (like count as tiebreaker) at close, whose author
+  // is awarded bonusXpReward. No relation (plain id pointer, like
+  // createdByAdminId) since it's set after the entries already exist.
+  winningEntryId  String?
+  createdAt       DateTime          @default(now())
+  entries         ChallengeEntry[]
+}
+
+model ChallengeEntry {
+  id          String                  @id @default(uuid())
+  challengeId String
+  challenge   Challenge               @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User                    @relation(fields: [userId], references: [id])
+  mediaUrl    String
+  mediaType   String // IMAGE | VIDEO
+  caption     String?
+  status      String                  @default("PUBLISHED") // PUBLISHED | REMOVED
+  createdAt   DateTime                @default(now())
+  likes       ChallengeEntryLike[]
+  votes       ChallengeEntryVote[]
+  comments    ChallengeEntryComment[]
+
+  @@unique([challengeId, userId])
+}
+
+model ChallengeEntryLike {
+  id       String         @id @default(uuid())
+  entryId  String
+  entry    ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User           @relation(fields: [userId], references: [id])
+  createdAt DateTime      @default(now())
+
+  @@unique([entryId, userId])
+}
+
+model ChallengeEntryVote {
+  id       String         @id @default(uuid())
+  entryId  String
+  entry    ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User           @relation(fields: [userId], references: [id])
+  value    Int // 1-10
+  createdAt DateTime      @default(now())
+
+  @@unique([entryId, userId])
+}
+
+model ChallengeEntryComment {
+  id        String         @id @default(uuid())
+  entryId   String
+  entry     ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User           @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime       @default(now())
+}
+
+model ChallengeCategoryStat {
+  id           String            @id @default(uuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id])
+  category     ChallengeCategory
+  xp           Int               @default(0)
+  entriesCount Int               @default(0)
+  wins         Int               @default(0)
+
+  @@unique([userId, category])
+}
+
+model UserChallengeStreak {
+  userId            String    @id
+  user              User      @relation(fields: [userId], references: [id])
+  currentStreak     Int       @default(0)
+  longestStreak     Int       @default(0)
+  lastCompletedDate DateTime? @db.Date
 }

@@ -322,13 +322,229 @@ export class UsersService {
     };
   }
 
+  /**
+   * Assumed durations for bookings that only capture a start instant, no
+   * length — used purely to size the "currently active" window for the
+   * auto-status resolver below. Not real appointment lengths; correct these
+   * if/when the underlying models grow a real duration field.
+   */
+  private static readonly ASSUMED_DURATION_MS = {
+    carWash: 45 * 60 * 1000,
+    healthAppointment: 30 * 60 * 1000,
+    tutorSession: 60 * 60 * 1000,
+    concert: 3 * 60 * 60 * 1000,
+    event: 3 * 60 * 60 * 1000,
+  };
+
+  /**
+   * Derives "what a user is doing right now" from any mini-app booking whose
+   * time window currently covers `now` — computed fresh on every call, never
+   * persisted, so it can't go stale and needs no cron to revert once a
+   * booking ends. Returns null if auto-status is off or nothing is active
+   * (caller falls back to the manually-typed statusMessage).
+   */
+  async resolveActiveStatus(userId: string): Promise<string | null> {
+    const map = await this.resolveActiveStatuses([userId]);
+    return map.get(userId) ?? null;
+  }
+
+  /**
+   * Batched sibling of resolveActiveStatus — one query per booking model
+   * (not one per user) so list screens (chat list, friends list) don't
+   * become N+1. Priority order below decides which wins if a user somehow
+   * has two overlapping active bookings.
+   */
+  async resolveActiveStatuses(userIds: string[]): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (userIds.length === 0) return result;
+
+    const profiles = await this.prisma.userProfile.findMany({
+      where: { userId: { in: userIds }, autoStatusEnabled: true },
+      select: { userId: true },
+    });
+    const eligible = profiles.map((p) => p.userId);
+    if (eligible.length === 0) return result;
+
+    const now = new Date();
+    const { ASSUMED_DURATION_MS } = UsersService;
+    const remaining = new Set(eligible);
+    const applyMatches = (rows: { userId: string }[], text: string) => {
+      for (const row of rows) {
+        if (remaining.has(row.userId)) {
+          result.set(row.userId, text);
+          remaining.delete(row.userId);
+        }
+      }
+    };
+
+    // 1. Flights — join through TravelFlight for departure/arrival times.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.travelFlightBooking.findMany({
+        where: {
+          userId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          flight: { departureTime: { lte: now }, arrivalTime: { gte: now } },
+        },
+        select: { userId: true },
+      });
+      applyMatches(rows, '✈️ Currently on a flight');
+    }
+    // 2. Stays.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.travelStayBooking.findMany({
+        where: {
+          guestId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          checkIn: { lte: now },
+          checkOut: { gte: now },
+        },
+        select: { guestId: true },
+      });
+      applyMatches(rows.map((r) => ({ userId: r.guestId })), '🧳 Away on a trip');
+    }
+    // 3. Rental cars.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.travelCarBooking.findMany({
+        where: {
+          guestId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          pickupDate: { lte: now },
+          returnDate: { gte: now },
+        },
+        select: { guestId: true },
+      });
+      applyMatches(rows.map((r) => ({ userId: r.guestId })), '🚙 Out with a rental car');
+    }
+    // 4. Movies — join through showtime → movie for duration.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.movieBooking.findMany({
+        where: {
+          userId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          showtime: { startsAt: { lte: now } },
+        },
+        select: { userId: true, showtime: { select: { startsAt: true, movie: { select: { durationMins: true } } } } },
+      });
+      applyMatches(
+        rows
+          .filter((r) => {
+            const end = new Date(r.showtime.startsAt.getTime() + r.showtime.movie.durationMins * 60 * 1000);
+            return end >= now;
+          })
+          .map((r) => ({ userId: r.userId })),
+        '🎬 At the movies',
+      );
+    }
+    // 5. Hair appointments — join through service for duration.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.hairBooking.findMany({
+        where: {
+          customerId: { in: [...remaining] },
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          appointmentAt: { lte: now },
+        },
+        select: { customerId: true, appointmentAt: true, service: { select: { duration: true } } },
+      });
+      applyMatches(
+        rows
+          .filter((r) => new Date(r.appointmentAt.getTime() + r.service.duration * 60 * 1000) >= now)
+          .map((r) => ({ userId: r.customerId })),
+        '💇 At a hair appointment',
+      );
+    }
+    // 6. Car wash — no duration field, use assumed default.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.carWashBooking.findMany({
+        where: {
+          userId: { in: [...remaining] },
+          status: { in: ['PENDING', 'CONFIRMED'] },
+          scheduledFor: {
+            lte: now,
+            gte: new Date(now.getTime() - ASSUMED_DURATION_MS.carWash),
+          },
+        },
+        select: { userId: true },
+      });
+      applyMatches(rows, '🚗 At the car wash');
+    }
+    // 7. Health appointments — no duration field, use assumed default.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.healthAppointment.findMany({
+        where: {
+          patientId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          scheduledAt: {
+            lte: now,
+            gte: new Date(now.getTime() - ASSUMED_DURATION_MS.healthAppointment),
+          },
+        },
+        select: { patientId: true },
+      });
+      applyMatches(rows.map((r) => ({ userId: r.patientId })), '🏥 At a health appointment');
+    }
+    // 8. Tutor sessions — no duration field, use assumed default.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.learningTutorSession.findMany({
+        where: {
+          studentId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          scheduledAt: {
+            lte: now,
+            gte: new Date(now.getTime() - ASSUMED_DURATION_MS.tutorSession),
+          },
+        },
+        select: { studentId: true },
+      });
+      applyMatches(rows.map((r) => ({ userId: r.studentId })), '📚 In a tutoring session');
+    }
+    // 9. Concerts — no duration field, use assumed default.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.concertBooking.findMany({
+        where: {
+          userId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          concert: {
+            startsAt: {
+              lte: now,
+              gte: new Date(now.getTime() - ASSUMED_DURATION_MS.concert),
+            },
+          },
+        },
+        select: { userId: true },
+      });
+      applyMatches(rows, '🎵 At a concert');
+    }
+    // 10. Events — no duration field, use assumed default.
+    if (remaining.size > 0) {
+      const rows = await this.prisma.eventBooking.findMany({
+        where: {
+          userId: { in: [...remaining] },
+          status: 'CONFIRMED',
+          event: {
+            startsAt: {
+              lte: now,
+              gte: new Date(now.getTime() - ASSUMED_DURATION_MS.event),
+            },
+          },
+        },
+        select: { userId: true },
+      });
+      applyMatches(rows, '🎉 At an event');
+    }
+
+    return result;
+  }
+
   async getProfile(userId: string) {
     const profile = await this.prisma.userProfile.findUnique({
       where: { userId },
     });
     if (!profile) return profile;
 
-    const live = await this.computeLiveActivity(userId);
+    const [live, autoStatus] = await Promise.all([
+      this.computeLiveActivity(userId),
+      this.resolveActiveStatus(userId),
+    ]);
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -358,6 +574,9 @@ export class UsersService {
 
     return {
       ...profile,
+      // What to actually display as "status" — the auto-derived activity
+      // when one is active, else whatever the user typed manually.
+      effectiveStatus: autoStatus ?? profile.statusMessage ?? null,
       postsCount: live.postsCount,
       likesReceived: live.likesReceived,
       gamesCount: live.gamesCount,
@@ -369,6 +588,29 @@ export class UsersService {
     };
   }
 
+  /** Public-facing profile for viewing another user — chat header, friends list, etc. */
+  async getPublicProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        profile: { select: { displayName: true, avatarUrl: true, bio: true, statusMessage: true } },
+      },
+    });
+    if (!user) return null;
+
+    const autoStatus = await this.resolveActiveStatus(userId);
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.profile?.displayName ?? null,
+      avatarUrl: user.profile?.avatarUrl ?? null,
+      bio: user.profile?.bio ?? null,
+      effectiveStatus: autoStatus ?? user.profile?.statusMessage ?? null,
+    };
+  }
+
   async updateProfile(
     userId: string,
     data: {
@@ -376,6 +618,7 @@ export class UsersService {
       displayName?: string;
       bio?: string;
       statusMessage?: string;
+      autoStatusEnabled?: boolean;
     },
   ) {
     return this.prisma.userProfile.upsert({
@@ -385,6 +628,7 @@ export class UsersService {
         displayName: data.displayName ?? undefined,
         bio: data.bio ?? undefined,
         statusMessage: data.statusMessage ?? undefined,
+        autoStatusEnabled: data.autoStatusEnabled ?? undefined,
       },
       create: {
         userId,
@@ -392,6 +636,7 @@ export class UsersService {
         displayName: data.displayName,
         bio: data.bio,
         statusMessage: data.statusMessage,
+        autoStatusEnabled: data.autoStatusEnabled,
       },
     });
   }

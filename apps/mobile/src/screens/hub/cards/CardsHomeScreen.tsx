@@ -38,6 +38,7 @@ export default function CardsHomeScreen({ navigation }: any) {
       sock.emit('create_room', {
         hostId: user.userId,
         hostDisplayName: user.displayName || user.username,
+        hostAvatarUrl: user.avatarUrl,
         mode,
         isPrivate: false,
         maxSeats: mode === 'CASSINO' ? 4 : 6,

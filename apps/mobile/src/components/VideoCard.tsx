@@ -112,9 +112,13 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
       {/* Info row */}
       <View style={styles.infoRow}>
         {/* Avatar */}
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
-        </View>
+        {video.creator?.profile?.avatarUrl ? (
+          <Image source={{ uri: video.creator.profile.avatarUrl }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
         {/* Text block */}
         <View style={styles.textBlock}>
           <Text style={styles.title} numberOfLines={2}>{video.title}</Text>

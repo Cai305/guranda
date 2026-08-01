@@ -125,13 +125,30 @@ export default function AiChatScreen({ navigation, route }: any) {
     if (item.role === 'system') {
       return <Text style={styles.systemText}>{item.text}</Text>;
     }
-    const mine = item.role === 'user';
+    // User messages stay a normal chat bubble — only the assistant's own
+    // replies render as a widget card, matching the same visual language
+    // (glass background, hairline border) as the structured tool-result
+    // widgets below them, so a plain text answer and a product-list answer
+    // read as the same kind of thing instead of "text" vs "widget".
+    if (item.role === 'user') {
+      return (
+        <View style={[styles.bubble, styles.bubbleUser]}>
+          <Text style={[styles.bubbleText, { color: '#FFF' }]}>{item.text}</Text>
+        </View>
+      );
+    }
     return (
       <View>
-        <View style={[styles.bubble, mine ? styles.bubbleUser : styles.bubbleAi]}>
-          <Text style={[styles.bubbleText, mine && { color: '#FFF' }]}>{item.text}</Text>
+        <View style={styles.aiWidgetCard}>
+          <View style={styles.aiWidgetHeader}>
+            <View style={styles.aiWidgetHeaderIcon}>
+              <Ionicons name="sparkles" size={11} color="#FFF" />
+            </View>
+            <Text style={styles.aiWidgetLabel}>{agentName}</Text>
+          </View>
+          <Text style={styles.bubbleText}>{item.text}</Text>
         </View>
-        {!mine && item.widgets && item.widgets.length > 0 && (
+        {item.widgets && item.widgets.length > 0 && (
           <AiWidgetRenderer widgets={item.widgets} navigation={navigation} />
         )}
       </View>
@@ -254,13 +271,37 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderBottomRightRadius: 4,
   },
-  bubbleAi: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderBottomLeftRadius: 4,
-  },
   bubbleText: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
+  // Widget-card container for every assistant reply — same visual language
+  // (glass fill, hairline border, RADIUS.md) as WidgetCard.tsx's tool-result
+  // cards, so a plain-text answer and a product-list answer both read as
+  // "a widget", not a chat bubble.
+  aiWidgetCard: {
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  aiWidgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  aiWidgetHeaderIcon: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  aiWidgetLabel: {
+    color: COLORS.textMuted,
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
   systemText: {
     color: COLORS.textMuted, fontSize: 11.5,
     textAlign: 'center', marginVertical: 2,

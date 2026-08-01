@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Share, Modal, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Share, Modal, Alert, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
@@ -189,9 +189,13 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
 
         {/* Creator row */}
         <View style={styles.creatorRow}>
-          <View style={styles.creatorAvatar}>
-            <Text style={styles.creatorAvatarText}>{displayName.charAt(0).toUpperCase()}</Text>
-          </View>
+          {video.creator?.profile?.avatarUrl ? (
+            <Image source={{ uri: video.creator.profile.avatarUrl }} style={styles.creatorAvatar} />
+          ) : (
+            <View style={styles.creatorAvatar}>
+              <Text style={styles.creatorAvatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
           <View style={styles.creatorInfo}>
             <Text style={styles.creatorName}>{displayName}</Text>
             <Text style={styles.creatorSub}>
@@ -251,9 +255,13 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
         </View>
         {comments.map(c => (
           <View key={c.id} style={styles.commentRow}>
-            <View style={styles.commentAvatar}>
-              <Text style={styles.commentAvatarText}>{(c.user?.profile?.displayName || c.user?.username || 'U').charAt(0).toUpperCase()}</Text>
-            </View>
+            {c.user?.profile?.avatarUrl ? (
+              <Image source={{ uri: c.user.profile.avatarUrl }} style={styles.commentAvatar} />
+            ) : (
+              <View style={styles.commentAvatar}>
+                <Text style={styles.commentAvatarText}>{(c.user?.profile?.displayName || c.user?.username || 'U').charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
             <View style={styles.commentBody}>
               <Text style={styles.commentUser}>{c.user?.profile?.displayName || c.user?.username}</Text>
               <Text style={styles.commentText}>{c.text}</Text>
