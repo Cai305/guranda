@@ -219,6 +219,8 @@ export interface StoryDto {
   comments?: StoryCommentDto[];
   ranks?: StoryRankDto[];
   items?: StoryItemDto[];
+  giftTotal?: number;
+  giftCount?: number;
 }
 
 export interface ChessGameDto {

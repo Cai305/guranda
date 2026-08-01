@@ -16,7 +16,7 @@ interface Props {
   onClose: () => void;
   recipientId: string;
   recipientName: string;
-  context: 'live' | 'game';
+  context: 'live' | 'game' | 'video' | 'story';
   contextId?: string;
   onSent?: (item: GiftCatalogItem) => void;
 }

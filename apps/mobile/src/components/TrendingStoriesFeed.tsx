@@ -11,6 +11,7 @@ import { COLORS, RADIUS, SPACING } from '../theme';
 import { fetchApi } from '../utils/api';
 import { StoryDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
+import GiftButton from './gifts/GiftButton';
 
 const CCR_RATE = 0.58;
 const STORY_RING_COLORS: [string, string][] = [
@@ -263,6 +264,9 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
     const authorSeed = (story.author as any)?.username || story.userId;
     const firstName = authorName.split(' ')[0];
     const forSaleItems = (story.items ?? []).filter(i => i.isForSale);
+    const giftCount = story.giftCount ?? 0;
+    const giftTotal = story.giftTotal ?? 0;
+    const isOwnStory = story.userId === myUserId;
 
     return (
       <View style={s.post}>
@@ -293,6 +297,17 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
               <Ionicons name="star" size={24} color={rank !== null ? COLORS.gold : COLORS.text} />
               <Text style={[s.actionLabel, rank !== null && s.actionLabelRanked]}>{rank !== null ? `${rank}/10` : `${CCR_RATE} MSH`}</Text>
             </TouchableOpacity>
+
+            {!isOwnStory && (
+              <GiftButton
+                recipientId={story.userId}
+                recipientName={authorName}
+                context="story"
+                contextId={story.id}
+                size={30}
+                style={s.giftBtn}
+              />
+            )}
           </View>
           <Ionicons name="bookmark-outline" size={24} color={COLORS.textMuted} />
         </View>
@@ -303,6 +318,12 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           <Text style={s.statsText}>{commentsCount} comments</Text>
           <Text style={s.statsDot}>·</Text>
           <Text style={s.statsText}>avg {avg.toFixed(1)}/10 ({rankCount})</Text>
+          {giftCount > 0 && (
+            <>
+              <Text style={s.statsDot}>·</Text>
+              <Text style={s.statsText}>🎁 {giftTotal} MSH ({giftCount})</Text>
+            </>
+          )}
         </View>
 
         {story.textContent ? (
@@ -467,6 +488,7 @@ const s = StyleSheet.create({
   actionLeft: { flexDirection: 'row', gap: 20, alignItems: 'center' },
   action: { alignItems: 'center', gap: 3, minWidth: 48 },
   actionLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
+  giftBtn: { backgroundColor: 'transparent', borderWidth: 0, width: 30, height: 30 },
   actionLabelLiked: { color: '#EF4444' },
   actionLabelDone: { color: COLORS.primary },
   actionLabelRanked: { color: COLORS.gold },

@@ -183,8 +183,8 @@ export default function DashboardScreen({ navigation }: any) {
   const [manageSummaries, setManageSummaries] = useState<Record<string, MiniAppManageSummary>>({});
   const [loadingManage, setLoadingManage] = useState(true);
   const [socialStats, setSocialStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number } | null>(null);
-  const [videoStats, setVideoStats] = useState<{ videoCount: number; totalViews: number; totalLikes: number; totalComments: number } | null>(null);
-  const [storyStats, setStoryStats] = useState<{ storyCount: number; likesReceived: number; commentsReceived: number; ranksReceived: number } | null>(null);
+  const [videoStats, setVideoStats] = useState<{ videoCount: number; totalViews: number; totalLikes: number; totalComments: number; giftsReceived: number; giftCount: number } | null>(null);
+  const [storyStats, setStoryStats] = useState<{ storyCount: number; likesReceived: number; commentsReceived: number; ranksReceived: number; giftsReceived: number; giftCount: number } | null>(null);
   const [creatorFunds, setCreatorFunds] = useState<{ accumulatedThisMonth: number; nextPayoutDate: string } | null>(null);
   const [myCommunities, setMyCommunities] = useState<any[]>([]);
 
@@ -406,6 +406,7 @@ export default function DashboardScreen({ navigation }: any) {
             { value: videoStats?.totalViews ?? '—', label: 'Total views' },
             { value: videoStats?.totalLikes ?? '—', label: 'Total likes' },
             { value: videoStats?.totalComments ?? '—', label: 'Comments' },
+            { value: videoStats ? `${videoStats.giftsReceived.toFixed(0)} MSH` : '—', label: 'Gifts' },
           ]}
         />
         <AnalyticsCard
@@ -417,6 +418,7 @@ export default function DashboardScreen({ navigation }: any) {
             { value: storyStats?.likesReceived ?? '—', label: 'Likes' },
             { value: storyStats?.commentsReceived ?? '—', label: 'Comments' },
             { value: storyStats?.ranksReceived ?? '—', label: 'Ranks' },
+            { value: storyStats ? `${storyStats.giftsReceived.toFixed(0)} MSH` : '—', label: 'Gifts' },
           ]}
         />
         <View style={dash.ccrCard}>
