@@ -19,6 +19,7 @@ export default function ChatListScreen({ navigation }: any) {
   const [sections, setSections] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [storyGroups, setStoryGroups] = React.useState<any[]>([]);
+  const [communities, setCommunities] = React.useState<any[]>([]);
 
   const fetchStories = async () => {
     try {
@@ -30,10 +31,21 @@ export default function ChatListScreen({ navigation }: any) {
     } catch {}
   };
 
+  const fetchCommunities = async () => {
+    try {
+      const res = await fetchApi('/communities/my');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setCommunities(data);
+      }
+    } catch {}
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       fetchChats();
       fetchStories();
+      fetchCommunities();
     }, [user?.userId])
   );
 
@@ -107,6 +119,10 @@ export default function ChatListScreen({ navigation }: any) {
       style={styles.chatItem} 
       activeOpacity={0.7}
       onPress={() => {
+        if (item.type === 'COMMUNITY') {
+          navigation.navigate('Community', { communityId: item.id, communityName: item.name });
+          return;
+        }
         const companionId = AI_ENABLED ? FIXED_COMPANION_IDS[item.id] : undefined;
         if (companionId) {
           navigation.navigate('CompanionChat', { companionId, companionName: item.name });
@@ -129,18 +145,22 @@ export default function ChatListScreen({ navigation }: any) {
         ) : (
           <View style={styles.groupAvatar}>
             <Ionicons
-              name={item.type === 'Public' ? 'globe' : 'people'}
+              name={item.type === 'COMMUNITY' ? 'earth' : item.type === 'Public' ? 'globe' : 'people'}
               size={24}
               color={COLORS.text}
             />
           </View>
         )}
-        <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.targetUserId ? onlineUsers[item.targetUserId] || 'offline' : item.status) }]} />
+        {item.type !== 'COMMUNITY' && (
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.targetUserId ? onlineUsers[item.targetUserId] || 'offline' : item.status) }]} />
+        )}
       </View>
 
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{item.name}</Text>
-        <Text style={styles.chatType} numberOfLines={1}>{item.effectiveStatus || item.type}</Text>
+        <Text style={styles.chatType} numberOfLines={1}>
+          {item.type === 'COMMUNITY' ? `${item.memberCount} members` : (item.effectiveStatus || item.type)}
+        </Text>
       </View>
 
       {item.type === 'Private' || item.type === 'AI' || item.type === 'DIRECT' ? (
@@ -221,19 +241,32 @@ export default function ChatListScreen({ navigation }: any) {
     </ScrollView>
   );
 
+  const communitySection = communities.length
+    ? [{
+        title: 'Community',
+        data: communities.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          type: 'COMMUNITY',
+          memberCount: c._count?.members ?? 0,
+        })),
+      }]
+    : [];
+  const allSections = [...sections, ...communitySection];
+
   return (
     <SafeAreaView style={styles.container}>
       <TopBar navigation={navigation} />
       {renderStoryStrip()}
       <SectionList
-        sections={sections}
+        sections={allSections}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }]}
         stickySectionHeadersEnabled={false}
         refreshing={loading}
-        onRefresh={fetchChats}
+        onRefresh={() => { fetchChats(); fetchCommunities(); }}
       />
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 76 }]}

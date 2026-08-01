@@ -16,4 +16,14 @@ export class LeaderboardController {
   async myRank(@Request() req: any, @Query('mode') mode: 'FIVE_CARDS' | 'CASSINO' = 'FIVE_CARDS') {
     return this.leaderboard.myRank(req.user.userId, mode);
   }
+
+  @Get('challenges')
+  async topByChallengeXp(@Query('category') category?: string) {
+    return this.leaderboard.topByChallengeXp(category);
+  }
+
+  @Get('challenges/mine')
+  async myChallengeRank(@Request() req: any, @Query('category') category?: string) {
+    return this.leaderboard.myChallengeRank(req.user.userId, category);
+  }
 }

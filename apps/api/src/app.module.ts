@@ -56,6 +56,7 @@ import { RankingModule } from './ranking/ranking.module';
 import { AdsModule } from './ads/ads.module';
 import { GifModule } from './gif/gif.module';
 import { CarwashModule } from './carwash/carwash.module';
+import { ChallengesModule } from './challenges/challenges.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { CarwashModule } from './carwash/carwash.module';
     AdsModule,
     GifModule,
     CarwashModule,
+    ChallengesModule,
   ],
   controllers: [AppController],
   providers: [
