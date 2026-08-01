@@ -149,13 +149,28 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
     if (item.role === 'system') {
       return <Text style={styles.systemText}>{item.text}</Text>;
     }
-    const mine = item.role === 'user';
+    if (item.role === 'user') {
+      return (
+        <View style={[styles.bubble, styles.bubbleUser]}>
+          <Text style={[styles.bubbleText, { color: '#FFF' }]}>{item.text}</Text>
+        </View>
+      );
+    }
+    // Assistant replies render as a widget card — same visual language
+    // (surface bg, hairline border) as the structured tool-result widgets
+    // below them, so plain text and product-list answers read as one thing.
     return (
       <View>
-        <View style={[styles.bubble, mine ? styles.bubbleUser : styles.bubbleAi]}>
-          <Text style={[styles.bubbleText, mine && { color: '#FFF' }]}>{item.text}</Text>
+        <View style={styles.aiWidgetCard}>
+          <View style={styles.aiWidgetHeader}>
+            <View style={styles.aiWidgetHeaderIcon}>
+              <Ionicons name="sparkles" size={10} color="#FFF" />
+            </View>
+            <Text style={styles.aiWidgetLabel}>{agentName}</Text>
+          </View>
+          <Text style={styles.bubbleText}>{item.text}</Text>
         </View>
-        {!mine && item.widgets && item.widgets.length > 0 && (
+        {item.widgets && item.widgets.length > 0 && (
           <AiWidgetRenderer widgets={item.widgets} navigation={{ navigate }} />
         )}
       </View>
@@ -300,11 +315,33 @@ const styles = StyleSheet.create({
   },
   bubble: { maxWidth: '85%', borderRadius: RADIUS.md, padding: 10 },
   bubbleUser: { alignSelf: 'flex-end', backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
-  bubbleAi: {
-    alignSelf: 'flex-start', backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder, borderBottomLeftRadius: 4,
-  },
   bubbleText: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
+  aiWidgetCard: {
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.md,
+    padding: 10,
+  },
+  aiWidgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  aiWidgetHeaderIcon: {
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  aiWidgetLabel: {
+    color: COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
   systemText: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginVertical: 2 },
   thinkingRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: SPACING.md, paddingBottom: 6 },
   thinkingText: { color: COLORS.textMuted, fontSize: 11 },
