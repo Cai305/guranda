@@ -142,6 +142,12 @@ export interface CommentDto {
   author?: PostAuthor;
   content: string;
   createdAt: Date;
+  // Set when this comment is a reply to another comment. One level deep —
+  // see PostsService.getPost.
+  parentId?: string | null;
+  likes?: { id: string, userId: string }[];
+  // Only populated on top-level comments returned from GET /posts/:id.
+  replies?: CommentDto[];
 }
 
 export interface CommunityDto {

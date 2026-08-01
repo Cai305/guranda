@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
   ContentRankingService,
@@ -167,6 +167,60 @@ export class PostsService {
     return this.hydrate(posts, viewerId);
   }
 
+  // Single-post detail view — the full thread: post + top-level comments,
+  // each with one level of nested replies (matches how the client renders
+  // threads; a reply-to-a-reply still attaches to its immediate parent
+  // server-side, it just isn't fetched further than one level deep here).
+  async getPost(id: string, viewerId?: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        author: { select: AUTHOR_SELECT },
+        likes: true,
+        reposts: true,
+        comments: {
+          where: { parentId: null },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            author: { select: AUTHOR_SELECT },
+            likes: true,
+            replies: {
+              orderBy: { createdAt: 'asc' },
+              include: { author: { select: AUTHOR_SELECT }, likes: true },
+            },
+          },
+        },
+      },
+    });
+    if (!post) throw new NotFoundException('Post not found');
+
+    const [isBookmarkedByMe, isFollowedByMe] = await Promise.all([
+      viewerId
+        ? this.prisma.postBookmark
+            .findUnique({ where: { postId_userId: { postId: id, userId: viewerId } } })
+            .then((b) => !!b)
+        : false,
+      viewerId && viewerId !== post.authorId
+        ? this.prisma.follow
+            .findUnique({
+              where: { followerId_followingId: { followerId: viewerId, followingId: post.authorId } },
+            })
+            .then((f) => !!f)
+        : false,
+    ]);
+
+    return {
+      ...post,
+      author: { ...toPostAuthor(post.author), isFollowedByMe },
+      isBookmarkedByMe,
+      comments: post.comments.map((c: any) => ({
+        ...c,
+        author: toPostAuthor(c.author),
+        replies: c.replies.map((r: any) => ({ ...r, author: toPostAuthor(r.author) })),
+      })),
+    };
+  }
+
   // Impression counter — called once per client-side render (debounced by
   // viewport visibility on the client), not per-fetch. Not a unique-viewer
   // count, same convention as view counts elsewhere in the app (Video.views).
@@ -229,11 +283,32 @@ export class PostsService {
     }
   }
 
-  async addComment(userId: string, postId: string, content: string) {
+  async addComment(userId: string, postId: string, content: string, parentId?: string) {
+    if (parentId) {
+      const parent = await this.prisma.comment.findUnique({ where: { id: parentId } });
+      if (!parent || parent.postId !== postId) {
+        throw new BadRequestException('Invalid parent comment');
+      }
+      // Replies attach to their immediate parent even if that parent is
+      // itself a reply — getPost() just doesn't fetch past one level deep,
+      // it's not a schema limit.
+    }
     const comment = await this.prisma.comment.create({
-      data: { authorId: userId, postId, content },
+      data: { authorId: userId, postId, content, parentId: parentId ?? null },
       include: { author: { select: AUTHOR_SELECT } },
     });
     return { ...comment, author: toPostAuthor(comment.author) };
+  }
+
+  async likeComment(userId: string, commentId: string) {
+    try {
+      await this.prisma.commentLike.create({ data: { userId, commentId } });
+      return { status: 'liked' };
+    } catch {
+      await this.prisma.commentLike.delete({
+        where: { commentId_userId: { commentId, userId } },
+      });
+      return { status: 'unliked' };
+    }
   }
 }

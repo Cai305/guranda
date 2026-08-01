@@ -32,6 +32,11 @@ export class PostsController {
     return this.postsService.getFollowingFeed(req.user.userId);
   }
 
+  @Get(':id')
+  getPost(@Param('id') postId: string, @Request() req: any) {
+    return this.postsService.getPost(postId, req.user?.userId);
+  }
+
   @Post()
   createPost(
     @Request() req: any,
@@ -69,8 +74,13 @@ export class PostsController {
   addComment(
     @Request() req: any,
     @Param('id') postId: string,
-    @Body() body: { content: string },
+    @Body() body: { content: string; parentId?: string },
   ) {
-    return this.postsService.addComment(req.user.userId, postId, body.content);
+    return this.postsService.addComment(req.user.userId, postId, body.content, body.parentId);
+  }
+
+  @Post('comments/:commentId/like')
+  likeComment(@Request() req: any, @Param('commentId') commentId: string) {
+    return this.postsService.likeComment(req.user.userId, commentId);
   }
 }
