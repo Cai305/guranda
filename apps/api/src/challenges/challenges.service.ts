@@ -1,7 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { ChallengeGeneratorService } from './challenge-generator.service';
 
 const AUTHOR_SELECT = {
   id: true,
@@ -22,14 +23,17 @@ function toFlatAuthor(user: any) {
 
 @Injectable()
 export class ChallengesService {
+  private readonly logger = new Logger(ChallengesService.name);
+
   constructor(
     private prisma: PrismaService,
     private achievements: AchievementsService,
+    private generator: ChallengeGeneratorService,
   ) {}
 
   // ── Public reads ──────────────────────────────────────────────────────────
 
-  async listActive(category?: string, type?: string) {
+  async listActive(category?: string, type?: string, take = 20, skip = 0) {
     return this.prisma.challenge.findMany({
       where: {
         status: 'ACTIVE',
@@ -38,10 +42,12 @@ export class ChallengesService {
       },
       orderBy: { endAt: 'asc' },
       include: { _count: { select: { entries: true } } },
+      take,
+      skip,
     });
   }
 
-  async getDetail(challengeId: string, viewerId?: string) {
+  async getDetail(challengeId: string, viewerId?: string, entriesTake = 30, entriesSkip = 0) {
     const challenge = await this.prisma.challenge.findUnique({ where: { id: challengeId } });
     if (!challenge) throw new NotFoundException('Challenge not found');
 
@@ -54,6 +60,8 @@ export class ChallengesService {
         votes: true,
         _count: { select: { comments: true } },
       },
+      take: entriesTake,
+      skip: entriesSkip,
     });
 
     return {
@@ -261,6 +269,62 @@ export class ChallengesService {
     if (!challenge) throw new NotFoundException('Challenge not found');
     if (challenge.status !== 'DRAFT') throw new BadRequestException('Only draft challenges can be published');
     return this.prisma.challenge.update({ where: { id: challengeId }, data: { status: 'ACTIVE' } });
+  }
+
+  // AI-generated challenges still land as DRAFT (never auto-published) — same
+  // human-curation gate every other challenge goes through, whether written
+  // by an admin or proposed by a sponsor. startAt/endAt aren't part of the
+  // model's own generated shape (it only proposes content, not scheduling),
+  // so a sensible default window is derived from `type` here.
+  private static readonly TYPE_WINDOW_MS: Record<string, number> = {
+    FLASH: 2 * 60 * 60 * 1000,
+    DAILY: 24 * 60 * 60 * 1000,
+    WEEKEND: 48 * 60 * 60 * 1000,
+    SEASONAL: 14 * 24 * 60 * 60 * 1000,
+    SPONSORED: 7 * 24 * 60 * 60 * 1000,
+  };
+
+  async generateBatch(adminId: string | null, count = 5, categories?: string[]) {
+    const proposals = await this.generator.generate(count, categories as any);
+    const created: Awaited<ReturnType<typeof this.prisma.challenge.create>>[] = [];
+    for (const p of proposals) {
+      const now = new Date();
+      const windowMs = ChallengesService.TYPE_WINDOW_MS[p.type] ?? ChallengesService.TYPE_WINDOW_MS.DAILY;
+      const challenge = await this.prisma.challenge.create({
+        data: {
+          title: p.title,
+          description: p.description,
+          promptText: p.promptText,
+          category: p.category,
+          type: p.type,
+          startAt: now,
+          endAt: new Date(now.getTime() + windowMs),
+          xpReward: p.xpReward,
+          bonusXpReward: p.bonusXpReward,
+          createdByAdminId: adminId,
+        },
+      });
+      created.push(challenge);
+    }
+    if (proposals.length === 0) {
+      this.logger.log('AI generation produced no challenges this run (feature off, no API key, or provider error)');
+    }
+    return created;
+  }
+
+  // Fresh DRAFT batch every morning for admin review — matches the spec's
+  // "up to 20 active challenges/day" framing without removing the human
+  // curation gate. No-ops cleanly (via ChallengeGeneratorService) if AI
+  // isn't configured/enabled.
+  @Cron('0 6 * * *')
+  async generateDailyBatch() {
+    await this.generateBatch(null, 5);
+  }
+
+  async moderateEntry(entryId: string, status: string) {
+    const entry = await this.prisma.challengeEntry.findUnique({ where: { id: entryId } });
+    if (!entry) throw new NotFoundException('Entry not found');
+    return this.prisma.challengeEntry.update({ where: { id: entryId }, data: { status } });
   }
 
   async adminEnd(challengeId: string) {

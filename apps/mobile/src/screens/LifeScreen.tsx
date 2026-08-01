@@ -1,11 +1,31 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, BRAND, GRADIENTS } from '../theme';
 import { LifeModule } from '../config/modules';
 import ModuleCard from '../components/ModuleCard';
+import { fetchApi } from '../utils/api';
 
 export default function LifeScreen({ navigation }: any) {
+  const [hasRelationship, setHasRelationship] = useState(false);
+  // Local-clock gate for the Couples tile — checked on focus and every 60s
+  // while this screen is mounted, so it appears live at 21:00 without
+  // needing a manual reload.
+  const [isAfter9pm, setIsAfter9pm] = useState(() => new Date().getHours() >= 21);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchApi('/relationships/mine')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setHasRelationship(!!d))
+        .catch(() => {});
+      setIsAfter9pm(new Date().getHours() >= 21);
+      const interval = setInterval(() => setIsAfter9pm(new Date().getHours() >= 21), 60_000);
+      return () => clearInterval(interval);
+    }, [])
+  );
+
   const EXPLORE_ITEMS: LifeModule[] = [
     {
       id: 'miniapps_installed',
@@ -61,7 +81,20 @@ export default function LifeScreen({ navigation }: any) {
       description: '',
       features: [],
       route: { name: 'Main', params: { screen: 'Life', params: { screen: 'Hub', params: { mode: 'store' } } } }
-    }
+    },
+    // Only shown once linked to a partner AND after 21:00 local time — see
+    // the spec's "secret unlock" — hidden the rest of the day.
+    ...(hasRelationship && isAfter9pm ? [{
+      id: 'couples_challenges',
+      name: 'Couples',
+      icon: 'heart',
+      gradient: GRADIENTS.crimson,
+      tagline: "Tonight's challenge is ready ❤️",
+      status: 'live',
+      description: '',
+      features: [],
+      route: { name: 'CouplesChallenges' },
+    } as LifeModule] : []),
   ];
 
   const openRoute = (module: LifeModule) => {

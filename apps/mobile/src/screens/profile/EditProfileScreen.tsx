@@ -7,6 +7,13 @@ import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi, uploadImage } from '../../utils/api';
 
+const RELATIONSHIP_OPTIONS: { value: string; label: string }[] = [
+  { value: 'SINGLE', label: 'Single' },
+  { value: 'IN_RELATIONSHIP', label: 'In a Relationship' },
+  { value: 'MARRIED', label: 'Married' },
+  { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
+];
+
 export default function EditProfileScreen({ navigation }: any) {
   const { user, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
@@ -14,7 +21,24 @@ export default function EditProfileScreen({ navigation }: any) {
   const [statusMessage, setStatusMessage] = useState(user?.statusMessage || '');
   const [autoStatusEnabled, setAutoStatusEnabled] = useState(user?.autoStatusEnabled ?? true);
   const [avatarUri, setAvatarUri] = useState(user?.avatarUrl || '');
+  const [relationshipStatus, setRelationshipStatus] = useState(user?.relationshipStatus || null);
   const [loading, setLoading] = useState(false);
+
+  const pickRelationshipStatus = async (value: string) => {
+    if (value === 'IN_RELATIONSHIP' || value === 'MARRIED') {
+      // Linking to a partner is a separate flow (search + send request) —
+      // the profile field itself only updates once they accept (see
+      // RelationshipsService.acceptRequest), not immediately here.
+      navigation.navigate('SendRelationshipRequest', { intendedStatus: value });
+      return;
+    }
+    setRelationshipStatus(value);
+    try {
+      await fetchApi('/relationships/status', { method: 'PATCH', body: JSON.stringify({ status: value }) });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -119,6 +143,23 @@ export default function EditProfileScreen({ navigation }: any) {
           />
         </View>
 
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Relationship Status</Text>
+          <View style={styles.chipRow}>
+            {RELATIONSHIP_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.chip, relationshipStatus === opt.value && styles.chipActive]}
+                onPress={() => pickRelationshipStatus(opt.value)}
+              >
+                <Text style={[styles.chipText, relationshipStatus === opt.value && styles.chipTextActive]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Auto-update my status</Text>
@@ -204,6 +245,31 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  chipText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  chipTextActive: {
+    color: '#fff',
   },
   toggleRow: {
     flexDirection: 'row',

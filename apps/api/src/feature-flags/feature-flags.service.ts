@@ -64,6 +64,12 @@ export class FeatureFlagsService {
     return map;
   }
 
+  /** Single-key lookup for backend call sites that need to gate on one flag (e.g. AI generation) rather than fetch the whole map. */
+  async getAccess(key: string): Promise<FeatureAccess> {
+    const row = await this.prisma.featureFlag.findUnique({ where: { key } });
+    return row?.access ?? FeatureAccess.ALL;
+  }
+
   async set(key: string, access: FeatureAccess) {
     if (!Object.values(FeatureAccess).includes(access)) {
       throw new BadRequestException(`Invalid access level: ${access}`);

@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndicator,
-  Modal, TextInput, KeyboardAvoidingView, Platform,
+  Modal, TextInput, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,16 +77,28 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
         ? { ...e, isLikedByMe: !e.isLikedByMe, likeCount: e.likeCount + (e.isLikedByMe ? -1 : 1) }
         : e),
     });
-    await fetchApi(`/challenges/entries/${entry.id}/like`, { method: 'POST' }).catch(() => fetchChallenge());
+    try {
+      const res = await fetchApi(`/challenges/entries/${entry.id}/like`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to like');
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', "Couldn't update your like. Please try again.");
+      fetchChallenge();
+    }
   };
 
   const vote = async (entry: any, value: number) => {
     try {
-      await fetchApi(`/challenges/entries/${entry.id}/vote`, { method: 'POST', body: JSON.stringify({ value }) });
+      const res = await fetchApi(`/challenges/entries/${entry.id}/vote`, { method: 'POST', body: JSON.stringify({ value }) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || 'Failed to vote');
+      }
       fetchChallenge();
       setSelectedEntry((prev: any) => prev && prev.id === entry.id ? { ...prev, myVote: value } : prev);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      Alert.alert('Error', e.message || "Couldn't submit your vote. Please try again.");
     }
   };
 
@@ -102,9 +114,13 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
         const newComment = await res.json();
         setComments(prev => [...prev, newComment]);
         setCommentText('');
+      } else {
+        const data = await res.json().catch(() => null);
+        Alert.alert('Error', data?.message || "Couldn't post your comment. Please try again.");
       }
     } catch (e) {
       console.error(e);
+      Alert.alert('Error', "Couldn't post your comment. Please try again.");
     } finally {
       setPosting(false);
     }

@@ -157,6 +157,10 @@ model User {
   challengeEntryComments       ChallengeEntryComment[]
   challengeCategoryStats       ChallengeCategoryStat[]
   challengeStreak              UserChallengeStreak?
+  relationshipRequestsSent     RelationshipRequest[]  @relation("relationshipRequestsSent")
+  relationshipRequestsReceived RelationshipRequest[]  @relation("relationshipRequestsReceived")
+  relationshipsAsUserA         Relationship[]          @relation("relationshipUserA")
+  relationshipsAsUserB         Relationship[]          @relation("relationshipUserB")
 }
 
 model UserProfile {
@@ -167,6 +171,7 @@ model UserProfile {
   avatarUrl     String?
   bio           String?
   statusMessage String?
+  relationshipStatus RelationshipStatusType?
   // Total Challenges XP — a distinct concept from Username.reputationScore
   // (content-ranking/influence score). See ChallengeCategoryStat for the
   // per-category breakdown.
@@ -1230,6 +1235,8 @@ model Business {
   registrationNumber String?
   documents          String[]     @default([])
   createdAt          DateTime     @default(now())
+
+  sponsorships ChallengeSponsorship[]
 }
 
 model Certificate {
@@ -2652,6 +2659,10 @@ model Challenge {
   winningEntryId  String?
   createdAt       DateTime          @default(now())
   entries         ChallengeEntry[]
+  sponsorship     ChallengeSponsorship?
+
+  @@index([status, category])
+  @@index([status, endAt])
 }
 
 model ChallengeEntry {
@@ -2723,4 +2734,109 @@ model UserChallengeStreak {
   currentStreak     Int       @default(0)
   longestStreak     Int       @default(0)
   lastCompletedDate DateTime? @db.Date
+}
+
+// ============================================================
+// Relationships — profile status + partner linking (mirrors Friendship's
+// request/accept/decline shape exactly). Couples Challenges (below) build on
+// top of the accepted Relationship row.
+// ============================================================
+
+enum RelationshipStatusType {
+  SINGLE
+  IN_RELATIONSHIP
+  MARRIED
+  PREFER_NOT_TO_SAY
+}
+
+model RelationshipRequest {
+  id             String                 @id @default(uuid())
+  requesterId    String
+  requester      User                   @relation("relationshipRequestsSent", fields: [requesterId], references: [id])
+  partnerId      String
+  partner        User                   @relation("relationshipRequestsReceived", fields: [partnerId], references: [id])
+  // IN_RELATIONSHIP or MARRIED — carried from the sender's picker choice so
+  // acceptRequest() can set both profiles' UserProfile.relationshipStatus
+  // to the same value once accepted.
+  intendedStatus RelationshipStatusType @default(IN_RELATIONSHIP)
+  status         String                 @default("pending") // pending | accepted | declined
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@unique([requesterId, partnerId])
+}
+
+model Relationship {
+  id               String    @id @default(uuid())
+  userAId          String
+  userA            User      @relation("relationshipUserA", fields: [userAId], references: [id])
+  userBId          String
+  userB            User      @relation("relationshipUserB", fields: [userBId], references: [id])
+  anniversaryDate  DateTime?
+  startDate        DateTime  @default(now())
+  xp               Int       @default(0)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActivityDate DateTime? @db.Date
+  status           String    @default("active") // active | ended
+  createdAt        DateTime  @default(now())
+
+  completions CoupleChallengeCompletion[]
+
+  @@unique([userAId, userBId])
+}
+
+// ============================================================
+// Couples Challenges — a fixed, ordered, two-person progression (unlock
+// level N by completing level N-1; completed levels stay viewable).
+// Deliberately NOT built on the generic Challenge/ChallengeEntry tables —
+// those are a rotating pool anyone can enter, this is a per-couple sequence.
+// ============================================================
+
+model CoupleChallengeTemplate {
+  id           String   @id @default(uuid())
+  level        Int      @unique
+  title        String
+  description  String
+  instructions String?
+  xpReward     Int      @default(50)
+  createdAt    DateTime @default(now())
+
+  completions CoupleChallengeCompletion[]
+}
+
+model CoupleChallengeCompletion {
+  id                String                  @id @default(uuid())
+  relationshipId    String
+  relationship      Relationship            @relation(fields: [relationshipId], references: [id])
+  templateId        String
+  template          CoupleChallengeTemplate @relation(fields: [templateId], references: [id])
+  completedAt       DateTime                @default(now())
+  completedByUserId String
+  note              String?
+
+  @@unique([relationshipId, templateId])
+}
+
+// ============================================================
+// Sponsor integration — a verified Business proposes+pays for a Challenge.
+// No escrow/reserve mechanism (none exists anywhere in this codebase) — the
+// budget is debited atomically, once, at admin-approval time, same pattern
+// as every other money flow here (see ChallengesService/story chargeInteraction).
+// ============================================================
+
+model ChallengeSponsorship {
+  id          String    @id @default(uuid())
+  challengeId String    @unique
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id])
+  // Denormalized display name at time of sponsorship — becomes
+  // Challenge.sponsorLabel on approval, so the existing Phase-1 "Sponsored
+  // by X" mobile UI (ChallengeCard.tsx/ChallengeDetailScreen.tsx) picks it
+  // up with zero new rendering code.
+  sponsorName String
+  budget      Float
+  status      String    @default("PENDING") // PENDING | ACTIVE | REJECTED
+  createdAt   DateTime  @default(now())
 }
