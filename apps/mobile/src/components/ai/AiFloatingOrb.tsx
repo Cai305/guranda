@@ -8,8 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import { AI_ENABLED } from '../../config/featureFlags';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 import AiChatDropdown, { AiChatDropdownHandle } from './AiChatDropdown';
+import HandsFreeOverlay from './HandsFreeOverlay';
 import { registerAiOrbOpener } from '../../utils/aiOrbBridge';
 import { navigationRef } from '../../navigation/navigationRef';
+import { fetchApi } from '../../utils/api';
 
 const ORB_SIZE = 56;
 const HOLD_MS = 5000;
@@ -27,6 +29,9 @@ export default function AiFloatingOrb() {
   const [voiceActive, setVoiceActive] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [hiddenForRoute, setHiddenForRoute] = useState(false);
+  const [handsFreeMode, setHandsFreeMode] = useState(false);
+  const [agentName, setAgentName] = useState('AI');
+  const [handsFreeOpen, setHandsFreeOpen] = useState(false);
 
   const dropdownRef = useRef<AiChatDropdownHandle>(null);
   const longPressFired = useRef(false);
@@ -53,6 +58,22 @@ export default function AiFloatingOrb() {
     const unsubscribe = navigationRef.addListener('state', checkRoute);
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const res = await fetchApi('/ai/agent');
+        const agent = res.ok ? await res.json() : null;
+        if (agent && agent.exists !== false) {
+          setHandsFreeMode(!!agent.handsFreeMode);
+          setAgentName(agent.name || 'AI');
+        }
+      } catch {
+        // Not fatal — the orb just falls back to the normal text dropdown.
+      }
+    })();
+  }, [isAuthenticated]);
 
   if (!AI_ENABLED || !isAuthenticated || hiddenForRoute) return null;
 
@@ -84,7 +105,11 @@ export default function AiFloatingOrb() {
     resetProgress();
 
     if (!longPressFired.current) {
-      setOpen(o => !o);
+      if (handsFreeMode) {
+        setHandsFreeOpen(true);
+      } else {
+        setOpen(o => !o);
+      }
       return;
     }
 
@@ -111,6 +136,13 @@ export default function AiFloatingOrb() {
 
   return (
     <View style={[styles.root, { bottom: bottomOffset }]} pointerEvents="box-none">
+      <HandsFreeOverlay
+        visible={handsFreeOpen}
+        agentName={agentName}
+        onClose={() => setHandsFreeOpen(false)}
+        onOpenTextChat={() => { setHandsFreeOpen(false); setOpen(true); }}
+      />
+
       {open && (
         <View style={[styles.dropdownWrap, { width: Math.min(340, Dimensions.get('window').width - 32) }]}>
           <AiChatDropdown ref={dropdownRef} onClose={() => setOpen(false)} />

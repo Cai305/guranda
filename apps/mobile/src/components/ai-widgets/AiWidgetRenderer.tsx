@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import WidgetCard, { WidgetCardProps } from './WidgetCard';
 import RideStatusCard from './RideStatusCard';
+import TripCard, { Trip } from './TripCard';
 import { SPACING } from '../../theme';
 
 export interface ToolWidget {
@@ -127,6 +128,18 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
   return (
     <View style={styles.container}>
       {widgets.map((widget) => {
+        if (widget.renderAs === 'trip-list') {
+          const trips: Trip[] = Array.isArray(widget.data) ? widget.data : [];
+          if (trips.length === 0) return null;
+          return (
+            <View key={widget.toolCallId} style={styles.stack}>
+              {trips.slice(0, 10).map((trip) => (
+                <TripCard key={trip.id} trip={trip} />
+              ))}
+            </View>
+          );
+        }
+
         if (widget.renderAs === 'ride-status') {
           const ride = widget.data;
           return (
@@ -168,4 +181,5 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
 const styles = StyleSheet.create({
   container: { gap: SPACING.sm, marginTop: 6, alignSelf: 'stretch' },
   row: { gap: SPACING.sm, paddingRight: SPACING.lg },
+  stack: { gap: SPACING.sm, alignSelf: 'stretch' },
 });

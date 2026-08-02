@@ -74,6 +74,7 @@ export class AiService {
       personality: dto.personality ?? undefined,
       permissions: dto.permissions ?? undefined,
       onboarded: dto.onboarded ?? undefined,
+      handsFreeMode: dto.handsFreeMode ?? undefined,
     };
     return this.prisma.aiAgent.upsert({
       where: { userId },
@@ -85,6 +86,7 @@ export class AiService {
         voice: dto.voice || 'warm',
         personality: dto.personality || 'companion',
         permissions: dto.permissions || {},
+        handsFreeMode: dto.handsFreeMode ?? false,
       },
     });
   }
@@ -161,10 +163,9 @@ export class AiService {
         role: 'user',
         content:
           '(System: the user has just finished setting you up for the first time. ' +
-          'Greet them warmly by their name, introduce yourself by your own name, and give a ' +
-          'short friendly tour of what you can help with day to day — reminders and wake-ups, ' +
-          'requesting rides, checking the wallet, playing games. Sound like a companion, not a ' +
-          'manual. Keep it under 150 words.)',
+          'Greet them warmly by their name and introduce yourself by your own name — that\'s it. ' +
+          'One or two short sentences, like a text message, not a tour or a features list. ' +
+          'Sound like a companion, not a manual.)',
       },
     ]);
     await this.prisma.aiAgent.update({
