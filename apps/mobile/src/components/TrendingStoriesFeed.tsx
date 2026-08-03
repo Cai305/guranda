@@ -7,11 +7,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, RADIUS, SPACING } from '../theme';
+import { COLORS, GRADIENTS, RADIUS, SPACING } from '../theme';
 import { fetchApi } from '../utils/api';
 import { StoryDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
 import GiftButton from './gifts/GiftButton';
+import ProductMiniCard, { ProductCardData } from './cards/ProductMiniCard';
+import { useShoppingCart } from '../context/ShoppingCartContext';
 
 const CCR_RATE = 0.58;
 const STORY_RING_COLORS: [string, string][] = [
@@ -55,6 +57,10 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [rankTarget, setRankTarget] = useState<string | null>(null);
+
+  // Product sheet for shoppable stories
+  const [productSheetItem, setProductSheetItem] = useState<ProductCardData | null>(null);
+  const { addItem } = useShoppingCart();
 
   const loadTrending = useCallback(() => {
     fetchApi('/stories/trending-labels')
@@ -168,29 +174,6 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
     setBusy(prev => ({ ...prev, [targetId]: false }));
   };
 
-  const handleBuy = (story: StoryDto, itemId: string) => {
-    Alert.alert('Buy this item?', 'This charges your MSH wallet.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Buy',
-        onPress: async () => {
-          try {
-            const res = await fetchApi(`/stories/${story.id}/items/${itemId}/buy`, { method: 'POST' });
-            if (res.ok) {
-              patchStory(story.id, {
-                items: story.items?.map(i => (i.id === itemId ? { ...i, soldAt: new Date(), buyerId: myUserId } : i)),
-              });
-              Alert.alert('Purchased!', 'The item is yours.');
-            } else {
-              await reportError(res, 'Something went wrong.');
-            }
-          } catch {
-            Alert.alert('Error', 'Network error.');
-          }
-        },
-      },
-    ]);
-  };
 
   const storyAuthors = React.useMemo(() => {
     const seen = new Set<string>();
@@ -339,20 +322,66 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           </Text>
         ) : null}
 
+        {/* ── Shoppable product squares ───────────────────── */}
         {forSaleItems.length > 0 && (
-          <View style={s.itemsRow}>
-            {forSaleItems.map(item => (
-              <View key={item.id} style={s.itemChip}>
-                <Text style={s.itemChipName} numberOfLines={1}>{item.name}</Text>
-                {item.soldAt ? (
-                  <Text style={s.itemChipSold}>Sold</Text>
-                ) : (
-                  <TouchableOpacity onPress={() => handleBuy(story, item.id)}>
-                    <Text style={s.itemChipBuy}>Buy · {Number(item.price ?? 0).toFixed(2)} MSH</Text>
+          <View style={s.productSquaresSection}>
+            <View style={s.productSquaresHeader}>
+              <LinearGradient colors={GRADIENTS.primary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.productSquaresHeaderPill}>
+                <Ionicons name="bag-handle" size={11} color="#fff" />
+                <Text style={s.productSquaresHeaderText}>Shop this post</Text>
+              </LinearGradient>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.productSquaresRow}>
+              {forSaleItems.map(item => {
+                const productData: ProductCardData = {
+                  id: item.id || (item as any).productId || Math.random().toString(36).slice(2),
+                  name: item.name || 'Product',
+                  price: typeof item.price === 'number' ? item.price : parseFloat(String(item.price ?? 0)) || 0,
+                  imageUrl: (item as any).imageUrl,
+                  storeId: (item as any).storeId || 'story-store',
+                  storeName: (item as any).brand || (item as any).storeName || authorName,
+                };
+                const isSold = !!item.soldAt;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[s.productSquare, isSold && s.productSquareSold]}
+                    onPress={() => !isSold && setProductSheetItem(productData)}
+                    activeOpacity={isSold ? 1 : 0.85}
+                  >
+                    {/* Gradient ring */}
+                    <LinearGradient
+                      colors={isSold ? ['#444', '#333'] : ['#8B5CF6', '#EC4899']}
+                      style={s.productSquareRing}
+                    >
+                      <View style={s.productSquareInner}>
+                        {productData.imageUrl ? (
+                          <Image source={{ uri: productData.imageUrl }} style={s.productSquareImg} resizeMode="cover" />
+                        ) : (
+                          <LinearGradient colors={isSold ? ['#333', '#222'] : GRADIENTS.primary} style={s.productSquareImg}>
+                            <Ionicons name="bag-handle" size={18} color={isSold ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.7)'} />
+                          </LinearGradient>
+                        )}
+                      </View>
+                    </LinearGradient>
+                    {/* Price / Sold pill */}
+                    <View style={[s.productSquarePill, isSold && s.productSquarePillSold]}>
+                      <Text style={s.productSquarePillText} numberOfLines={1}>
+                        {isSold ? 'Sold' : `R ${productData.price.toFixed(0)}`}
+                      </Text>
+                    </View>
+                    {/* Name */}
+                    <Text style={s.productSquareName} numberOfLines={1}>{productData.name}</Text>
+                    {/* Shop badge */}
+                    {!isSold && (
+                      <View style={s.productSquareBadge}>
+                        <Ionicons name="cart" size={10} color="#fff" />
+                      </View>
+                    )}
                   </TouchableOpacity>
-                )}
-              </View>
-            ))}
+                );
+              })}
+            </ScrollView>
           </View>
         )}
 
@@ -445,6 +474,39 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           </View>
         </View>
       </Modal>
+
+      {/* ── Product detail sheet ──────────────────────────── */}
+      <Modal
+        visible={!!productSheetItem}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setProductSheetItem(null)}
+      >
+        <TouchableOpacity style={s.productSheetOverlay} activeOpacity={1} onPress={() => setProductSheetItem(null)}>
+          <View style={s.productSheetContainer} onStartShouldSetResponder={() => true}>
+            <View style={s.sheetHandle} />
+            <Text style={s.productSheetTitle}>Shop this Product</Text>
+            {productSheetItem && (
+              <ProductMiniCard
+                product={productSheetItem}
+                navigation={navigation}
+                onBuyNow={(p) => {
+                  addItem(
+                    { id: p.id, name: p.name, price: p.price, imageUrl: p.imageUrl, category: p.category },
+                    p.storeId,
+                    p.storeName,
+                  );
+                  setProductSheetItem(null);
+                  navigation.navigate('ShoppingCart');
+                }}
+              />
+            )}
+            <TouchableOpacity style={s.productSheetDismiss} onPress={() => setProductSheetItem(null)}>
+              <Text style={s.productSheetDismissText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
@@ -506,17 +568,62 @@ const s = StyleSheet.create({
   caption: { paddingHorizontal: SPACING.lg, paddingBottom: 4, color: COLORS.text, fontSize: 14, lineHeight: 20 },
   captionBold: { fontWeight: '700' },
 
-  itemsRow: { paddingHorizontal: SPACING.lg, paddingBottom: 6, gap: 6 },
-  itemChip: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 4,
+  // ── Shoppable product squares ──────────────────────────────
+  productSquaresSection: { paddingTop: 8, paddingBottom: 8 },
+  productSquaresHeader: { paddingHorizontal: SPACING.lg, marginBottom: 10 },
+  productSquaresHeaderPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    alignSelf: 'flex-start', borderRadius: RADIUS.pill,
+    paddingHorizontal: 10, paddingVertical: 5,
   },
-  itemChipName: { color: COLORS.text, fontSize: 13, flex: 1, marginRight: 8 },
-  itemChipBuy: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
-  itemChipSold: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+  productSquaresHeaderText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  productSquaresRow: { paddingHorizontal: SPACING.lg, gap: 12 },
+  productSquare: { alignItems: 'center', width: 72 },
+  productSquareSold: { opacity: 0.5 },
+  productSquareRing: { width: 72, height: 72, borderRadius: 20, padding: 2.5 },
+  productSquareInner: {
+    flex: 1, borderRadius: 18, overflow: 'hidden',
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  productSquareImg: {
+    width: '100%', height: '100%', borderRadius: 17,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  productSquarePill: {
+    marginTop: 6, backgroundColor: COLORS.primary,
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+    maxWidth: 72,
+  },
+  productSquarePillSold: { backgroundColor: COLORS.border },
+  productSquarePillText: { color: '#fff', fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  productSquareName: { color: COLORS.textMuted, fontSize: 10, marginTop: 3, textAlign: 'center', maxWidth: 72 },
+  productSquareBadge: {
+    position: 'absolute', top: 0, right: 0,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: COLORS.secondary,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5, borderColor: COLORS.background,
+  },
 
   ccrNote: { paddingHorizontal: SPACING.lg, paddingBottom: 10, fontSize: 11, color: COLORS.textMuted, opacity: 0.7 },
+
+  // ── Product detail sheet ────────────────────────────────────
+  productSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  productSheetContainer: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: SPACING.lg, paddingBottom: 36,
+    alignItems: 'center', gap: 14,
+    borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.glassBorder,
+  },
+  productSheetTitle: { color: COLORS.text, fontSize: 17, fontWeight: '800', alignSelf: 'flex-start' },
+  productSheetDismiss: {
+    width: '100%', paddingVertical: 13,
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
+    alignItems: 'center', marginTop: 4,
+  },
+  productSheetDismissText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 14 },
 
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80, gap: 10 },
   emptyTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, Alert,
-  ActivityIndicator, Switch, PanResponder, Animated,
+  ActivityIndicator, Switch, PanResponder, Animated, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +30,15 @@ interface WearingItem {
   isForSale: boolean;
 }
 
+interface LinkedProduct {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+  storeId: string;
+  storeName: string;
+}
+
 interface PlacedSticker {
   id: string;
   emoji: string;
@@ -52,6 +61,43 @@ export default function CreateStoryScreen({ navigation }: any) {
 
   const [stickers, setStickers] = useState<PlacedSticker[]>([]);
   const previewSize = useRef({ width: 1, height: 1 });
+
+  // ── Linked products (shoppable story) ──────────────────────
+  const [linkedProducts, setLinkedProducts] = useState<LinkedProduct[]>([]);
+  const [showProductSearch, setShowProductSearch] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [productResults, setProductResults] = useState<any[]>([]);
+  const [productSearchLoading, setProductSearchLoading] = useState(false);
+
+  const searchProducts = async (q: string) => {
+    if (!q.trim()) { setProductResults([]); return; }
+    setProductSearchLoading(true);
+    try {
+      const res = await fetchApi(`/shopping/products?search=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setProductResults(Array.isArray(data) ? data : []);
+    } catch { setProductResults([]); }
+    setProductSearchLoading(false);
+  };
+
+  const linkProduct = (p: any) => {
+    const lp: LinkedProduct = {
+      id: p.id,
+      name: p.name || 'Product',
+      price: typeof p.price === 'number' ? p.price : parseFloat(p.price) || 0,
+      imageUrl: p.imageUrl,
+      storeId: p.storeId || p.store?.id || 'unknown',
+      storeName: p.storeName || p.store?.name || 'Store',
+    };
+    if (!linkedProducts.find(x => x.id === lp.id)) {
+      setLinkedProducts(prev => [...prev, lp]);
+    }
+    setShowProductSearch(false);
+    setProductSearchQuery('');
+    setProductResults([]);
+  };
+
+  const unlinkProduct = (id: string) => setLinkedProducts(prev => prev.filter(p => p.id !== id));
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -141,6 +187,8 @@ export default function CreateStoryScreen({ navigation }: any) {
                 price: i.isForSale ? parseFloat(i.price) || undefined : undefined,
                 isForSale: i.isForSale,
               }))
+            : linkedProducts.length > 0
+            ? linkedProducts.map(p => ({ name: p.name, brand: p.storeName, price: p.price, isForSale: true, productId: p.id, imageUrl: p.imageUrl }))
             : undefined,
         }),
       });
@@ -213,6 +261,30 @@ export default function CreateStoryScreen({ navigation }: any) {
             <View style={styles.musicBadge}>
               <Ionicons name="musical-notes" size={12} color="#fff" />
               <Text style={styles.musicBadgeText} numberOfLines={1}>{musicName}</Text>
+            </View>
+          )}
+
+          {/* Product squares overlay */}
+          {linkedProducts.length > 0 && (
+            <View style={styles.productSquaresRow}>
+              {linkedProducts.map(p => (
+                <TouchableOpacity key={p.id} style={styles.productSquare} onLongPress={() => unlinkProduct(p.id)} activeOpacity={0.85}>
+                  <LinearGradient colors={['rgba(139,92,246,0.8)', 'rgba(99,102,241,0.8)']} style={styles.productSquareGrad}>
+                    {p.imageUrl ? (
+                      <Image source={{ uri: p.imageUrl }} style={styles.productSquareImg} resizeMode="cover" />
+                    ) : (
+                      <Ionicons name="bag-handle" size={18} color="rgba(255,255,255,0.8)" />
+                    )}
+                  </LinearGradient>
+                  <View style={styles.productSquarePricePill}>
+                    <Text style={styles.productSquarePriceText}>R {p.price.toFixed(0)}</Text>
+                  </View>
+                  <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.9)" style={styles.productSquareClose} />
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.productSquareAdd} onPress={() => setShowProductSearch(true)}>
+                <Ionicons name="add" size={20} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -336,6 +408,61 @@ export default function CreateStoryScreen({ navigation }: any) {
           {stickers.length > 0 && <Text style={styles.hint}>Drag to reposition · long-press to remove</Text>}
         </View>
 
+        {/* Link Products */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.label}>Link Products</Text>
+            <TouchableOpacity style={styles.addItemBtn} onPress={() => setShowProductSearch(true)}>
+              <Ionicons name="bag-add" size={14} color={COLORS.primary} />
+              <Text style={styles.addItemText}>Search products</Text>
+            </TouchableOpacity>
+          </View>
+          {linkedProducts.length === 0 ? (
+            <TouchableOpacity style={styles.linkProductsEmpty} onPress={() => setShowProductSearch(true)}>
+              <LinearGradient colors={['rgba(139,92,246,0.08)', 'rgba(99,102,241,0.08)']} style={styles.linkProductsEmptyGrad}>
+                <View style={styles.linkProductsEmptyInner}>
+                  <LinearGradient colors={['#8B5CF6', '#6366F1']} style={styles.linkProductsEmptyIcon}>
+                    <Ionicons name="bag-handle" size={22} color="#fff" />
+                  </LinearGradient>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.linkProductsEmptyTitle}>Add shoppable products</Text>
+                    <Text style={styles.linkProductsEmptyHint}>Viewers can buy directly from your story</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {linkedProducts.map(p => (
+                <View key={p.id} style={styles.linkedProductRow}>
+                  <View style={styles.linkedProductThumb}>
+                    {p.imageUrl ? (
+                      <Image source={{ uri: p.imageUrl }} style={styles.linkedProductThumbImg} resizeMode="cover" />
+                    ) : (
+                      <LinearGradient colors={['#8B5CF6', '#6366F1']} style={styles.linkedProductThumbImg}>
+                        <Ionicons name="bag-handle" size={16} color="rgba(255,255,255,0.6)" />
+                      </LinearGradient>
+                    )}
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.linkedProductName} numberOfLines={1}>{p.name}</Text>
+                    <Text style={styles.linkedProductStore} numberOfLines={1}>{p.storeName}</Text>
+                    <Text style={styles.linkedProductPrice}>R {p.price.toFixed(2)}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => unlinkProduct(p.id)} style={{ padding: 4 }}>
+                    <Ionicons name="close-circle-outline" size={20} color={COLORS.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity style={[styles.addItemBtn, { alignSelf: 'flex-start', marginTop: 8 }]} onPress={() => setShowProductSearch(true)}>
+                <Ionicons name="add" size={14} color={COLORS.primary} />
+                <Text style={styles.addItemText}>Add another</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         {/* Wearing / items — only for "of the Day" posts */}
         {postType === 'ofTheDay' && (
           <View style={styles.section}>
@@ -392,6 +519,65 @@ export default function CreateStoryScreen({ navigation }: any) {
           </View>
         )}
       </ScrollView>
+
+      {/* Product Search Modal */}
+      <Modal visible={showProductSearch} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowProductSearch(false)}>
+        <View style={styles.productSearchSheet}>
+          <View style={styles.handle} />
+          <View style={styles.productSearchHeader}>
+            <Text style={styles.productSearchTitle}>Link a Product</Text>
+            <TouchableOpacity onPress={() => { setShowProductSearch(false); setProductSearchQuery(''); setProductResults([]); }}>
+              <Ionicons name="close" size={22} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.productSearchBar}>
+            <Ionicons name="search" size={16} color={COLORS.textMuted} />
+            <TextInput
+              style={styles.productSearchInput}
+              placeholder="Search products..."
+              placeholderTextColor={COLORS.textMuted}
+              value={productSearchQuery}
+              onChangeText={q => { setProductSearchQuery(q); searchProducts(q); }}
+              autoFocus
+            />
+          </View>
+          {productSearchLoading ? (
+            <ActivityIndicator color={COLORS.primary} style={{ marginTop: 30 }} />
+          ) : productResults.length === 0 ? (
+            <View style={styles.productSearchEmpty}>
+              <Ionicons name="bag-handle-outline" size={44} color={COLORS.textMuted} />
+              <Text style={styles.productSearchEmptyText}>{productSearchQuery ? 'No products found' : 'Start typing to search'}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={productResults}
+              keyExtractor={(item, i) => item.id || i.toString()}
+              contentContainerStyle={{ padding: SPACING.lg, gap: 10 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.productResultRow} onPress={() => linkProduct(item)} activeOpacity={0.85}>
+                  <View style={styles.productResultThumb}>
+                    {item.imageUrl ? (
+                      <Image source={{ uri: item.imageUrl }} style={styles.productResultThumbImg} resizeMode="cover" />
+                    ) : (
+                      <LinearGradient colors={['#8B5CF6', '#6366F1']} style={styles.productResultThumbImg}>
+                        <Ionicons name="bag-handle" size={16} color="rgba(255,255,255,0.5)" />
+                      </LinearGradient>
+                    )}
+                  </View>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={styles.productResultName} numberOfLines={1}>{item.name || 'Product'}</Text>
+                    <Text style={styles.productResultStore} numberOfLines={1}>{item.store?.name || item.storeName || 'Store'}</Text>
+                    <Text style={styles.productResultPrice}>R {(typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0).toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.linkBtn}>
+                    <Text style={styles.linkBtnText}>Link</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -487,4 +673,77 @@ const styles = StyleSheet.create({
   },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
   switchLabel: { color: COLORS.text, fontSize: 14 },
+
+  // Product squares in preview
+  productSquaresRow: {
+    position: 'absolute', bottom: 40, left: 12, right: 12,
+    flexDirection: 'row', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap',
+  },
+  productSquare: { width: 60, height: 60, borderRadius: 14, overflow: 'visible', position: 'relative' },
+  productSquareGrad: {
+    width: 60, height: 60, borderRadius: 14,
+    borderWidth: 2, borderColor: 'rgba(139,92,246,0.6)',
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+  },
+  productSquareImg: { width: '100%', height: '100%', borderRadius: 12 },
+  productSquarePricePill: {
+    position: 'absolute', bottom: -8, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 6,
+    alignItems: 'center', paddingVertical: 2,
+  },
+  productSquarePriceText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  productSquareClose: { position: 'absolute', top: -4, right: -4 },
+  productSquareAdd: {
+    width: 60, height: 60, borderRadius: 14, borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)', borderStyle: 'dashed',
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  // Link products section
+  linkProductsEmpty: { borderRadius: RADIUS.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' },
+  linkProductsEmptyGrad: { padding: 16 },
+  linkProductsEmptyInner: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  linkProductsEmptyIcon: { width: 46, height: 46, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+  linkProductsEmptyTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+  linkProductsEmptyHint: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  linkedProductRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.md,
+    borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8,
+  },
+  linkedProductThumb: { width: 48, height: 48, borderRadius: RADIUS.sm, overflow: 'hidden' },
+  linkedProductThumbImg: { width: 48, height: 48, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
+  linkedProductName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+  linkedProductStore: { color: COLORS.textMuted, fontSize: 11 },
+  linkedProductPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 13 },
+
+  // Product search modal
+  productSearchSheet: { flex: 1, backgroundColor: COLORS.surface },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+  productSearchHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  productSearchTitle: { ...TYPOGRAPHY.h2, fontSize: 17 },
+  productSearchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, margin: SPACING.lg,
+    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.pill,
+    borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 11,
+  },
+  productSearchInput: { flex: 1, color: COLORS.text, fontSize: 15 },
+  productSearchEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  productSearchEmptyText: { color: COLORS.textMuted, fontSize: 15 },
+  productResultRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.border, padding: 12,
+  },
+  productResultThumb: { width: 52, height: 52, borderRadius: RADIUS.sm, overflow: 'hidden' },
+  productResultThumbImg: { width: 52, height: 52, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
+  productResultName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+  productResultStore: { color: COLORS.textMuted, fontSize: 12 },
+  productResultPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 14 },
+  linkBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 14, paddingVertical: 7 },
+  linkBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 });

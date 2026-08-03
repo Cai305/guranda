@@ -19,6 +19,8 @@ import { useSocket } from '../context/SocketContext';
 import { useLiveSound, LIVE_SOUND_DURATION_MS } from '../live/useLiveSound';
 import { fetchApi, uploadMedia } from '../utils/api';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import MiniAppProductPicker from '../components/MiniAppProductPicker';
+import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
 
 const isVideoUrl = (url: string) => /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(url);
 const isAudioUrl = (url: string) => /\.(m4a|mp3|wav|aac|3gp|ogg|caf)(\?|$)/i.test(url);
@@ -58,6 +60,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showVemojiPicker, setShowVemojiPicker] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
   const [emojiBurst, setEmojiBurst] = useState<{ type: VemojiType; nonce: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessageDto | null>(null);
   const [actionSheetMessage, setActionSheetMessage] = useState<ChatMessageDto | null>(null);
@@ -284,6 +287,19 @@ export default function ChatScreen({ route, navigation }: any) {
     setShowGifPicker(false);
   };
 
+  const sendProductCard = (product: ProductCardData) => {
+    if (!socket || !user?.userId) return;
+    const payload = JSON.stringify({ __productCard: true, ...product });
+    const newMsg: ChatMessageDto = {
+      chatId: roomId,
+      senderId: user.userId,
+      content: payload,
+      replyToId: replyingTo?.id,
+    };
+    socket.emit('send_message', newMsg);
+    setReplyingTo(null);
+  };
+
   const sendVemoji = (type: VemojiType) => {
     if (!socket || !user?.userId) return;
     const newMsg: ChatMessageDto = { chatId: roomId, senderId: user.userId, content: encodeVemojiMessage(type), replyToId: replyingTo?.id };
@@ -332,9 +348,32 @@ export default function ChatScreen({ route, navigation }: any) {
     const mediaOnly = !!item.mediaUrl && !item.content;
     const stickerOnly = mediaOnly || !!vemojiType;
 
+    // Detect product card payload
+    let productCard: ProductCardData | null = null;
+    if (item.content && item.content.startsWith('{') && item.content.includes('__productCard')) {
+      try { const parsed = JSON.parse(item.content); if (parsed.__productCard) { const { __productCard, ...rest } = parsed; productCard = rest as ProductCardData; } } catch {}
+    }
+
     const replyPreviewText = item.replyTo
       ? (parseVemojiMessage(item.replyTo.content) ? '🔥 Vemoji' : (item.replyTo.content || (item.replyTo.mediaUrl ? '📎 Attachment' : '')))
       : '';
+
+    if (productCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          {isMe && (
+            <View style={styles.productBubbleLabel}>
+              <Ionicons name="bag-handle" size={11} color={COLORS.primary} />
+              <Text style={styles.productBubbleLabelText}>Product Suggestion</Text>
+            </View>
+          )}
+          <ProductMiniCard product={productCard} compact navigation={navigation} />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
 
     return (
       <TouchableOpacity
@@ -514,6 +553,12 @@ export default function ChatScreen({ route, navigation }: any) {
                 <TouchableOpacity style={[styles.pillIconBtn, styles.pillIconBtnLast]} onPress={captureAndSendMedia} disabled={uploadingMedia}>
                   <Ionicons name="camera-outline" size={18} color={COLORS.textMuted} />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pillIconBtn, styles.pillIconBtnLast]}
+                  onPress={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowVemojiPicker(false); setShowProductPicker(true); }}
+                >
+                  <Ionicons name="bag-handle-outline" size={18} color={COLORS.primary} />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
@@ -535,6 +580,11 @@ export default function ChatScreen({ route, navigation }: any) {
           )}
           {showVemojiPicker && <VemojiPicker onSelect={sendVemoji} />}
           {showGifPicker && <GifPicker onSelect={sendGif} />}
+          <MiniAppProductPicker
+            visible={showProductPicker}
+            onClose={() => setShowProductPicker(false)}
+            onSendProduct={sendProductCard}
+          />
         </KeyboardAvoidingView>
       </View>
 
@@ -1018,5 +1068,26 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '800',
     fontSize: 15,
+  },
+
+  // Product card bubble
+  productBubbleWrap: {
+    marginVertical: 2,
+    maxWidth: '85%',
+  },
+  productBubbleMe: { alignSelf: 'flex-end' },
+  productBubbleThem: { alignSelf: 'flex-start' },
+  productBubbleLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 5,
+    paddingLeft: 4,
+  },
+  productBubbleLabelText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

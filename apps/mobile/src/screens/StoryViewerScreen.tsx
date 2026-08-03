@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
-  Animated, Dimensions, StatusBar,
+  Animated, Dimensions, StatusBar, ScrollView, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
-import { COLORS } from '../theme';
+import { COLORS, GRADIENTS, RADIUS, SPACING } from '../theme';
+import { useShoppingCart } from '../context/ShoppingCartContext';
+import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5s per story
@@ -22,6 +24,11 @@ export default function StoryViewerScreen({ route, navigation }: any) {
   const [storyIndex, setStoryIndex] = useState(0);
   const progress = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Product sheet state
+  const [selectedProduct, setSelectedProduct] = useState<ProductCardData | null>(null);
+  const [productSheetVisible, setProductSheetVisible] = useState(false);
+  const { addItem } = useShoppingCart();
 
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
@@ -103,6 +110,33 @@ export default function StoryViewerScreen({ route, navigation }: any) {
     return hoursLeft === 0 ? 'Expires soon' : `${hoursLeft}h left`;
   };
 
+  // Map story items to ProductCardData (best effort)
+  const linkedProducts: ProductCardData[] = Array.isArray(currentStory.items)
+    ? currentStory.items
+        .filter((item: any) => item.isForSale && item.price)
+        .map((item: any) => ({
+          id: item.id || item.productId || Math.random().toString(36).slice(2),
+          name: item.name || 'Product',
+          price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || 0,
+          imageUrl: item.imageUrl,
+          storeId: item.storeId || 'story-store',
+          storeName: item.brand || item.storeName || displayName,
+        }))
+    : [];
+
+  const openProductSheet = (product: ProductCardData) => {
+    setSelectedProduct(product);
+    setProductSheetVisible(true);
+    animRef.current?.stop(); // pause story while sheet is open
+  };
+
+  const closeProductSheet = () => {
+    setProductSheetVisible(false);
+    setSelectedProduct(null);
+    // Resume story
+    startProgress();
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <StatusBar barStyle="light-content" />
@@ -175,6 +209,42 @@ export default function StoryViewerScreen({ route, navigation }: any) {
         </Text>
       ))}
 
+      {/* ── Shoppable product squares ───────────────────────── */}
+      {linkedProducts.length > 0 && (
+        <View style={styles.productSquaresContainer}>
+          <View style={styles.productSquaresLabel}>
+            <Ionicons name="bag-handle" size={12} color="#fff" />
+            <Text style={styles.productSquaresLabelText}>Tap to shop</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productSquaresRow}>
+            {linkedProducts.map(product => (
+              <TouchableOpacity
+                key={product.id}
+                style={styles.productSquare}
+                onPress={() => openProductSheet(product)}
+                activeOpacity={0.85}
+              >
+                {/* Purple gradient ring border */}
+                <LinearGradient colors={['#8B5CF6', '#EC4899']} style={styles.productSquareRing}>
+                  <View style={styles.productSquareInner}>
+                    {product.imageUrl ? (
+                      <Image source={{ uri: product.imageUrl }} style={styles.productSquareImg} resizeMode="cover" />
+                    ) : (
+                      <LinearGradient colors={GRADIENTS.primary} style={styles.productSquareImg}>
+                        <Ionicons name="bag-handle" size={22} color="rgba(255,255,255,0.7)" />
+                      </LinearGradient>
+                    )}
+                  </View>
+                </LinearGradient>
+                <View style={styles.productSquarePill}>
+                  <Text style={styles.productSquarePillText} numberOfLines={1}>R {product.price.toFixed(0)}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Tap zones */}
       <View style={styles.tapZones}>
         <TouchableOpacity style={styles.tapLeft} onPress={goBack} activeOpacity={1} />
@@ -189,6 +259,44 @@ export default function StoryViewerScreen({ route, navigation }: any) {
           ))}
         </View>
       )}
+
+      {/* ── Product bottom sheet ───────────────────────────── */}
+      <Modal
+        visible={productSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeProductSheet}
+      >
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={closeProductSheet}>
+          <View style={styles.productSheet} onStartShouldSetResponder={() => true}>
+            {/* Handle */}
+            <View style={styles.sheetHandle} />
+
+            {selectedProduct && (
+              <>
+                <Text style={styles.sheetTitle}>Shop this Product</Text>
+                <ProductMiniCard
+                  product={selectedProduct}
+                  navigation={navigation}
+                  onBuyNow={(p) => {
+                    addItem(
+                      { id: p.id, name: p.name, price: p.price, imageUrl: p.imageUrl, category: p.category },
+                      p.storeId,
+                      p.storeName,
+                    );
+                    closeProductSheet();
+                    navigation.navigate('ShoppingCart');
+                  }}
+                />
+              </>
+            )}
+
+            <TouchableOpacity style={styles.sheetCloseBtn} onPress={closeProductSheet}>
+              <Text style={styles.sheetCloseBtnText}>Continue Watching</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -220,4 +328,63 @@ const styles = StyleSheet.create({
   groupDots: { position: 'absolute', bottom: 40, alignSelf: 'center', flexDirection: 'row', gap: 6, zIndex: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
   dotActive: { backgroundColor: '#fff', width: 16 },
+
+  // ── Product squares ────────────────────────────────────────
+  productSquaresContainer: {
+    position: 'absolute',
+    bottom: 60,
+    left: 0, right: 0,
+    zIndex: 8,
+    paddingLeft: 16,
+  },
+  productSquaresLabel: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)', alignSelf: 'flex-start',
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+    marginBottom: 8,
+  },
+  productSquaresLabelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  productSquaresRow: { gap: 10, paddingRight: 16 },
+  productSquare: {
+    alignItems: 'center',
+    zIndex: 9,
+  },
+  productSquareRing: {
+    width: 70, height: 70, borderRadius: 18,
+    padding: 2.5,
+  },
+  productSquareInner: {
+    flex: 1, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  productSquareImg: {
+    width: '100%', height: '100%', borderRadius: 15,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  productSquarePill: {
+    marginTop: 5, backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
+  },
+  productSquarePillText: { color: '#fff', fontSize: 10, fontWeight: '800', maxWidth: 60 },
+
+  // ── Product bottom sheet ──────────────────────────────────
+  sheetOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
+  },
+  productSheet: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: SPACING.lg, paddingBottom: 36,
+    alignItems: 'center', gap: 16,
+  },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginBottom: 4 },
+  sheetTitle: { color: COLORS.text, fontWeight: '800', fontSize: 18, alignSelf: 'flex-start' },
+  sheetCloseBtn: {
+    width: '100%', paddingVertical: 14,
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
+    alignItems: 'center',
+  },
+  sheetCloseBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 14 },
 });

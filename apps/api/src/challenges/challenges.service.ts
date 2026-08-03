@@ -125,9 +125,13 @@ export class ChallengesService {
       },
     });
 
-    await this.prisma.userProfile.update({
+    // Older accounts can predate the automatically-created profile row.
+    // An entry must not fail after it has already been saved just because the
+    // contributor has no profile yet; create that profile while awarding XP.
+    await this.prisma.userProfile.upsert({
       where: { userId },
-      data: { xp: { increment: challenge.xpReward } },
+      create: { userId, xp: challenge.xpReward },
+      update: { xp: { increment: challenge.xpReward } },
     });
     await this.prisma.challengeCategoryStat.upsert({
       where: { userId_category: { userId, category: challenge.category } },
