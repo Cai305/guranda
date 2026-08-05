@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS, RADIUS } from '../theme';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 // Plain Unicode — no native emoji-keyboard dependency needed, works
 // identically on web and native. A curated common set rather than the full
@@ -29,6 +29,34 @@ interface Props {
 }
 
 export default function EmojiPicker({ onSelect }: Props) {
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    panel: {
+      height: 220,
+      backgroundColor: COLORS.surfaceElevated || COLORS.surface,
+      borderTopWidth: 1,
+      borderColor: COLORS.border,
+      padding: 10,
+    },
+    group: { marginBottom: 8 },
+    groupLabel: {
+      color: COLORS.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      marginBottom: 6,
+      marginLeft: 4,
+    },
+    grid: { flexDirection: 'row', flexWrap: 'wrap' },
+    cell: {
+      width: 42,
+      height: 42,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: RADIUS.md || 10,
+    },
+    emojiText: { fontSize: 24 },
+  }));
+
   return (
     <View style={styles.panel}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -48,31 +76,3 @@ export default function EmojiPicker({ onSelect }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  panel: {
-    height: 220,
-    backgroundColor: COLORS.surfaceElevated || COLORS.surface,
-    borderTopWidth: 1,
-    borderColor: COLORS.border,
-    padding: 10,
-  },
-  group: { marginBottom: 8 },
-  groupLabel: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    marginLeft: 4,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: {
-    width: 42,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: RADIUS.md || 10,
-  },
-  emojiText: { fontSize: 24 },
-});

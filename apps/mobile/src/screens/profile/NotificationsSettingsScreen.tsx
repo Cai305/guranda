@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const STORAGE_KEY = '@mxit_notifications_settings';
 
 export default function NotificationsSettingsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({
     pushNotifications: true,
@@ -16,6 +19,70 @@ export default function NotificationsSettingsScreen({ navigation }: any) {
     walletTransactions: true,
     soundVibration: true,
   });
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY, RADIUS }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: { padding: SPACING.lg },
+    sectionTitle: {
+      ...TYPOGRAPHY.label,
+      fontSize: 12,
+      marginBottom: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    card: {
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      marginBottom: SPACING.lg,
+    },
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: SPACING.md,
+    },
+    settingInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: SPACING.md,
+    },
+    iconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.sm,
+      backgroundColor: 'rgba(139, 92, 246, 0.12)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: SPACING.md,
+    },
+    textContainer: { flex: 1 },
+    settingLabel: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    settingDesc: {
+      ...TYPOGRAPHY.caption,
+      color: COLORS.textMuted,
+      marginTop: 2,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: COLORS.glassBorder,
+    },
+  }));
 
   useEffect(() => {
     loadSettings();
@@ -103,67 +170,3 @@ export default function NotificationsSettingsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: { padding: SPACING.lg },
-  sectionTitle: {
-    ...TYPOGRAPHY.label,
-    fontSize: 12,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  card: {
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    marginBottom: SPACING.lg,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: SPACING.md,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  textContainer: { flex: 1 },
-  settingLabel: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  settingDesc: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.glassBorder,
-  },
-});

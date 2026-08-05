@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import GiftSheet, { GiftCatalogItem } from './GiftSheet';
 
 interface Props {
@@ -18,7 +19,18 @@ interface Props {
 // gifting — Live streams and every game screen. Tapping it opens the
 // shared GiftSheet targeting whichever recipient this instance was given.
 export default function GiftButton({ recipientId, recipientName, context, contextId, size = 34, style, onSent }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [open, setOpen] = useState(false);
+  const styles = useThemedStyles(() => ({
+    btn: {
+      backgroundColor: 'rgba(251, 191, 36, 0.15)',
+      borderWidth: 1,
+      borderColor: 'rgba(251, 191, 36, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  }));
 
   return (
     <>
@@ -40,13 +52,3 @@ export default function GiftButton({ recipientId, recipientName, context, contex
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  btn: {
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

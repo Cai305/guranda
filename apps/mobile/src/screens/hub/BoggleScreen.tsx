@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import { WordBattleGameDto, BoggleStateDto } from '@mxit2/types';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import GiftButton from '../../components/gifts/GiftButton';
@@ -27,6 +28,78 @@ function neighbors(index: number): number[] {
 }
 
 export default function BoggleScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    timerPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 6,
+    },
+    timerText: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    scoreRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
+    scoreCard: {
+      flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: 10, alignItems: 'center',
+    },
+    scoreLabel: { color: COLORS.textMuted, fontSize: 11 },
+    scoreValue: { color: COLORS.text, fontWeight: '800', fontSize: 22, marginTop: 2 },
+    scoreSub: { color: COLORS.textMuted, fontSize: 10 },
+    wordPreview: {
+      marginHorizontal: SPACING.lg, alignItems: 'center', paddingVertical: 8,
+    },
+    wordPreviewText: { color: COLORS.text, fontWeight: '800', fontSize: 22, letterSpacing: 2 },
+    errorText: { color: COLORS.error, textAlign: 'center', fontSize: 12, marginBottom: 4 },
+    grid: { alignItems: 'center', gap: 8, marginTop: 4 },
+    gridRow: { flexDirection: 'row', gap: 8 },
+    cell: {
+      width: 66, height: 66, borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cellSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    cellText: { color: COLORS.text, fontWeight: '800', fontSize: 24 },
+    actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
+    clearBtn: {
+      flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
+    },
+    clearText: { color: COLORS.textMuted, fontWeight: '700' },
+    submitBtn: {
+      flex: 2, backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
+    },
+    submitText: { color: '#FFF', fontWeight: '800' },
+    myWordsText: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: 12, paddingHorizontal: SPACING.lg },
+    resultScroll: { flex: 1, marginTop: SPACING.md },
+    resultCard: {
+      marginHorizontal: SPACING.lg, backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.lg,
+      padding: 20, alignItems: 'center', gap: 6,
+    },
+    resultTitle: { color: COLORS.text, fontWeight: '800', fontSize: 20 },
+    resultSub: { color: COLORS.textMuted, fontSize: 14 },
+    resultWager: { color: COLORS.gold, fontWeight: '700', fontSize: 15, marginTop: 4 },
+    revealList: { marginTop: 12, gap: 4, alignSelf: 'stretch' },
+    revealWord: { color: COLORS.text, fontSize: 12.5 },
+    revealCancelled: { color: COLORS.textMuted, textDecorationLine: 'line-through' },
+    backToLobbyBtn: {
+      marginTop: 14, backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24,
+    },
+    backToLobbyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  }));
   const { gameId, wager = 0 } = route.params || {};
   const { user } = useAuth();
   const [game, setGame] = useState<WordBattleGameDto | null>(null);
@@ -233,74 +306,3 @@ export default function BoggleScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  timerPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 6,
-  },
-  timerText: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  scoreRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
-  scoreCard: {
-    flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: 10, alignItems: 'center',
-  },
-  scoreLabel: { color: COLORS.textMuted, fontSize: 11 },
-  scoreValue: { color: COLORS.text, fontWeight: '800', fontSize: 22, marginTop: 2 },
-  scoreSub: { color: COLORS.textMuted, fontSize: 10 },
-  wordPreview: {
-    marginHorizontal: SPACING.lg, alignItems: 'center', paddingVertical: 8,
-  },
-  wordPreviewText: { color: COLORS.text, fontWeight: '800', fontSize: 22, letterSpacing: 2 },
-  errorText: { color: COLORS.error, textAlign: 'center', fontSize: 12, marginBottom: 4 },
-  grid: { alignItems: 'center', gap: 8, marginTop: 4 },
-  gridRow: { flexDirection: 'row', gap: 8 },
-  cell: {
-    width: 66, height: 66, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cellSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  cellText: { color: COLORS.text, fontWeight: '800', fontSize: 24 },
-  actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
-  clearBtn: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
-  },
-  clearText: { color: COLORS.textMuted, fontWeight: '700' },
-  submitBtn: {
-    flex: 2, backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
-  },
-  submitText: { color: '#FFF', fontWeight: '800' },
-  myWordsText: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: 12, paddingHorizontal: SPACING.lg },
-  resultScroll: { flex: 1, marginTop: SPACING.md },
-  resultCard: {
-    marginHorizontal: SPACING.lg, backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.lg,
-    padding: 20, alignItems: 'center', gap: 6,
-  },
-  resultTitle: { color: COLORS.text, fontWeight: '800', fontSize: 20 },
-  resultSub: { color: COLORS.textMuted, fontSize: 14 },
-  resultWager: { color: COLORS.gold, fontWeight: '700', fontSize: 15, marginTop: 4 },
-  revealList: { marginTop: 12, gap: 4, alignSelf: 'stretch' },
-  revealWord: { color: COLORS.text, fontSize: 12.5 },
-  revealCancelled: { color: COLORS.textMuted, textDecorationLine: 'line-through' },
-  backToLobbyBtn: {
-    marginTop: 14, backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24,
-  },
-  backToLobbyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
-});

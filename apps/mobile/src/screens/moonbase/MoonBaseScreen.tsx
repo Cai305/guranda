@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
@@ -28,6 +29,8 @@ const EVENTS = [
 ];
 
 export default function MoonBaseScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const { user } = useAuth();
   const [rooms, setRooms] = useState<MoonRoom[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -58,6 +61,86 @@ export default function MoonBaseScreen({ navigation }: any) {
 
   const myAvatar =
     avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'moon'}`;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: '#0A0618' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    hero: {
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
+      padding: 22,
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    stars: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+    star: {
+      position: 'absolute',
+      width: 3, height: 3, borderRadius: 2,
+      backgroundColor: '#FFF',
+    },
+    heroAvatar: {
+      width: 96, height: 96, borderRadius: 48,
+      borderWidth: 2, borderColor: 'rgba(139,92,246,0.8)',
+      backgroundColor: '#1B0E45',
+    },
+    heroName: { color: COLORS.text, fontSize: 18, fontWeight: '800', marginTop: 10 },
+    heroSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
+    customizeBtn: {
+      flexDirection: 'row', gap: 6,
+      marginTop: 14,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 9, paddingHorizontal: 18,
+      alignItems: 'center',
+    },
+    customizeText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    roomGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+      paddingHorizontal: SPACING.lg,
+    },
+    roomCard: {
+      width: '48%',
+      backgroundColor: 'rgba(139,92,246,0.08)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+    },
+    roomEmoji: { fontSize: 26 },
+    roomName: { color: COLORS.text, fontWeight: '800', fontSize: 14, marginTop: 8 },
+    roomBlurb: { color: COLORS.textMuted, fontSize: 11, marginTop: 3 },
+    occupancyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+    presenceDot: {
+      width: 7, height: 7, borderRadius: 4,
+      backgroundColor: COLORS.surfaceElevated,
+    },
+    occupancyText: { color: COLORS.textMuted, fontSize: 11 },
+    loadingText: { color: COLORS.textMuted, fontSize: 12, padding: SPACING.lg },
+    eventsRow: { paddingHorizontal: SPACING.lg, gap: 10 },
+    eventCard: {
+      width: 170,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+      gap: 6,
+    },
+    eventTitle: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    eventWhen: { color: COLORS.textMuted, fontSize: 11 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -151,83 +234,3 @@ export default function MoonBaseScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0618' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  hero: {
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
-    padding: 22,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  stars: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  star: {
-    position: 'absolute',
-    width: 3, height: 3, borderRadius: 2,
-    backgroundColor: '#FFF',
-  },
-  heroAvatar: {
-    width: 96, height: 96, borderRadius: 48,
-    borderWidth: 2, borderColor: 'rgba(139,92,246,0.8)',
-    backgroundColor: '#1B0E45',
-  },
-  heroName: { color: COLORS.text, fontSize: 18, fontWeight: '800', marginTop: 10 },
-  heroSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
-  customizeBtn: {
-    flexDirection: 'row', gap: 6,
-    marginTop: 14,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 9, paddingHorizontal: 18,
-    alignItems: 'center',
-  },
-  customizeText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  roomGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    paddingHorizontal: SPACING.lg,
-  },
-  roomCard: {
-    width: '48%',
-    backgroundColor: 'rgba(139,92,246,0.08)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-  },
-  roomEmoji: { fontSize: 26 },
-  roomName: { color: COLORS.text, fontWeight: '800', fontSize: 14, marginTop: 8 },
-  roomBlurb: { color: COLORS.textMuted, fontSize: 11, marginTop: 3 },
-  occupancyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-  presenceDot: {
-    width: 7, height: 7, borderRadius: 4,
-    backgroundColor: COLORS.surfaceElevated,
-  },
-  occupancyText: { color: COLORS.textMuted, fontSize: 11 },
-  loadingText: { color: COLORS.textMuted, fontSize: 12, padding: SPACING.lg },
-  eventsRow: { paddingHorizontal: SPACING.lg, gap: 10 },
-  eventCard: {
-    width: 170,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-    gap: 6,
-  },
-  eventTitle: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  eventWhen: { color: COLORS.textMuted, fontSize: 11 },
-});

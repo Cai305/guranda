@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -14,8 +15,50 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function MyCarWashBookingsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    card: {
+      backgroundColor: COLORS.glass,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    cardName: { ...TYPOGRAPHY.h3, flex: 1 },
+    statusBadge: {
+      borderWidth: 1,
+      paddingHorizontal: 8, paddingVertical: 3,
+      borderRadius: RADIUS.pill,
+    },
+    statusText: { fontSize: 11, fontWeight: '700' },
+    serviceName: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginBottom: 6 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+    metaText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
+    amount: { color: COLORS.primary, fontWeight: 'bold', fontSize: 14, marginTop: 4 },
+    emptyContainer: { alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
+    emptyText: { color: COLORS.textMuted, fontSize: 14 },
+  }));
 
   const load = useCallback(() => {
     setLoading(true);
@@ -80,43 +123,3 @@ export default function MyCarWashBookingsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  card: {
-    backgroundColor: COLORS.glass,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  cardName: { ...TYPOGRAPHY.h3, flex: 1 },
-  statusBadge: {
-    borderWidth: 1,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: RADIUS.pill,
-  },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  serviceName: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  metaText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
-  amount: { color: COLORS.primary, fontWeight: 'bold', fontSize: 14, marginTop: 4 },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
-  emptyText: { color: COLORS.textMuted, fontSize: 14 },
-});

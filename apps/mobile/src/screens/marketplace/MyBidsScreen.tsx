@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
 
@@ -13,6 +14,8 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function MyBidsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { user } = useAuth();
   const [listings, setListings] = useState<any[]>([]);
   const [invoiceByListing, setInvoiceByListing] = useState<Record<string, string>>({});
@@ -37,6 +40,31 @@ export default function MyBidsScreen({ navigation }: any) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#150A2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder, padding: 10,
+    },
+    thumb: { width: 52, height: 52, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
+    title: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
+    meta: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 3 },
+    invoiceLink: { color: '#A78BFA', fontSize: 11, fontWeight: '700', marginTop: 4 },
+    statusPill: { borderWidth: 1, borderRadius: RADIUS.pill, paddingHorizontal: 9, paddingVertical: 4 },
+    statusText: { fontSize: 9.5, fontWeight: '800' },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
+  }));
 
   const renderItem = ({ item }: { item: any }) => {
     const won = item.status === 'SOLD' && item.buyerId === user?.userId;
@@ -96,28 +124,3 @@ export default function MyBidsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#150A2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder, padding: 10,
-  },
-  thumb: { width: 52, height: 52, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
-  title: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
-  meta: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 3 },
-  invoiceLink: { color: '#A78BFA', fontSize: 11, fontWeight: '700', marginTop: 4 },
-  statusPill: { borderWidth: 1, borderRadius: RADIUS.pill, paddingHorizontal: 9, paddingVertical: 4 },
-  statusText: { fontSize: 9.5, fontWeight: '800' },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-});

@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { ACCENT } from './LearningHomeScreen';
 
 export default function TutorDetailScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { tutorId } = route.params;
   const [tutor, setTutor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +50,33 @@ export default function TutorDetailScreen({ route, navigation }: any) {
       setBooking(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border },
+    avatarPlaceholder: { width: 56, height: 56, borderRadius: 14, backgroundColor: `${ACCENT}15`, justifyContent: 'center', alignItems: 'center' },
+    tutorName: { color: COLORS.text, fontWeight: '800', fontSize: 17 },
+    tutorSubjects: { color: ACCENT, fontSize: 13, fontWeight: '600', marginTop: 2 },
+    bio: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+    feeRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: COLORS.border },
+    feeLabel: { color: COLORS.textMuted, fontSize: 13 },
+    feeValue: { color: ACCENT, fontWeight: '800', fontSize: 15 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
+    row: { flexDirection: 'row', gap: 12 },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    primaryBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 16, alignItems: 'center' },
+    primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    hint: { color: COLORS.textMuted, fontSize: 13, padding: SPACING.lg },
+    successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: SPACING.lg },
+    successTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800' },
+    successSub: { color: COLORS.textMuted, fontSize: 13, marginBottom: 12 },
+    linkText: { color: COLORS.textMuted, fontSize: 13, marginTop: 8 },
+  }));
 
   if (loading) {
     return (
@@ -139,30 +169,3 @@ export default function TutorDetailScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border },
-  avatarPlaceholder: { width: 56, height: 56, borderRadius: 14, backgroundColor: `${ACCENT}15`, justifyContent: 'center', alignItems: 'center' },
-  tutorName: { color: COLORS.text, fontWeight: '800', fontSize: 17 },
-  tutorSubjects: { color: ACCENT, fontSize: 13, fontWeight: '600', marginTop: 2 },
-  bio: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
-  feeRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: COLORS.border },
-  feeLabel: { color: COLORS.textMuted, fontSize: 13 },
-  feeValue: { color: ACCENT, fontWeight: '800', fontSize: 15 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
-  row: { flexDirection: 'row', gap: 12 },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  primaryBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 16, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  hint: { color: COLORS.textMuted, fontSize: 13, padding: SPACING.lg },
-  successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: SPACING.lg },
-  successTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800' },
-  successSub: { color: COLORS.textMuted, fontSize: 13, marginBottom: 12 },
-  linkText: { color: COLORS.textMuted, fontSize: 13, marginTop: 8 },
-});

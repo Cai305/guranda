@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { API_BASE_URL } from '../utils/api';
 
 export interface VideoMeta {
@@ -69,9 +70,32 @@ const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
 };
 
 export default function VideoCard({ video, onPress, onMenuPress, compact, menuIcon = 'ellipsis-vertical' }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const grad = CATEGORY_GRADIENTS[video.category] ?? ['#1e293b', '#0f172a'];
   const thumbUrl = video.thumbnailUrl ? (video.thumbnailUrl.startsWith('http') ? video.thumbnailUrl : `${API_BASE_URL}${video.thumbnailUrl}`) : null;
   const displayName = video.creator?.profile?.displayName || video.creator?.username || 'Unknown';
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    card: { marginBottom: 8 },
+    thumb: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
+    thumbIcon: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, justifyContent: 'center', alignItems: 'center' },
+    durationBadge: { position: 'absolute', bottom: 6, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
+    durationText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    infoRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7c3aed', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+    avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    textBlock: { flex: 1 },
+    title: { ...TYPOGRAPHY.body1, fontSize: 14, lineHeight: 19, marginBottom: 3 },
+    meta: { color: COLORS.textMuted, fontSize: 12 },
+    menuBtn: { padding: 2, marginTop: 2 },
+    // compact
+    compact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8, paddingHorizontal: 16 },
+    compactThumb: { width: 120, aspectRatio: 16 / 9, borderRadius: 6, overflow: 'hidden', flexShrink: 0, backgroundColor: '#0f172a' },
+    compactInfo: { flex: 1 },
+    compactTitle: { ...TYPOGRAPHY.body1, fontSize: 13, lineHeight: 18, marginBottom: 4 },
+    compactMeta: { color: COLORS.textMuted, fontSize: 11 },
+  }));
 
   if (compact) {
     return (
@@ -134,24 +158,3 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { marginBottom: 8 },
-  thumb: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
-  thumbIcon: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, justifyContent: 'center', alignItems: 'center' },
-  durationBadge: { position: 'absolute', bottom: 6, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
-  durationText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7c3aed', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  textBlock: { flex: 1 },
-  title: { ...TYPOGRAPHY.body1, fontSize: 14, lineHeight: 19, marginBottom: 3 },
-  meta: { color: COLORS.textMuted, fontSize: 12 },
-  menuBtn: { padding: 2, marginTop: 2 },
-  // compact
-  compact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8, paddingHorizontal: 16 },
-  compactThumb: { width: 120, aspectRatio: 16 / 9, borderRadius: 6, overflow: 'hidden', flexShrink: 0, backgroundColor: '#0f172a' },
-  compactInfo: { flex: 1 },
-  compactTitle: { ...TYPOGRAPHY.body1, fontSize: 13, lineHeight: 18, marginBottom: 4 },
-  compactMeta: { color: COLORS.textMuted, fontSize: 11 },
-});

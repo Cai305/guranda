@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useSocket } from '../../context/SocketContext';
 import { navigate } from '../../navigation/navigationRef';
 
@@ -20,6 +20,31 @@ interface IncomingCall {
 export default function IncomingCallOverlay() {
   const { socket } = useSocket();
   const [incoming, setIncoming] = useState<IncomingCall | null>(null);
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    overlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.75)',
+      justifyContent: 'center', alignItems: 'center',
+      zIndex: 1000,
+    },
+    card: {
+      width: '85%', maxWidth: 340,
+      backgroundColor: COLORS.surfaceElevated || COLORS.surface,
+      borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder || COLORS.border,
+      padding: SPACING.xl || 28,
+      alignItems: 'center',
+    },
+    avatar: { width: 84, height: 84, borderRadius: 42, backgroundColor: COLORS.surface },
+    name: { ...TYPOGRAPHY.h2, marginTop: 14 },
+    subtitle: { color: COLORS.textMuted, fontSize: 13, marginTop: 4, marginBottom: 24 },
+    actions: { flexDirection: 'row', gap: 40 },
+    actionBtn: {
+      width: 60, height: 60, borderRadius: 30,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    declineBtn: { backgroundColor: '#EF4444' },
+    acceptBtn: { backgroundColor: '#22C55E' },
+  }));
 
   useEffect(() => {
     if (!socket) return;
@@ -79,29 +104,3 @@ export default function IncomingCallOverlay() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center', alignItems: 'center',
-    zIndex: 1000,
-  },
-  card: {
-    width: '85%', maxWidth: 340,
-    backgroundColor: COLORS.surfaceElevated || COLORS.surface,
-    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder || COLORS.border,
-    padding: SPACING.xl || 28,
-    alignItems: 'center',
-  },
-  avatar: { width: 84, height: 84, borderRadius: 42, backgroundColor: COLORS.surface },
-  name: { ...TYPOGRAPHY.h2, marginTop: 14 },
-  subtitle: { color: COLORS.textMuted, fontSize: 13, marginTop: 4, marginBottom: 24 },
-  actions: { flexDirection: 'row', gap: 40 },
-  actionBtn: {
-    width: 60, height: 60, borderRadius: 30,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  declineBtn: { backgroundColor: '#EF4444' },
-  acceptBtn: { backgroundColor: '#22C55E' },
-});

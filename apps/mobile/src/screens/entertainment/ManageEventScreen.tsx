@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -111,6 +112,39 @@ export default function ManageEventScreen({ navigation, route }: any) {
       },
     ]);
   };
+
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, padding: SPACING.lg },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
+    iconBtn: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h3, flex: 1, fontWeight: '700' },
+    subMeta: { color: COLORS.textMuted, fontSize: 13 },
+    statsRow: { flexDirection: 'row', gap: 10 },
+    statCard: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14, alignItems: 'center' },
+    statValue: { color: COLORS.text, fontSize: 22, fontWeight: '800' },
+    statLabel: { color: COLORS.textMuted, fontSize: 10, marginTop: 2, textAlign: 'center' },
+    verifyBtn: { flexDirection: 'row', gap: 8, backgroundColor: '#10B981', borderRadius: 14, padding: 15, alignItems: 'center', justifyContent: 'center' },
+    verifyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    teamCard: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14, gap: 12 },
+    teamRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    teamName: { color: COLORS.text, fontSize: 13, fontWeight: '600', flex: 1 },
+    teamRoleTag: { color: COLORS.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+    removeBtn: { padding: 4 },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    addRow: { flexDirection: 'row', gap: 8 },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
+    addBtn: { width: 48, backgroundColor: '#10B981', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    codeCard: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14 },
+    codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    codeLabel: { color: COLORS.textMuted, fontSize: 11, marginBottom: 2 },
+    codeValue: { color: COLORS.text, fontSize: 16, fontWeight: '800', letterSpacing: 1 },
+    codeIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>;
   if (error || !event || !team || !stats) return <View style={styles.center}><Text style={{ color: COLORS.textMuted }}>{error || 'Event not found'}</Text></View>;
@@ -252,33 +286,3 @@ export default function ManageEventScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, padding: SPACING.lg },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
-  iconBtn: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h3, flex: 1, fontWeight: '700' },
-  subMeta: { color: COLORS.textMuted, fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 10 },
-  statCard: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14, alignItems: 'center' },
-  statValue: { color: COLORS.text, fontSize: 22, fontWeight: '800' },
-  statLabel: { color: COLORS.textMuted, fontSize: 10, marginTop: 2, textAlign: 'center' },
-  verifyBtn: { flexDirection: 'row', gap: 8, backgroundColor: '#10B981', borderRadius: 14, padding: 15, alignItems: 'center', justifyContent: 'center' },
-  verifyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  teamCard: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14, gap: 12 },
-  teamRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  teamName: { color: COLORS.text, fontSize: 13, fontWeight: '600', flex: 1 },
-  teamRoleTag: { color: COLORS.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  removeBtn: { padding: 4 },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  addRow: { flexDirection: 'row', gap: 8 },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
-  addBtn: { width: 48, backgroundColor: '#10B981', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  codeCard: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14 },
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  codeLabel: { color: COLORS.textMuted, fontSize: 11, marginBottom: 2 },
-  codeValue: { color: COLORS.text, fontSize: 16, fontWeight: '800', letterSpacing: 1 },
-  codeIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
-});

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Share, K
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL } from '../../../utils/api';
 
@@ -15,6 +16,8 @@ interface ChatEntry {
 }
 
 export default function CardRoomScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { user } = useAuth();
   const { roomId: initialRoomId, roomCode, mode: initialMode } = route.params ?? {};
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -85,6 +88,56 @@ export default function CardRoomScreen({ route, navigation }: any) {
       message: `Join my ${room.mode === 'CASSINO' ? 'Cassino' : '5 Cards'} game on Guranda! Room code: ${room.roomCode}\nguranda://cards/join/${room.roomCode}`,
     });
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    inviteFriendBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      marginHorizontal: SPACING.lg, marginBottom: SPACING.sm,
+      paddingVertical: 8, borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.primary,
+    },
+    inviteFriendText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
+    codeCard: {
+      marginHorizontal: SPACING.lg, marginBottom: SPACING.md,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, alignItems: 'center',
+    },
+    codeLabel: { ...TYPOGRAPHY.label },
+    codeValue: { color: COLORS.gold, fontWeight: '900', fontSize: 28, letterSpacing: 3 },
+    codeMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
+    sectionLabel: { ...TYPOGRAPHY.label, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
+    participantChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8,
+    },
+    participantName: { color: COLORS.text, fontWeight: '600', fontSize: 12 },
+    participantAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.surface },
+    startBtn: {
+      marginHorizontal: SPACING.lg, marginTop: SPACING.md,
+      backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center',
+    },
+    startBtnDisabled: { opacity: 0.4 },
+    startBtnText: { color: '#fff', fontWeight: '800' },
+    chatArea: { flex: 1, marginTop: SPACING.md, borderTopWidth: 1, borderTopColor: COLORS.glassBorder },
+    chatLine: { color: COLORS.text, fontSize: 13, marginBottom: 4 },
+    chatName: { fontWeight: '700', color: COLORS.primary },
+    reactionLine: { fontSize: 20, marginBottom: 4 },
+    reactionRow: { flexDirection: 'row', gap: SPACING.md, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.xs },
+    reactionEmoji: { fontSize: 22 },
+    chatInputRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md },
+    chatInput: {
+      flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingHorizontal: SPACING.md, color: COLORS.text,
+    },
+    sendBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -181,53 +234,3 @@ export default function CardRoomScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  inviteFriendBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.sm,
-    paddingVertical: 8, borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.primary,
-  },
-  inviteFriendText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
-  codeCard: {
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.md,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, alignItems: 'center',
-  },
-  codeLabel: { ...TYPOGRAPHY.label },
-  codeValue: { color: COLORS.gold, fontWeight: '900', fontSize: 28, letterSpacing: 3 },
-  codeMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
-  sectionLabel: { ...TYPOGRAPHY.label, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-  participantChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8,
-  },
-  participantName: { color: COLORS.text, fontWeight: '600', fontSize: 12 },
-  participantAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.surface },
-  startBtn: {
-    marginHorizontal: SPACING.lg, marginTop: SPACING.md,
-    backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center',
-  },
-  startBtnDisabled: { opacity: 0.4 },
-  startBtnText: { color: '#fff', fontWeight: '800' },
-  chatArea: { flex: 1, marginTop: SPACING.md, borderTopWidth: 1, borderTopColor: COLORS.glassBorder },
-  chatLine: { color: COLORS.text, fontSize: 13, marginBottom: 4 },
-  chatName: { fontWeight: '700', color: COLORS.primary },
-  reactionLine: { fontSize: 20, marginBottom: 4 },
-  reactionRow: { flexDirection: 'row', gap: SPACING.md, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.xs },
-  reactionEmoji: { fontSize: 22 },
-  chatInputRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md },
-  chatInput: {
-    flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingHorizontal: SPACING.md, color: COLORS.text,
-  },
-  sendBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-});

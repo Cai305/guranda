@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 
 const CATEGORY_APPS: Record<string, { id: string; name: string; icon: string; color: string; description: string; route?: string }[]> = {
@@ -40,8 +41,49 @@ const CATEGORY_APPS: Record<string, { id: string; name: string; icon: string; co
 };
 
 export default function CategoryScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { categoryName } = route.params;
   const apps = CATEGORY_APPS[categoryName] || [];
+
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    listContent: {
+      padding: 20,
+      gap: 12,
+    },
+    appCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    appIcon: {
+      width: 50,
+      height: 50,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    appInfo: {
+      flex: 1,
+      marginLeft: 14,
+    },
+  }));
 
   const handleAppPress = (app: any) => {
     if (app.route) {
@@ -94,42 +136,3 @@ export default function CategoryScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  listContent: {
-    padding: 20,
-    gap: 12,
-  },
-  appCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  appIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  appInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-});

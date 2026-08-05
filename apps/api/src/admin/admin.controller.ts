@@ -107,4 +107,19 @@ export class AdminController {
   getAiUsage() {
     return this.adminService.getAiUsage();
   }
+
+  @Get('revenue')
+  getRevenue() {
+    return this.adminService.getRevenue();
+  }
+
+  @Get('discovery')
+  getDiscovery() {
+    return this.adminService.getDiscovery();
+  }
+
+  @Get('health')
+  getHealth() {
+    return this.adminService.getHealth();
+  }
 }

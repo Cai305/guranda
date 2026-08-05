@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../utils/api';
 
@@ -15,12 +16,59 @@ interface FoundUser {
 // and every selected user as a member, distinct from AddContactScreen's
 // 1:1 direct chats.
 export default function CreateGroupScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [groupName, setGroupName] = useState('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoundUser[]>([]);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<Map<string, FoundUser>>(new Map());
   const [creating, setCreating] = useState(false);
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    },
+    backButton: { padding: 4 },
+    nameSection: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: COLORS.surface, margin: 15, marginBottom: 10,
+      paddingHorizontal: 15, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border,
+    },
+    nameInput: { flex: 1, color: COLORS.text, paddingVertical: 14, fontSize: 16 },
+    chipRow: { maxHeight: 44, marginBottom: 6 },
+    chip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+    },
+    chipText: { color: '#FFF', fontWeight: '600', fontSize: 13 },
+    searchContainer: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: COLORS.surface, marginHorizontal: 15, marginBottom: 10,
+      paddingHorizontal: 15, borderRadius: 999, borderWidth: 1, borderColor: COLORS.border,
+    },
+    searchIcon: { marginRight: 10 },
+    searchInput: { flex: 1, color: COLORS.text, paddingVertical: 12, fontSize: 16 },
+    spinner: { marginLeft: 10 },
+    list: { paddingHorizontal: 15, flexGrow: 1 },
+    userItem: {
+      flexDirection: 'row', alignItems: 'center', padding: 15,
+      backgroundColor: COLORS.surface, borderRadius: 16, marginBottom: 10,
+      borderWidth: 1, borderColor: COLORS.border,
+    },
+    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.background, marginRight: 15 },
+    userInfo: { flex: 1 },
+    displayName: { ...TYPOGRAPHY.body1, fontWeight: 'bold' },
+    username: { ...TYPOGRAPHY.body2, color: COLORS.textMuted },
+    emptyText: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, textAlign: 'center', marginTop: 20 },
+    createBtn: {
+      flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: COLORS.primary, margin: 15, padding: 16, borderRadius: 16,
+    },
+    createBtnDisabled: { opacity: 0.4 },
+    createBtnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
+  }));
 
   const searchUsers = async (text: string) => {
     setQuery(text);
@@ -161,48 +209,3 @@ export default function CreateGroupScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  backButton: { padding: 4 },
-  nameSection: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surface, margin: 15, marginBottom: 10,
-    paddingHorizontal: 15, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border,
-  },
-  nameInput: { flex: 1, color: COLORS.text, paddingVertical: 14, fontSize: 16 },
-  chipRow: { maxHeight: 44, marginBottom: 6 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-  },
-  chipText: { color: '#FFF', fontWeight: '600', fontSize: 13 },
-  searchContainer: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surface, marginHorizontal: 15, marginBottom: 10,
-    paddingHorizontal: 15, borderRadius: 999, borderWidth: 1, borderColor: COLORS.border,
-  },
-  searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, color: COLORS.text, paddingVertical: 12, fontSize: 16 },
-  spinner: { marginLeft: 10 },
-  list: { paddingHorizontal: 15, flexGrow: 1 },
-  userItem: {
-    flexDirection: 'row', alignItems: 'center', padding: 15,
-    backgroundColor: COLORS.surface, borderRadius: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.background, marginRight: 15 },
-  userInfo: { flex: 1 },
-  displayName: { ...TYPOGRAPHY.body1, fontWeight: 'bold' },
-  username: { ...TYPOGRAPHY.body2, color: COLORS.textMuted },
-  emptyText: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, textAlign: 'center', marginTop: 20 },
-  createBtn: {
-    flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.primary, margin: 15, padding: 16, borderRadius: 16,
-  },
-  createBtnDisabled: { opacity: 0.4 },
-  createBtnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
-});

@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const ALL_INTERESTS = [
@@ -25,10 +26,52 @@ const ALL_INTERESTS = [
 ] as const;
 
 export default function InterestPickerScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { onSave } = route.params ?? {};
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
+    back: { padding: 4 },
+    headerCenter: { flex: 1 },
+    title: { ...TYPOGRAPHY.h2, fontSize: 18 },
+    subtitle: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
+    saveBtnDisabled: { opacity: 0.5 },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', padding: SPACING.lg, gap: 12 },
+    tile: {
+      width: '30%',
+      aspectRatio: 1,
+      borderRadius: 16,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1.5,
+      borderColor: COLORS.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      position: 'relative',
+    },
+    tileActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    tileText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', textAlign: 'center' },
+    tileTextActive: { color: '#fff' },
+    checkBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: 'rgba(255,255,255,0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    footer: { paddingHorizontal: SPACING.lg, paddingVertical: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border },
+    footerHint: { color: COLORS.textMuted, fontSize: 12 },
+  }));
 
   useFocusEffect(useCallback(() => {
     fetchApi('/videos/interests')
@@ -99,44 +142,3 @@ export default function InterestPickerScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
-  back: { padding: 4 },
-  headerCenter: { flex: 1 },
-  title: { ...TYPOGRAPHY.h2, fontSize: 18 },
-  subtitle: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
-  saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', padding: SPACING.lg, gap: 12 },
-  tile: {
-    width: '30%',
-    aspectRatio: 1,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    position: 'relative',
-  },
-  tileActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tileText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', textAlign: 'center' },
-  tileTextActive: { color: '#fff' },
-  checkBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footer: { paddingHorizontal: SPACING.lg, paddingVertical: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border },
-  footerHint: { color: COLORS.textMuted, fontSize: 12 },
-});

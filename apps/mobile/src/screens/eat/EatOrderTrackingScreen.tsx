@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { rideSocket } from '../../services/RideSocketService';
 import { fetchApi } from '../../utils/api';
 
@@ -36,11 +37,94 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function EatOrderTrackingScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [liveDriverCoord, setLiveDriverCoord] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: 10,
+    },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: { flex: 1, color: '#fff', fontWeight: '700', fontSize: 16, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+    mapFallback: { ...StyleSheet.absoluteFill, backgroundColor: '#1a2332' },
+    mapGrid: {
+      ...StyleSheet.absoluteFill,
+      opacity: 0.15,
+      backgroundImage: Platform.OS === 'web' ? 'linear-gradient(rgba(139,92,246,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.2) 1px, transparent 1px)' : undefined,
+      backgroundSize: Platform.OS === 'web' ? '50px 50px' : undefined,
+    } as any,
+    mapOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(7,7,12,0.5)' },
+    carMarker: { alignItems: 'center', justifyContent: 'center' },
+    card: {
+      position: 'absolute',
+      bottom: 0, left: 0, right: 0,
+      backgroundColor: COLORS.surfaceElevated,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: SPACING.lg,
+      paddingBottom: 36,
+      gap: 14,
+    },
+    progressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+    progressStep: { flexDirection: 'row', alignItems: 'center' },
+    progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.border },
+    progressLine: { width: 30, height: 2, backgroundColor: COLORS.border, marginHorizontal: 2 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444' },
+    statusLabel: { ...TYPOGRAPHY.h3, color: COLORS.text },
+    driverCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    driverAvatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: '#ef444420',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    driverName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    driverSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#ef444420', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' },
+    liveText: { color: '#ef4444', fontSize: 11, fontWeight: '800' },
+    waitingCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: COLORS.surface,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    waitingText: { color: COLORS.textMuted, fontSize: 13, flex: 1 },
+    orderSummary: { gap: 6, paddingTop: 4, borderTopWidth: 1, borderTopColor: COLORS.border },
+    summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    summaryText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
+  }));
 
   useEffect(() => {
     Animated.loop(
@@ -215,88 +299,6 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 10,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: { flex: 1, color: '#fff', fontWeight: '700', fontSize: 16, textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-  mapFallback: { ...StyleSheet.absoluteFill, backgroundColor: '#1a2332' },
-  mapGrid: {
-    ...StyleSheet.absoluteFill,
-    opacity: 0.15,
-    backgroundImage: Platform.OS === 'web' ? 'linear-gradient(rgba(139,92,246,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.2) 1px, transparent 1px)' : undefined,
-    backgroundSize: Platform.OS === 'web' ? '50px 50px' : undefined,
-  } as any,
-  mapOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(7,7,12,0.5)' },
-  carMarker: { alignItems: 'center', justifyContent: 'center' },
-  card: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    backgroundColor: COLORS.surfaceElevated,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: SPACING.lg,
-    paddingBottom: 36,
-    gap: 14,
-  },
-  progressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  progressStep: { flexDirection: 'row', alignItems: 'center' },
-  progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.border },
-  progressLine: { width: 30, height: 2, backgroundColor: COLORS.border, marginHorizontal: 2 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444' },
-  statusLabel: { ...TYPOGRAPHY.h3, color: COLORS.text },
-  driverCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  driverAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#ef444420',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  driverName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  driverSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#ef444420', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' },
-  liveText: { color: '#ef4444', fontSize: 11, fontWeight: '800' },
-  waitingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  waitingText: { color: COLORS.textMuted, fontSize: 13, flex: 1 },
-  orderSummary: { gap: 6, paddingTop: 4, borderTopWidth: 1, borderTopColor: COLORS.border },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  summaryText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
-});
 
 const mapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },

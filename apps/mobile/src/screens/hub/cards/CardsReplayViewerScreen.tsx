@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PlayingCard from '../../../components/cards/PlayingCard';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 export default function CardsReplayViewerScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { gameId } = route.params;
   const [moves, setMoves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +27,26 @@ export default function CardsReplayViewerScreen({ route, navigation }: any) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [gameId]);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    moveDesc: { color: COLORS.textMuted, textAlign: 'center', fontSize: 12, marginBottom: SPACING.sm },
+    board: { paddingHorizontal: SPACING.lg, gap: SPACING.sm },
+    sectionLabel: { ...TYPOGRAPHY.label },
+    row: { flexDirection: 'row', gap: SPACING.xs, flexWrap: 'wrap' },
+    emptyText: { color: COLORS.textMuted, fontSize: 12 },
+    buildChip: { backgroundColor: COLORS.glass, borderRadius: RADIUS.sm, padding: SPACING.sm },
+    buildValue: { color: COLORS.gold, fontWeight: '800' },
+    seatBlock: { marginTop: SPACING.sm, gap: 4 },
+    seatName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    controls: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.xl, paddingVertical: SPACING.md },
+    controlBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.glass, alignItems: 'center', justifyContent: 'center' },
+  }));
 
   if (loading) {
     return (
@@ -124,23 +147,3 @@ export default function CardsReplayViewerScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  moveDesc: { color: COLORS.textMuted, textAlign: 'center', fontSize: 12, marginBottom: SPACING.sm },
-  board: { paddingHorizontal: SPACING.lg, gap: SPACING.sm },
-  sectionLabel: { ...TYPOGRAPHY.label },
-  row: { flexDirection: 'row', gap: SPACING.xs, flexWrap: 'wrap' },
-  emptyText: { color: COLORS.textMuted, fontSize: 12 },
-  buildChip: { backgroundColor: COLORS.glass, borderRadius: RADIUS.sm, padding: SPACING.sm },
-  buildValue: { color: COLORS.gold, fontWeight: '800' },
-  seatBlock: { marginTop: SPACING.sm, gap: 4 },
-  seatName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  controls: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.xl, paddingVertical: SPACING.md },
-  controlBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.glass, alignItems: 'center', justifyContent: 'center' },
-});

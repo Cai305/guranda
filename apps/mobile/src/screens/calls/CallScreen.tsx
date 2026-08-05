@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useSocket } from '../../context/SocketContext';
 import LiveVideoView from '../../components/LiveVideoView';
 import CustomEmoji from '../../components/live/CustomEmoji';
@@ -23,6 +23,9 @@ interface FloatingReaction {
 function FloatingVemoji({ type, left }: { type: VemojiType; left: number }) {
   const translateY = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
+  const styles = useThemedStyles(() => ({
+    floatingVemoji: { position: 'absolute', bottom: 0 },
+  }));
 
   useEffect(() => {
     Animated.parallel([
@@ -241,45 +244,3 @@ export default function CallScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0B0B14' },
-  avatarWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
-  avatar: { width: 120, height: 120, borderRadius: 60, backgroundColor: COLORS.surface },
-  peerName: { color: COLORS.text, fontSize: 24, fontWeight: '800', marginTop: 10 },
-  statusText: { color: COLORS.textMuted, fontSize: 15 },
-  topOverlay: { position: 'absolute', top: 50, left: 0, right: 0, alignItems: 'center' },
-  peerNameOverlay: { color: '#FFF', fontSize: 20, fontWeight: '800', textShadowColor: '#000', textShadowRadius: 6 },
-  statusTextOverlay: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 4 },
-  pip: {
-    position: 'absolute', top: 50, right: SPACING.lg,
-    width: 100, height: 150, borderRadius: RADIUS.lg, overflow: 'hidden',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
-  },
-  controls: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 24,
-    paddingBottom: 50, paddingTop: 20,
-  },
-  controlBtn: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  controlBtnOff: { backgroundColor: 'rgba(255,255,255,0.35)' },
-  floatingReactionLayer: {
-    position: 'absolute', left: 0, right: 0, bottom: 150, height: 200,
-  },
-  floatingVemoji: { position: 'absolute', bottom: 0 },
-  reactionTray: {
-    position: 'absolute', bottom: 130, alignSelf: 'center',
-    flexDirection: 'row', gap: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: RADIUS.lg, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  reactionTrayItem: { padding: 4 },
-  hangupBtn: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#EF4444',
-    justifyContent: 'center', alignItems: 'center',
-  },
-});

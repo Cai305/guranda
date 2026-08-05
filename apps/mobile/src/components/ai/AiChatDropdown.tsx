@@ -1,9 +1,10 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ActivityIndicator,
+  View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, SHADOW } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { navigate } from '../../navigation/navigationRef';
 import AiWidgetRenderer, { ToolWidget } from '../ai-widgets/AiWidgetRenderer';
@@ -56,6 +57,114 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
   const conversation = useRef<any[]>([]);
   const listRef = useRef<FlatList>(null);
   const initialized = useRef(false);
+
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOW }) => ({
+    panel: {
+      width: '100%',
+      maxHeight: 460,
+      backgroundColor: COLORS.surfaceElevated,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      overflow: 'hidden',
+      ...SHADOW.glow,
+    },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
+      borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
+    },
+    // flex:1 + minHeight:0 lets this shrink to whatever space the panel's
+    // other (fixed-height) children leave within the 460px cap, then scroll
+    // internally for anything beyond that — without minHeight:0, a flex child
+    // refuses to shrink below its content's natural size and the panel's
+    // overflow:hidden just clips it instead of letting it scroll.
+    list: { flex: 1, minHeight: 0 },
+    headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    avatarOrb: {
+      width: 26, height: 26, borderRadius: 13,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerName: { color: COLORS.text, fontWeight: '800', fontSize: 13 },
+    headerStatus: { color: COLORS.success, fontSize: 10 },
+    iconBtn: {
+      width: 30, height: 30, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    bubble: { maxWidth: '85%', borderRadius: RADIUS.md, padding: 10 },
+    bubbleUser: { alignSelf: 'flex-end', backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
+    bubbleText: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
+    aiWidgetCard: {
+      alignSelf: 'stretch',
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      borderLeftWidth: 2,
+      borderLeftColor: COLORS.primary,
+      padding: 10,
+    },
+    aiReplyText: { color: COLORS.text, fontSize: 13, lineHeight: 17, fontWeight: '500' },
+    aiWidgetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 6,
+    },
+    aiWidgetHeaderIcon: {
+      width: 18, height: 18, borderRadius: 9,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    aiWidgetLabel: {
+      color: COLORS.textMuted,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    systemText: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginVertical: 2 },
+    thinkingRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: SPACING.md, paddingBottom: 6 },
+    thinkingText: { color: COLORS.textMuted, fontSize: 11 },
+    approvalCard: {
+      marginHorizontal: SPACING.md, marginBottom: 8,
+      backgroundColor: 'rgba(245,158,11,0.1)',
+      borderWidth: 1, borderColor: 'rgba(245,158,11,0.5)',
+      borderRadius: RADIUS.md, padding: 10,
+    },
+    approvalHeader: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+    approvalTitle: { color: '#F59E0B', fontWeight: '800', fontSize: 12 },
+    approvalSummary: { color: COLORS.text, fontSize: 12.5, marginTop: 6, lineHeight: 17 },
+    approvalButtons: { flexDirection: 'row', gap: 8, marginTop: 10 },
+    approvalBtn: { flex: 1, paddingVertical: 9, borderRadius: RADIUS.pill, alignItems: 'center' },
+    declineBtn: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder },
+    declineText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
+    approveBtn: { backgroundColor: COLORS.success },
+    approveText: { color: '#04291B', fontWeight: '800', fontSize: 12.5 },
+    inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', padding: SPACING.md, paddingTop: 6 },
+    input: {
+      flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.glassBorder, color: COLORS.text,
+      paddingHorizontal: 12, paddingVertical: 8, maxHeight: 90, fontSize: 13,
+    },
+    sendBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
+    },
+    setupCard: { padding: SPACING.lg, alignItems: 'center', gap: 8 },
+    setupTitle: { ...TYPOGRAPHY.h4, textAlign: 'center' },
+    setupBody: { ...TYPOGRAPHY.body2, textAlign: 'center', fontSize: 12.5 },
+    setupBtn: {
+      marginTop: 6, backgroundColor: COLORS.primary,
+      paddingHorizontal: 20, paddingVertical: 10, borderRadius: RADIUS.pill,
+    },
+    setupBtnText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
+  }));
 
   const addBubble = (role: Bubble['role'], text: string, widgets?: ToolWidget[]) => {
     if (!text) return;
@@ -277,108 +386,3 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
 });
 
 export default AiChatDropdown;
-
-const styles = StyleSheet.create({
-  panel: {
-    width: '100%',
-    maxHeight: 460,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    overflow: 'hidden',
-    ...SHADOW.glow,
-  },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-    borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
-  },
-  // flex:1 + minHeight:0 lets this shrink to whatever space the panel's
-  // other (fixed-height) children leave within the 460px cap, then scroll
-  // internally for anything beyond that — without minHeight:0, a flex child
-  // refuses to shrink below its content's natural size and the panel's
-  // overflow:hidden just clips it instead of letting it scroll.
-  list: { flex: 1, minHeight: 0 },
-  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatarOrb: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerName: { color: COLORS.text, fontWeight: '800', fontSize: 13 },
-  headerStatus: { color: COLORS.success, fontSize: 10 },
-  iconBtn: {
-    width: 30, height: 30, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  bubble: { maxWidth: '85%', borderRadius: RADIUS.md, padding: 10 },
-  bubbleUser: { alignSelf: 'flex-end', backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
-  bubbleText: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
-  aiWidgetCard: {
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    borderLeftWidth: 2,
-    borderLeftColor: COLORS.primary,
-    padding: 10,
-  },
-  aiReplyText: { color: COLORS.text, fontSize: 13, lineHeight: 17, fontWeight: '500' },
-  aiWidgetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  aiWidgetHeaderIcon: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  aiWidgetLabel: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  systemText: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginVertical: 2 },
-  thinkingRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: SPACING.md, paddingBottom: 6 },
-  thinkingText: { color: COLORS.textMuted, fontSize: 11 },
-  approvalCard: {
-    marginHorizontal: SPACING.md, marginBottom: 8,
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.5)',
-    borderRadius: RADIUS.md, padding: 10,
-  },
-  approvalHeader: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  approvalTitle: { color: '#F59E0B', fontWeight: '800', fontSize: 12 },
-  approvalSummary: { color: COLORS.text, fontSize: 12.5, marginTop: 6, lineHeight: 17 },
-  approvalButtons: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  approvalBtn: { flex: 1, paddingVertical: 9, borderRadius: RADIUS.pill, alignItems: 'center' },
-  declineBtn: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder },
-  declineText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
-  approveBtn: { backgroundColor: COLORS.success },
-  approveText: { color: '#04291B', fontWeight: '800', fontSize: 12.5 },
-  inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', padding: SPACING.md, paddingTop: 6 },
-  input: {
-    flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.glassBorder, color: COLORS.text,
-    paddingHorizontal: 12, paddingVertical: 8, maxHeight: 90, fontSize: 13,
-  },
-  sendBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
-  },
-  setupCard: { padding: SPACING.lg, alignItems: 'center', gap: 8 },
-  setupTitle: { ...TYPOGRAPHY.h4, textAlign: 'center' },
-  setupBody: { ...TYPOGRAPHY.body2, textAlign: 'center', fontSize: 12.5 },
-  setupBtn: {
-    marginTop: 6, backgroundColor: COLORS.primary,
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: RADIUS.pill,
-  },
-  setupBtnText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
-});

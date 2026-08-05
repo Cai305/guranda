@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { View, Text, Image, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useAuth, UserStatus } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../utils/api';
 
 export default function TopBar({ navigation }: { navigation?: any }) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { user, status, updateStatus } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'bio'>('status');
@@ -54,6 +57,62 @@ export default function TopBar({ navigation }: { navigation?: any }) {
   };
 
   const displayStatus = statusMessage || 'Living the Guranda ✨';
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 15,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    avatarContainer: { position: 'relative', marginRight: 15 },
+    avatar: {
+      width: 45, height: 45, borderRadius: 22.5,
+      backgroundColor: COLORS.surface, borderWidth: 2, borderColor: COLORS.secondary,
+    },
+    statusDot: {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 12, height: 12, borderRadius: 6,
+      borderWidth: 2, borderColor: '#1A1A2E',
+    },
+    infoContainer: { flex: 1, justifyContent: 'center' },
+    name: { ...TYPOGRAPHY.h2, fontSize: 18, marginBottom: 2 },
+    statusMessage: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, fontStyle: 'italic' },
+    storyBtn: { padding: 4 },
+    modalOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, paddingBottom: 36,
+      borderWidth: 1, borderColor: COLORS.border,
+    },
+    tabs: { flexDirection: 'row', marginBottom: 20, backgroundColor: COLORS.background, borderRadius: 10, padding: 4 },
+    tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+    tabActive: { backgroundColor: COLORS.surface },
+    tabText: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, fontWeight: '600' },
+    tabTextActive: { color: COLORS.text },
+    statusOption: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    },
+    modalStatusDot: { width: 12, height: 12, borderRadius: 6, marginRight: 15 },
+    statusOptionText: { ...TYPOGRAPHY.body1, flex: 1 },
+    bioInput: {
+      backgroundColor: COLORS.background, color: COLORS.text,
+      borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+      padding: 14, fontSize: 15, marginBottom: 6,
+    },
+    saveBtn: {
+      backgroundColor: COLORS.primary, borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center',
+    },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  }));
 
   return (
     <>
@@ -167,59 +226,3 @@ export default function TopBar({ navigation }: { navigation?: any }) {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  avatarContainer: { position: 'relative', marginRight: 15 },
-  avatar: {
-    width: 45, height: 45, borderRadius: 22.5,
-    backgroundColor: COLORS.surface, borderWidth: 2, borderColor: COLORS.secondary,
-  },
-  statusDot: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 12, height: 12, borderRadius: 6,
-    borderWidth: 2, borderColor: '#1A1A2E',
-  },
-  infoContainer: { flex: 1, justifyContent: 'center' },
-  name: { ...TYPOGRAPHY.h2, fontSize: 18, marginBottom: 2 },
-  statusMessage: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, fontStyle: 'italic' },
-  storyBtn: { padding: 4 },
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 36,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  tabs: { flexDirection: 'row', marginBottom: 20, backgroundColor: COLORS.background, borderRadius: 10, padding: 4 },
-  tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  tabActive: { backgroundColor: COLORS.surface },
-  tabText: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, fontWeight: '600' },
-  tabTextActive: { color: COLORS.text },
-  statusOption: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  modalStatusDot: { width: 12, height: 12, borderRadius: 6, marginRight: 15 },
-  statusOptionText: { ...TYPOGRAPHY.body1, flex: 1 },
-  bioInput: {
-    backgroundColor: COLORS.background, color: COLORS.text,
-    borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
-    padding: 14, fontSize: 15, marginBottom: 6,
-  },
-  saveBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-  },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});

@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 const CATEGORY_ICON: Record<string, string> = {
   DANCE: 'body',
@@ -64,7 +65,41 @@ export interface ChallengeSummary {
 }
 
 export default function ChallengeCard({ challenge, onPress }: { challenge: ChallengeSummary; onPress: () => void }) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const grad = CATEGORY_GRADIENT[challenge.category] ?? ['#1E293B', '#0F172A'];
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    card: {
+      width: '48%',
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      overflow: 'hidden',
+      marginBottom: SPACING.md,
+    },
+    cover: { width: '100%', aspectRatio: 1.3, backgroundColor: '#0F172A' },
+    coverIcon: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    typeBadge: {
+      position: 'absolute', top: 6, left: 6,
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 8, paddingVertical: 3,
+    },
+    typeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    timeBadge: {
+      position: 'absolute', bottom: 6, right: 6,
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 7, paddingVertical: 3,
+    },
+    timeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '600' },
+    body: { padding: SPACING.sm },
+    title: { ...TYPOGRAPHY.body1, fontSize: 13, fontWeight: '700', lineHeight: 17, marginBottom: 6 },
+    metaRow: { flexDirection: 'row', gap: 12 },
+    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    metaText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
+    sponsorText: { color: COLORS.textMuted, fontSize: 10, marginTop: 4, fontStyle: 'italic' },
+  }));
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.88} onPress={onPress}>
       <View style={styles.cover}>
@@ -104,36 +139,3 @@ export default function ChallengeCard({ challenge, onPress }: { challenge: Chall
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: '48%',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
-  },
-  cover: { width: '100%', aspectRatio: 1.3, backgroundColor: '#0F172A' },
-  coverIcon: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  typeBadge: {
-    position: 'absolute', top: 6, left: 6,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 8, paddingVertical: 3,
-  },
-  typeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  timeBadge: {
-    position: 'absolute', bottom: 6, right: 6,
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 7, paddingVertical: 3,
-  },
-  timeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '600' },
-  body: { padding: SPACING.sm },
-  title: { ...TYPOGRAPHY.body1, fontSize: 13, fontWeight: '700', lineHeight: 17, marginBottom: 6 },
-  metaRow: { flexDirection: 'row', gap: 12 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
-  sponsorText: { color: COLORS.textMuted, fontSize: 10, marginTop: 4, fontStyle: 'italic' },
-});

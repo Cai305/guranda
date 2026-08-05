@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import { COLORS, GRADIENTS, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 
@@ -24,6 +25,8 @@ interface Props {
 // AiFloatingOrb's existing hold-to-talk (one utterance, text reply in the
 // dropdown) — this is the persistent "hands-free mode" from AI settings.
 export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTextChat }: Props) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const [phase, setPhase] = useState<Phase>('idle');
   const [lastUserText, setLastUserText] = useState('');
   const [lastReply, setLastReply] = useState('');
@@ -151,6 +154,34 @@ export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTe
     speaking: lastReply,
   }[phase];
 
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    headerTitle: { color: COLORS.text, fontWeight: '800', fontSize: 14 },
+    iconBtn: {
+      width: 36, height: 36, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: SPACING.xl, gap: SPACING.lg },
+    orb: {
+      width: 120, height: 120, borderRadius: 60,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    phaseText: { color: COLORS.text, fontSize: 16, fontWeight: '600', textAlign: 'center', lineHeight: 22 },
+    youSaid: { color: COLORS.textMuted, fontSize: 12.5, textAlign: 'center' },
+    errorText: { color: COLORS.error, fontSize: 12, textAlign: 'center' },
+    endBtn: {
+      margin: SPACING.lg, marginBottom: SPACING.xl,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center',
+    },
+    endBtnText: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+  }));
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={endSession}>
       <SafeAreaView style={styles.root}>
@@ -197,31 +228,3 @@ export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTe
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  headerTitle: { color: COLORS.text, fontWeight: '800', fontSize: 14 },
-  iconBtn: {
-    width: 36, height: 36, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: SPACING.xl, gap: SPACING.lg },
-  orb: {
-    width: 120, height: 120, borderRadius: 60,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  phaseText: { color: COLORS.text, fontSize: 16, fontWeight: '600', textAlign: 'center', lineHeight: 22 },
-  youSaid: { color: COLORS.textMuted, fontSize: 12.5, textAlign: 'center' },
-  errorText: { color: COLORS.error, fontSize: 12, textAlign: 'center' },
-  endBtn: {
-    margin: SPACING.lg, marginBottom: SPACING.xl,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center',
-  },
-  endBtnText: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-});

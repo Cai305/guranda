@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const GENDERS = [
   { key: 'female', label: 'Female', icon: 'female' },
@@ -26,12 +27,79 @@ const PERSONALITIES = [
 ];
 
 export default function AiSetupScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [name, setName] = useState('');
   const [gender, setGender] = useState('neutral');
   const [voice, setVoice] = useState('warm');
   const [personality, setPersonality] = useState('companion');
 
   const canContinue = name.trim().length >= 2;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    hero: {
+      margin: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      padding: 24,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    orb: {
+      width: 68, height: 68, borderRadius: 34,
+      backgroundColor: 'rgba(139,92,246,0.4)',
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
+    },
+    heroTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 12 },
+    heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 8, lineHeight: 19 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: SPACING.md,
+    },
+    nameInput: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text,
+      padding: 14, fontSize: 16,
+    },
+    chipRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    chip: {
+      flex: 1, flexDirection: 'row', gap: 6,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 10,
+    },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
+    cardGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+      paddingHorizontal: SPACING.lg,
+    },
+    card: {
+      width: '48%',
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+    },
+    cardActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(139,92,246,0.15)' },
+    cardLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
+    cardBlurb: { color: COLORS.textMuted, fontSize: 11, marginTop: 4 },
+    continueBtn: {
+      flexDirection: 'row', gap: 8,
+      margin: SPACING.lg, marginTop: SPACING.xl,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 15,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    continueText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -115,68 +183,3 @@ export default function AiSetupScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  hero: {
-    margin: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  orb: {
-    width: 68, height: 68, borderRadius: 34,
-    backgroundColor: 'rgba(139,92,246,0.4)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
-  },
-  heroTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 12 },
-  heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 8, lineHeight: 19 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: SPACING.md,
-  },
-  nameInput: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text,
-    padding: 14, fontSize: 16,
-  },
-  chipRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  chip: {
-    flex: 1, flexDirection: 'row', gap: 6,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 10,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
-  cardGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    paddingHorizontal: SPACING.lg,
-  },
-  card: {
-    width: '48%',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-  },
-  cardActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(139,92,246,0.15)' },
-  cardLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
-  cardBlurb: { color: COLORS.textMuted, fontSize: 11, marginTop: 4 },
-  continueBtn: {
-    flexDirection: 'row', gap: 8,
-    margin: SPACING.lg, marginTop: SPACING.xl,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 15,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  continueText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-});

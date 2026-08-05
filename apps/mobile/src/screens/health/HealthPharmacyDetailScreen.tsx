@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const { pharmacyId } = route.params;
   const [pharmacy, setPharmacy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +61,45 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
       setPlacing(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    cover: { height: 140, justifyContent: 'center', alignItems: 'center' },
+    backBtn: { position: 'absolute', top: 16, left: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 8, zIndex: 2 },
+    body: { padding: SPACING.lg },
+    name: { ...TYPOGRAPHY.h2, marginBottom: 4 },
+    address: { color: COLORS.textMuted, fontSize: 12, marginBottom: 8 },
+    desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    hint: { color: COLORS.textMuted, fontSize: 13 },
+    productRow: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
+      padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 12,
+    },
+    productName: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
+    rxNote: { color: '#f59e0b', fontSize: 10, fontWeight: '700', marginBottom: 2 },
+    productPrice: { color: '#F87171', fontWeight: '700', fontSize: 14 },
+    addBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F87171', justifyContent: 'center', alignItems: 'center' },
+    qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    qtyBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
+    qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 15, minWidth: 20, textAlign: 'center' },
+    checkoutBar: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, gap: 10,
+      backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
+    },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    checkoutBtn: { backgroundColor: '#F87171', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+    checkoutBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg, gap: 12 },
+    successIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+    successTitle: { ...TYPOGRAPHY.h2 },
+    successSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 16, textAlign: 'center' },
+    successBtn: { backgroundColor: '#F87171', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 },
+    successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    successLink: { color: COLORS.textMuted, fontSize: 13, marginTop: 12 },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>;
   if (!pharmacy) return <View style={styles.center}><Text style={{ color: COLORS.textMuted }}>Pharmacy not found</Text></View>;
@@ -142,42 +184,3 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  cover: { height: 140, justifyContent: 'center', alignItems: 'center' },
-  backBtn: { position: 'absolute', top: 16, left: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 8, zIndex: 2 },
-  body: { padding: SPACING.lg },
-  name: { ...TYPOGRAPHY.h2, marginBottom: 4 },
-  address: { color: COLORS.textMuted, fontSize: 12, marginBottom: 8 },
-  desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  hint: { color: COLORS.textMuted, fontSize: 13 },
-  productRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
-    padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 12,
-  },
-  productName: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
-  rxNote: { color: '#f59e0b', fontSize: 10, fontWeight: '700', marginBottom: 2 },
-  productPrice: { color: '#F87171', fontWeight: '700', fontSize: 14 },
-  addBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F87171', justifyContent: 'center', alignItems: 'center' },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  qtyBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
-  qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 15, minWidth: 20, textAlign: 'center' },
-  checkoutBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, gap: 10,
-    backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
-  },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  checkoutBtn: { backgroundColor: '#F87171', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
-  checkoutBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg, gap: 12 },
-  successIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  successTitle: { ...TYPOGRAPHY.h2 },
-  successSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 16, textAlign: 'center' },
-  successBtn: { backgroundColor: '#F87171', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 },
-  successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successLink: { color: COLORS.textMuted, fontSize: 13, marginTop: 12 },
-});

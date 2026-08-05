@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function CarWashDetailScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { carWashId } = route.params;
   const [carWash, setCarWash] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,47 @@ export default function CarWashDetailScreen({ route, navigation }: any) {
       setBookingId(null);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    desc: { color: COLORS.text, fontSize: 14, marginBottom: 16 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
+    infoText: { color: COLORS.textMuted, fontSize: 14 },
+    sectionTitle: { ...TYPOGRAPHY.h3, marginBottom: 12 },
+    serviceCard: {
+      flexDirection: 'row',
+      backgroundColor: COLORS.glass,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      marginBottom: SPACING.sm,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      alignItems: 'center',
+    },
+    serviceInfo: { flex: 1, marginRight: 16 },
+    serviceName: { color: COLORS.text, fontWeight: '700', fontSize: 16 },
+    serviceDesc: { color: COLORS.textMuted, fontSize: 12, marginVertical: 4 },
+    servicePrice: { color: COLORS.primary, fontWeight: 'bold', fontSize: 14 },
+    bookBtn: {
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 16, paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+    },
+    bookBtnText: { color: '#FFF', fontWeight: 'bold' },
+  }));
 
   if (loading) {
     return (
@@ -102,44 +146,3 @@ export default function CarWashDetailScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  desc: { color: COLORS.text, fontSize: 14, marginBottom: 16 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
-  infoText: { color: COLORS.textMuted, fontSize: 14 },
-  sectionTitle: { ...TYPOGRAPHY.h3, marginBottom: 12 },
-  serviceCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.glass,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    marginBottom: SPACING.sm,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    alignItems: 'center',
-  },
-  serviceInfo: { flex: 1, marginRight: 16 },
-  serviceName: { color: COLORS.text, fontWeight: '700', fontSize: 16 },
-  serviceDesc: { color: COLORS.textMuted, fontSize: 12, marginVertical: 4 },
-  servicePrice: { color: COLORS.primary, fontWeight: 'bold', fontSize: 14 },
-  bookBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: RADIUS.pill,
-  },
-  bookBtnText: { color: '#FFF', fontWeight: 'bold' },
-});

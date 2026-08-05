@@ -1,7 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import * as api from '../../data/liveCategoryApi';
+
+const panelStylesFactory = ({ COLORS, TYPOGRAPHY, RADIUS, SPACING }: any) => ({
+  panel: {
+    marginHorizontal: SPACING.lg, marginBottom: SPACING.lg,
+    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.md, padding: SPACING.md, gap: 8,
+  },
+  panelTitle: { ...TYPOGRAPHY.label, fontSize: 11 },
+  hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
+  errorText: { color: COLORS.error, fontSize: 12 },
+  successText: { color: COLORS.success, fontSize: 12, fontWeight: '600' },
+  itemName: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  itemPrice: { color: COLORS.secondary, fontSize: 14, fontWeight: '700' },
+  input: {
+    backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder,
+    paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 13,
+  },
+  actionBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 12, alignItems: 'center', flex: 1 },
+  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  optionBtn: {
+    borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md,
+    paddingVertical: 10, paddingHorizontal: 12, backgroundColor: COLORS.surface,
+  },
+  optionBtnActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}22` },
+  optionText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
+  scoreText: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
+  scoreDivider: { color: COLORS.textMuted, fontSize: 16 },
+  jobCard: { borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder, paddingBottom: 8, marginBottom: 4 },
+});
 
 const WATCHABLE_GAMES: Record<string, string> = { pool: 'PoolGame', ludo: 'LudoGame', chess: 'ChessGame' };
 
@@ -51,6 +82,7 @@ export default function LiveCategoryViewerPanel({
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(panelStylesFactory);
   return (
     <View style={styles.panel}>
       <Text style={styles.panelTitle}>{title}</Text>
@@ -58,12 +90,21 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
     </View>
   );
 }
-const ErrorText = ({ error }: { error: string }) => error ? <Text style={styles.errorText}>{error}</Text> : null;
-const SuccessText = ({ text }: { text: string }) => text ? <Text style={styles.successText}>{text}</Text> : null;
+function ErrorText({ error }: { error: string }) {
+  const styles = useThemedStyles(panelStylesFactory);
+  return error ? <Text style={styles.errorText}>{error}</Text> : null;
+}
+function SuccessText({ text }: { text: string }) {
+  const styles = useThemedStyles(panelStylesFactory);
+  return text ? <Text style={styles.successText}>{text}</Text> : null;
+}
 
 // ── Live Shopping ────────────────────────────────────────────────────────
 function ShoppingViewer({ roomId, state, run, error, success, setSuccess, busy }: any) {
   const [address, setAddress] = useState('');
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(panelStylesFactory);
   const product = state.pinnedShoppingProduct;
   if (!product) return <Panel title="Live Shopping"><Text style={styles.hint}>Nothing pinned yet — check back soon.</Text></Panel>;
 
@@ -88,6 +129,9 @@ function ShoppingViewer({ roomId, state, run, error, success, setSuccess, busy }
 // ── Food Live ────────────────────────────────────────────────────────────
 function FoodViewer({ roomId, state, run, error, success, setSuccess, busy }: any) {
   const [address, setAddress] = useState('');
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(panelStylesFactory);
   const product = state.pinnedEatProduct;
   if (!product) return <Panel title="Food Live"><Text style={styles.hint}>Nothing pinned yet — check back soon.</Text></Panel>;
 
@@ -111,6 +155,7 @@ function FoodViewer({ roomId, state, run, error, success, setSuccess, busy }: an
 
 // ── Gaming Live ──────────────────────────────────────────────────────────
 function GamingViewer({ state, navigation }: any) {
+  const styles = useThemedStyles(panelStylesFactory);
   if (!state.linkedGameType) return <Panel title="Gaming Live"><Text style={styles.hint}>No game linked right now.</Text></Panel>;
   const screen = WATCHABLE_GAMES[state.linkedGameType];
   return (
@@ -129,6 +174,7 @@ function GamingViewer({ state, navigation }: any) {
 
 // ── Business Live ────────────────────────────────────────────────────────
 function BusinessViewer({ roomId, run, error, busy, navigation }: any) {
+  const styles = useThemedStyles(panelStylesFactory);
   return (
     <Panel title="Networking">
       <TouchableOpacity
@@ -146,6 +192,7 @@ function BusinessViewer({ roomId, run, error, busy, navigation }: any) {
 // ── Education Live ───────────────────────────────────────────────────────
 function EducationViewer({ state, run, error, busy }: any) {
   const [answered, setAnswered] = useState(false);
+  const styles = useThemedStyles(panelStylesFactory);
   const quiz = state.quizzes?.[0];
   if (!quiz) return <Panel title="Education Live"><Text style={styles.hint}>No quiz right now.</Text></Panel>;
 
@@ -175,6 +222,7 @@ function EducationViewer({ state, run, error, busy }: any) {
 // ── Entertainment Live ───────────────────────────────────────────────────
 function EntertainmentViewer({ state, run, busy }: any) {
   const [voted, setVoted] = useState<number | null>(null);
+  const styles = useThemedStyles(panelStylesFactory);
   const poll = state.polls?.[0];
   if (!poll) return <Panel title="Entertainment Live"><Text style={styles.hint}>No poll right now.</Text></Panel>;
 
@@ -198,6 +246,9 @@ function EntertainmentViewer({ state, run, busy }: any) {
 // ── Sports Live ──────────────────────────────────────────────────────────
 function SportsViewer({ state, run, error, busy, success, setSuccess }: any) {
   const [amount, setAmount] = useState('');
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(panelStylesFactory);
   const prediction = state.predictions?.[0];
 
   return (
@@ -242,6 +293,9 @@ function SportsViewer({ state, run, error, busy, success, setSuccess }: any) {
 // ── Career Live ──────────────────────────────────────────────────────────
 function CareerViewer({ state, run, error, success, setSuccess, busy }: any) {
   const [message, setMessage] = useState('');
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(panelStylesFactory);
   const jobs = state.jobPostings || [];
   if (jobs.length === 0) return <Panel title="Career Live"><Text style={styles.hint}>No openings posted yet.</Text></Panel>;
 
@@ -272,6 +326,9 @@ function CareerViewer({ state, run, error, success, setSuccess, busy }: any) {
 function SocialViewer({ roomId, run, error, busy }: any) {
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(panelStylesFactory);
 
   return (
     <Panel title="Ask a question">
@@ -289,32 +346,3 @@ function SocialViewer({ roomId, run, error, busy }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  panel: {
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.lg,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, gap: 8,
-  },
-  panelTitle: { ...TYPOGRAPHY.label, fontSize: 11 },
-  hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
-  errorText: { color: COLORS.error, fontSize: 12 },
-  successText: { color: COLORS.success, fontSize: 12, fontWeight: '600' },
-  itemName: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
-  itemPrice: { color: COLORS.secondary, fontSize: 14, fontWeight: '700' },
-  input: {
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 13,
-  },
-  actionBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 12, alignItems: 'center', flex: 1 },
-  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  optionBtn: {
-    borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md,
-    paddingVertical: 10, paddingHorizontal: 12, backgroundColor: COLORS.surface,
-  },
-  optionBtnActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}22` },
-  optionText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  scoreText: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
-  scoreDivider: { color: COLORS.textMuted, fontSize: 16 },
-  jobCard: { borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder, paddingBottom: 8, marginBottom: 4 },
-});

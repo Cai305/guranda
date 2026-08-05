@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 export default function AddEditWorkCompanyScreen({ navigation, route }: any) {
   const existing = route.params?.company;
   const isEdit = !!existing;
+
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
 
   const [name, setName] = useState(existing?.name || '');
   const [industry, setIndustry] = useState(existing?.industry || '');
@@ -15,6 +19,20 @@ export default function AddEditWorkCompanyScreen({ navigation, route }: any) {
   const [website, setWebsite] = useState(existing?.website || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    optional: { color: COLORS.textMuted, fontWeight: '400' },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
+    saveBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, padding: 16, alignItems: 'center' },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  }));
 
   const save = async () => {
     if (!name.trim()) { setError('Company name is required'); return; }
@@ -76,16 +94,3 @@ export default function AddEditWorkCompanyScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  optional: { color: COLORS.textMuted, fontWeight: '400' },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
-  saveBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, padding: 16, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-});

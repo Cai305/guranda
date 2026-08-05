@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadMedia } from '../utils/api';
 
 export default function SubmitChallengeEntryScreen({ route, navigation }: any) {
@@ -13,6 +14,41 @@ export default function SubmitChallengeEntryScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [mediaKind, setMediaKind] = useState<'image' | 'video' | null>(null);
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    keyboardContainer: { flex: 1 },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      padding: 15, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    },
+    closeBtn: { padding: 5 },
+    postBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+    postBtnDisabled: { opacity: 0.5 },
+    postBtnText: { ...TYPOGRAPHY.body2, color: COLORS.surface, fontWeight: 'bold' },
+    challengeLabel: { color: COLORS.textMuted, fontSize: 13, paddingHorizontal: SPACING.lg, paddingTop: SPACING.md },
+    pickWrap: {
+      margin: SPACING.lg, height: 200, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.border, borderStyle: 'dashed',
+      justifyContent: 'center', alignItems: 'center', gap: 10,
+      backgroundColor: COLORS.surface,
+    },
+    pickText: { color: COLORS.textMuted, fontSize: 13 },
+    mediaPreviewWrap: { margin: SPACING.lg, borderRadius: RADIUS.lg, overflow: 'hidden', position: 'relative' },
+    mediaPreview: { width: '100%', height: 280, backgroundColor: COLORS.surface },
+    removeMediaBtn: { position: 'absolute', top: 8, right: 8 },
+    input: {
+      marginHorizontal: SPACING.lg, padding: 12, fontSize: 15, color: COLORS.text,
+      minHeight: 60, backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.border,
+    },
+    toolbar: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      padding: SPACING.lg, marginTop: 'auto',
+    },
+    mediaBtnText: { ...TYPOGRAPHY.body2, color: COLORS.secondary },
+  }));
 
   const player = useVideoPlayer(mediaKind === 'video' ? mediaUri : null, p => { p.loop = true; });
 
@@ -124,36 +160,3 @@ export default function SubmitChallengeEntryScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  keyboardContainer: { flex: 1 },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 15, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  closeBtn: { padding: 5 },
-  postBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  postBtnDisabled: { opacity: 0.5 },
-  postBtnText: { ...TYPOGRAPHY.body2, color: COLORS.surface, fontWeight: 'bold' },
-  challengeLabel: { color: COLORS.textMuted, fontSize: 13, paddingHorizontal: SPACING.lg, paddingTop: SPACING.md },
-  pickWrap: {
-    margin: SPACING.lg, height: 200, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border, borderStyle: 'dashed',
-    justifyContent: 'center', alignItems: 'center', gap: 10,
-    backgroundColor: COLORS.surface,
-  },
-  pickText: { color: COLORS.textMuted, fontSize: 13 },
-  mediaPreviewWrap: { margin: SPACING.lg, borderRadius: RADIUS.lg, overflow: 'hidden', position: 'relative' },
-  mediaPreview: { width: '100%', height: 280, backgroundColor: COLORS.surface },
-  removeMediaBtn: { position: 'absolute', top: 8, right: 8 },
-  input: {
-    marginHorizontal: SPACING.lg, padding: 12, fontSize: 15, color: COLORS.text,
-    minHeight: 60, backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  toolbar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: SPACING.lg, marginTop: 'auto',
-  },
-  mediaBtnText: { ...TYPOGRAPHY.body2, color: COLORS.secondary },
-});

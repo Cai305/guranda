@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { COLORS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 // A simple static bar pattern rather than a real waveform derived from the
 // audio's actual amplitude data — genuine waveform extraction is DSP work
@@ -25,6 +26,15 @@ interface Props {
 export default function VoiceMessageBubble({ uri, mine }: Props) {
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(() => ({
+    row: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 190, paddingVertical: 2 },
+    playBtn: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+    bars: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 22 },
+    bar: { width: 3, borderRadius: 2 },
+    time: { fontSize: 11, minWidth: 32 },
+  }));
 
   const toggle = () => {
     if (status.playing) player.pause();
@@ -58,11 +68,3 @@ export default function VoiceMessageBubble({ uri, mine }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 190, paddingVertical: 2 },
-  playBtn: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  bars: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, height: 22 },
-  bar: { width: 3, borderRadius: 2 },
-  time: { fontSize: 11, minWidth: 32 },
-});

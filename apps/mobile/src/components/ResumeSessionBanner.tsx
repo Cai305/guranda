@@ -1,12 +1,40 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useActiveSession } from '../context/ActiveSessionContext';
 
 export default function ResumeSessionBanner({ navigation }: { navigation: any }) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { session, dismiss } = useActiveSession();
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    wrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+    },
+    tap: { flex: 1, borderRadius: RADIUS.pill, overflow: 'hidden' },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+    },
+    text: { ...TYPOGRAPHY.body2, color: '#fff', fontWeight: '700', flex: 1 },
+    dismissBtn: {
+      width: 32, height: 32, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+  }));
+
   if (!session) return null;
 
   const resume = () => navigation.navigate(session.route.name, session.route.params);
@@ -31,27 +59,3 @@ export default function ResumeSessionBanner({ navigation }: { navigation: any })
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  tap: { flex: 1, borderRadius: RADIUS.pill, overflow: 'hidden' },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  text: { ...TYPOGRAPHY.body2, color: '#fff', fontWeight: '700', flex: 1 },
-  dismissBtn: {
-    width: 32, height: 32, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-});

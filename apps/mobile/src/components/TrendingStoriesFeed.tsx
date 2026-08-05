@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, FlatList, TouchableOpacity,
   ScrollView, TextInput, Modal, ActivityIndicator,
   Image, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, GRADIENTS, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { StoryDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +47,8 @@ interface Props {
 }
 
 export default function TrendingStoriesFeed({ navigation, showStoriesAddButton = true }: Props) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const { user } = useAuth();
   const myUserId = (user as any)?.userId;
   const [stories, setStories] = useState<StoryDto[]>([]);
@@ -192,6 +195,153 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
     }
     return result;
   }, [stories]);
+
+  const s = useThemedStyles(({ COLORS, GRADIENTS, RADIUS, SPACING }) => ({
+    storiesWrap: { backgroundColor: COLORS.background },
+    storiesScroll: { paddingHorizontal: SPACING.lg, paddingVertical: 14, gap: 14 },
+    storiesDivider: { height: 1, backgroundColor: COLORS.glassBorder },
+    storyItem: { alignItems: 'center', width: 68 },
+    storyRing: { width: 64, height: 64, borderRadius: 32, padding: 2.5, justifyContent: 'center', alignItems: 'center' },
+    storyRingPlain: {
+      width: 64, height: 64, borderRadius: 32,
+      borderWidth: 2, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: COLORS.surface, position: 'relative',
+    },
+    storyImg: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.surface },
+    storyAddBadge: {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 20, height: 20, borderRadius: 10,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: COLORS.background,
+    },
+    storyName: { fontSize: 11, color: COLORS.textMuted, marginTop: 5, textAlign: 'center' },
+
+    chipsRow: { gap: 8, paddingHorizontal: SPACING.lg, paddingVertical: 10 },
+    chip: {
+      paddingHorizontal: 14, paddingVertical: 7, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+    },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '700' },
+    chipTextActive: { color: '#fff' },
+
+    post: { backgroundColor: COLORS.background, paddingBottom: 4 },
+    postHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    postAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface },
+    postAuthorName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    postMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 1 },
+    postImage: { width: '100%', aspectRatio: 4 / 5, backgroundColor: COLORS.surface },
+
+    actionBar: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingTop: 10, paddingBottom: 4,
+    },
+    actionLeft: { flexDirection: 'row', gap: 20, alignItems: 'center' },
+    action: { alignItems: 'center', gap: 3, minWidth: 48 },
+    actionLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
+    giftBtn: { backgroundColor: 'transparent', borderWidth: 0, width: 30, height: 30 },
+    actionLabelLiked: { color: '#EF4444' },
+    actionLabelDone: { color: COLORS.primary },
+    actionLabelRanked: { color: COLORS.gold },
+
+    statsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SPACING.lg, paddingVertical: 4 },
+    statsText: { color: COLORS.textMuted, fontSize: 13 },
+    statsDot: { color: COLORS.textMuted, fontSize: 13 },
+
+    caption: { paddingHorizontal: SPACING.lg, paddingBottom: 4, color: COLORS.text, fontSize: 14, lineHeight: 20 },
+    captionBold: { fontWeight: '700' },
+
+    // ── Shoppable product squares ──────────────────────────────
+    productSquaresSection: { paddingTop: 8, paddingBottom: 8 },
+    productSquaresHeader: { paddingHorizontal: SPACING.lg, marginBottom: 10 },
+    productSquaresHeaderPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      alignSelf: 'flex-start', borderRadius: RADIUS.pill,
+      paddingHorizontal: 10, paddingVertical: 5,
+    },
+    productSquaresHeaderText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+    productSquaresRow: { paddingHorizontal: SPACING.lg, gap: 12 },
+    productSquare: { alignItems: 'center', width: 72 },
+    productSquareSold: { opacity: 0.5 },
+    productSquareRing: { width: 72, height: 72, borderRadius: 20, padding: 2.5 },
+    productSquareInner: {
+      flex: 1, borderRadius: 18, overflow: 'hidden',
+      backgroundColor: COLORS.surface,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    productSquareImg: {
+      width: '100%', height: '100%', borderRadius: 17,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    productSquarePill: {
+      marginTop: 6, backgroundColor: COLORS.primary,
+      borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+      maxWidth: 72,
+    },
+    productSquarePillSold: { backgroundColor: COLORS.border },
+    productSquarePillText: { color: '#fff', fontSize: 10, fontWeight: '800', textAlign: 'center' },
+    productSquareName: { color: COLORS.textMuted, fontSize: 10, marginTop: 3, textAlign: 'center', maxWidth: 72 },
+    productSquareBadge: {
+      position: 'absolute', top: 0, right: 0,
+      width: 18, height: 18, borderRadius: 9,
+      backgroundColor: COLORS.secondary,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1.5, borderColor: COLORS.background,
+    },
+
+    ccrNote: { paddingHorizontal: SPACING.lg, paddingBottom: 10, fontSize: 11, color: COLORS.textMuted, opacity: 0.7 },
+
+    // ── Product detail sheet ────────────────────────────────────
+    productSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    productSheetContainer: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: SPACING.lg, paddingBottom: 36,
+      alignItems: 'center', gap: 14,
+      borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.glassBorder,
+    },
+    productSheetTitle: { color: COLORS.text, fontSize: 17, fontWeight: '800', alignSelf: 'flex-start' },
+    productSheetDismiss: {
+      width: '100%', paddingVertical: 13,
+      borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
+      alignItems: 'center', marginTop: 4,
+    },
+    productSheetDismissText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 14 },
+
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80, gap: 10 },
+    emptyTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
+    emptySub: { color: COLORS.textMuted, fontSize: 14 },
+    emptyBtn: { marginTop: 10, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: RADIUS.pill },
+    emptyBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+
+    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+    sheet: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+      padding: SPACING.lg, paddingBottom: 32,
+      borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.glassBorder,
+    },
+    sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.glassBorder, alignSelf: 'center', marginBottom: 16 },
+    sheetTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+    sheetCost: { color: COLORS.gold, fontSize: 12, marginBottom: 14 },
+    commentInput: {
+      backgroundColor: COLORS.surface, color: COLORS.text,
+      borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border,
+      padding: 12, minHeight: 90, fontSize: 15, textAlignVertical: 'top', marginBottom: 14,
+    },
+    sheetBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 13, alignItems: 'center' },
+    sheetBtnDisabled: { opacity: 0.4 },
+    sheetBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+
+    rankOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
+    rankSheet: { backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.xl, padding: SPACING.lg, width: '100%', borderWidth: 1, borderColor: COLORS.glassBorder },
+    rankGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16, justifyContent: 'center' },
+    rankBtn: { width: 52, height: 52, borderRadius: RADIUS.md, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, justifyContent: 'center', alignItems: 'center' },
+    rankBtnText: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
+    cancelText: { color: COLORS.textMuted, fontSize: 14 },
+  }));
 
   const renderStories = () => (
     <View style={s.storiesWrap}>
@@ -511,149 +661,3 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
   );
 }
 
-const s = StyleSheet.create({
-  storiesWrap: { backgroundColor: COLORS.background },
-  storiesScroll: { paddingHorizontal: SPACING.lg, paddingVertical: 14, gap: 14 },
-  storiesDivider: { height: 1, backgroundColor: COLORS.glassBorder },
-  storyItem: { alignItems: 'center', width: 68 },
-  storyRing: { width: 64, height: 64, borderRadius: 32, padding: 2.5, justifyContent: 'center', alignItems: 'center' },
-  storyRingPlain: {
-    width: 64, height: 64, borderRadius: 32,
-    borderWidth: 2, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: COLORS.surface, position: 'relative',
-  },
-  storyImg: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.surface },
-  storyAddBadge: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: COLORS.background,
-  },
-  storyName: { fontSize: 11, color: COLORS.textMuted, marginTop: 5, textAlign: 'center' },
-
-  chipsRow: { gap: 8, paddingHorizontal: SPACING.lg, paddingVertical: 10 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 7, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '700' },
-  chipTextActive: { color: '#fff' },
-
-  post: { backgroundColor: COLORS.background, paddingBottom: 4 },
-  postHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  postAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface },
-  postAuthorName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  postMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 1 },
-  postImage: { width: '100%', aspectRatio: 4 / 5, backgroundColor: COLORS.surface },
-
-  actionBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingTop: 10, paddingBottom: 4,
-  },
-  actionLeft: { flexDirection: 'row', gap: 20, alignItems: 'center' },
-  action: { alignItems: 'center', gap: 3, minWidth: 48 },
-  actionLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
-  giftBtn: { backgroundColor: 'transparent', borderWidth: 0, width: 30, height: 30 },
-  actionLabelLiked: { color: '#EF4444' },
-  actionLabelDone: { color: COLORS.primary },
-  actionLabelRanked: { color: COLORS.gold },
-
-  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SPACING.lg, paddingVertical: 4 },
-  statsText: { color: COLORS.textMuted, fontSize: 13 },
-  statsDot: { color: COLORS.textMuted, fontSize: 13 },
-
-  caption: { paddingHorizontal: SPACING.lg, paddingBottom: 4, color: COLORS.text, fontSize: 14, lineHeight: 20 },
-  captionBold: { fontWeight: '700' },
-
-  // ── Shoppable product squares ──────────────────────────────
-  productSquaresSection: { paddingTop: 8, paddingBottom: 8 },
-  productSquaresHeader: { paddingHorizontal: SPACING.lg, marginBottom: 10 },
-  productSquaresHeaderPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    alignSelf: 'flex-start', borderRadius: RADIUS.pill,
-    paddingHorizontal: 10, paddingVertical: 5,
-  },
-  productSquaresHeaderText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
-  productSquaresRow: { paddingHorizontal: SPACING.lg, gap: 12 },
-  productSquare: { alignItems: 'center', width: 72 },
-  productSquareSold: { opacity: 0.5 },
-  productSquareRing: { width: 72, height: 72, borderRadius: 20, padding: 2.5 },
-  productSquareInner: {
-    flex: 1, borderRadius: 18, overflow: 'hidden',
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  productSquareImg: {
-    width: '100%', height: '100%', borderRadius: 17,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  productSquarePill: {
-    marginTop: 6, backgroundColor: COLORS.primary,
-    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
-    maxWidth: 72,
-  },
-  productSquarePillSold: { backgroundColor: COLORS.border },
-  productSquarePillText: { color: '#fff', fontSize: 10, fontWeight: '800', textAlign: 'center' },
-  productSquareName: { color: COLORS.textMuted, fontSize: 10, marginTop: 3, textAlign: 'center', maxWidth: 72 },
-  productSquareBadge: {
-    position: 'absolute', top: 0, right: 0,
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: COLORS.secondary,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1.5, borderColor: COLORS.background,
-  },
-
-  ccrNote: { paddingHorizontal: SPACING.lg, paddingBottom: 10, fontSize: 11, color: COLORS.textMuted, opacity: 0.7 },
-
-  // ── Product detail sheet ────────────────────────────────────
-  productSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  productSheetContainer: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: SPACING.lg, paddingBottom: 36,
-    alignItems: 'center', gap: 14,
-    borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.glassBorder,
-  },
-  productSheetTitle: { color: COLORS.text, fontSize: 17, fontWeight: '800', alignSelf: 'flex-start' },
-  productSheetDismiss: {
-    width: '100%', paddingVertical: 13,
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
-    alignItems: 'center', marginTop: 4,
-  },
-  productSheetDismissText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 14 },
-
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80, gap: 10 },
-  emptyTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
-  emptySub: { color: COLORS.textMuted, fontSize: 14 },
-  emptyBtn: { marginTop: 10, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: RADIUS.pill },
-  emptyBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
-    padding: SPACING.lg, paddingBottom: 32,
-    borderWidth: 1, borderBottomWidth: 0, borderColor: COLORS.glassBorder,
-  },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.glassBorder, alignSelf: 'center', marginBottom: 16 },
-  sheetTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  sheetCost: { color: COLORS.gold, fontSize: 12, marginBottom: 14 },
-  commentInput: {
-    backgroundColor: COLORS.surface, color: COLORS.text,
-    borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border,
-    padding: 12, minHeight: 90, fontSize: 15, textAlignVertical: 'top', marginBottom: 14,
-  },
-  sheetBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 13, alignItems: 'center' },
-  sheetBtnDisabled: { opacity: 0.4 },
-  sheetBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-
-  rankOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: SPACING.lg },
-  rankSheet: { backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.xl, padding: SPACING.lg, width: '100%', borderWidth: 1, borderColor: COLORS.glassBorder },
-  rankGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16, justifyContent: 'center' },
-  rankBtn: { width: 52, height: 52, borderRadius: RADIUS.md, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, justifyContent: 'center', alignItems: 'center' },
-  rankBtnText: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
-  cancelText: { color: COLORS.textMuted, fontSize: 14 },
-});

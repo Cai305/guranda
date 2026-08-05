@@ -1,18 +1,131 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useCart } from '../../context/CartContext';
 import { fetchApi } from '../../utils/api';
 
 export default function EatCartScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { items, storeId, storeName, updateQty, clearCart, subtotal, serviceFee, deliveryFee, total } = useCart();
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState('');
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: 12,
+    },
+    back: { padding: 4, marginRight: 8 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    storeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: 12,
+    },
+    storeLabel: { color: COLORS.textMuted, fontSize: 13 },
+    section: { paddingHorizontal: SPACING.lg, marginBottom: 16 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    optional: { color: COLORS.textMuted, fontWeight: '400' },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 8,
+      gap: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    itemInfo: { flex: 1 },
+    itemName: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginBottom: 2 },
+    itemPrice: { color: '#ef4444', fontWeight: '700', fontSize: 13 },
+    qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    qtyBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: COLORS.surfaceElevated,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 14, minWidth: 20, textAlign: 'center' },
+    input: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 14,
+      color: COLORS.text,
+      fontSize: 14,
+      minHeight: 48,
+    },
+    summaryCard: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      gap: 10,
+    },
+    feeRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    feeLabel: { color: COLORS.textMuted, fontSize: 13 },
+    feeValue: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    totalRow: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10, marginTop: 2 },
+    totalLabel: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+    totalValue: { color: '#ef4444', fontSize: 15, fontWeight: '800' },
+    paymentCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#f59e0b15',
+      borderRadius: 12,
+      padding: 14,
+      gap: 10,
+      borderWidth: 1,
+      borderColor: '#f59e0b30',
+    },
+    paymentText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    errorText: { color: '#ef4444', fontSize: 13, paddingHorizontal: SPACING.lg, marginBottom: 8 },
+    footer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: SPACING.lg,
+      backgroundColor: COLORS.background,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+    },
+    orderBtn: { borderRadius: 14, overflow: 'hidden' },
+    orderGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      padding: 16,
+    },
+    orderBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 80 },
+    emptyTitle: { ...TYPOGRAPHY.h2, color: COLORS.textMuted },
+    browseBtn: {
+      backgroundColor: '#ef4444',
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 24,
+    },
+    browseBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  }));
 
   const placeOrder = async () => {
     if (!address.trim()) { setError('Please enter a delivery address'); return; }
@@ -177,114 +290,3 @@ export default function EatCartScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 12,
-  },
-  back: { padding: 4, marginRight: 8 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  storeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: 12,
-  },
-  storeLabel: { color: COLORS.textMuted, fontSize: 13 },
-  section: { paddingHorizontal: SPACING.lg, marginBottom: 16 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  optional: { color: COLORS.textMuted, fontWeight: '400' },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  itemInfo: { flex: 1 },
-  itemName: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  itemPrice: { color: '#ef4444', fontWeight: '700', fontSize: 13 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 14, minWidth: 20, textAlign: 'center' },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 14,
-    color: COLORS.text,
-    fontSize: 14,
-    minHeight: 48,
-  },
-  summaryCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 10,
-  },
-  feeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  feeLabel: { color: COLORS.textMuted, fontSize: 13 },
-  feeValue: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  totalRow: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10, marginTop: 2 },
-  totalLabel: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
-  totalValue: { color: '#ef4444', fontSize: 15, fontWeight: '800' },
-  paymentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f59e0b15',
-    borderRadius: 12,
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#f59e0b30',
-  },
-  paymentText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  errorText: { color: '#ef4444', fontSize: 13, paddingHorizontal: SPACING.lg, marginBottom: 8 },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: SPACING.lg,
-    backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  orderBtn: { borderRadius: 14, overflow: 'hidden' },
-  orderGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    padding: 16,
-  },
-  orderBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 80 },
-  emptyTitle: { ...TYPOGRAPHY.h2, color: COLORS.textMuted },
-  browseBtn: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  browseBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});

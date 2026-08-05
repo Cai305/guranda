@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator,
+  View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import { LUDO_MODES, LudoMode, SEAT_COLORS } from '@mxit2/types';
-import { RADIUS, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
@@ -30,6 +31,8 @@ const SMALL_CARDS: { mode: LudoMode; label: string; seats: number[] }[] = [
 ];
 
 export default function LudoLobbyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { GRADIENTS } = theme;
   const { user } = useAuth();
   const [selectedMode, setSelectedMode] = useState<LudoMode>('1v1');
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -76,6 +79,138 @@ export default function LudoLobbyScreen({ navigation }: any) {
     socket?.emit('leave_queue');
     setSearching(false);
   };
+
+  const styles = useThemedStyles(({ RADIUS }) => ({
+    root: { flex: 1, backgroundColor: BG },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    headerBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: GOLD,
+      letterSpacing: 4,
+    },
+    scroll: { paddingBottom: 40 },
+
+    // Big cards
+    bigRow: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingHorizontal: 16,
+      marginTop: 6,
+    },
+    bigCardWrap: { flex: 1 },
+    bigCardBorder: {
+      borderRadius: RADIUS.lg,
+      padding: 2,
+    },
+    bigCardInner: {
+      borderRadius: RADIUS.lg - 2,
+      paddingVertical: 24,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      gap: 12,
+    },
+    bigNum: {
+      fontSize: 60,
+      fontWeight: '900',
+      color: 'rgba(255,255,255,0.5)',
+      lineHeight: 64,
+    },
+    dotGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      justifyContent: 'center',
+      width: 56,
+    },
+    bigDot: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1.5,
+      borderColor: 'rgba(255,255,255,0.35)',
+    },
+    bigLabel: {
+      color: '#FFF',
+      fontWeight: '800',
+      fontSize: 14,
+      letterSpacing: 0.5,
+    },
+    playBtn: { width: '100%', marginTop: 4 },
+    playBtnGrad: {
+      borderRadius: RADIUS.pill,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 38,
+    },
+    playBtnText: {
+      color: '#1E0A38',
+      fontWeight: '900',
+      fontSize: 14,
+      letterSpacing: 1.5,
+    },
+
+    // Small cards
+    smallRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 16,
+      marginTop: 12,
+    },
+    smallCardWrap: { flex: 1 },
+    smallCardBorder: {
+      borderRadius: RADIUS.md,
+      padding: 1.5,
+    },
+    smallCardInner: {
+      borderRadius: RADIUS.md - 2,
+      paddingVertical: 14,
+      paddingHorizontal: 10,
+      alignItems: 'center',
+      gap: 8,
+    },
+    smallDotRow: { flexDirection: 'row', gap: 4, justifyContent: 'center' },
+    smallDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.35)',
+    },
+    smallLabel: {
+      color: 'rgba(255,255,255,0.75)',
+      fontWeight: '700',
+      fontSize: 11,
+      textAlign: 'center',
+      letterSpacing: 0.3,
+    },
+
+    // Bottom
+    bottomBtns: {
+      paddingHorizontal: 16,
+      marginTop: 20,
+      gap: 12,
+    },
+    onlineBtn: { borderRadius: RADIUS.pill, overflow: 'hidden' },
+    onlineBtnGrad: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+    },
+    onlineBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+    btnDisabled: { opacity: 0.6 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -223,135 +358,3 @@ export default function LudoLobbyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  headerBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: GOLD,
-    letterSpacing: 4,
-  },
-  scroll: { paddingBottom: 40 },
-
-  // Big cards
-  bigRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    marginTop: 6,
-  },
-  bigCardWrap: { flex: 1 },
-  bigCardBorder: {
-    borderRadius: RADIUS.lg,
-    padding: 2,
-  },
-  bigCardInner: {
-    borderRadius: RADIUS.lg - 2,
-    paddingVertical: 24,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    gap: 12,
-  },
-  bigNum: {
-    fontSize: 60,
-    fontWeight: '900',
-    color: 'rgba(255,255,255,0.5)',
-    lineHeight: 64,
-  },
-  dotGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    justifyContent: 'center',
-    width: 56,
-  },
-  bigDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  bigLabel: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.5,
-  },
-  playBtn: { width: '100%', marginTop: 4 },
-  playBtnGrad: {
-    borderRadius: RADIUS.pill,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 38,
-  },
-  playBtnText: {
-    color: '#1E0A38',
-    fontWeight: '900',
-    fontSize: 14,
-    letterSpacing: 1.5,
-  },
-
-  // Small cards
-  smallRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    marginTop: 12,
-  },
-  smallCardWrap: { flex: 1 },
-  smallCardBorder: {
-    borderRadius: RADIUS.md,
-    padding: 1.5,
-  },
-  smallCardInner: {
-    borderRadius: RADIUS.md - 2,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    gap: 8,
-  },
-  smallDotRow: { flexDirection: 'row', gap: 4, justifyContent: 'center' },
-  smallDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  smallLabel: {
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '700',
-    fontSize: 11,
-    textAlign: 'center',
-    letterSpacing: 0.3,
-  },
-
-  // Bottom
-  bottomBtns: {
-    paddingHorizontal: 16,
-    marginTop: 20,
-    gap: 12,
-  },
-  onlineBtn: { borderRadius: RADIUS.pill, overflow: 'hidden' },
-  onlineBtnGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  onlineBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-  btnDisabled: { opacity: 0.6 },
-});

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Pressable, StyleSheet, Text, Animated, Easing, Dimensions } from 'react-native';
+import { View, Pressable, Text, Animated, Easing, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, RADIUS, SHADOW } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { AI_ENABLED } from '../../config/featureFlags';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
@@ -39,6 +40,58 @@ export default function AiFloatingOrb() {
   const tickTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const voice = useVoiceCapture();
+
+  const { theme } = useTheme();
+  const { GRADIENTS } = theme;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SHADOW }) => ({
+    root: {
+      position: 'absolute',
+      right: 16,
+      alignItems: 'flex-end',
+      zIndex: 999,
+    },
+    orbTouchable: {
+      width: ORB_SIZE,
+      height: ORB_SIZE,
+    },
+    orb: {
+      width: ORB_SIZE,
+      height: ORB_SIZE,
+      borderRadius: ORB_SIZE / 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...SHADOW.glow,
+    },
+    chargeRing: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0, bottom: 0,
+      borderRadius: ORB_SIZE / 2,
+      borderWidth: 3,
+      borderColor: COLORS.secondary,
+    },
+    dropdownWrap: {
+      marginBottom: 12,
+    },
+    voicePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: COLORS.surfaceElevated,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      marginBottom: 10,
+      maxWidth: 260,
+    },
+    voiceDot: {
+      width: 8, height: 8, borderRadius: 4,
+      backgroundColor: '#EF4444',
+    },
+    voiceText: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
+  }));
 
   // Lets screens outside this component (post-tour, chat list, home tile)
   // open this same floating panel instead of pushing the full-screen AiChat
@@ -186,52 +239,3 @@ export default function AiFloatingOrb() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    position: 'absolute',
-    right: 16,
-    alignItems: 'flex-end',
-    zIndex: 999,
-  },
-  orbTouchable: {
-    width: ORB_SIZE,
-    height: ORB_SIZE,
-  },
-  orb: {
-    width: ORB_SIZE,
-    height: ORB_SIZE,
-    borderRadius: ORB_SIZE / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOW.glow,
-  },
-  chargeRing: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    borderRadius: ORB_SIZE / 2,
-    borderWidth: 3,
-    borderColor: COLORS.secondary,
-  },
-  dropdownWrap: {
-    marginBottom: 12,
-  },
-  voicePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.surfaceElevated,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginBottom: 10,
-    maxWidth: 260,
-  },
-  voiceDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#EF4444',
-  },
-  voiceText: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
-});

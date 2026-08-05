@@ -120,7 +120,7 @@ export default function ProfileScreen({ navigation }: any) {
     { icon: 'shield-checkmark-outline', label: 'Security & Privacy', onPress: () => navigation.navigate('SecurityPrivacy') },
     { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
     { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('NotificationsSettings') },
-    { icon: 'color-palette-outline', label: 'Appearance', onPress: () => navigation.navigate('Appearance') },
+    { icon: 'color-palette-outline', label: 'Theme', onPress: () => navigation.navigate('Appearance') },
     { icon: 'language-outline', label: 'Language', onPress: () => navigation.navigate('Language') },
     { icon: 'help-circle-outline', label: 'Help & Support', onPress: () => navigation.navigate('HelpSupport') },
   ];

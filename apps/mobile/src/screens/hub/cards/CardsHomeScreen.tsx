@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import io from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../../utils/api';
 import SessionHeaderActions from '../../../components/SessionHeaderActions';
@@ -13,11 +14,54 @@ import SessionHeaderActions from '../../../components/SessionHeaderActions';
 type CardGameMode = 'FIVE_CARDS' | 'CASSINO';
 
 export default function CardsHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } = theme;
   const { user } = useAuth();
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState<CardGameMode | null>(null);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    gameRow: { flexDirection: 'row', gap: SPACING.md, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
+    gameTile: { flex: 1, borderRadius: RADIUS.lg, overflow: 'hidden' },
+    gameTileGrad: { paddingVertical: 24, alignItems: 'center', gap: 8 },
+    gameTileText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    linkRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
+    linkBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8,
+    },
+    linkText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
+    joinRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
+    joinInput: {
+      flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, color: COLORS.text,
+    },
+    joinBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 20, justifyContent: 'center' },
+    joinBtnText: { color: '#fff', fontWeight: '700' },
+    createRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
+    createBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingVertical: 10,
+    },
+    createBtnText: { color: COLORS.text, fontWeight: '700', fontSize: 12 },
+    sectionLabel: { ...TYPOGRAPHY.label, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
+    roomCard: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
+    },
+    roomMode: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    roomMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  }));
 
   const load = useCallback(() => {
     setLoading(true);
@@ -166,44 +210,3 @@ export default function CardsHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  gameRow: { flexDirection: 'row', gap: SPACING.md, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
-  gameTile: { flex: 1, borderRadius: RADIUS.lg, overflow: 'hidden' },
-  gameTileGrad: { paddingVertical: 24, alignItems: 'center', gap: 8 },
-  gameTileText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  linkRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
-  linkBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 8,
-  },
-  linkText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
-  joinRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-  joinInput: {
-    flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, color: COLORS.text,
-  },
-  joinBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingHorizontal: 20, justifyContent: 'center' },
-  joinBtnText: { color: '#fff', fontWeight: '700' },
-  createRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
-  createBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingVertical: 10,
-  },
-  createBtnText: { color: COLORS.text, fontWeight: '700', fontSize: 12 },
-  sectionLabel: { ...TYPOGRAPHY.label, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-  roomCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
-  },
-  roomMode: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  roomMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-});

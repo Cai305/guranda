@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, TextInput, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Text } from 'react-native';
+import { View, TextInput, FlatList, TouchableOpacity, Image, ActivityIndicator, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 
 interface Gif {
@@ -18,11 +19,31 @@ interface Props {
 // trending GIFs on open (empty query), same as tapping the GIF button in
 // Telegram/WhatsApp before typing anything.
 export default function GifPicker({ onSelect }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [query, setQuery] = useState('');
   const [gifs, setGifs] = useState<Gif[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    panel: {
+      height: 260,
+      backgroundColor: COLORS.surfaceElevated || COLORS.surface,
+      borderTopWidth: 1,
+      borderColor: COLORS.border,
+    },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center',
+      margin: 10, marginBottom: 4,
+      backgroundColor: COLORS.surface, borderRadius: 999,
+      paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.border,
+    },
+    searchInput: { flex: 1, color: COLORS.text, paddingVertical: 8, fontSize: 14 },
+    cell: { flex: 1 / 3, aspectRatio: 1, padding: 3 },
+    thumb: { flex: 1, borderRadius: RADIUS.sm || 8, backgroundColor: COLORS.surface },
+    errorText: { color: COLORS.textMuted, textAlign: 'center', marginTop: 20, paddingHorizontal: 20, fontSize: 13 },
+  }));
 
   const search = async (q: string) => {
     try {
@@ -86,22 +107,3 @@ export default function GifPicker({ onSelect }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  panel: {
-    height: 260,
-    backgroundColor: COLORS.surfaceElevated || COLORS.surface,
-    borderTopWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center',
-    margin: 10, marginBottom: 4,
-    backgroundColor: COLORS.surface, borderRadius: 999,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: COLORS.border,
-  },
-  searchInput: { flex: 1, color: COLORS.text, paddingVertical: 8, fontSize: 14 },
-  cell: { flex: 1 / 3, aspectRatio: 1, padding: 3 },
-  thumb: { flex: 1, borderRadius: RADIUS.sm || 8, backgroundColor: COLORS.surface },
-  errorText: { color: COLORS.textMuted, textAlign: 'center', marginTop: 20, paddingHorizontal: 20, fontSize: 13 },
-});

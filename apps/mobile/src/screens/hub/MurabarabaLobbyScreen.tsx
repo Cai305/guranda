@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Difficulty } from '../../games/murabaraba/ai';
 import { MURABARABA_MODES, MurabarabaMode } from '@mxit2/types';
 import { useAuth } from '../../context/AuthContext';
@@ -29,6 +30,8 @@ const RULES: { icon: string; text: string }[] = [
 ];
 
 export default function MurabarabaLobbyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const { user } = useAuth();
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [onlineMode, setOnlineMode] = useState<MurabarabaMode>('1v1');
@@ -60,6 +63,74 @@ export default function MurabarabaLobbyScreen({ navigation }: any) {
     socket?.emit('leave_queue');
     setSearching(false);
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    hero: {
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      padding: 22,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    heroEmoji: { fontSize: 42 },
+    heroTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 8 },
+    heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    diffRow: {
+      flexDirection: 'row', gap: 10,
+      paddingHorizontal: SPACING.lg,
+    },
+    diffCard: {
+      flex: 1,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 12,
+      alignItems: 'center',
+    },
+    diffCardActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(139,92,246,0.15)' },
+    diffLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
+    diffBlurb: { color: COLORS.textMuted, fontSize: 10, marginTop: 4 },
+    playBtn: {
+      flexDirection: 'row', gap: 10,
+      marginHorizontal: SPACING.lg, marginTop: SPACING.md,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 14,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    playBtnAlt: { backgroundColor: '#0EA5E9', marginTop: 0 },
+    playBtnText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+    rules: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+      gap: 12,
+    },
+    ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    ruleIcon: {
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: 'rgba(139,92,246,0.15)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    ruleText: { color: COLORS.textMuted, fontSize: 12.5, flex: 1, lineHeight: 18 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -168,71 +239,3 @@ export default function MurabarabaLobbyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  hero: {
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    padding: 22,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  heroEmoji: { fontSize: 42 },
-  heroTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 8 },
-  heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  diffRow: {
-    flexDirection: 'row', gap: 10,
-    paddingHorizontal: SPACING.lg,
-  },
-  diffCard: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 12,
-    alignItems: 'center',
-  },
-  diffCardActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(139,92,246,0.15)' },
-  diffLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
-  diffBlurb: { color: COLORS.textMuted, fontSize: 10, marginTop: 4 },
-  playBtn: {
-    flexDirection: 'row', gap: 10,
-    marginHorizontal: SPACING.lg, marginTop: SPACING.md,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  playBtnAlt: { backgroundColor: '#0EA5E9', marginTop: 0 },
-  playBtnText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-  rules: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-    gap: 12,
-  },
-  ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ruleIcon: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: 'rgba(139,92,246,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  ruleText: { color: COLORS.textMuted, fontSize: 12.5, flex: 1, lineHeight: 18 },
-});

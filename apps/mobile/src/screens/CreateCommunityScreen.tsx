@@ -1,14 +1,73 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 
 export default function CreateCommunityScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    keyboardContainer: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    closeBtn: {
+      padding: 5,
+    },
+    createBtn: {
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+    createBtnDisabled: {
+      opacity: 0.5,
+    },
+    createBtnText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.surface,
+      fontWeight: 'bold',
+    },
+    form: {
+      padding: 20,
+    },
+    label: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      marginBottom: 8,
+      marginTop: 16,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      fontSize: 16,
+    },
+    textArea: {
+      minHeight: 100,
+    },
+  }));
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -83,60 +142,3 @@ export default function CreateCommunityScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  closeBtn: {
-    padding: 5,
-  },
-  createBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  createBtnDisabled: {
-    opacity: 0.5,
-  },
-  createBtnText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.surface,
-    fontWeight: 'bold',
-  },
-  form: {
-    padding: 20,
-  },
-  label: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    fontSize: 16,
-  },
-  textArea: {
-    minHeight: 100,
-  },
-});

@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
@@ -13,6 +14,8 @@ import { fetchApi } from '../utils/api';
 // actually landed (mirrors how Stokvel contributions and other MSH-affecting
 // actions in this app already work: real ledger state, manually confirmed).
 export default function DepositScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { isVerified, refreshVerification } = useAuth();
 
   // AuthContext only refetches verification at login and on app-foreground —
@@ -35,6 +38,79 @@ export default function DepositScreen({ navigation }: any) {
   }, []);
 
   useFocusEffect(useCallback(() => { loadHistory(); }, [loadHistory]));
+
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+    },
+    backButton: { padding: 4 },
+    form: { gap: 24 },
+    amountSection: {
+      alignItems: 'center',
+      paddingVertical: 30,
+      backgroundColor: COLORS.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    currencyLabel: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    amountInput: {
+      color: COLORS.secondary,
+      fontSize: 48,
+      fontWeight: '700',
+      textAlign: 'center',
+      minWidth: 150,
+    },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    instructionsCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.success,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      backgroundColor: COLORS.primary,
+      padding: 18,
+      borderRadius: 16,
+    },
+    actionButtonDisabled: { opacity: 0.6 },
+    actionButtonText: { color: COLORS.text, fontSize: 18, fontWeight: '600' },
+    historyRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      padding: 15,
+      borderRadius: 16,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+  }));
 
   if (!isVerified) {
     return (
@@ -172,76 +248,3 @@ export default function DepositScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  backButton: { padding: 4 },
-  form: { gap: 24 },
-  amountSection: {
-    alignItems: 'center',
-    paddingVertical: 30,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  currencyLabel: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  amountInput: {
-    color: COLORS.secondary,
-    fontSize: 48,
-    fontWeight: '700',
-    textAlign: 'center',
-    minWidth: 150,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  instructionsCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.success,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: COLORS.primary,
-    padding: 18,
-    borderRadius: 16,
-  },
-  actionButtonDisabled: { opacity: 0.6 },
-  actionButtonText: { color: COLORS.text, fontSize: 18, fontWeight: '600' },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-});

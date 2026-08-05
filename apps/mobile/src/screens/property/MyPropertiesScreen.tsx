@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 // Agent dashboard: every property you manage, with per-tenant rent status
@@ -22,6 +23,66 @@ const issueDot = (status: string) => ({
 export default function MyPropertiesScreen({ navigation }: any) {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#07211E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
+    propCard: {
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+    },
+    propHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    propTitle: { color: COLORS.text, fontWeight: '800', fontSize: 15, flex: 1 },
+    propPrice: { color: '#2DD4BF', fontWeight: '800', fontSize: 13 },
+    propAddress: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
+    vacantRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      marginTop: 10,
+      backgroundColor: 'rgba(255,255,255,0.04)',
+      borderRadius: RADIUS.md,
+      padding: 10,
+    },
+    vacantText: { color: COLORS.textMuted, fontSize: 12.5 },
+    tenancyCard: {
+      marginTop: 10,
+      backgroundColor: 'rgba(45,212,191,0.06)',
+      borderWidth: 1, borderColor: 'rgba(45,212,191,0.3)',
+      borderRadius: RADIUS.md,
+      padding: 12,
+    },
+    tenancyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    tenantName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    rentPill: { borderRadius: RADIUS.pill, paddingHorizontal: 9, paddingVertical: 3 },
+    rentPaid: { backgroundColor: '#2DD4BF' },
+    rentDue: { backgroundColor: '#DC2626' },
+    rentPillText: { fontSize: 9.5, fontWeight: '800' },
+    receipts: { marginTop: 10 },
+    subLabel: { color: COLORS.textMuted, fontSize: 9.5, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
+    receiptRow: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    issueRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    issueTitle: { color: COLORS.text, fontSize: 12.5, flex: 1 },
+    issueState: { color: COLORS.textMuted, fontSize: 10 },
+    leaseBtn: {
+      flexDirection: 'row', gap: 6, alignItems: 'center', alignSelf: 'flex-start',
+      marginTop: 10,
+      borderWidth: 1, borderColor: 'rgba(45,212,191,0.5)',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 6, paddingHorizontal: 12,
+    },
+    leaseBtnText: { color: '#2DD4BF', fontWeight: '700', fontSize: 12 },
+  }));
 
   const load = useCallback(() => {
     fetchApi('/property/mine')
@@ -152,62 +213,3 @@ export default function MyPropertiesScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07211E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
-  propCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-  },
-  propHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  propTitle: { color: COLORS.text, fontWeight: '800', fontSize: 15, flex: 1 },
-  propPrice: { color: '#2DD4BF', fontWeight: '800', fontSize: 13 },
-  propAddress: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
-  vacantRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: RADIUS.md,
-    padding: 10,
-  },
-  vacantText: { color: COLORS.textMuted, fontSize: 12.5 },
-  tenancyCard: {
-    marginTop: 10,
-    backgroundColor: 'rgba(45,212,191,0.06)',
-    borderWidth: 1, borderColor: 'rgba(45,212,191,0.3)',
-    borderRadius: RADIUS.md,
-    padding: 12,
-  },
-  tenancyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tenantName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  rentPill: { borderRadius: RADIUS.pill, paddingHorizontal: 9, paddingVertical: 3 },
-  rentPaid: { backgroundColor: '#2DD4BF' },
-  rentDue: { backgroundColor: '#DC2626' },
-  rentPillText: { fontSize: 9.5, fontWeight: '800' },
-  receipts: { marginTop: 10 },
-  subLabel: { color: COLORS.textMuted, fontSize: 9.5, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
-  receiptRow: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  issueRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  issueTitle: { color: COLORS.text, fontSize: 12.5, flex: 1 },
-  issueState: { color: COLORS.textMuted, fontSize: 10 },
-  leaseBtn: {
-    flexDirection: 'row', gap: 6, alignItems: 'center', alignSelf: 'flex-start',
-    marginTop: 10,
-    borderWidth: 1, borderColor: 'rgba(45,212,191,0.5)',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 6, paddingHorizontal: 12,
-  },
-  leaseBtnText: { color: '#2DD4BF', fontWeight: '700', fontSize: 12 },
-});

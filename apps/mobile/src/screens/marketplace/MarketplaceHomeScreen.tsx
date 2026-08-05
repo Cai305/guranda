@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -16,6 +17,8 @@ const TYPE_FILTERS = [
 ];
 
 export default function MarketplaceHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS, SPACING } = theme;
   const [category, setCategory] = useState('All');
   const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -36,6 +39,77 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
   }, [category, typeFilter, search]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#150A2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    dashRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    dashBtn: {
+      flex: 1, flexDirection: 'row', gap: 8,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: 'rgba(167,139,250,0.1)',
+      borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)',
+      borderRadius: RADIUS.lg, paddingVertical: 12,
+    },
+    dashText: { color: '#A78BFA', fontWeight: '800', fontSize: 12.5 },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: SPACING.lg, marginTop: SPACING.md,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingHorizontal: 14, paddingVertical: 9,
+    },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 13.5 },
+    catChip: {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingHorizontal: 14, paddingVertical: 8,
+    },
+    catChipActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
+    catText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
+    typeRow: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg, marginTop: SPACING.sm },
+    typeChip: {
+      flex: 1, backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 8, alignItems: 'center',
+    },
+    typeChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
+    typeText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
+    card: {
+      flex: 1,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
+      overflow: 'hidden',
+    },
+    cardImage: { height: 110, width: '100%', justifyContent: 'center', alignItems: 'center' },
+    auctionBadge: {
+      position: 'absolute', top: 8, left: 8,
+      flexDirection: 'row', gap: 4, alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 8, paddingVertical: 3,
+    },
+    auctionBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
+    cardBody: { padding: 12 },
+    cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
+    cardPrice: { color: '#A78BFA', fontWeight: '800', fontSize: 13, marginTop: 4 },
+    cardMeta: { color: COLORS.textMuted, fontSize: 10.5, marginTop: 3 },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
+    fab: {
+      position: 'absolute', bottom: 24, right: 20,
+      flexDirection: 'row', gap: 6, alignItems: 'center',
+      backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
+      paddingVertical: 13, paddingHorizontal: 18,
+    },
+    fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  }));
 
   const renderListing = ({ item }: { item: any }) => {
     const isAuction = item.listingType === 'AUCTION';
@@ -163,74 +237,3 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#150A2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  dashRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  dashBtn: {
-    flex: 1, flexDirection: 'row', gap: 8,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(167,139,250,0.1)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)',
-    borderRadius: RADIUS.lg, paddingVertical: 12,
-  },
-  dashText: { color: '#A78BFA', fontWeight: '800', fontSize: 12.5 },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: SPACING.lg, marginTop: SPACING.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingHorizontal: 14, paddingVertical: 9,
-  },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 13.5 },
-  catChip: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingHorizontal: 14, paddingVertical: 8,
-  },
-  catChipActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
-  catText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
-  typeRow: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg, marginTop: SPACING.sm },
-  typeChip: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 8, alignItems: 'center',
-  },
-  typeChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
-  typeText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
-  card: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
-    overflow: 'hidden',
-  },
-  cardImage: { height: 110, width: '100%', justifyContent: 'center', alignItems: 'center' },
-  auctionBadge: {
-    position: 'absolute', top: 8, left: 8,
-    flexDirection: 'row', gap: 4, alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 8, paddingVertical: 3,
-  },
-  auctionBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
-  cardBody: { padding: 12 },
-  cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
-  cardPrice: { color: '#A78BFA', fontWeight: '800', fontSize: 13, marginTop: 4 },
-  cardMeta: { color: COLORS.textMuted, fontSize: 10.5, marginTop: 3 },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-  fab: {
-    position: 'absolute', bottom: 24, right: 20,
-    flexDirection: 'row', gap: 6, alignItems: 'center',
-    backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
-    paddingVertical: 13, paddingHorizontal: 18,
-  },
-  fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
-});

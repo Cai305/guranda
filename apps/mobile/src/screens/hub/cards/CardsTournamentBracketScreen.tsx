@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchApi } from '../../../utils/api';
 
@@ -50,6 +51,35 @@ export default function CardsTournamentBracketScreen({ route, navigation }: any)
       setBusy(false);
     }
   };
+
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    meta: { color: COLORS.textMuted, textAlign: 'center', fontSize: 12, marginBottom: SPACING.sm },
+    actionRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
+    actionBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.pill, backgroundColor: COLORS.primary, alignItems: 'center' },
+    startBtn: { backgroundColor: COLORS.gold },
+    actionBtnText: { color: '#fff', fontWeight: '800' },
+    entriesCard: { backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md, padding: SPACING.md, gap: 4 },
+    sectionLabel: { ...TYPOGRAPHY.label, marginBottom: 6 },
+    entryName: { color: COLORS.text, fontSize: 13 },
+    roundBlock: { marginBottom: SPACING.md },
+    matchupRow: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: 6,
+    },
+    playerName: { flex: 1, color: COLORS.textMuted, fontSize: 13 },
+    winnerName: { color: COLORS.gold, fontWeight: '800' },
+    vsText: { color: COLORS.textMuted, fontSize: 11 },
+  }));
 
   if (loading || !tournament) {
     return (
@@ -123,29 +153,3 @@ export default function CardsTournamentBracketScreen({ route, navigation }: any)
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  meta: { color: COLORS.textMuted, textAlign: 'center', fontSize: 12, marginBottom: SPACING.sm },
-  actionRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-  actionBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.pill, backgroundColor: COLORS.primary, alignItems: 'center' },
-  startBtn: { backgroundColor: COLORS.gold },
-  actionBtnText: { color: '#fff', fontWeight: '800' },
-  entriesCard: { backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md, padding: SPACING.md, gap: 4 },
-  sectionLabel: { ...TYPOGRAPHY.label, marginBottom: 6 },
-  entryName: { color: COLORS.text, fontSize: 13 },
-  roundBlock: { marginBottom: SPACING.md },
-  matchupRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: 6,
-  },
-  playerName: { flex: 1, color: COLORS.textMuted, fontSize: 13 },
-  winnerName: { color: COLORS.gold, fontWeight: '800' },
-  vsText: { color: COLORS.textMuted, fontSize: 11 },
-});

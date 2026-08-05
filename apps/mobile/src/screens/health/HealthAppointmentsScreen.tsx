@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -12,6 +13,8 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function HealthAppointmentsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +28,26 @@ export default function HealthAppointmentsScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
+      padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10,
+    },
+    title: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
+    sub: { color: '#F87171', fontSize: 12, fontWeight: '600', marginBottom: 4 },
+    date: { color: COLORS.textMuted, fontSize: 12, marginBottom: 2 },
+    reason: { color: COLORS.textMuted, fontSize: 12 },
+    fee: { color: '#F87171', fontWeight: '800', fontSize: 14 },
+    statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    statusText: { fontSize: 10, fontWeight: '700' },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -72,23 +95,3 @@ export default function HealthAppointmentsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
-    padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10,
-  },
-  title: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
-  sub: { color: '#F87171', fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  date: { color: COLORS.textMuted, fontSize: 12, marginBottom: 2 },
-  reason: { color: COLORS.textMuted, fontSize: 12 },
-  fee: { color: '#F87171', fontWeight: '800', fontSize: 14 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: '700' },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
-});

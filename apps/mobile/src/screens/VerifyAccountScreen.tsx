@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
+  View, Text, TouchableOpacity, ScrollView, TextInput,
   Image, Alert, ActivityIndicator, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadImage } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,13 +16,6 @@ const ID_TYPES = [
   { key: 'PASSPORT', label: 'Passport' },
   { key: 'DRIVERS_LICENSE', label: "Driver's Licence" },
 ];
-
-const STATUS_COPY: Record<string, { title: string; body: string; color: string; icon: string }> = {
-  VERIFIED: { title: 'Verified', body: 'Your account is verified — the wallet and creator funds are fully unlocked.', color: '#10B981', icon: 'shield-checkmark' },
-  PENDING: { title: 'Under review', body: 'Your submission is with the Guranda team for review. This usually covers business or certificate documents.', color: '#F59E0B', icon: 'time' },
-  REJECTED: { title: 'Not approved', body: 'Your last submission was rejected — check the reason below and resubmit.', color: '#F87171', icon: 'close-circle' },
-  UNVERIFIED: { title: 'Not verified yet', body: 'Verify your identity to unlock the wallet, creator funds and verified-only modules.', color: COLORS.textMuted, icon: 'shield-outline' },
-};
 
 async function pickAndUpload(): Promise<string | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -33,8 +27,17 @@ async function pickAndUpload(): Promise<string | null> {
 }
 
 export default function VerifyAccountScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING, TYPOGRAPHY } = theme;
   const { refreshVerification } = useAuth();
   const reason: string | undefined = route?.params?.reason;
+
+  const STATUS_COPY: Record<string, { title: string; body: string; color: string; icon: string }> = {
+    VERIFIED: { title: 'Verified', body: 'Your account is verified — the wallet and creator funds are fully unlocked.', color: '#10B981', icon: 'shield-checkmark' },
+    PENDING: { title: 'Under review', body: 'Your submission is with the Guranda team for review. This usually covers business or certificate documents.', color: '#F59E0B', icon: 'time' },
+    REJECTED: { title: 'Not approved', body: 'Your last submission was rejected — check the reason below and resubmit.', color: '#F87171', icon: 'close-circle' },
+    UNVERIFIED: { title: 'Not verified yet', body: 'Verify your identity to unlock the wallet, creator funds and verified-only modules.', color: COLORS.textMuted, icon: 'shield-outline' },
+  };
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -70,6 +73,74 @@ export default function VerifyAccountScreen({ navigation, route }: any) {
   const status: string = verification?.status || 'UNVERIFIED';
   const copy = STATUS_COPY[status];
   const canEdit = status === 'UNVERIFIED' || status === 'REJECTED';
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.md },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    reasonBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)',
+      borderRadius: RADIUS.md, padding: 12, marginBottom: SPACING.md,
+    },
+    reasonText: { color: '#F59E0B', fontSize: 13, fontWeight: '600', flex: 1 },
+    statusCard: {
+      flexDirection: 'row', gap: 12, alignItems: 'flex-start',
+      backgroundColor: COLORS.glass, borderWidth: 1, borderRadius: RADIUS.lg,
+      padding: 14, marginBottom: SPACING.md,
+    },
+    statusTitle: { fontSize: 15, fontWeight: '800' },
+    statusBody: { color: COLORS.textMuted, fontSize: 13, marginTop: 3, lineHeight: 18 },
+    rejectionReason: { color: '#F87171', fontSize: 12, marginTop: 6, fontStyle: 'italic' },
+    personalCard: {
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: 12, marginBottom: SPACING.md,
+    },
+    personalLabel: { ...TYPOGRAPHY.label, fontSize: 10 },
+    personalValue: { color: COLORS.text, fontWeight: '700', fontSize: 15, marginTop: 4 },
+    personalSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: SPACING.md, marginBottom: SPACING.sm },
+    card: {
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg, padding: 14, gap: 10, marginBottom: SPACING.sm,
+    },
+    idTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    idTypeChip: {
+      borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
+      paddingHorizontal: 12, paddingVertical: 7,
+    },
+    idTypeChipActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(139,92,246,0.15)' },
+    idTypeText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    idTypeTextActive: { color: COLORS.primary },
+    input: {
+      backgroundColor: COLORS.surface, color: COLORS.text, padding: 13,
+      borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border,
+    },
+    uploadBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1, borderColor: COLORS.primary, borderStyle: 'dashed',
+      borderRadius: RADIUS.sm, paddingVertical: 12,
+    },
+    uploadBtnText: { color: COLORS.primary, fontWeight: '600', fontSize: 13 },
+    docPreview: { width: '100%', height: 140, borderRadius: RADIUS.sm, marginTop: 4 },
+    docCount: { color: '#10B981', fontSize: 12, fontWeight: '600' },
+    toggleRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingVertical: 10,
+    },
+    toggleTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    toggleSub: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2 },
+    submitBtn: {
+      backgroundColor: COLORS.primary, padding: 15, borderRadius: RADIUS.md,
+      alignItems: 'center', marginTop: SPACING.md,
+    },
+    submitBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+    footnote: { color: COLORS.textMuted, fontSize: 11.5, textAlign: 'center', marginTop: SPACING.sm, lineHeight: 16 },
+  }));
 
   const uploadId = async () => {
     try {
@@ -322,71 +393,3 @@ export default function VerifyAccountScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.md },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  reasonBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)',
-    borderRadius: RADIUS.md, padding: 12, marginBottom: SPACING.md,
-  },
-  reasonText: { color: '#F59E0B', fontSize: 13, fontWeight: '600', flex: 1 },
-  statusCard: {
-    flexDirection: 'row', gap: 12, alignItems: 'flex-start',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderRadius: RADIUS.lg,
-    padding: 14, marginBottom: SPACING.md,
-  },
-  statusTitle: { fontSize: 15, fontWeight: '800' },
-  statusBody: { color: COLORS.textMuted, fontSize: 13, marginTop: 3, lineHeight: 18 },
-  rejectionReason: { color: '#F87171', fontSize: 12, marginTop: 6, fontStyle: 'italic' },
-  personalCard: {
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: 12, marginBottom: SPACING.md,
-  },
-  personalLabel: { ...TYPOGRAPHY.label, fontSize: 10 },
-  personalValue: { color: COLORS.text, fontWeight: '700', fontSize: 15, marginTop: 4 },
-  personalSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: SPACING.md, marginBottom: SPACING.sm },
-  card: {
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg, padding: 14, gap: 10, marginBottom: SPACING.sm,
-  },
-  idTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  idTypeChip: {
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
-    paddingHorizontal: 12, paddingVertical: 7,
-  },
-  idTypeChipActive: { borderColor: COLORS.primary, backgroundColor: 'rgba(139,92,246,0.15)' },
-  idTypeText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  idTypeTextActive: { color: COLORS.primary },
-  input: {
-    backgroundColor: COLORS.surface, color: COLORS.text, padding: 13,
-    borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border,
-  },
-  uploadBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderWidth: 1, borderColor: COLORS.primary, borderStyle: 'dashed',
-    borderRadius: RADIUS.sm, paddingVertical: 12,
-  },
-  uploadBtnText: { color: COLORS.primary, fontWeight: '600', fontSize: 13 },
-  docPreview: { width: '100%', height: 140, borderRadius: RADIUS.sm, marginTop: 4 },
-  docCount: { color: '#10B981', fontSize: 12, fontWeight: '600' },
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 10,
-  },
-  toggleTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  toggleSub: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2 },
-  submitBtn: {
-    backgroundColor: COLORS.primary, padding: 15, borderRadius: RADIUS.md,
-    alignItems: 'center', marginTop: SPACING.md,
-  },
-  submitBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-  footnote: { color: COLORS.textMuted, fontSize: 11.5, textAlign: 'center', marginTop: SPACING.sm, lineHeight: 16 },
-});

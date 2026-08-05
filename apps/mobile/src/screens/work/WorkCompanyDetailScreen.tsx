@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function WorkCompanyDetailScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { companyId } = route.params;
   const [company, setCompany] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -13,6 +16,31 @@ export default function WorkCompanyDetailScreen({ navigation, route }: any) {
   useEffect(() => {
     fetchApi(`/work/companies/${companyId}`).then(r => r.json()).then(setCompany).catch(() => {}).finally(() => setLoading(false));
   }, [companyId]);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+    logo: { width: 64, height: 64, borderRadius: 16 },
+    logoPlaceholder: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#0EA5E915', justifyContent: 'center', alignItems: 'center' },
+    name: { ...TYPOGRAPHY.h2, marginBottom: 2 },
+    industry: { color: '#0EA5E9', fontSize: 12, fontWeight: '600' },
+    desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 12 },
+    websiteRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+    website: { color: '#0EA5E9', fontSize: 13 },
+    section: { marginTop: 8 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    hint: { color: COLORS.textMuted, fontSize: 13 },
+    jobRow: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
+      padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border,
+    },
+    jobTitle: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
+    jobMeta: { color: COLORS.textMuted, fontSize: 12 },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>;
   if (!company) return <View style={styles.center}><Text style={{ color: COLORS.textMuted }}>Company not found</Text></View>;
@@ -71,28 +99,3 @@ export default function WorkCompanyDetailScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-  logo: { width: 64, height: 64, borderRadius: 16 },
-  logoPlaceholder: { width: 64, height: 64, borderRadius: 16, backgroundColor: '#0EA5E915', justifyContent: 'center', alignItems: 'center' },
-  name: { ...TYPOGRAPHY.h2, marginBottom: 2 },
-  industry: { color: '#0EA5E9', fontSize: 12, fontWeight: '600' },
-  desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 12 },
-  websiteRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  website: { color: '#0EA5E9', fontSize: 13 },
-  section: { marginTop: 8 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  hint: { color: COLORS.textMuted, fontSize: 13 },
-  jobRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
-    padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border,
-  },
-  jobTitle: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
-  jobMeta: { color: COLORS.textMuted, fontSize: 12 },
-});

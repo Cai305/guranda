@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS, BRAND } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useEffectiveModules, LifeModule } from '../config/modules';
 import { AI_ENABLED } from '../config/featureFlags';
 import ModuleCard from '../components/ModuleCard';
@@ -23,23 +24,26 @@ import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../data/liveApi
 import { GAMES } from './hub/GamesScreen';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 
-// The Home dashboard mirrors the Life tab's 4 top-level doors — Games and
-// Mini Apps deep-link straight to each store's "installed" view for quick
-// access, since everything else now lives one tap deeper behind install.
-const YOUR_LIFE_ITEMS: LifeModule[] = [
-  { id: 'live_module', name: 'Live', icon: 'radio', gradient: GRADIENTS.live, status: 'live', tagline: 'Broadcast to the world', description: '', features: [], route: { name: 'Live' } },
-  { id: 'discovery_module', name: 'Discovery', icon: 'play-circle', gradient: GRADIENTS.crimson, status: 'live', tagline: 'Videos tailored to you', description: '', features: [], route: { name: 'Discovery' } },
-  { id: 'games_installed', name: 'Games', icon: 'game-controller', gradient: GRADIENTS.aurora, status: 'live', tagline: 'Your installed games', description: '', features: [], route: { name: 'Life', params: { screen: 'Games', params: { mode: 'installed-games' } } } },
-  { id: 'miniapps_installed', name: 'Mini Apps', icon: 'apps', gradient: GRADIENTS.emerald, status: 'live', tagline: 'Your installed mini apps', description: '', features: [], route: { name: 'Life', params: { screen: 'Hub', params: { mode: 'installed-miniapps' } } } },
-];
-
-const EVENTS = [
-  { id: 'e1', title: 'Season 1 Championship', when: 'Starts Monday', icon: 'trophy', color: COLORS.gold },
-  { id: 'e2', title: 'Community Game Night', when: 'Friday · 19:00', icon: 'game-controller', color: COLORS.secondary },
-  { id: 'e3', title: 'Guranda Creator AMA', when: 'Next week', icon: 'mic', color: COLORS.accent },
-];
-
 export default function HomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, BRAND, SPACING } = theme;
+
+  // The Home dashboard mirrors the Life tab's 4 top-level doors — Games and
+  // Mini Apps deep-link straight to each store's "installed" view for quick
+  // access, since everything else now lives one tap deeper behind install.
+  const YOUR_LIFE_ITEMS: LifeModule[] = [
+    { id: 'live_module', name: 'Live', icon: 'radio', gradient: GRADIENTS.live, status: 'live', tagline: 'Broadcast to the world', description: '', features: [], route: { name: 'Live' } },
+    { id: 'discovery_module', name: 'Discovery', icon: 'play-circle', gradient: GRADIENTS.crimson, status: 'live', tagline: 'Videos tailored to you', description: '', features: [], route: { name: 'Discovery' } },
+    { id: 'games_installed', name: 'Games', icon: 'game-controller', gradient: GRADIENTS.aurora, status: 'live', tagline: 'Your installed games', description: '', features: [], route: { name: 'Life', params: { screen: 'Games', params: { mode: 'installed-games' } } } },
+    { id: 'miniapps_installed', name: 'Mini Apps', icon: 'apps', gradient: GRADIENTS.emerald, status: 'live', tagline: 'Your installed mini apps', description: '', features: [], route: { name: 'Life', params: { screen: 'Hub', params: { mode: 'installed-miniapps' } } } },
+  ];
+
+  const EVENTS = [
+    { id: 'e1', title: 'Season 1 Championship', when: 'Starts Monday', icon: 'trophy', color: COLORS.gold },
+    { id: 'e2', title: 'Community Game Night', when: 'Friday · 19:00', icon: 'game-controller', color: COLORS.secondary },
+    { id: 'e3', title: 'Guranda Creator AMA', when: 'Next week', icon: 'mic', color: COLORS.accent },
+  ];
+
   const { user } = useAuth();
   const { onlineUsers } = useSocket();
   const MODULES = useEffectiveModules();
@@ -124,6 +128,342 @@ export default function HomeScreen({ navigation }: any) {
       navigation.navigate('Life', { screen: 'Games' });
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.lg,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      borderWidth: 2,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.surface,
+    },
+    greeting: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 13,
+    },
+    userName: {
+      ...TYPOGRAPHY.h3,
+      fontWeight: '700',
+    },
+    brandWrap: {
+      flexDirection: 'row',
+    },
+    brandLife: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: COLORS.text,
+      letterSpacing: -0.5,
+    },
+    brandOS: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: COLORS.primary,
+      letterSpacing: -0.5,
+    },
+    walletCard: {
+      borderRadius: RADIUS.xl,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: 'rgba(139, 92, 246, 0.35)',
+    },
+    walletTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    walletLabel: {
+      color: 'rgba(255,255,255,0.65)',
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      marginBottom: 6,
+    },
+    walletBalance: {
+      color: '#FFF',
+      fontSize: 34,
+      fontWeight: '800',
+      letterSpacing: -1,
+    },
+    walletCurrency: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: 'rgba(255,255,255,0.7)',
+    },
+    walletIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    walletActions: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+    },
+    walletBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+    },
+    walletBtnGhost: {
+      backgroundColor: 'rgba(255,255,255,0.07)',
+    },
+    walletBtnText: {
+      color: '#FFF',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    onlineStrip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginHorizontal: SPACING.lg,
+      marginTop: SPACING.md,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    onlineDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: COLORS.success,
+    },
+    onlineText: {
+      ...TYPOGRAPHY.body2,
+      flex: 1,
+      fontSize: 13,
+    },
+    liveHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl,
+      marginBottom: SPACING.md,
+    },
+    liveHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    liveDotSmall: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#FF3B30',
+    },
+    liveHeaderTitle: {
+      ...TYPOGRAPHY.h3,
+      fontWeight: '600',
+    },
+    goLivePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: RADIUS.pill,
+    },
+    goLivePillText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    seeAllLiveCard: {
+      width: 90,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+    },
+    seeAllLiveText: {
+      color: COLORS.secondary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    moduleGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      rowGap: SPACING.md,
+    },
+    hList: {
+      paddingHorizontal: SPACING.lg,
+      gap: SPACING.md,
+    },
+    chatCard: {
+      width: 110,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+      alignItems: 'center',
+    },
+    chatAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: COLORS.surface,
+      marginBottom: SPACING.sm,
+    },
+    chatName: {
+      color: COLORS.text,
+      fontSize: 13,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    chatType: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 10,
+      marginTop: 2,
+    },
+    gameCard: {
+      width: 160,
+      height: 100,
+      borderRadius: RADIUS.lg,
+      padding: 14,
+      justifyContent: 'space-between',
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    gameName: {
+      color: '#FFF',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    gameLive: {
+      color: 'rgba(255,255,255,0.8)',
+      fontSize: 10,
+      fontWeight: '700',
+      marginTop: 3,
+    },
+    communityCard: {
+      width: 140,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+    },
+    communityIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: 'rgba(34, 211, 238, 0.12)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: SPACING.sm,
+    },
+    communityName: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    communityMembers: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 11,
+      marginTop: 2,
+    },
+    emptyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACING.sm,
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      paddingVertical: SPACING.lg,
+    },
+    emptyCardText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.secondary,
+      fontWeight: '600',
+    },
+    eventRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      padding: 14,
+    },
+    eventIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    eventTitle: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    eventWhen: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    achievementCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      padding: 14,
+    },
+    achievementBadges: {
+      flexDirection: 'row',
+      gap: 2,
+    },
+    achievementEmoji: {
+      fontSize: 22,
+    },
+    missionFooter: {
+      alignItems: 'center',
+      marginTop: SPACING.xxl,
+    },
+    missionText: {
+      ...TYPOGRAPHY.caption,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      fontSize: 11,
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -403,338 +743,3 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.lg,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
-  },
-  greeting: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 13,
-  },
-  userName: {
-    ...TYPOGRAPHY.h3,
-    fontWeight: '700',
-  },
-  brandWrap: {
-    flexDirection: 'row',
-  },
-  brandLife: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text,
-    letterSpacing: -0.5,
-  },
-  brandOS: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.primary,
-    letterSpacing: -0.5,
-  },
-  walletCard: {
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.35)',
-  },
-  walletTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  walletLabel: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 6,
-  },
-  walletBalance: {
-    color: '#FFF',
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -1,
-  },
-  walletCurrency: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  walletIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  walletActions: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginTop: SPACING.lg,
-  },
-  walletBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: RADIUS.pill,
-  },
-  walletBtnGhost: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
-  walletBtnText: {
-    color: '#FFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  onlineStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.success,
-  },
-  onlineText: {
-    ...TYPOGRAPHY.body2,
-    flex: 1,
-    fontSize: 13,
-  },
-  liveHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.md,
-  },
-  liveHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  liveDotSmall: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF3B30',
-  },
-  liveHeaderTitle: {
-    ...TYPOGRAPHY.h3,
-    fontWeight: '600',
-  },
-  goLivePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: RADIUS.pill,
-  },
-  goLivePillText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  seeAllLiveCard: {
-    width: 90,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  seeAllLiveText: {
-    color: COLORS.secondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  moduleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    rowGap: SPACING.md,
-  },
-  hList: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
-  },
-  chatCard: {
-    width: 110,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    alignItems: 'center',
-  },
-  chatAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surface,
-    marginBottom: SPACING.sm,
-  },
-  chatName: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  chatType: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  gameCard: {
-    width: 160,
-    height: 100,
-    borderRadius: RADIUS.lg,
-    padding: 14,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  gameName: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  gameLive: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-  communityCard: {
-    width: 140,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-  },
-  communityIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  communityName: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  communityMembers: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  emptyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.lg,
-  },
-  emptyCardText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.secondary,
-    fontWeight: '600',
-  },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    padding: 14,
-  },
-  eventIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eventTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  eventWhen: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  achievementCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    padding: 14,
-  },
-  achievementBadges: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  achievementEmoji: {
-    fontSize: 22,
-  },
-  missionFooter: {
-    alignItems: 'center',
-    marginTop: SPACING.xxl,
-  },
-  missionText: {
-    ...TYPOGRAPHY.caption,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontSize: 11,
-  },
-});

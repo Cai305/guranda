@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 // Tenant dashboard: your rentals — pay rent from the Guranda wallet (auto
@@ -16,6 +17,73 @@ export default function MyRentalsScreen({ navigation }: any) {
   const [issueFor, setIssueFor] = useState<string | null>(null);
   const [issueTitle, setIssueTitle] = useState('');
   const [issueDesc, setIssueDesc] = useState('');
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#07211E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
+    card: {
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+    },
+    title: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
+    address: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
+    agent: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 4 },
+    rentRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      marginTop: 12,
+      backgroundColor: 'rgba(45,212,191,0.06)',
+      borderWidth: 1, borderColor: 'rgba(45,212,191,0.3)',
+      borderRadius: RADIUS.md,
+      padding: 12,
+    },
+    rentAmount: { color: COLORS.text, fontWeight: '800', fontSize: 14 },
+    rentStatus: { fontSize: 12, marginTop: 3, fontWeight: '600' },
+    payBtn: {
+      flexDirection: 'row', gap: 6, alignItems: 'center',
+      backgroundColor: '#0D9488',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 10, paddingHorizontal: 16,
+    },
+    payText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
+    section: { marginTop: 10 },
+    subLabel: { color: COLORS.textMuted, fontSize: 9.5, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
+    receiptRow: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    actionsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    actionBtn: {
+      flexDirection: 'row', gap: 6, alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 7, paddingHorizontal: 14,
+    },
+    actionText: { color: '#2DD4BF', fontWeight: '700', fontSize: 12 },
+    issueForm: { marginTop: 12, gap: 8 },
+    issueInput: {
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text,
+      padding: 11, fontSize: 13,
+    },
+    issueSubmit: {
+      backgroundColor: '#F59E0B',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    issueSubmitText: { color: '#4A2A00', fontWeight: '800', fontSize: 13 },
+  }));
 
   const load = useCallback(() => {
     fetchApi('/property/rentals')
@@ -175,69 +243,3 @@ export default function MyRentalsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07211E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-  },
-  title: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
-  address: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
-  agent: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 4 },
-  rentRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 12,
-    backgroundColor: 'rgba(45,212,191,0.06)',
-    borderWidth: 1, borderColor: 'rgba(45,212,191,0.3)',
-    borderRadius: RADIUS.md,
-    padding: 12,
-  },
-  rentAmount: { color: COLORS.text, fontWeight: '800', fontSize: 14 },
-  rentStatus: { fontSize: 12, marginTop: 3, fontWeight: '600' },
-  payBtn: {
-    flexDirection: 'row', gap: 6, alignItems: 'center',
-    backgroundColor: '#0D9488',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 10, paddingHorizontal: 16,
-  },
-  payText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
-  section: { marginTop: 10 },
-  subLabel: { color: COLORS.textMuted, fontSize: 9.5, fontWeight: '800', letterSpacing: 1, marginBottom: 4 },
-  receiptRow: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  actionBtn: {
-    flexDirection: 'row', gap: 6, alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 7, paddingHorizontal: 14,
-  },
-  actionText: { color: '#2DD4BF', fontWeight: '700', fontSize: 12 },
-  issueForm: { marginTop: 12, gap: 8 },
-  issueInput: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text,
-    padding: 11, fontSize: 13,
-  },
-  issueSubmit: {
-    backgroundColor: '#F59E0B',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  issueSubmitText: { color: '#4A2A00', fontWeight: '800', fontSize: 13 },
-});

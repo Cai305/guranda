@@ -8,7 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadImage, uploadMedia } from '../utils/api';
 
 const BG_COLORS = [
@@ -46,6 +47,8 @@ interface PlacedSticker {
 }
 
 export default function CreateStoryScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [text, setText] = useState('');
   const [selectedBg, setSelectedBg] = useState(0);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
@@ -68,6 +71,172 @@ export default function CreateStoryScreen({ navigation }: any) {
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [productResults, setProductResults] = useState<any[]>([]);
   const [productSearchLoading, setProductSearchLoading] = useState(false);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    backBtn: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, fontSize: 18 },
+    postBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: RADIUS.pill },
+    postBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    preview: {
+      margin: SPACING.lg,
+      borderRadius: RADIUS.xl,
+      height: 280,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    previewImage: { ...StyleSheet.absoluteFill },
+    previewTextWrap: { backgroundColor: 'rgba(0,0,0,0.35)', paddingHorizontal: 20, paddingVertical: 12, borderRadius: RADIUS.lg },
+    previewText: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center' },
+    previewPlaceholder: { color: 'rgba(255,255,255,0.55)', fontSize: 16, fontStyle: 'italic' },
+    stickerWrap: { position: 'absolute', top: 0, left: 0 },
+    stickerEmoji: { fontSize: 36 },
+    musicBadge: {
+      position: 'absolute', top: 12, left: 12, right: 60,
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 8, paddingVertical: 4,
+    },
+    musicBadgeText: { color: '#fff', fontSize: 11, flexShrink: 1 },
+    expiryBadge: {
+      position: 'absolute', bottom: 12, right: 12,
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 8, paddingVertical: 4,
+    },
+    expiryText: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
+    section: { paddingHorizontal: SPACING.lg, marginBottom: SPACING.lg },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
+    label: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, marginBottom: SPACING.sm, textTransform: 'uppercase', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+    hint: { ...TYPOGRAPHY.caption, color: COLORS.textMuted, marginTop: 6 },
+    segmentRow: { flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: 4, gap: 4 },
+    segment: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.sm, alignItems: 'center' },
+    segmentActive: { backgroundColor: COLORS.primary },
+    segmentText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 14 },
+    segmentTextActive: { color: '#fff' },
+    labelInput: {
+      backgroundColor: COLORS.surface, color: COLORS.text, borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, fontSize: 16, fontWeight: '700',
+    },
+    textInput: {
+      backgroundColor: COLORS.surface, color: COLORS.text, borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, fontSize: 16, minHeight: 80, textAlignVertical: 'top',
+    },
+    charCount: { ...TYPOGRAPHY.caption, textAlign: 'right', marginTop: 4, color: COLORS.textMuted },
+    bgRow: { gap: SPACING.sm, paddingVertical: 4 },
+    bgSwatch: { width: 42, height: 42, borderRadius: 21, padding: 3, borderWidth: 2, borderColor: 'transparent' },
+    bgSwatchSelected: { borderColor: COLORS.text },
+    bgSwatchInner: { flex: 1, borderRadius: 18 },
+    photoBtn: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md },
+    photoRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    photoThumb: { width: 36, height: 36, borderRadius: 8 },
+    photoBtnText: { ...TYPOGRAPHY.body2, color: COLORS.secondary, flex: 1 },
+    stickerRow: { gap: SPACING.sm, paddingVertical: 4 },
+    stickerOption: {
+      width: 44, height: 44, borderRadius: RADIUS.md, backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center',
+    },
+    stickerOptionEmoji: { fontSize: 22 },
+    addItemBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: 'rgba(139,92,246,0.12)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)',
+      paddingHorizontal: 12, paddingVertical: 5, borderRadius: RADIUS.pill,
+    },
+    addItemText: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
+    itemCard: { backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md, padding: 14, marginBottom: 10 },
+    itemCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    itemNumber: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+    itemInput: {
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm,
+      paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 14,
+    },
+    switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+    switchLabel: { color: COLORS.text, fontSize: 14 },
+
+    // Product squares in preview
+    productSquaresRow: {
+      position: 'absolute', bottom: 40, left: 12, right: 12,
+      flexDirection: 'row', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap',
+    },
+    productSquare: { width: 60, height: 60, borderRadius: 14, overflow: 'visible', position: 'relative' },
+    productSquareGrad: {
+      width: 60, height: 60, borderRadius: 14,
+      borderWidth: 2, borderColor: 'rgba(139,92,246,0.6)',
+      justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+    },
+    productSquareImg: { width: '100%', height: '100%', borderRadius: 12 },
+    productSquarePricePill: {
+      position: 'absolute', bottom: -8, left: 0, right: 0,
+      backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 6,
+      alignItems: 'center', paddingVertical: 2,
+    },
+    productSquarePriceText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+    productSquareClose: { position: 'absolute', top: -4, right: -4 },
+    productSquareAdd: {
+      width: 60, height: 60, borderRadius: 14, borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.3)', borderStyle: 'dashed',
+      justifyContent: 'center', alignItems: 'center',
+    },
+
+    // Link products section
+    linkProductsEmpty: { borderRadius: RADIUS.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' },
+    linkProductsEmptyGrad: { padding: 16 },
+    linkProductsEmptyInner: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    linkProductsEmptyIcon: { width: 46, height: 46, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+    linkProductsEmptyTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    linkProductsEmptyHint: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    linkedProductRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8,
+    },
+    linkedProductThumb: { width: 48, height: 48, borderRadius: RADIUS.sm, overflow: 'hidden' },
+    linkedProductThumbImg: { width: 48, height: 48, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
+    linkedProductName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    linkedProductStore: { color: COLORS.textMuted, fontSize: 11 },
+    linkedProductPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 13 },
+
+    // Product search modal
+    productSearchSheet: { flex: 1, backgroundColor: COLORS.surface },
+    handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+    productSearchHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+      borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    },
+    productSearchTitle: { ...TYPOGRAPHY.h2, fontSize: 17 },
+    productSearchBar: {
+      flexDirection: 'row', alignItems: 'center', gap: 8, margin: SPACING.lg,
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 11,
+    },
+    productSearchInput: { flex: 1, color: COLORS.text, fontSize: 15 },
+    productSearchEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+    productSearchEmptyText: { color: COLORS.textMuted, fontSize: 15 },
+    productResultRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.border, padding: 12,
+    },
+    productResultThumb: { width: 52, height: 52, borderRadius: RADIUS.sm, overflow: 'hidden' },
+    productResultThumbImg: { width: 52, height: 52, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
+    productResultName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    productResultStore: { color: COLORS.textMuted, fontSize: 12 },
+    productResultPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 14 },
+    linkBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 14, paddingVertical: 7 },
+    linkBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  }));
 
   const searchProducts = async (q: string) => {
     if (!q.trim()) { setProductResults([]); return; }
@@ -581,169 +750,3 @@ export default function CreateStoryScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, fontSize: 18 },
-  postBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: RADIUS.pill },
-  postBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  preview: {
-    margin: SPACING.lg,
-    borderRadius: RADIUS.xl,
-    height: 280,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  previewImage: { ...StyleSheet.absoluteFill },
-  previewTextWrap: { backgroundColor: 'rgba(0,0,0,0.35)', paddingHorizontal: 20, paddingVertical: 12, borderRadius: RADIUS.lg },
-  previewText: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center' },
-  previewPlaceholder: { color: 'rgba(255,255,255,0.55)', fontSize: 16, fontStyle: 'italic' },
-  stickerWrap: { position: 'absolute', top: 0, left: 0 },
-  stickerEmoji: { fontSize: 36 },
-  musicBadge: {
-    position: 'absolute', top: 12, left: 12, right: 60,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 8, paddingVertical: 4,
-  },
-  musicBadgeText: { color: '#fff', fontSize: 11, flexShrink: 1 },
-  expiryBadge: {
-    position: 'absolute', bottom: 12, right: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 8, paddingVertical: 4,
-  },
-  expiryText: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
-  section: { paddingHorizontal: SPACING.lg, marginBottom: SPACING.lg },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
-  label: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, marginBottom: SPACING.sm, textTransform: 'uppercase', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  hint: { ...TYPOGRAPHY.caption, color: COLORS.textMuted, marginTop: 6 },
-  segmentRow: { flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: 4, gap: 4 },
-  segment: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.sm, alignItems: 'center' },
-  segmentActive: { backgroundColor: COLORS.primary },
-  segmentText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 14 },
-  segmentTextActive: { color: '#fff' },
-  labelInput: {
-    backgroundColor: COLORS.surface, color: COLORS.text, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, fontSize: 16, fontWeight: '700',
-  },
-  textInput: {
-    backgroundColor: COLORS.surface, color: COLORS.text, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, fontSize: 16, minHeight: 80, textAlignVertical: 'top',
-  },
-  charCount: { ...TYPOGRAPHY.caption, textAlign: 'right', marginTop: 4, color: COLORS.textMuted },
-  bgRow: { gap: SPACING.sm, paddingVertical: 4 },
-  bgSwatch: { width: 42, height: 42, borderRadius: 21, padding: 3, borderWidth: 2, borderColor: 'transparent' },
-  bgSwatchSelected: { borderColor: COLORS.text },
-  bgSwatchInner: { flex: 1, borderRadius: 18 },
-  photoBtn: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  photoThumb: { width: 36, height: 36, borderRadius: 8 },
-  photoBtnText: { ...TYPOGRAPHY.body2, color: COLORS.secondary, flex: 1 },
-  stickerRow: { gap: SPACING.sm, paddingVertical: 4 },
-  stickerOption: {
-    width: 44, height: 44, borderRadius: RADIUS.md, backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center',
-  },
-  stickerOptionEmoji: { fontSize: 22 },
-  addItemBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(139,92,246,0.12)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)',
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: RADIUS.pill,
-  },
-  addItemText: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
-  itemCard: { backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md, padding: 14, marginBottom: 10 },
-  itemCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  itemNumber: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-  itemInput: {
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm,
-    paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 14,
-  },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
-  switchLabel: { color: COLORS.text, fontSize: 14 },
-
-  // Product squares in preview
-  productSquaresRow: {
-    position: 'absolute', bottom: 40, left: 12, right: 12,
-    flexDirection: 'row', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap',
-  },
-  productSquare: { width: 60, height: 60, borderRadius: 14, overflow: 'visible', position: 'relative' },
-  productSquareGrad: {
-    width: 60, height: 60, borderRadius: 14,
-    borderWidth: 2, borderColor: 'rgba(139,92,246,0.6)',
-    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
-  },
-  productSquareImg: { width: '100%', height: '100%', borderRadius: 12 },
-  productSquarePricePill: {
-    position: 'absolute', bottom: -8, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 6,
-    alignItems: 'center', paddingVertical: 2,
-  },
-  productSquarePriceText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  productSquareClose: { position: 'absolute', top: -4, right: -4 },
-  productSquareAdd: {
-    width: 60, height: 60, borderRadius: 14, borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)', borderStyle: 'dashed',
-    justifyContent: 'center', alignItems: 'center',
-  },
-
-  // Link products section
-  linkProductsEmpty: { borderRadius: RADIUS.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)' },
-  linkProductsEmptyGrad: { padding: 16 },
-  linkProductsEmptyInner: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  linkProductsEmptyIcon: { width: 46, height: 46, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
-  linkProductsEmptyTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  linkProductsEmptyHint: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  linkedProductRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8,
-  },
-  linkedProductThumb: { width: 48, height: 48, borderRadius: RADIUS.sm, overflow: 'hidden' },
-  linkedProductThumbImg: { width: 48, height: 48, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
-  linkedProductName: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  linkedProductStore: { color: COLORS.textMuted, fontSize: 11 },
-  linkedProductPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 13 },
-
-  // Product search modal
-  productSearchSheet: { flex: 1, backgroundColor: COLORS.surface },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
-  productSearchHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  productSearchTitle: { ...TYPOGRAPHY.h2, fontSize: 17 },
-  productSearchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, margin: SPACING.lg,
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 11,
-  },
-  productSearchInput: { flex: 1, color: COLORS.text, fontSize: 15 },
-  productSearchEmpty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
-  productSearchEmptyText: { color: COLORS.textMuted, fontSize: 15 },
-  productResultRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border, padding: 12,
-  },
-  productResultThumb: { width: 52, height: 52, borderRadius: RADIUS.sm, overflow: 'hidden' },
-  productResultThumbImg: { width: 52, height: 52, borderRadius: RADIUS.sm, justifyContent: 'center', alignItems: 'center' },
-  productResultName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  productResultStore: { color: COLORS.textMuted, fontSize: 12 },
-  productResultPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 14 },
-  linkBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 14, paddingVertical: 7 },
-  linkBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-});

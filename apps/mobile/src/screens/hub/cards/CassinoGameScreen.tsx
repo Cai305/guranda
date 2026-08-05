@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import PlayingCard from '../../../components/cards/PlayingCard';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../../utils/api';
 import {
@@ -151,6 +152,60 @@ export default function CassinoGameScreen({ route, navigation }: any) {
   useEffect(() => {
     if (finished) settleWager(!!iWon);
   }, [finished]);
+
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    scoreText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
+    opponentsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: SPACING.xs },
+    opponentBlock: { alignItems: 'center', gap: 4 },
+    opponentAvatar: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.surface },
+    opponentName: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', maxWidth: 140 },
+    miniHand: { flexDirection: 'row' },
+    turnDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
+    sectionLabel: { ...TYPOGRAPHY.label, marginLeft: SPACING.lg, marginTop: SPACING.xs },
+    tableArea: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, alignItems: 'center', justifyContent: 'center',
+      minHeight: 120, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
+    },
+    emptyTableText: { color: COLORS.textMuted, fontSize: 13 },
+    buildStack: { alignItems: 'center', gap: 2, padding: 4, borderRadius: RADIUS.sm },
+    buildCards: { flexDirection: 'row' },
+    buildValue: { color: COLORS.gold, fontWeight: '900', fontSize: 16 },
+    buildOwner: { color: COLORS.textMuted, fontSize: 9 },
+    targetSelected: { backgroundColor: 'rgba(139,92,246,0.2)', borderWidth: 1, borderColor: COLORS.primary },
+    actionBar: {
+      marginHorizontal: SPACING.lg, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.sm, gap: 8,
+    },
+    actionHint: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center' },
+    actionButtons: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
+    actionBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: RADIUS.pill },
+    captureBtn: { backgroundColor: COLORS.success },
+    buildBtn: { backgroundColor: COLORS.primary },
+    trailBtn: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.glassBorder },
+    cancelBtn: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: 10, justifyContent: 'center' },
+    actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+    handRow: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, alignItems: 'flex-end', flexGrow: 1, justifyContent: 'center' },
+    instructions: { textAlign: 'center', color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.lg },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
+    modalCard: {
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.xl,
+      alignItems: 'center', gap: 8, width: '80%', borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    modalTitle: { ...TYPOGRAPHY.h2 },
+    modalSubtitle: { color: COLORS.textMuted, textAlign: 'center', fontSize: 13 },
+    scoreSummary: { gap: 2, marginVertical: 4 },
+    modalBtn: { marginTop: SPACING.md, backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24 },
+    modalBtnText: { color: '#fff', fontWeight: '700' },
+  }));
 
   if (!state) {
     return (
@@ -307,54 +362,3 @@ export default function CassinoGameScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  scoreText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
-  opponentsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: SPACING.xs },
-  opponentBlock: { alignItems: 'center', gap: 4 },
-  opponentAvatar: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.surface },
-  opponentName: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600', maxWidth: 140 },
-  miniHand: { flexDirection: 'row' },
-  turnDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
-  sectionLabel: { ...TYPOGRAPHY.label, marginLeft: SPACING.lg, marginTop: SPACING.xs },
-  tableArea: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, alignItems: 'center', justifyContent: 'center',
-    minHeight: 120, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
-  },
-  emptyTableText: { color: COLORS.textMuted, fontSize: 13 },
-  buildStack: { alignItems: 'center', gap: 2, padding: 4, borderRadius: RADIUS.sm },
-  buildCards: { flexDirection: 'row' },
-  buildValue: { color: COLORS.gold, fontWeight: '900', fontSize: 16 },
-  buildOwner: { color: COLORS.textMuted, fontSize: 9 },
-  targetSelected: { backgroundColor: 'rgba(139,92,246,0.2)', borderWidth: 1, borderColor: COLORS.primary },
-  actionBar: {
-    marginHorizontal: SPACING.lg, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.sm, gap: 8,
-  },
-  actionHint: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center' },
-  actionButtons: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
-  actionBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: RADIUS.pill },
-  captureBtn: { backgroundColor: COLORS.success },
-  buildBtn: { backgroundColor: COLORS.primary },
-  trailBtn: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.glassBorder },
-  cancelBtn: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: 10, justifyContent: 'center' },
-  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  handRow: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, alignItems: 'flex-end', flexGrow: 1, justifyContent: 'center' },
-  instructions: { textAlign: 'center', color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.lg },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: {
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.xl,
-    alignItems: 'center', gap: 8, width: '80%', borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  modalTitle: { ...TYPOGRAPHY.h2 },
-  modalSubtitle: { color: COLORS.textMuted, textAlign: 'center', fontSize: 13 },
-  scoreSummary: { gap: 2, marginVertical: 4 },
-  modalBtn: { marginTop: SPACING.md, backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24 },
-  modalBtnText: { color: '#fff', fontWeight: '700' },
-});

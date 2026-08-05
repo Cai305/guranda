@@ -1,17 +1,45 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 // Buyer dashboard: every enquiry you've sent to a seller, and the car it
 // was about.
 
 export default function MyCarEnquiriesScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#160B2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
+    card: {
+      flexDirection: 'row', gap: 12, alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 12,
+    },
+    thumb: { width: 56, height: 56, borderRadius: RADIUS.md, backgroundColor: '#2E1065' },
+    thumbFallback: { justifyContent: 'center', alignItems: 'center' },
+    carTitle: { color: COLORS.text, fontWeight: '800', fontSize: 13.5 },
+    carPrice: { color: '#A78BFA', fontWeight: '700', fontSize: 12, marginTop: 2 },
+    message: { color: COLORS.textMuted, fontSize: 12, marginTop: 4, lineHeight: 16 },
+  }));
 
   const load = useCallback(() => {
     fetchApi('/carfind/enquiries/mine')
@@ -66,29 +94,3 @@ export default function MyCarEnquiriesScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#160B2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
-  card: {
-    flexDirection: 'row', gap: 12, alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 12,
-  },
-  thumb: { width: 56, height: 56, borderRadius: RADIUS.md, backgroundColor: '#2E1065' },
-  thumbFallback: { justifyContent: 'center', alignItems: 'center' },
-  carTitle: { color: COLORS.text, fontWeight: '800', fontSize: 13.5 },
-  carPrice: { color: '#A78BFA', fontWeight: '700', fontSize: 12, marginTop: 2 },
-  message: { color: COLORS.textMuted, fontSize: 12, marginTop: 4, lineHeight: 16 },
-});

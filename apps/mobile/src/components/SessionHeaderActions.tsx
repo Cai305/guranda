@@ -6,9 +6,10 @@
 // unexpected or, if the stack ends up in a state a screen doesn't expect,
 // silently fail to go anywhere. A fixed target sidesteps that entirely.
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useActiveSession, ActiveSession } from '../context/ActiveSessionContext';
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
 }
 
 export default function SessionHeaderActions({ navigation, session }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { minimize } = useActiveSession();
 
   const goHome = () => {
@@ -51,6 +54,15 @@ export default function SessionHeaderActions({ navigation, session }: Props) {
     goHome();
   };
 
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    row: { flexDirection: 'row', gap: 8 },
+    btn: {
+      width: 36, height: 36, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+  }));
+
   return (
     <View style={styles.row}>
       <TouchableOpacity style={styles.btn} onPress={onMinimize} accessibilityLabel="Minimize">
@@ -62,12 +74,3 @@ export default function SessionHeaderActions({ navigation, session }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8 },
-  btn: {
-    width: 36, height: 36, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-});

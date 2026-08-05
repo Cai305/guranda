@@ -1,15 +1,18 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 // Seller dashboard: every car listing you've published, with buyer
 // enquiries received on each one.
 
 export default function MyCarListingsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +47,49 @@ export default function MyCarListingsScreen({ navigation }: any) {
       },
     ]);
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#160B2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
+    card: {
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+    },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    cardTitle: { color: COLORS.text, fontWeight: '800', fontSize: 15, flex: 1 },
+    cardPrice: { color: '#A78BFA', fontWeight: '800', fontSize: 13 },
+    cardSpecs: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
+    actionsRow: { flexDirection: 'row', gap: 16, marginTop: 12 },
+    actionBtn: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+    actionText: { color: '#A78BFA', fontSize: 12, fontWeight: '700' },
+    soldPill: {
+      alignSelf: 'flex-start', marginTop: 10,
+      backgroundColor: 'rgba(248,113,113,0.2)',
+      borderWidth: 1, borderColor: 'rgba(248,113,113,0.6)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 9, paddingVertical: 3,
+    },
+    soldPillText: { color: '#F87171', fontSize: 10, fontWeight: '800' },
+    enquiries: {
+      marginTop: 12, paddingTop: 12,
+      borderTopWidth: 1, borderTopColor: COLORS.glassBorder,
+    },
+    subLabel: { color: COLORS.textMuted, fontSize: 9.5, fontWeight: '800', letterSpacing: 1, marginBottom: 6 },
+    enquiryRow: { marginTop: 6 },
+    enquiryFrom: { color: COLORS.text, fontWeight: '700', fontSize: 12.5 },
+    enquiryMessage: { color: COLORS.textMuted, fontSize: 12.5, marginTop: 2, lineHeight: 17 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -108,46 +154,3 @@ export default function MyCarListingsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#160B2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { color: COLORS.text, fontWeight: '800', fontSize: 15, flex: 1 },
-  cardPrice: { color: '#A78BFA', fontWeight: '800', fontSize: 13 },
-  cardSpecs: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
-  actionsRow: { flexDirection: 'row', gap: 16, marginTop: 12 },
-  actionBtn: { flexDirection: 'row', gap: 5, alignItems: 'center' },
-  actionText: { color: '#A78BFA', fontSize: 12, fontWeight: '700' },
-  soldPill: {
-    alignSelf: 'flex-start', marginTop: 10,
-    backgroundColor: 'rgba(248,113,113,0.2)',
-    borderWidth: 1, borderColor: 'rgba(248,113,113,0.6)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 9, paddingVertical: 3,
-  },
-  soldPillText: { color: '#F87171', fontSize: 10, fontWeight: '800' },
-  enquiries: {
-    marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: COLORS.glassBorder,
-  },
-  subLabel: { color: COLORS.textMuted, fontSize: 9.5, fontWeight: '800', letterSpacing: 1, marginBottom: 6 },
-  enquiryRow: { marginTop: 6 },
-  enquiryFrom: { color: COLORS.text, fontWeight: '700', fontSize: 12.5 },
-  enquiryMessage: { color: COLORS.textMuted, fontSize: 12.5, marginTop: 2, lineHeight: 17 },
-});

@@ -3,12 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 const STATUS_COLOR: Record<string, string> = { CONFIRMED: '#0EA5E9', COMPLETED: '#22c55e', CANCELLED: '#ef4444' };
 
 export default function MyPractitionerScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const [practitioner, setPractitioner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +32,41 @@ export default function MyPractitionerScreen({ navigation }: any) {
       setPractitioner((p: any) => ({ ...p, appointments: p.appointments.map((a: any) => a.id === appointmentId ? { ...a, status } : a) }));
     } catch {}
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingHorizontal: SPACING.lg },
+    emptyTitle: { ...TYPOGRAPHY.h2 },
+    emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
+    createBtn: { backgroundColor: '#F87171', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, marginTop: 8 },
+    createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    card: { margin: SPACING.lg, borderRadius: 16, padding: 18, gap: 12 },
+    cardName: { color: '#fff', fontSize: 20, fontWeight: '800' },
+    cardSpecialty: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+    statsRow: { flexDirection: 'row', gap: 24, marginTop: 4 },
+    stat: { alignItems: 'center' },
+    statNum: { color: '#fff', fontSize: 22, fontWeight: '800' },
+    statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginBottom: 10 },
+    emptyAppts: { alignItems: 'center', paddingVertical: 30, gap: 8 },
+    emptyApptsText: { color: COLORS.textMuted, fontSize: 13 },
+    apptRow: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
+      padding: 14, marginHorizontal: SPACING.lg, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 10,
+    },
+    apptDate: { color: COLORS.text, fontWeight: '600', fontSize: 13, marginBottom: 2 },
+    apptReason: { color: COLORS.textMuted, fontSize: 12, marginBottom: 6 },
+    statusPill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    statusText: { fontSize: 10, fontWeight: '700' },
+    actionBtn: { backgroundColor: '#22c55e', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+    actionBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    cancelBtn: { backgroundColor: '#ef444422', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+    cancelBtnText: { color: '#ef4444', fontSize: 11, fontWeight: '700' },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>;
 
@@ -119,38 +157,3 @@ export default function MyPractitionerScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingHorizontal: SPACING.lg },
-  emptyTitle: { ...TYPOGRAPHY.h2 },
-  emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
-  createBtn: { backgroundColor: '#F87171', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, marginTop: 8 },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  card: { margin: SPACING.lg, borderRadius: 16, padding: 18, gap: 12 },
-  cardName: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  cardSpecialty: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 24, marginTop: 4 },
-  stat: { alignItems: 'center' },
-  statNum: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginBottom: 10 },
-  emptyAppts: { alignItems: 'center', paddingVertical: 30, gap: 8 },
-  emptyApptsText: { color: COLORS.textMuted, fontSize: 13 },
-  apptRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
-    padding: 14, marginHorizontal: SPACING.lg, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 10,
-  },
-  apptDate: { color: COLORS.text, fontWeight: '600', fontSize: 13, marginBottom: 2 },
-  apptReason: { color: COLORS.textMuted, fontSize: 12, marginBottom: 6 },
-  statusPill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: '700' },
-  actionBtn: { backgroundColor: '#22c55e', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  actionBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  cancelBtn: { backgroundColor: '#ef444422', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  cancelBtnText: { color: '#ef4444', fontSize: 11, fontWeight: '700' },
-});

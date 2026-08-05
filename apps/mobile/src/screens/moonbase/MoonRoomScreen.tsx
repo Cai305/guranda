@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
@@ -44,6 +45,8 @@ const SLOTS = [
 ];
 
 export default function MoonRoomScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING, GRADIENTS } = theme;
   const { roomId, roomName, emoji } = route.params || {};
   const { user } = useAuth();
   const [members, setMembers] = useState<MoonMember[]>([]);
@@ -100,6 +103,96 @@ export default function MoonRoomScreen({ navigation, route }: any) {
     setInput('');
     socketRef.current?.emit('moon_message', { roomId, text });
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#0A0618' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
+    headerSub: { color: COLORS.success, fontSize: 11, marginTop: 2 },
+    scene: {
+      height: 210,
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
+      overflow: 'hidden',
+    },
+    star: {
+      position: 'absolute',
+      width: 2.5, height: 2.5, borderRadius: 2,
+      backgroundColor: 'rgba(255,255,255,0.7)',
+    },
+    moonSurface: {
+      position: 'absolute', bottom: -60, left: -40, right: -40,
+      height: 100,
+      borderRadius: 100,
+      backgroundColor: 'rgba(200,200,220,0.12)',
+    },
+    sceneMember: { position: 'absolute', alignItems: 'center', width: 64 },
+    sceneAvatar: {
+      width: 46, height: 46, borderRadius: 23,
+      borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.9)',
+      backgroundColor: '#1B0E45',
+    },
+    sceneName: {
+      color: 'rgba(255,255,255,0.85)', fontSize: 9.5, marginTop: 3,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5,
+      overflow: 'hidden',
+    },
+    sceneEmpty: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: 90 },
+    gamesBar: { marginTop: SPACING.md, maxHeight: 40 },
+    gameChip: {
+      backgroundColor: 'rgba(139,92,246,0.15)',
+      borderWidth: 1, borderColor: 'rgba(139,92,246,0.5)',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 8, paddingHorizontal: 14,
+    },
+    gameChipText: { color: COLORS.text, fontWeight: '700', fontSize: 12.5 },
+    msgRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
+    msgAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1B0E45' },
+    msgBubble: {
+      maxWidth: '75%',
+      backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      borderBottomLeftRadius: 4,
+      padding: 10,
+    },
+    msgBubbleMine: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+      borderBottomLeftRadius: RADIUS.lg,
+      borderBottomRightRadius: 4,
+    },
+    msgName: { color: COLORS.primary, fontSize: 10.5, fontWeight: '800', marginBottom: 2 },
+    msgText: { color: COLORS.text, fontSize: 13.5, lineHeight: 18 },
+    inputRow: {
+      flexDirection: 'row', gap: 10, alignItems: 'center',
+      padding: SPACING.lg, paddingTop: 6,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text,
+      paddingHorizontal: 16, paddingVertical: 10,
+      fontSize: 14,
+    },
+    sendBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+  }));
 
   const renderMessage = ({ item }: { item: MoonMessage }) => {
     const mine = item.userId === user?.userId;
@@ -191,93 +284,3 @@ export default function MoonRoomScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0618' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
-  headerSub: { color: COLORS.success, fontSize: 11, marginTop: 2 },
-  scene: {
-    height: 210,
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
-    overflow: 'hidden',
-  },
-  star: {
-    position: 'absolute',
-    width: 2.5, height: 2.5, borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-  },
-  moonSurface: {
-    position: 'absolute', bottom: -60, left: -40, right: -40,
-    height: 100,
-    borderRadius: 100,
-    backgroundColor: 'rgba(200,200,220,0.12)',
-  },
-  sceneMember: { position: 'absolute', alignItems: 'center', width: 64 },
-  sceneAvatar: {
-    width: 46, height: 46, borderRadius: 23,
-    borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.9)',
-    backgroundColor: '#1B0E45',
-  },
-  sceneName: {
-    color: 'rgba(255,255,255,0.85)', fontSize: 9.5, marginTop: 3,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5,
-    overflow: 'hidden',
-  },
-  sceneEmpty: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: 90 },
-  gamesBar: { marginTop: SPACING.md, maxHeight: 40 },
-  gameChip: {
-    backgroundColor: 'rgba(139,92,246,0.15)',
-    borderWidth: 1, borderColor: 'rgba(139,92,246,0.5)',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 8, paddingHorizontal: 14,
-  },
-  gameChipText: { color: COLORS.text, fontWeight: '700', fontSize: 12.5 },
-  msgRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
-  msgAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1B0E45' },
-  msgBubble: {
-    maxWidth: '75%',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    borderBottomLeftRadius: 4,
-    padding: 10,
-  },
-  msgBubbleMine: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-    borderBottomLeftRadius: RADIUS.lg,
-    borderBottomRightRadius: 4,
-  },
-  msgName: { color: COLORS.primary, fontSize: 10.5, fontWeight: '800', marginBottom: 2 },
-  msgText: { color: COLORS.text, fontSize: 13.5, lineHeight: 18 },
-  inputRow: {
-    flexDirection: 'row', gap: 10, alignItems: 'center',
-    padding: SPACING.lg, paddingTop: 6,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text,
-    paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 14,
-  },
-  sendBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-});

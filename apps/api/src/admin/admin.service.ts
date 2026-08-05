@@ -579,4 +579,347 @@ export class AdminService {
     });
     return { success: true };
   }
+
+  /**
+   * Platform revenue snapshot.
+   * "Revenue" here means MSH that flowed through the platform as fees/payments
+   * rather than peer-to-peer sends. We track it via Transaction.type:
+   *   PAYMENT             — in-app purchases (entertainment, eat, shopping, …)
+   *   EAT_ORDER_PAYOUT    — food orders (platform takes a cut of the gross)
+   *   SHOPPING_ORDER_PAYOUT
+   *   STORY_ITEM_SALE     — marketplace item sold via a story
+   *   DEPOSIT             — real-money on-ramp
+   */
+  async getRevenue() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const REVENUE_TYPES = [
+      'PAYMENT',
+      'EAT_ORDER_PAYOUT',
+      'SHOPPING_ORDER_PAYOUT',
+      'STORY_ITEM_SALE',
+      'DEPOSIT',
+    ];
+
+    const [
+      allTimeAggregate,
+      last30Aggregate,
+      byType,
+      dailyTx,
+      topSpenders,
+      recentTx,
+      totalDeposits,
+      depositVolume,
+      pendingDeposits,
+    ] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: { type: { in: REVENUE_TYPES }, status: 'SUCCESS', amount: { lt: 0 } },
+      }),
+      this.prisma.transaction.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: {
+          type: { in: REVENUE_TYPES },
+          status: 'SUCCESS',
+          amount: { lt: 0 },
+          timestamp: { gte: thirtyDaysAgo },
+        },
+      }),
+      // Breakdown by transaction type
+      this.prisma.transaction.groupBy({
+        by: ['type'],
+        _sum: { amount: true },
+        _count: true,
+        where: { type: { in: REVENUE_TYPES }, status: 'SUCCESS', amount: { lt: 0 } },
+      }),
+      // Daily volume for chart
+      this.prisma.transaction.findMany({
+        where: {
+          type: { in: REVENUE_TYPES },
+          status: 'SUCCESS',
+          amount: { lt: 0 },
+          timestamp: { gte: thirtyDaysAgo },
+        },
+        select: { timestamp: true, amount: true, type: true },
+        orderBy: { timestamp: 'asc' },
+      }),
+      // Top spenders
+      this.prisma.transaction.groupBy({
+        by: ['walletId'],
+        _sum: { amount: true },
+        _count: true,
+        where: { type: { in: REVENUE_TYPES }, status: 'SUCCESS', amount: { lt: 0 } },
+        orderBy: { _sum: { amount: 'asc' } },
+        take: 10,
+      }),
+      // Recent transactions
+      this.prisma.transaction.findMany({
+        where: { type: { in: REVENUE_TYPES }, status: 'SUCCESS' },
+        include: { wallet: { include: { user: { include: { profile: true } } } } },
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+      }),
+      this.prisma.depositRequest.count({ where: { status: 'PAID' } }),
+      this.prisma.depositRequest.aggregate({
+        _sum: { amountZar: true },
+        where: { status: 'PAID' },
+      }),
+      this.prisma.depositRequest.count({ where: { status: 'PENDING' } }),
+    ]);
+
+    const days = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      return d.toISOString().slice(0, 10);
+    });
+
+    const dailyVolume: Record<string, number> = {};
+    dailyTx.forEach((tx) => {
+      const key = tx.timestamp.toISOString().slice(0, 10);
+      dailyVolume[key] = (dailyVolume[key] ?? 0) + Math.abs(Number(tx.amount));
+    });
+
+    const volumeChart = days.map((day) => ({
+      day: day.slice(5),
+      value: parseFloat((dailyVolume[day] ?? 0).toFixed(2)),
+    }));
+
+    // Enrich top spenders with usernames
+    const walletIds = topSpenders.map((s) => s.walletId);
+    const wallets = await this.prisma.wallet.findMany({
+      where: { id: { in: walletIds } },
+      include: { user: { include: { profile: true } } },
+    });
+    const walletMap = Object.fromEntries(wallets.map((w) => [w.id, w]));
+
+    const TYPE_COLORS: Record<string, string> = {
+      PAYMENT: '#8b5cf6',
+      EAT_ORDER_PAYOUT: '#f59e0b',
+      SHOPPING_ORDER_PAYOUT: '#06b6d4',
+      STORY_ITEM_SALE: '#ec4899',
+      DEPOSIT: '#22c55e',
+    };
+
+    return {
+      totalRevenueMSH: Math.abs(Number(allTimeAggregate._sum.amount ?? 0)),
+      totalTransactions: allTimeAggregate._count,
+      last30DaysRevenueMSH: Math.abs(Number(last30Aggregate._sum.amount ?? 0)),
+      last30DaysTransactions: last30Aggregate._count,
+      totalDeposits,
+      depositVolumeZar: depositVolume._sum.amountZar ?? 0,
+      pendingDeposits,
+      byType: byType.map((t) => ({
+        type: t.type,
+        totalMSH: Math.abs(Number(t._sum.amount ?? 0)),
+        count: t._count,
+        color: TYPE_COLORS[t.type] ?? '#ffffff',
+      })),
+      volumeChart,
+      topSpenders: topSpenders.map((s) => {
+        const wallet = walletMap[s.walletId];
+        return {
+          username: wallet?.user?.username ?? 'Unknown',
+          displayName: wallet?.user?.profile?.displayName,
+          totalSpentMSH: Math.abs(Number(s._sum.amount ?? 0)),
+          txCount: s._count,
+        };
+      }),
+      recentTransactions: recentTx.map((tx) => ({
+        id: tx.id,
+        type: tx.type,
+        amount: Math.abs(Number(tx.amount)),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        username: tx.wallet?.user?.username,
+        displayName: tx.wallet?.user?.profile?.displayName,
+      })),
+    };
+  }
+
+  /**
+   * Discovery (video) platform metrics — what's being watched and uploaded.
+   */
+  async getDiscovery() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      totalVideos,
+      videosLast30,
+      totalViews,
+      totalLikes,
+      totalComments,
+      totalPlaylists,
+      totalSubscriptions,
+      totalCreators,
+      topVideos,
+      recentVideos,
+      videosInRange,
+      categoryBreakdown,
+    ] = await Promise.all([
+      this.prisma.video.count(),
+      this.prisma.video.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      this.prisma.watchHistory.count(),
+      this.prisma.videoLike.count(),
+      this.prisma.videoComment.count(),
+      this.prisma.playlist.count(),
+      this.prisma.creatorSubscription.count(),
+      this.prisma.video.groupBy({ by: ['creatorId'], _count: true }).then((r) => r.length),
+      this.prisma.video.findMany({
+        orderBy: { views: 'desc' },
+        take: 10,
+        include: {
+          creator: { select: { username: true, profile: { select: { displayName: true } } } },
+          _count: { select: { likes: true, comments: true } },
+        },
+      }),
+      this.prisma.video.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: {
+          creator: { select: { username: true, profile: { select: { displayName: true } } } },
+        },
+      }),
+      this.prisma.video.findMany({
+        where: { createdAt: { gte: thirtyDaysAgo } },
+        select: { createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.video.groupBy({
+        by: ['category'],
+        _count: true,
+        orderBy: { _count: { category: 'desc' } },
+        take: 10,
+      }),
+    ]);
+
+    const days = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      return d.toISOString().slice(0, 10);
+    });
+    const bucket = (items: { createdAt: Date }[]) => {
+      const map: Record<string, number> = {};
+      items.forEach((item) => {
+        const key = item.createdAt.toISOString().slice(0, 10);
+        map[key] = (map[key] ?? 0) + 1;
+      });
+      return days.map((day) => ({ day: day.slice(5), value: map[day] ?? 0 }));
+    };
+
+    return {
+      totalVideos,
+      videosLast30,
+      totalViews,
+      totalLikes,
+      totalComments,
+      totalPlaylists,
+      totalSubscriptions,
+      totalCreators,
+      uploadGrowth: bucket(videosInRange),
+      categoryBreakdown: categoryBreakdown.map((c) => ({
+        name: c.category,
+        value: c._count,
+      })),
+      topVideos: topVideos.map((v) => ({
+        id: v.id,
+        title: v.title,
+        category: v.category,
+        views: v.views,
+        duration: v.duration,
+        likes: v._count.likes,
+        comments: v._count.comments,
+        creator: v.creator?.profile?.displayName || v.creator?.username,
+        createdAt: v.createdAt,
+      })),
+      recentVideos: recentVideos.map((v) => ({
+        id: v.id,
+        title: v.title,
+        category: v.category,
+        views: v.views,
+        duration: v.duration,
+        creator: v.creator?.profile?.displayName || v.creator?.username,
+        createdAt: v.createdAt,
+      })),
+    };
+  }
+
+  /**
+   * Health check — one snapshot that tells you if the API and its key
+   * dependencies are responding. The DB check is a lightweight $queryRaw
+   * so it proves connectivity without touching any application table.
+   */
+  async getHealth() {
+    const start = Date.now();
+
+    let dbStatus: 'ok' | 'error' = 'ok';
+    let dbLatencyMs = 0;
+    try {
+      const t0 = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbLatencyMs = Date.now() - t0;
+    } catch {
+      dbStatus = 'error';
+    }
+
+    const [
+      userCount,
+      walletCount,
+      activeRides,
+      liveRooms,
+      pendingDeposits,
+      openVerifications,
+      failedAiLast1h,
+      suspendedUsers,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.wallet.count(),
+      this.prisma.ride.count({ where: { status: { in: ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'] } } }),
+      this.prisma.liveRoom.count({ where: { isLive: true } }),
+      this.prisma.depositRequest.count({ where: { status: 'PENDING' } }),
+      this.prisma.verification.count({ where: { status: 'PENDING' } }),
+      this.prisma.toolExecutionLog.count({
+        where: {
+          status: 'FAILED',
+          createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+        },
+      }),
+      this.prisma.user.count({ where: { isSuspended: true } }),
+    ]);
+
+    const apiLatencyMs = Date.now() - start;
+
+    return {
+      status: dbStatus === 'ok' ? 'healthy' : 'degraded',
+      checkedAt: new Date().toISOString(),
+      apiLatencyMs,
+      services: [
+        {
+          name: 'API Server',
+          status: 'ok',
+          latencyMs: apiLatencyMs,
+          note: 'This endpoint responded',
+        },
+        {
+          name: 'Database (PostgreSQL)',
+          status: dbStatus,
+          latencyMs: dbLatencyMs,
+          note: dbStatus === 'ok' ? 'SELECT 1 passed' : 'Query failed',
+        },
+      ],
+      counters: {
+        userCount,
+        walletCount,
+        activeRides,
+        liveRooms,
+        pendingDeposits,
+        openVerifications,
+        failedAiLast1h,
+        suspendedUsers,
+      },
+    };
+  }
 }

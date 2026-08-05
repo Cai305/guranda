@@ -1,18 +1,47 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function PlaylistsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    title: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    addBtn: { padding: 4 },
+    playlistRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+    playlistThumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
+    playlistInfo: { flex: 1 },
+    playlistName: { ...TYPOGRAPHY.body1, fontWeight: '700', marginBottom: 2 },
+    playlistCount: { color: COLORS.textMuted, fontSize: 12 },
+    playlistActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    deleteBtn: { padding: 4 },
+    sep: { height: 1, backgroundColor: COLORS.border },
+    empty: { alignItems: 'center', paddingTop: 80, gap: 12 },
+    emptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
+    emptyBtn: { marginTop: 4, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
+    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+    sheet: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 40, gap: 16 },
+    sheetTitle: { ...TYPOGRAPHY.h3, textAlign: 'center' },
+    nameInput: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 15 },
+    createBtn: { backgroundColor: COLORS.primary, borderRadius: 12, padding: 14, alignItems: 'center' },
+    createBtnDisabled: { opacity: 0.5 },
+    createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  }));
 
   const load = useCallback(async () => {
     try {
@@ -123,30 +152,3 @@ export default function PlaylistsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  title: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  addBtn: { padding: 4 },
-  playlistRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
-  playlistThumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
-  playlistInfo: { flex: 1 },
-  playlistName: { ...TYPOGRAPHY.body1, fontWeight: '700', marginBottom: 2 },
-  playlistCount: { color: COLORS.textMuted, fontSize: 12 },
-  playlistActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  deleteBtn: { padding: 4 },
-  sep: { height: 1, backgroundColor: COLORS.border },
-  empty: { alignItems: 'center', paddingTop: 80, gap: 12 },
-  emptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
-  emptyBtn: { marginTop: 4, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
-  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 40, gap: 16 },
-  sheetTitle: { ...TYPOGRAPHY.h3, textAlign: 'center' },
-  nameInput: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 15 },
-  createBtn: { backgroundColor: COLORS.primary, borderRadius: 12, padding: 14, alignItems: 'center' },
-  createBtnDisabled: { opacity: 0.5 },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});

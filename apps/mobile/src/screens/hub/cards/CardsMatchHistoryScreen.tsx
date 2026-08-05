@@ -1,13 +1,16 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchApi } from '../../../utils/api';
 
 export default function CardsMatchHistoryScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { user } = useAuth();
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +25,26 @@ export default function CardsMatchHistoryScreen({ navigation }: any) {
         .finally(() => setLoading(false));
     }, []),
   );
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    card: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
+    },
+    mode: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    meta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    resultBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill },
+    wonBadge: { backgroundColor: 'rgba(52,211,153,0.2)' },
+    lostBadge: { backgroundColor: 'rgba(248,113,113,0.2)' },
+    resultText: { fontSize: 10, fontWeight: '800', color: COLORS.text },
+  }));
 
   const renderItem = ({ item }: { item: any }) => {
     const seats = item.seats as any[];
@@ -66,23 +89,3 @@ export default function CardsMatchHistoryScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  card: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
-  },
-  mode: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  meta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  resultBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill },
-  wonBadge: { backgroundColor: 'rgba(52,211,153,0.2)' },
-  lostBadge: { backgroundColor: 'rgba(248,113,113,0.2)' },
-  resultText: { fontSize: 10, fontWeight: '800', color: COLORS.text },
-});

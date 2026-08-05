@@ -1,12 +1,15 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 
 export default function CouplesChallengesScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
@@ -50,6 +53,50 @@ export default function CouplesChallengesScreen({ navigation }: any) {
       setCompleting(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    rankCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: SPACING.lg, marginBottom: SPACING.md,
+      backgroundColor: 'rgba(244,63,94,0.12)', borderRadius: RADIUS.md, padding: SPACING.md,
+    },
+    rankText: { color: '#F43F5E', fontWeight: '800', fontSize: 14 },
+    xpText: { color: COLORS.textMuted, fontSize: 12, marginLeft: 'auto' },
+    levelCard: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
+    },
+    levelCardLocked: { opacity: 0.5 },
+    levelBadge: {
+      width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.glassBorder, justifyContent: 'center', alignItems: 'center',
+    },
+    levelBadgeDone: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+    levelNum: { color: COLORS.text, fontWeight: '800', fontSize: 12 },
+    levelTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    levelTitleLocked: { color: COLORS.textMuted },
+    levelDesc: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    xpBadge: { color: COLORS.gold, fontWeight: '700', fontSize: 12 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: SPACING.lg },
+    modalCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg },
+    modalDesc: { color: COLORS.textMuted, fontSize: 14, marginTop: 8, marginBottom: 12, lineHeight: 20 },
+    modalNote: { color: COLORS.text, fontStyle: 'italic', fontSize: 13, marginBottom: 12 },
+    noteInput: {
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, color: COLORS.text, minHeight: 60, marginBottom: 12,
+    },
+    completeBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center' },
+    completeBtnText: { color: '#fff', fontWeight: '800' },
+    closeBtn: { marginTop: 10, alignItems: 'center', paddingVertical: 8 },
+    closeBtnText: { color: COLORS.textMuted, fontWeight: '600' },
+  }));
 
   if (loading && !data) {
     return (
@@ -158,47 +205,3 @@ export default function CouplesChallengesScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  rankCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.md,
-    backgroundColor: 'rgba(244,63,94,0.12)', borderRadius: RADIUS.md, padding: SPACING.md,
-  },
-  rankText: { color: '#F43F5E', fontWeight: '800', fontSize: 14 },
-  xpText: { color: COLORS.textMuted, fontSize: 12, marginLeft: 'auto' },
-  levelCard: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
-  },
-  levelCardLocked: { opacity: 0.5 },
-  levelBadge: {
-    width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder, justifyContent: 'center', alignItems: 'center',
-  },
-  levelBadgeDone: { backgroundColor: COLORS.success, borderColor: COLORS.success },
-  levelNum: { color: COLORS.text, fontWeight: '800', fontSize: 12 },
-  levelTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  levelTitleLocked: { color: COLORS.textMuted },
-  levelDesc: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  xpBadge: { color: COLORS.gold, fontWeight: '700', fontSize: 12 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: SPACING.lg },
-  modalCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg },
-  modalDesc: { color: COLORS.textMuted, fontSize: 14, marginTop: 8, marginBottom: 12, lineHeight: 20 },
-  modalNote: { color: COLORS.text, fontStyle: 'italic', fontSize: 13, marginBottom: 12 },
-  noteInput: {
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, color: COLORS.text, minHeight: 60, marginBottom: 12,
-  },
-  completeBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center' },
-  completeBtnText: { color: '#fff', fontWeight: '800' },
-  closeBtn: { marginTop: 10, alignItems: 'center', paddingVertical: 8 },
-  closeBtnText: { color: COLORS.textMuted, fontWeight: '600' },
-});

@@ -2,15 +2,18 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 const STATUSES = ['PLACED', 'CONFIRMED', 'READY', 'COMPLETED', 'CANCELLED'];
-const STATUS_COLOR: Record<string, string> = {
-  PLACED: COLORS.textMuted, CONFIRMED: '#0EA5E9', READY: '#f59e0b', COMPLETED: '#22c55e', CANCELLED: '#ef4444',
-};
 
 export default function HealthPharmacyOrdersScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+  const STATUS_COLOR: Record<string, string> = {
+    PLACED: COLORS.textMuted, CONFIRMED: '#0EA5E9', READY: '#f59e0b', COMPLETED: '#22c55e', CANCELLED: '#ef4444',
+  };
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +34,25 @@ export default function HealthPharmacyOrdersScreen({ navigation }: any) {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
     } catch {}
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 6 },
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    name: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+    statusText: { fontSize: 11, fontWeight: '700' },
+    items: { color: COLORS.textMuted, fontSize: 13 },
+    total: { color: '#F87171', fontWeight: '700', fontSize: 14 },
+    actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+    statusBtn: { backgroundColor: COLORS.surfaceElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    statusBtnText: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -81,22 +103,3 @@ export default function HealthPharmacyOrdersScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 6 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  name: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  items: { color: COLORS.textMuted, fontSize: 13 },
-  total: { color: '#F87171', fontWeight: '700', fontSize: 14 },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  statusBtn: { backgroundColor: COLORS.surfaceElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  statusBtnText: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
-});

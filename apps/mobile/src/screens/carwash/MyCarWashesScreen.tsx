@@ -1,13 +1,37 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function MyCarWashesScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [carWashes, setCarWashes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
+      padding: 12, gap: 12, borderWidth: 1, borderColor: COLORS.border,
+    },
+    thumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
+    cardSub: { color: COLORS.textMuted, fontSize: 12, marginBottom: 2 },
+    cardMeta: { color: COLORS.textMuted, fontSize: 11 },
+    cardActions: { flexDirection: 'row', gap: 8 },
+    editBtn: { padding: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 8 },
+    deleteBtn: { padding: 8, backgroundColor: '#ef444415', borderRadius: 8 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+    emptyLink: { color: '#8B5CF6', fontWeight: '600', fontSize: 13, marginTop: 4 },
+  }));
 
   const load = useCallback(async () => {
     try {
@@ -96,24 +120,3 @@ export default function MyCarWashesScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
-    padding: 12, gap: 12, borderWidth: 1, borderColor: COLORS.border,
-  },
-  thumb: { width: 52, height: 52, borderRadius: 10, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
-  cardSub: { color: COLORS.textMuted, fontSize: 12, marginBottom: 2 },
-  cardMeta: { color: COLORS.textMuted, fontSize: 11 },
-  cardActions: { flexDirection: 'row', gap: 8 },
-  editBtn: { padding: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 8 },
-  deleteBtn: { padding: 8, backgroundColor: '#ef444415', borderRadius: 8 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
-  emptyLink: { color: '#8B5CF6', fontWeight: '600', fontSize: 13, marginTop: 4 },
-});

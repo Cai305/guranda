@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import WidgetCard, { WidgetCardProps } from './WidgetCard';
 import RideStatusCard from './RideStatusCard';
 import TripCard, { Trip } from './TripCard';
-import { SPACING } from '../../theme';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 export interface ToolWidget {
   toolCallId: string;
@@ -123,6 +123,12 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
 }
 
 export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRendererProps) {
+  const styles = useThemedStyles(({ SPACING }) => ({
+    container: { gap: SPACING.sm, marginTop: 6, alignSelf: 'stretch' },
+    row: { gap: SPACING.sm, paddingRight: SPACING.lg },
+    stack: { gap: SPACING.sm, alignSelf: 'stretch' },
+  }));
+
   if (!widgets || widgets.length === 0) return null;
 
   return (
@@ -177,9 +183,3 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { gap: SPACING.sm, marginTop: 6, alignSelf: 'stretch' },
-  row: { gap: SPACING.sm, paddingRight: SPACING.lg },
-  stack: { gap: SPACING.sm, alignSelf: 'stretch' },
-});

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, xhrUploadFormData } from '../../utils/api';
 import { startUpload, updateUploadProgress, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
 
@@ -11,6 +12,8 @@ const CATEGORIES = ['Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy
 const MIN_DURATION_S = 45;
 
 export default function VideoUploadScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -124,6 +127,36 @@ export default function VideoUploadScreen({ navigation }: any) {
     setUploading(false);
   };
 
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    uploadBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
+    uploadBtnDisabled: { opacity: 0.5 },
+    uploadBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    content: { padding: SPACING.lg, gap: 20, paddingBottom: 60 },
+    videoPicker: { borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed' },
+    videoEmptyBox: { alignItems: 'center', paddingVertical: 48, gap: 8, backgroundColor: COLORS.surface },
+    videoEmptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
+    videoEmptyHint: { color: COLORS.textMuted, fontSize: 12 },
+    videoPickedBox: { alignItems: 'center', paddingVertical: 32, gap: 8, backgroundColor: '#22c55e10' },
+    videoPickedText: { ...TYPOGRAPHY.body1, color: '#22c55e', fontWeight: '700' },
+    videoDuration: { color: COLORS.textMuted, fontSize: 13 },
+    rePickBtn: { marginTop: 4, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.surface },
+    rePickText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
+    durationError: { color: '#ef4444', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+    field: { gap: 8 },
+    label: { ...TYPOGRAPHY.label, fontSize: 11 },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
+    multiline: { minHeight: 100, textAlignVertical: 'top' },
+    catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    catChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+    catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    catChipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    catChipTextActive: { color: '#fff' },
+  }));
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -217,33 +250,3 @@ export default function VideoUploadScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  uploadBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
-  uploadBtnDisabled: { opacity: 0.5 },
-  uploadBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  content: { padding: SPACING.lg, gap: 20, paddingBottom: 60 },
-  videoPicker: { borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed' },
-  videoEmptyBox: { alignItems: 'center', paddingVertical: 48, gap: 8, backgroundColor: COLORS.surface },
-  videoEmptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
-  videoEmptyHint: { color: COLORS.textMuted, fontSize: 12 },
-  videoPickedBox: { alignItems: 'center', paddingVertical: 32, gap: 8, backgroundColor: '#22c55e10' },
-  videoPickedText: { ...TYPOGRAPHY.body1, color: '#22c55e', fontWeight: '700' },
-  videoDuration: { color: COLORS.textMuted, fontSize: 13 },
-  rePickBtn: { marginTop: 4, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.surface },
-  rePickText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
-  durationError: { color: '#ef4444', fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  field: { gap: 8 },
-  label: { ...TYPOGRAPHY.label, fontSize: 11 },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
-  multiline: { minHeight: 100, textAlignVertical: 'top' },
-  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  catChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  catChipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  catChipTextActive: { color: '#fff' },
-});

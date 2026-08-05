@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList,
+  View, Text, TouchableOpacity, TextInput, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 // Real full-screen DM-style chat for the fixed platform personas (Sipho,
@@ -33,6 +34,8 @@ function friendlyErrorMessage(message?: string): string {
 }
 
 export default function CompanionChatScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const companionId: string = route.params?.companionId;
   const companionName: string = route.params?.companionName || 'Chat';
 
@@ -112,6 +115,44 @@ export default function CompanionChatScreen({ navigation, route }: any) {
     );
   };
 
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+      borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.surface },
+    headerName: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
+    headerStatus: { color: COLORS.success, fontSize: 11 },
+    bubble: { maxWidth: '82%', borderRadius: RADIUS.lg, padding: 12 },
+    bubbleUser: { alignSelf: 'flex-end', backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
+    bubbleAi: {
+      alignSelf: 'flex-start', backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.glassBorder, borderBottomLeftRadius: 4,
+    },
+    bubbleText: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
+    systemText: { color: COLORS.textMuted, fontSize: 11.5, textAlign: 'center', marginVertical: 2 },
+    thinkingRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: SPACING.lg, paddingBottom: 6 },
+    thinkingText: { color: COLORS.textMuted, fontSize: 12 },
+    inputRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end', padding: SPACING.lg, paddingTop: 6 },
+    input: {
+      flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder, color: COLORS.text,
+      paddingHorizontal: 14, paddingVertical: 10, maxHeight: 110, fontSize: 14,
+    },
+    sendBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
+    },
+  }));
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
@@ -174,41 +215,3 @@ export default function CompanionChatScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-    borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: COLORS.surface },
-  headerName: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
-  headerStatus: { color: COLORS.success, fontSize: 11 },
-  bubble: { maxWidth: '82%', borderRadius: RADIUS.lg, padding: 12 },
-  bubbleUser: { alignSelf: 'flex-end', backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
-  bubbleAi: {
-    alignSelf: 'flex-start', backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder, borderBottomLeftRadius: 4,
-  },
-  bubbleText: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
-  systemText: { color: COLORS.textMuted, fontSize: 11.5, textAlign: 'center', marginVertical: 2 },
-  thinkingRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: SPACING.lg, paddingBottom: 6 },
-  thinkingText: { color: COLORS.textMuted, fontSize: 12 },
-  inputRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end', padding: SPACING.lg, paddingTop: 6 },
-  input: {
-    flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder, color: COLORS.text,
-    paddingHorizontal: 14, paddingVertical: 10, maxHeight: 110, fontSize: 14,
-  },
-  sendBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
-  },
-});

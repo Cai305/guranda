@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +13,37 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function FundingRequestDetailScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 6 },
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    amount: { color: COLORS.text, fontSize: 22, fontWeight: '800' },
+    statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+    statusText: { fontSize: 11, fontWeight: '700' },
+    description: { color: COLORS.textMuted, fontSize: 13 },
+    requesterText: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
+    voteRow: { flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 14 },
+    voteStat: { flex: 1, alignItems: 'center' },
+    voteCount: { color: COLORS.text, fontSize: 20, fontWeight: '800' },
+    voteLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    actionRow: { flexDirection: 'row', gap: 10 },
+    actionBtn: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', borderRadius: 14, padding: 14 },
+    actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    signBtn: { flexDirection: 'row', gap: 8, backgroundColor: '#8B5CF6', borderRadius: 14, padding: 15, alignItems: 'center', justifyContent: 'center' },
+    releasedCard: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: '#22c55e15', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#22c55e33' },
+    releasedTitle: { color: '#22c55e', fontWeight: '700', fontSize: 13 },
+    txHash: { color: COLORS.textMuted, fontSize: 11, fontFamily: 'monospace', marginTop: 2 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: 4 },
+    voteRowItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: COLORS.border },
+    voterName: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    hint: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+  }));
   const { requestId } = route.params;
   const { user } = useAuth();
   const [request, setRequest] = useState<any>(null);
@@ -174,33 +206,3 @@ export default function FundingRequestDetailScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 6 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  amount: { color: COLORS.text, fontSize: 22, fontWeight: '800' },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  description: { color: COLORS.textMuted, fontSize: 13 },
-  requesterText: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
-  voteRow: { flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 14 },
-  voteStat: { flex: 1, alignItems: 'center' },
-  voteCount: { color: COLORS.text, fontSize: 20, fontWeight: '800' },
-  voteLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  actionRow: { flexDirection: 'row', gap: 10 },
-  actionBtn: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', borderRadius: 14, padding: 14 },
-  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  signBtn: { flexDirection: 'row', gap: 8, backgroundColor: '#8B5CF6', borderRadius: 14, padding: 15, alignItems: 'center', justifyContent: 'center' },
-  releasedCard: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: '#22c55e15', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#22c55e33' },
-  releasedTitle: { color: '#22c55e', fontWeight: '700', fontSize: 13 },
-  txHash: { color: COLORS.textMuted, fontSize: 11, fontFamily: 'monospace', marginTop: 2 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: 4 },
-  voteRowItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: COLORS.border },
-  voterName: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  hint: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-});

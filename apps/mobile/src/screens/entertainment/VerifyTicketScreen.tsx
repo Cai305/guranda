@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 type Result = { valid: boolean; alreadyUsed: boolean; holder: string; checkedInAt?: string } | null;
@@ -43,6 +44,34 @@ export default function VerifyTicketScreen({ navigation, route }: any) {
       setVerifying(false);
     }
   };
+
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h3, flex: 1, textAlign: 'center', fontWeight: '700' },
+    statsRow: { alignItems: 'center', marginBottom: 8 },
+    statsText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    body: { flex: 1, alignItems: 'center', padding: SPACING.lg, paddingTop: 20 },
+    title: { ...TYPOGRAPHY.h3, marginBottom: 8, textAlign: 'center' },
+    subtitle: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
+    input: {
+      width: '100%', backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+      padding: 16, color: COLORS.text, fontSize: 18, fontWeight: '700', letterSpacing: 2, textAlign: 'center', marginBottom: 16,
+    },
+    errorText: { color: '#ef4444', fontSize: 13, marginBottom: 12 },
+    verifyBtn: { width: '100%', backgroundColor: '#10B981', borderRadius: 14, padding: 16, alignItems: 'center' },
+    verifyBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    resultCard: { width: '100%', marginTop: 24, borderRadius: 16, padding: 20, alignItems: 'center', gap: 4, borderWidth: 1 },
+    resultValid: { backgroundColor: '#22c55e15', borderColor: '#22c55e40' },
+    resultInvalid: { backgroundColor: '#ef444415', borderColor: '#ef444440' },
+    resultTitle: { ...TYPOGRAPHY.h3, marginTop: 6 },
+    resultSub: { color: COLORS.textMuted, fontSize: 14, fontWeight: '600' },
+    resultMeta: { color: COLORS.textMuted, fontSize: 12 },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -93,28 +122,3 @@ export default function VerifyTicketScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h3, flex: 1, textAlign: 'center', fontWeight: '700' },
-  statsRow: { alignItems: 'center', marginBottom: 8 },
-  statsText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  body: { flex: 1, alignItems: 'center', padding: SPACING.lg, paddingTop: 20 },
-  title: { ...TYPOGRAPHY.h3, marginBottom: 8, textAlign: 'center' },
-  subtitle: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
-  input: {
-    width: '100%', backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
-    padding: 16, color: COLORS.text, fontSize: 18, fontWeight: '700', letterSpacing: 2, textAlign: 'center', marginBottom: 16,
-  },
-  errorText: { color: '#ef4444', fontSize: 13, marginBottom: 12 },
-  verifyBtn: { width: '100%', backgroundColor: '#10B981', borderRadius: 14, padding: 16, alignItems: 'center' },
-  verifyBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  resultCard: { width: '100%', marginTop: 24, borderRadius: 16, padding: 20, alignItems: 'center', gap: 4, borderWidth: 1 },
-  resultValid: { backgroundColor: '#22c55e15', borderColor: '#22c55e40' },
-  resultInvalid: { backgroundColor: '#ef444415', borderColor: '#ef444440' },
-  resultTitle: { ...TYPOGRAPHY.h3, marginTop: 6 },
-  resultSub: { color: COLORS.textMuted, fontSize: 14, fontWeight: '600' },
-  resultMeta: { color: COLORS.textMuted, fontSize: 12 },
-});

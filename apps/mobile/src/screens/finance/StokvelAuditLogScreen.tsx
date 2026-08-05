@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const ACTION_ICON: Record<string, string> = {
@@ -13,6 +14,21 @@ const ACTION_ICON: Record<string, string> = {
 };
 
 export default function StokvelAuditLogScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    row: { flexDirection: 'row', gap: 10, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
+    iconWrap: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#F59E0B15', justifyContent: 'center', alignItems: 'center' },
+    action: { color: COLORS.text, fontWeight: '700', fontSize: 12, textTransform: 'capitalize' },
+    detail: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
+    time: { color: COLORS.textMuted, fontSize: 10, marginTop: 4 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  }));
   const { stokvelId } = route.params;
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,17 +86,3 @@ export default function StokvelAuditLogScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  row: { flexDirection: 'row', gap: 10, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
-  iconWrap: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#F59E0B15', justifyContent: 'center', alignItems: 'center' },
-  action: { color: COLORS.text, fontWeight: '700', fontSize: 12, textTransform: 'capitalize' },
-  detail: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
-  time: { color: COLORS.textMuted, fontSize: 10, marginTop: 4 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
-});

@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -18,6 +19,53 @@ export const STOKVEL_CATEGORIES = [
 type Tab = 'browse' | 'mine';
 
 export default function FinanceHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
+    back: { padding: 4, marginRight: 4 },
+    headerCenter: { flex: 1 },
+    headerTitle: { ...TYPOGRAPHY.h2 },
+    headerSub: { color: COLORS.textMuted, fontSize: 12 },
+    iconBtn: { padding: 6 },
+    hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
+    heroIcon: { position: 'absolute', right: 16, top: 12 },
+    heroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 4 },
+    heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
+    tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 8, marginBottom: 12 },
+    tabChip: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+      paddingVertical: 9, borderRadius: 20,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+    },
+    tabChipActive: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+    tabLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+    tabLabelActive: { color: '#fff' },
+    filterScroll: { marginBottom: 12 },
+    filterContent: { paddingHorizontal: SPACING.lg, gap: 8 },
+    filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+    filterChipActive: { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' },
+    filterText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    filterTextActive: { color: '#F59E0B' },
+    card: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
+      borderWidth: 1, borderColor: COLORS.border,
+    },
+    cardIconWrap: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#F59E0B15', justifyContent: 'center', alignItems: 'center' },
+    cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
+    cardSub: { color: COLORS.textMuted, fontSize: 12, marginBottom: 4 },
+    cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    cardMetaText: { color: COLORS.textMuted, fontSize: 11 },
+    rolePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: '#F59E0B22' },
+    rolePillText: { color: '#F59E0B', fontSize: 10, fontWeight: '700' },
+    cardAmount: { color: '#F59E0B', fontWeight: '800', fontSize: 14 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: SPACING.lg },
+    emptyBtn: { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
+    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  }));
   const [tab, setTab] = useState<Tab>('mine');
   const [category, setCategory] = useState('All');
   const [items, setItems] = useState<any[]>([]);
@@ -132,49 +180,3 @@ export default function FinanceHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
-  back: { padding: 4, marginRight: 4 },
-  headerCenter: { flex: 1 },
-  headerTitle: { ...TYPOGRAPHY.h2 },
-  headerSub: { color: COLORS.textMuted, fontSize: 12 },
-  iconBtn: { padding: 6 },
-  hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
-  heroIcon: { position: 'absolute', right: 16, top: 12 },
-  heroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
-  tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 8, marginBottom: 12 },
-  tabChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    paddingVertical: 9, borderRadius: 20,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-  },
-  tabChipActive: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
-  tabLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
-  tabLabelActive: { color: '#fff' },
-  filterScroll: { marginBottom: 12 },
-  filterContent: { paddingHorizontal: SPACING.lg, gap: 8 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  filterChipActive: { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' },
-  filterText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  filterTextActive: { color: '#F59E0B' },
-  card: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  cardIconWrap: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#F59E0B15', justifyContent: 'center', alignItems: 'center' },
-  cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
-  cardSub: { color: COLORS.textMuted, fontSize: 12, marginBottom: 4 },
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  cardMetaText: { color: COLORS.textMuted, fontSize: 11 },
-  rolePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: '#F59E0B22' },
-  rolePillText: { color: '#F59E0B', fontSize: 10, fontWeight: '700' },
-  cardAmount: { color: '#F59E0B', fontWeight: '800', fontSize: 14 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: SPACING.lg },
-  emptyBtn: { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
-  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-});

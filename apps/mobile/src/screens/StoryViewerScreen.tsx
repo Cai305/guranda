@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
-import { COLORS, GRADIENTS, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useShoppingCart } from '../context/ShoppingCartContext';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
 
@@ -29,6 +30,95 @@ export default function StoryViewerScreen({ route, navigation }: any) {
   const [selectedProduct, setSelectedProduct] = useState<ProductCardData | null>(null);
   const [productSheetVisible, setProductSheetVisible] = useState(false);
   const { addItem } = useShoppingCart();
+  const { theme } = useTheme();
+  const { GRADIENTS } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    dimOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.2)' },
+    progressContainer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+    progressRow: { flexDirection: 'row', gap: 4, paddingHorizontal: 12, paddingTop: 8 },
+    progressTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: 2, overflow: 'hidden' },
+    progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+    userRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6 },
+    avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: COLORS.primary },
+    username: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    timeLeft: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
+    textWrap: {
+      position: 'absolute',
+      bottom: '30%',
+      left: 24,
+      right: 24,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      borderRadius: 16,
+      padding: 18,
+    },
+    storyText: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center', lineHeight: 30 },
+    sticker: { position: 'absolute', fontSize: 36, zIndex: 6 },
+    tapZones: { ...StyleSheet.absoluteFill, flexDirection: 'row', zIndex: 5 },
+    tapLeft: { flex: 1 },
+    tapRight: { flex: 1 },
+    groupDots: { position: 'absolute', bottom: 40, alignSelf: 'center', flexDirection: 'row', gap: 6, zIndex: 10 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
+    dotActive: { backgroundColor: '#fff', width: 16 },
+
+    // ── Product squares ────────────────────────────────────────
+    productSquaresContainer: {
+      position: 'absolute',
+      bottom: 60,
+      left: 0, right: 0,
+      zIndex: 8,
+      paddingLeft: 16,
+    },
+    productSquaresLabel: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: 'rgba(0,0,0,0.5)', alignSelf: 'flex-start',
+      borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+      marginBottom: 8,
+    },
+    productSquaresLabelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    productSquaresRow: { gap: 10, paddingRight: 16 },
+    productSquare: {
+      alignItems: 'center',
+      zIndex: 9,
+    },
+    productSquareRing: {
+      width: 70, height: 70, borderRadius: 18,
+      padding: 2.5,
+    },
+    productSquareInner: {
+      flex: 1, borderRadius: 16, overflow: 'hidden',
+      backgroundColor: COLORS.surface,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    productSquareImg: {
+      width: '100%', height: '100%', borderRadius: 15,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    productSquarePill: {
+      marginTop: 5, backgroundColor: 'rgba(0,0,0,0.7)',
+      borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+      borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
+    },
+    productSquarePillText: { color: '#fff', fontSize: 10, fontWeight: '800', maxWidth: 60 },
+
+    // ── Product bottom sheet ──────────────────────────────────
+    sheetOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
+    },
+    productSheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: SPACING.lg, paddingBottom: 36,
+      alignItems: 'center', gap: 16,
+    },
+    sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginBottom: 4 },
+    sheetTitle: { color: COLORS.text, fontWeight: '800', fontSize: 18, alignSelf: 'flex-start' },
+    sheetCloseBtn: {
+      width: '100%', paddingVertical: 14,
+      borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
+      alignItems: 'center',
+    },
+    sheetCloseBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 14 },
+  }));
 
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
@@ -300,91 +390,3 @@ export default function StoryViewerScreen({ route, navigation }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  dimOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.2)' },
-  progressContainer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
-  progressRow: { flexDirection: 'row', gap: 4, paddingHorizontal: 12, paddingTop: 8 },
-  progressTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
-  userRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 6 },
-  avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: COLORS.primary },
-  username: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  timeLeft: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
-  textWrap: {
-    position: 'absolute',
-    bottom: '30%',
-    left: 24,
-    right: 24,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 16,
-    padding: 18,
-  },
-  storyText: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center', lineHeight: 30 },
-  sticker: { position: 'absolute', fontSize: 36, zIndex: 6 },
-  tapZones: { ...StyleSheet.absoluteFill, flexDirection: 'row', zIndex: 5 },
-  tapLeft: { flex: 1 },
-  tapRight: { flex: 1 },
-  groupDots: { position: 'absolute', bottom: 40, alignSelf: 'center', flexDirection: 'row', gap: 6, zIndex: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
-  dotActive: { backgroundColor: '#fff', width: 16 },
-
-  // ── Product squares ────────────────────────────────────────
-  productSquaresContainer: {
-    position: 'absolute',
-    bottom: 60,
-    left: 0, right: 0,
-    zIndex: 8,
-    paddingLeft: 16,
-  },
-  productSquaresLabel: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.5)', alignSelf: 'flex-start',
-    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
-    marginBottom: 8,
-  },
-  productSquaresLabelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  productSquaresRow: { gap: 10, paddingRight: 16 },
-  productSquare: {
-    alignItems: 'center',
-    zIndex: 9,
-  },
-  productSquareRing: {
-    width: 70, height: 70, borderRadius: 18,
-    padding: 2.5,
-  },
-  productSquareInner: {
-    flex: 1, borderRadius: 16, overflow: 'hidden',
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  productSquareImg: {
-    width: '100%', height: '100%', borderRadius: 15,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  productSquarePill: {
-    marginTop: 5, backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: 'rgba(139,92,246,0.4)',
-  },
-  productSquarePillText: { color: '#fff', fontSize: 10, fontWeight: '800', maxWidth: 60 },
-
-  // ── Product bottom sheet ──────────────────────────────────
-  sheetOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
-  },
-  productSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: SPACING.lg, paddingBottom: 36,
-    alignItems: 'center', gap: 16,
-  },
-  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginBottom: 4 },
-  sheetTitle: { color: COLORS.text, fontWeight: '800', fontSize: 18, alignSelf: 'flex-start' },
-  sheetCloseBtn: {
-    width: '100%', paddingVertical: 14,
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.pill,
-    alignItems: 'center',
-  },
-  sheetCloseBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 14 },
-});

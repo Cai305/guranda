@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Easing, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -34,6 +35,107 @@ const QUESTIONS = [
 ];
 
 export default function ArcadeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+    },
+    scoreBadge: {
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    scoreText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    timerContainer: {
+      height: 4,
+      backgroundColor: COLORS.border,
+      marginHorizontal: 20,
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    timerBar: {
+      height: '100%',
+      backgroundColor: COLORS.secondary,
+      borderRadius: 2,
+    },
+    questionContainer: {
+      flex: 1,
+      padding: 20,
+      paddingTop: 30,
+    },
+    questionNumber: {
+      color: COLORS.secondary,
+      fontSize: 14,
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      marginBottom: 12,
+    },
+    questionText: {
+      ...TYPOGRAPHY.h2,
+      lineHeight: 32,
+      marginBottom: 30,
+    },
+    optionsContainer: {
+      gap: 12,
+    },
+    option: {
+      backgroundColor: COLORS.surface,
+      padding: 18,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    correctOption: {
+      backgroundColor: COLORS.secondary,
+      borderColor: COLORS.secondary,
+    },
+    wrongOption: {
+      backgroundColor: COLORS.error,
+      borderColor: COLORS.error,
+    },
+    optionText: {
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    gameOverContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 30,
+    },
+    playAgainBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.primary,
+      paddingVertical: 16,
+      paddingHorizontal: 32,
+      borderRadius: 999,
+      marginTop: 30,
+      gap: 10,
+    },
+    playAgainText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    backBtn: {
+      marginTop: 20,
+      padding: 10,
+    },
+  }));
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -211,103 +313,3 @@ export default function ArcadeScreen({ navigation }: any) {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  scoreBadge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  scoreText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  timerContainer: {
-    height: 4,
-    backgroundColor: COLORS.border,
-    marginHorizontal: 20,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  timerBar: {
-    height: '100%',
-    backgroundColor: COLORS.secondary,
-    borderRadius: 2,
-  },
-  questionContainer: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 30,
-  },
-  questionNumber: {
-    color: COLORS.secondary,
-    fontSize: 14,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  questionText: {
-    ...TYPOGRAPHY.h2,
-    lineHeight: 32,
-    marginBottom: 30,
-  },
-  optionsContainer: {
-    gap: 12,
-  },
-  option: {
-    backgroundColor: COLORS.surface,
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  correctOption: {
-    backgroundColor: COLORS.secondary,
-    borderColor: COLORS.secondary,
-  },
-  wrongOption: {
-    backgroundColor: COLORS.error,
-    borderColor: COLORS.error,
-  },
-  optionText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  gameOverContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  playAgainBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 999,
-    marginTop: 30,
-    gap: 10,
-  },
-  playAgainText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  backBtn: {
-    marginTop: 20,
-    padding: 10,
-  },
-});

@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal, Share, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
 
 const CATEGORY_CHIPS = ['All', 'Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
 
 export default function DiscoverScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [videos, setVideos] = useState<VideoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -22,6 +25,57 @@ export default function DiscoverScreen({ navigation }: any) {
   const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
   const [targetVideo, setTargetVideo] = useState<VideoMeta | null>(null);
   const searchTimeout = useRef<any>(null);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 10, gap: 8 },
+    back: { padding: 2, marginRight: 4 },
+    logo: { flex: 1, ...TYPOGRAPHY.h2, fontSize: 20 },
+    headerActions: { flexDirection: 'row', gap: 2 },
+    iconBtn: { padding: 6 },
+    searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: COLORS.border },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
+    tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 0, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    tabBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+    tabBtnActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
+    tabText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    tabTextActive: { color: COLORS.primary },
+    chipsScroll: { maxHeight: 44, flexGrow: 0 },
+    chipsList: { paddingHorizontal: SPACING.lg, gap: 8, alignItems: 'center', paddingVertical: 6 },
+    chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    chipTextActive: { color: '#fff' },
+    separator: { height: 1, backgroundColor: COLORS.border, marginVertical: 2 },
+    empty: { alignItems: 'center', paddingTop: 80, gap: 12 },
+    emptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
+    emptyHint: { color: COLORS.textMuted, fontSize: 13 },
+    // modal
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+    sheet: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 36, gap: 4 },
+    sheetTitle: { ...TYPOGRAPHY.h3, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
+    sheetLabel: { ...TYPOGRAPHY.body1, fontSize: 15 },
+    sheetHint: { color: COLORS.textMuted, fontSize: 13, paddingVertical: 8 },
+    fab: {
+      position: 'absolute',
+      bottom: 24,
+      right: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 28,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    fabText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  }));
 
   const load = useCallback(async (t = tab) => {
     try {
@@ -256,54 +310,3 @@ export default function DiscoverScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 10, gap: 8 },
-  back: { padding: 2, marginRight: 4 },
-  logo: { flex: 1, ...TYPOGRAPHY.h2, fontSize: 20 },
-  headerActions: { flexDirection: 'row', gap: 2 },
-  iconBtn: { padding: 6 },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: COLORS.border },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
-  tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 0, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tabBtn: { paddingHorizontal: 14, paddingVertical: 10 },
-  tabBtnActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
-  tabText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  tabTextActive: { color: COLORS.primary },
-  chipsScroll: { maxHeight: 44, flexGrow: 0 },
-  chipsList: { paddingHorizontal: SPACING.lg, gap: 8, alignItems: 'center', paddingVertical: 6 },
-  chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  separator: { height: 1, backgroundColor: COLORS.border, marginVertical: 2 },
-  empty: { alignItems: 'center', paddingTop: 80, gap: 12 },
-  emptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
-  emptyHint: { color: COLORS.textMuted, fontSize: 13 },
-  // modal
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 36, gap: 4 },
-  sheetTitle: { ...TYPOGRAPHY.h3, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
-  sheetLabel: { ...TYPOGRAPHY.body1, fontSize: 15 },
-  sheetHint: { color: COLORS.textMuted, fontSize: 13, paddingVertical: 8 },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-});

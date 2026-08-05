@@ -1,14 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 type Mode = 'FIVE_CARDS' | 'CASSINO';
 
 export default function CardsLeaderboardScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [mode, setMode] = useState<Mode>('FIVE_CARDS');
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,30 @@ export default function CardsLeaderboardScreen({ navigation }: any) {
         .finally(() => setLoading(false));
     }, [mode]),
   );
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    tabRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
+    tab: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.pill, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center' },
+    tabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    tabText: { color: COLORS.textMuted, fontWeight: '700' },
+    tabTextActive: { color: '#fff' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.xs,
+    },
+    rank: { color: COLORS.gold, fontWeight: '800', width: 32 },
+    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surface },
+    name: { flex: 1, color: COLORS.text, fontWeight: '600' },
+    rating: { color: COLORS.primary, fontWeight: '800', marginRight: SPACING.sm },
+    stat: { color: COLORS.textMuted, fontSize: 12 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -69,27 +96,3 @@ export default function CardsLeaderboardScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  tabRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-  tab: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.pill, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center' },
-  tabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tabText: { color: COLORS.textMuted, fontWeight: '700' },
-  tabTextActive: { color: '#fff' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.xs,
-  },
-  rank: { color: COLORS.gold, fontWeight: '800', width: 32 },
-  avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surface },
-  name: { flex: 1, color: COLORS.text, fontWeight: '600' },
-  rating: { color: COLORS.primary, fontWeight: '800', marginRight: SPACING.sm },
-  stat: { color: COLORS.textMuted, fontSize: 12 },
-});

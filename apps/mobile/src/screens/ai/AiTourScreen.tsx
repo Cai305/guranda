@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { openAiOrb } from '../../utils/aiOrbBridge';
 
 // Post-activation guided tour: the agent takes the user INTO the app —
@@ -107,6 +107,61 @@ export default function AiTourScreen({ navigation, route }: any) {
 
   const skipAll = finishToFloatingChat;
 
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    skipRow: {
+      flexDirection: 'row', justifyContent: 'flex-end',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    skipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    body: { flex: 1, justifyContent: 'center', padding: SPACING.lg },
+    card: {
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 24,
+      alignItems: 'center',
+    },
+    orb: {
+      width: 64, height: 64, borderRadius: 32,
+      backgroundColor: 'rgba(139,92,246,0.4)',
+      borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    stepTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 14, textAlign: 'center' },
+    speech: {
+      marginTop: 16,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+      width: '100%',
+    },
+    speechHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+    miniOrb: {
+      width: 18, height: 18, borderRadius: 9,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    speechName: { color: COLORS.primary, fontWeight: '800', fontSize: 12 },
+    speechText: { color: 'rgba(255,255,255,0.88)', fontSize: 14, lineHeight: 21 },
+    ctaBtn: {
+      flexDirection: 'row', gap: 8,
+      marginTop: 20,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 13, paddingHorizontal: 34,
+      alignItems: 'center',
+    },
+    ctaText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+    nextText: { color: COLORS.textMuted, fontSize: 12, marginTop: 12 },
+    dots: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 20 },
+    dot: {
+      width: 8, height: 8, borderRadius: 4,
+      backgroundColor: COLORS.surfaceElevated,
+    },
+    dotActive: { backgroundColor: COLORS.primary, width: 22 },
+  }));
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.skipRow}>
@@ -155,58 +210,3 @@ export default function AiTourScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  skipRow: {
-    flexDirection: 'row', justifyContent: 'flex-end',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  skipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  body: { flex: 1, justifyContent: 'center', padding: SPACING.lg },
-  card: {
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 24,
-    alignItems: 'center',
-  },
-  orb: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: 'rgba(139,92,246,0.4)',
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  stepTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 14, textAlign: 'center' },
-  speech: {
-    marginTop: 16,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-    width: '100%',
-  },
-  speechHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  miniOrb: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  speechName: { color: COLORS.primary, fontWeight: '800', fontSize: 12 },
-  speechText: { color: 'rgba(255,255,255,0.88)', fontSize: 14, lineHeight: 21 },
-  ctaBtn: {
-    flexDirection: 'row', gap: 8,
-    marginTop: 20,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 13, paddingHorizontal: 34,
-    alignItems: 'center',
-  },
-  ctaText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-  nextText: { color: COLORS.textMuted, fontSize: 12, marginTop: 12 },
-  dots: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 20 },
-  dot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: COLORS.surfaceElevated,
-  },
-  dotActive: { backgroundColor: COLORS.primary, width: 22 },
-});

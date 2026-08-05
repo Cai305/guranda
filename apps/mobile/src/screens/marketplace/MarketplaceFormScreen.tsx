@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi, uploadImage } from '../../utils/api';
 
 const CATEGORIES = ['Electronics', 'Fashion', 'Home & Garden', 'Vehicles', 'Sports', 'Books & Media', 'Toys & Games', 'Collectibles', 'Other'];
@@ -20,6 +21,8 @@ const DURATIONS = [
 ];
 
 export default function MarketplaceFormScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -55,6 +58,60 @@ export default function MarketplaceFormScreen({ navigation }: any) {
   };
 
   const removePhoto = (url: string) => setPhotos(prev => prev.filter(p => p !== url));
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: '#150A2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    label: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: 8,
+    },
+    input: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text, padding: 13, fontSize: 14,
+    },
+    chipRow: { paddingHorizontal: SPACING.lg, gap: 8 },
+    chipRowFixed: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg },
+    chip: {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center',
+    },
+    chipActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
+    chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
+    photoRow: { paddingHorizontal: SPACING.lg, gap: 10 },
+    photoWrap: { position: 'relative' },
+    photo: { width: 84, height: 84, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,255,255,0.06)' },
+    photoRemove: {
+      position: 'absolute', top: -6, right: -6,
+      width: 20, height: 20, borderRadius: 10,
+      backgroundColor: '#DC2626', justifyContent: 'center', alignItems: 'center',
+    },
+    photoAdd: {
+      width: 84, height: 84, borderRadius: RADIUS.md,
+      borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.6)', borderStyle: 'dashed',
+      justifyContent: 'center', alignItems: 'center', gap: 4,
+    },
+    photoAddText: { color: '#A78BFA', fontSize: 11, fontWeight: '700' },
+    photoHint: { color: '#F59E0B', fontSize: 11.5, paddingHorizontal: SPACING.lg, marginTop: 8 },
+    saveBtn: {
+      flexDirection: 'row', gap: 8,
+      margin: SPACING.lg, marginTop: SPACING.xl,
+      backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
+      paddingVertical: 15, justifyContent: 'center', alignItems: 'center',
+    },
+    saveText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  }));
 
   const save = async () => {
     try {
@@ -187,57 +244,3 @@ export default function MarketplaceFormScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#150A2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  label: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: 8,
-  },
-  input: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text, padding: 13, fontSize: 14,
-  },
-  chipRow: { paddingHorizontal: SPACING.lg, gap: 8 },
-  chipRowFixed: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center',
-  },
-  chipActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
-  chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
-  photoRow: { paddingHorizontal: SPACING.lg, gap: 10 },
-  photoWrap: { position: 'relative' },
-  photo: { width: 84, height: 84, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,255,255,0.06)' },
-  photoRemove: {
-    position: 'absolute', top: -6, right: -6,
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: '#DC2626', justifyContent: 'center', alignItems: 'center',
-  },
-  photoAdd: {
-    width: 84, height: 84, borderRadius: RADIUS.md,
-    borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.6)', borderStyle: 'dashed',
-    justifyContent: 'center', alignItems: 'center', gap: 4,
-  },
-  photoAddText: { color: '#A78BFA', fontSize: 11, fontWeight: '700' },
-  photoHint: { color: '#F59E0B', fontSize: 11.5, paddingHorizontal: SPACING.lg, marginTop: 8 },
-  saveBtn: {
-    flexDirection: 'row', gap: 8,
-    margin: SPACING.lg, marginTop: SPACING.xl,
-    backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
-    paddingVertical: 15, justifyContent: 'center', alignItems: 'center',
-  },
-  saveText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-});

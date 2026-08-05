@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image, Modal, Share, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import QRCode from 'react-native-qrcode-svg';
@@ -9,6 +10,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { fetchApi } from '../utils/api';
 
 export default function AddContactScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { user } = useAuth();
   const incomingUsername = route?.params?.username;
   const incomingUid = route?.params?.uid;
@@ -157,6 +160,201 @@ export default function AddContactScreen({ route, navigation }: any) {
     }
   };
 
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    backButton: {
+      padding: 4,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      rowGap: 12,
+      paddingHorizontal: 15,
+      paddingVertical: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    actionBtn: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.surface,
+      padding: 15,
+      borderRadius: 16,
+      width: '48%',
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    actionText: {
+      ...TYPOGRAPHY.body2,
+      marginTop: 8,
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      margin: 15,
+      paddingHorizontal: 15,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    searchIcon: {
+      marginRight: 10,
+    },
+    searchInput: {
+      flex: 1,
+      color: COLORS.text,
+      paddingVertical: 12,
+      fontSize: 16,
+    },
+    spinner: {
+      marginLeft: 10,
+    },
+    list: {
+      paddingHorizontal: 15,
+    },
+    userItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 15,
+      backgroundColor: COLORS.surface,
+      borderRadius: 16,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: COLORS.background,
+      marginRight: 15,
+    },
+    userInfo: {
+      flex: 1,
+    },
+    displayName: {
+      ...TYPOGRAPHY.body1,
+      fontWeight: 'bold',
+    },
+    username: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+    },
+    emptyText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      textAlign: 'center',
+      marginTop: 20,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      marginTop: 10,
+    },
+    // Modals
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalContent: {
+      backgroundColor: COLORS.surface,
+      padding: 30,
+      borderRadius: 24,
+      alignItems: 'center',
+      width: '100%',
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    modalTitle: {
+      ...TYPOGRAPHY.h2,
+      marginBottom: 20,
+    },
+    qrWrapper: {
+      padding: 20,
+      backgroundColor: COLORS.text, // White background for QR code scanability
+      borderRadius: 16,
+      marginBottom: 15,
+    },
+    qrSubtitle: {
+      ...TYPOGRAPHY.body1,
+      color: COLORS.textMuted,
+      marginBottom: 30,
+    },
+    closeBtn: {
+      backgroundColor: COLORS.primary,
+      paddingVertical: 15,
+      paddingHorizontal: 40,
+      borderRadius: 999,
+    },
+    closeBtnText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    scannerContainer: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    scannerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      zIndex: 10,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    scannerOverlay: {
+      ...StyleSheet.absoluteFill,
+      justifyContent: 'center',
+      alignItems: 'center',
+      pointerEvents: 'none',
+    },
+    scannerTarget: {
+      width: 250,
+      height: 250,
+      borderWidth: 2,
+      borderColor: COLORS.secondary,
+      backgroundColor: 'transparent',
+    },
+    scannerHelpText: {
+      color: COLORS.text,
+      marginTop: 20,
+      fontSize: 16,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      padding: 10,
+      borderRadius: 8,
+    },
+    webScannerFallback: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 30,
+    }
+  }));
+
   const renderUser = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={styles.userItem} 
@@ -299,197 +497,3 @@ export default function AddContactScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backButton: {
-    padding: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  actionBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: 16,
-    width: '48%',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  actionText: {
-    ...TYPOGRAPHY.body2,
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    margin: 15,
-    paddingHorizontal: 15,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    color: COLORS.text,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  spinner: {
-    marginLeft: 10,
-  },
-  list: {
-    paddingHorizontal: 15,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
-    marginRight: 15,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  displayName: {
-    ...TYPOGRAPHY.body1,
-    fontWeight: 'bold',
-  },
-  username: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-  },
-  emptyText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    marginTop: 10,
-  },
-  // Modals
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    padding: 30,
-    borderRadius: 24,
-    alignItems: 'center',
-    width: '100%',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  modalTitle: {
-    ...TYPOGRAPHY.h2,
-    marginBottom: 20,
-  },
-  qrWrapper: {
-    padding: 20,
-    backgroundColor: COLORS.text, // White background for QR code scanability
-    borderRadius: 16,
-    marginBottom: 15,
-  },
-  qrSubtitle: {
-    ...TYPOGRAPHY.body1,
-    color: COLORS.textMuted,
-    marginBottom: 30,
-  },
-  closeBtn: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 999,
-  },
-  closeBtnText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  scannerContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scannerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  scannerOverlay: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  scannerTarget: {
-    width: 250,
-    height: 250,
-    borderWidth: 2,
-    borderColor: COLORS.secondary,
-    backgroundColor: 'transparent',
-  },
-  scannerHelpText: {
-    color: COLORS.text,
-    marginTop: 20,
-    fontSize: 16,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 10,
-    borderRadius: 8,
-  },
-  webScannerFallback: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  }
-});

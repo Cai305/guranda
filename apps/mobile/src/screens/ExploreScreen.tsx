@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Share } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -19,6 +20,13 @@ const CHALLENGE_CATEGORIES = [
 function PostMedia({ mediaUrl, mediaType }: { mediaUrl: string, mediaType?: 'IMAGE' | 'VIDEO' }) {
   const isVideo = mediaType === 'VIDEO';
   const player = useVideoPlayer(isVideo ? mediaUrl : null, p => { p.loop = false; });
+  const styles = useThemedStyles(({ COLORS }) => ({
+    postMedia: {
+      width: '100%',
+      height: 280,
+      backgroundColor: COLORS.background,
+    },
+  }));
   if (isVideo) {
     return <VideoView style={styles.postMedia} player={player} contentFit="cover" nativeControls />;
   }
@@ -257,6 +265,219 @@ export default function ExploreScreen({ navigation }: any) {
     );
   };
 
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 15,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    tabContainer: {
+      flexDirection: 'row',
+      marginTop: 15,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: 8,
+      padding: 4,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 8,
+      alignItems: 'center',
+      borderRadius: 6,
+    },
+    activeTab: {
+      backgroundColor: COLORS.surface,
+    },
+    tabText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+    },
+    activeTabText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+    },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 80,
+      gap: 12,
+    },
+    categoryRow: {
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+      gap: 8,
+    },
+    categoryChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    categoryChipActive: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+    },
+    categoryChipText: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    categoryChipTextActive: {
+      color: '#fff',
+    },
+    postCard: {
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      marginBottom: 12,
+    },
+    postHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    followBtn: {
+      backgroundColor: COLORS.text,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: RADIUS.pill,
+    },
+    followBtnText: {
+      color: COLORS.background,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    feedModeRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+      marginBottom: 12,
+    },
+    feedModeTab: {
+      paddingVertical: 10,
+      paddingHorizontal: 4,
+      marginRight: 24,
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    feedModeTabActive: {
+      borderBottomColor: COLORS.primary,
+    },
+    feedModeText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      fontWeight: '600',
+    },
+    feedModeTextActive: {
+      color: COLORS.text,
+    },
+    // Avatar sits in its own column sized as a percentage of the card (~14%,
+    // within the 10-20% range X's layout uses), not a fixed pixel width, so
+    // the proportion holds across device sizes. Content takes the rest via
+    // postAuthorInfo's flex: 1.
+    postAvatarCol: {
+      width: '14%',
+      alignItems: 'flex-start',
+    },
+    postAvatar: {
+      width: '100%',
+      aspectRatio: 1,
+      maxWidth: 44,
+      borderRadius: 999,
+    },
+    postAuthorInfo: {
+      flex: 1,
+      marginLeft: 4,
+    },
+    postNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    postAuthorName: {
+      ...TYPOGRAPHY.body1,
+      fontWeight: 'bold',
+      flexShrink: 1,
+    },
+    postTime: {
+      ...TYPOGRAPHY.body2,
+      fontSize: 12,
+      color: COLORS.textMuted,
+      marginTop: 1,
+    },
+    postContent: {
+      ...TYPOGRAPHY.body1,
+      lineHeight: 22,
+      marginBottom: 15,
+    },
+    postMediaWrap: {
+      borderRadius: RADIUS.md,
+      overflow: 'hidden',
+      marginBottom: 15,
+    },
+    postActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+      paddingTop: 12,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    actionButtonSolo: {
+      alignItems: 'center',
+    },
+    actionText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+    },
+    emptyState: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 40,
+      marginTop: 40,
+    },
+    emptyText: {
+      ...TYPOGRAPHY.body1,
+      color: COLORS.textMuted,
+      marginTop: 15,
+      textAlign: 'center',
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 20,
+      right: 20,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 4,
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    }
+  }));
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -392,218 +613,3 @@ export default function ExploreScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginTop: 15,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 8,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  activeTab: {
-    backgroundColor: COLORS.surface,
-  },
-  tabText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-  },
-  activeTabText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 80,
-    gap: 12,
-  },
-  categoryRow: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  categoryChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryChipText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  categoryChipTextActive: {
-    color: '#fff',
-  },
-  postCard: {
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  followBtn: {
-    backgroundColor: COLORS.text,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.pill,
-  },
-  followBtnText: {
-    color: COLORS.background,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  feedModeRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    marginBottom: 12,
-  },
-  feedModeTab: {
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    marginRight: 24,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  feedModeTabActive: {
-    borderBottomColor: COLORS.primary,
-  },
-  feedModeText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  feedModeTextActive: {
-    color: COLORS.text,
-  },
-  // Avatar sits in its own column sized as a percentage of the card (~14%,
-  // within the 10-20% range X's layout uses), not a fixed pixel width, so
-  // the proportion holds across device sizes. Content takes the rest via
-  // postAuthorInfo's flex: 1.
-  postAvatarCol: {
-    width: '14%',
-    alignItems: 'flex-start',
-  },
-  postAvatar: {
-    width: '100%',
-    aspectRatio: 1,
-    maxWidth: 44,
-    borderRadius: 999,
-  },
-  postAuthorInfo: {
-    flex: 1,
-    marginLeft: 4,
-  },
-  postNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  postAuthorName: {
-    ...TYPOGRAPHY.body1,
-    fontWeight: 'bold',
-    flexShrink: 1,
-  },
-  postTime: {
-    ...TYPOGRAPHY.body2,
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 1,
-  },
-  postContent: {
-    ...TYPOGRAPHY.body1,
-    lineHeight: 22,
-    marginBottom: 15,
-  },
-  postMediaWrap: {
-    borderRadius: RADIUS.md,
-    overflow: 'hidden',
-    marginBottom: 15,
-  },
-  postMedia: {
-    width: '100%',
-    height: 280,
-    backgroundColor: COLORS.background,
-  },
-  postActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 12,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionButtonSolo: {
-    alignItems: 'center',
-  },
-  actionText: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    marginTop: 40,
-  },
-  emptyText: {
-    ...TYPOGRAPHY.body1,
-    color: COLORS.textMuted,
-    marginTop: 15,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  }
-});

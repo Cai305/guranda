@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 
 export default function HairServiceScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { service, profile } = route.params;
-  
+
   // Keep track of which required items the user wants to buy from the hairdresser
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
 
@@ -33,6 +36,84 @@ export default function HairServiceScreen({ route, navigation }: any) {
       totalCost
     });
   };
+
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    image: {
+      width: '100%',
+      height: 250,
+      borderRadius: 16,
+    },
+    section: {
+      marginTop: 30,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+    },
+    itemCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: COLORS.border,
+      marginBottom: 12,
+    },
+    itemCardSelected: {
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.primary + '11',
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: COLORS.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+      backgroundColor: COLORS.surface,
+    },
+    itemImage: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+    },
+    itemInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+      backgroundColor: COLORS.surface,
+    },
+    bookButton: {
+      backgroundColor: COLORS.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 32,
+      borderRadius: 12,
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,81 +181,3 @@ export default function HairServiceScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  image: {
-    width: '100%',
-    height: 250,
-    borderRadius: 16,
-  },
-  section: {
-    marginTop: 30,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    marginBottom: 12,
-  },
-  itemCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + '11',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    backgroundColor: COLORS.surface,
-  },
-  itemImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-  },
-  itemInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-  },
-  bookButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-  },
-});

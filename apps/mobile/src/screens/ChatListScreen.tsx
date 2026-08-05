@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import TopBar from '../components/TopBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +14,8 @@ import { AI_ENABLED } from '../config/featureFlags';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 
 export default function ChatListScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { onlineUsers, socket } = useSocket();
@@ -20,6 +23,145 @@ export default function ChatListScreen({ navigation }: any) {
   const [loading, setLoading] = React.useState(true);
   const [storyGroups, setStoryGroups] = React.useState<any[]>([]);
   const [communities, setCommunities] = React.useState<any[]>([]);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    storyStrip: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.md,
+      paddingBottom: SPACING.lg,
+      gap: SPACING.md,
+    },
+    storyBubbleWrap: { alignItems: 'center', width: 64 },
+    storyRing: {
+      width: 60, height: 60, borderRadius: 30,
+      justifyContent: 'center', alignItems: 'center', padding: 3,
+    },
+    storyAvatar: { width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderColor: COLORS.background },
+    storyAddBadge: {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 20, height: 20, borderRadius: 10,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: COLORS.background,
+    },
+    storyName: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    listContent: {
+      paddingTop: SPACING.sm,
+      paddingBottom: 20,
+    },
+    sectionHeader: {
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.sm,
+      backgroundColor: COLORS.background,
+      marginTop: SPACING.lg,
+      marginBottom: SPACING.sm,
+    },
+    sectionHeaderText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.secondary,
+      textTransform: 'uppercase',
+      fontWeight: 'bold',
+    },
+    chatItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 15,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    avatarContainer: {
+      position: 'relative',
+      marginRight: 15,
+    },
+    avatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: COLORS.background,
+    },
+    groupAvatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: COLORS.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    statusDot: {
+      position: 'absolute',
+      bottom: 2,
+      right: 2,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: COLORS.surface,
+    },
+    chatInfo: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    chatName: {
+      ...TYPOGRAPHY.body1,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    chatType: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      fontSize: 12,
+    },
+    envelopeContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+    unreadBadge: {
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      paddingHorizontal: 4,
+      backgroundColor: '#FFD700',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    unreadBadgeText: {
+      color: '#1A1A1A',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    fab: {
+      position: 'absolute',
+      // bottom is set dynamically via insets in JSX (matches AiFloatingOrb's
+      // insets.bottom + 76 — without that tab-bar-height offset this sits
+      // low enough to render underneath the bottom tab bar, invisible and
+      // unclickable even though the component itself is mounted fine)
+      bottom: 30,
+      right: SPACING.lg,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 999,
+      elevation: 8,
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+    }
+  }));
 
   const fetchStories = async () => {
     try {
@@ -278,142 +420,3 @@ export default function ChatListScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  storyStrip: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
-    gap: SPACING.md,
-  },
-  storyBubbleWrap: { alignItems: 'center', width: 64 },
-  storyRing: {
-    width: 60, height: 60, borderRadius: 30,
-    justifyContent: 'center', alignItems: 'center', padding: 3,
-  },
-  storyAvatar: { width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderColor: COLORS.background },
-  storyAddBadge: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: COLORS.background,
-  },
-  storyName: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  listContent: {
-    paddingTop: SPACING.sm,
-    paddingBottom: 20,
-  },
-  sectionHeader: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.background,
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.sm,
-  },
-  sectionHeaderText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.secondary,
-    textTransform: 'uppercase',
-    fontWeight: 'bold',
-  },
-  chatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 15,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.background,
-  },
-  groupAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statusDot: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: COLORS.surface,
-  },
-  chatInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  chatName: {
-    ...TYPOGRAPHY.body1,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  chatType: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    fontSize: 12,
-  },
-  envelopeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  unreadBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    backgroundColor: '#FFD700',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  unreadBadgeText: {
-    color: '#1A1A1A',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  fab: {
-    position: 'absolute',
-    // bottom is set dynamically via insets in JSX (matches AiFloatingOrb's
-    // insets.bottom + 76 — without that tab-bar-height offset this sits
-    // low enough to render underneath the bottom tab bar, invisible and
-    // unclickable even though the component itself is mounted fine)
-    bottom: 30,
-    right: SPACING.lg,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 999,
-    elevation: 8,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-  }
-});

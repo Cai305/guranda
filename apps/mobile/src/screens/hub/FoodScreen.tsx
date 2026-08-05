@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -22,9 +23,159 @@ const MENU_ITEMS = [
 ];
 
 export default function FoodScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
   const [cart, setCart] = useState<{ id: string; name: string; price: string; qty: number }[]>([]);
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: {
+      flex: 1,
+      padding: 20,
+    },
+    listContent: {
+      padding: 20,
+      gap: 12,
+    },
+    restaurantCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    restaurantEmoji: {
+      fontSize: 36,
+      marginRight: 15,
+    },
+    restaurantInfo: {
+      flex: 1,
+    },
+    restaurantMeta: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 4,
+    },
+    ratingText: {
+      color: COLORS.warning,
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    etaText: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      marginBottom: 10,
+    },
+    menuItemInfo: {
+      flex: 1,
+    },
+    menuItemMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 4,
+    },
+    menuPrice: {
+      color: COLORS.secondary,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    popularBadge: {
+      backgroundColor: 'rgba(255, 165, 0, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    popularText: {
+      color: '#FFA500',
+      fontSize: 11,
+      fontWeight: 'bold',
+    },
+    qtyControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    qtyBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: COLORS.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    qtyText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    cartBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primary,
+      margin: 20,
+      padding: 18,
+      borderRadius: 999,
+      gap: 12,
+    },
+    cartBadge: {
+      backgroundColor: '#FFF',
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    cartBadgeText: {
+      color: COLORS.primary,
+      fontWeight: 'bold',
+      fontSize: 13,
+    },
+    cartText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 18,
+    },
+    orderPlacedContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 30,
+    },
+    backToHubBtn: {
+      backgroundColor: COLORS.primary,
+      paddingVertical: 16,
+      paddingHorizontal: 32,
+      borderRadius: 999,
+      marginTop: 30,
+    },
+  }));
 
   const addToCart = (item: typeof MENU_ITEMS[0]) => {
     setCart(prev => {
@@ -190,151 +341,3 @@ export default function FoodScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  listContent: {
-    padding: 20,
-    gap: 12,
-  },
-  restaurantCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  restaurantEmoji: {
-    fontSize: 36,
-    marginRight: 15,
-  },
-  restaurantInfo: {
-    flex: 1,
-  },
-  restaurantMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  ratingText: {
-    color: COLORS.warning,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  etaText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 10,
-  },
-  menuItemInfo: {
-    flex: 1,
-  },
-  menuItemMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
-  },
-  menuPrice: {
-    color: COLORS.secondary,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  popularBadge: {
-    backgroundColor: 'rgba(255, 165, 0, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  popularText: {
-    color: '#FFA500',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  qtyControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  qtyBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qtyText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  cartBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    margin: 20,
-    padding: 18,
-    borderRadius: 999,
-    gap: 12,
-  },
-  cartBadge: {
-    backgroundColor: '#FFF',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cartBadgeText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  cartText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-  orderPlacedContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  backToHubBtn: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 999,
-    marginTop: 30,
-  },
-});

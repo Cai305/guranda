@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { GLASS_CARD, SPACING } from '../theme';
+import { View, ViewStyle, StyleProp } from 'react-native';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 interface Props {
   children: React.ReactNode;
@@ -8,12 +8,11 @@ interface Props {
 }
 
 export default function GlassCard({ children, style }: Props) {
+  const styles = useThemedStyles(({ GLASS_CARD, SPACING }) => ({
+    card: {
+      ...GLASS_CARD,
+      padding: SPACING.lg,
+    },
+  }));
   return <View style={[styles.card, style]}>{children}</View>;
 }
-
-const styles = StyleSheet.create({
-  card: {
-    ...GLASS_CARD,
-    padding: SPACING.lg,
-  },
-});

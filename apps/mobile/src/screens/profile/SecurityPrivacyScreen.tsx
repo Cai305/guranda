@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, ScrollView, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const STORAGE_KEY = '@mxit_security_settings';
 
 export default function SecurityPrivacyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [loading, setLoading] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
   const [readReceipts, setReadReceipts] = useState(true);
@@ -25,6 +28,167 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
     { id: '1', username: 'spam_bot_99', displayName: 'Spam Bot' },
     { id: '2', username: 'troll_master', displayName: 'Troll Master' },
   ]);
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY, RADIUS }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: { padding: SPACING.lg },
+    sectionTitle: {
+      ...TYPOGRAPHY.label,
+      fontSize: 12,
+      marginBottom: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    card: {
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      marginBottom: SPACING.lg,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: SPACING.md,
+    },
+    clickableRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: SPACING.md,
+    },
+    columnRow: {
+      padding: SPACING.md,
+    },
+    infoCol: { flex: 1, marginRight: SPACING.md },
+    rowLabel: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    rowDesc: {
+      ...TYPOGRAPHY.caption,
+      color: COLORS.textMuted,
+      marginTop: 2,
+    },
+    divider: { height: 1, backgroundColor: COLORS.glassBorder },
+    visOptions: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
+    },
+    visBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+    },
+    visBtnActive: {
+      borderColor: COLORS.primary,
+      backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    },
+    visBtnText: {
+      color: COLORS.textMuted,
+      fontWeight: '600',
+      fontSize: 13,
+    },
+    visBtnTextActive: {
+      color: COLORS.primary,
+    },
+    blockedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: SPACING.md,
+    },
+    blockedName: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    blockedUsername: {
+      ...TYPOGRAPHY.caption,
+      color: COLORS.textMuted,
+    },
+    unblockBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: 'rgba(248, 113, 113, 0.3)',
+      backgroundColor: 'rgba(248, 113, 113, 0.08)',
+    },
+    unblockBtnText: {
+      color: COLORS.error,
+      fontWeight: '600',
+      fontSize: 12,
+    },
+    emptyContainer: {
+      padding: SPACING.lg,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    },
+    modalContent: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.lg,
+    },
+    modalLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      marginBottom: SPACING.xs,
+      marginTop: SPACING.md,
+    },
+    modalInput: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 12,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    submitBtn: {
+      backgroundColor: COLORS.primary,
+      padding: 15,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      marginTop: SPACING.xl,
+    },
+    submitBtnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+  }));
 
   useEffect(() => {
     loadSettings();
@@ -270,164 +434,3 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: { padding: SPACING.lg },
-  sectionTitle: {
-    ...TYPOGRAPHY.label,
-    fontSize: 12,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  card: {
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    marginBottom: SPACING.lg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-  },
-  clickableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-  },
-  columnRow: {
-    padding: SPACING.md,
-  },
-  infoCol: { flex: 1, marginRight: SPACING.md },
-  rowLabel: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  rowDesc: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  divider: { height: 1, backgroundColor: COLORS.glassBorder },
-  visOptions: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-  },
-  visBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  visBtnActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-  },
-  visBtnText: {
-    color: COLORS.textMuted,
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  visBtnTextActive: {
-    color: COLORS.primary,
-  },
-  blockedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-  },
-  blockedName: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  blockedUsername: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
-  },
-  unblockBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(248, 113, 113, 0.3)',
-    backgroundColor: 'rgba(248, 113, 113, 0.08)',
-  },
-  unblockBtnText: {
-    color: COLORS.error,
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  emptyContainer: {
-    padding: SPACING.lg,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    padding: SPACING.lg,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  modalLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    marginBottom: SPACING.xs,
-    marginTop: SPACING.md,
-  },
-  modalInput: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 12,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  submitBtn: {
-    backgroundColor: COLORS.primary,
-    padding: 15,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    marginTop: SPACING.xl,
-  },
-  submitBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});

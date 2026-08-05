@@ -1,13 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { ACCENT } from './LearningHomeScreen';
 
 export default function CourseDetailScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { courseId } = route.params;
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,42 @@ export default function CourseDetailScreen({ route, navigation }: any) {
   }, [courseId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 6 },
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    levelPill: { backgroundColor: `${ACCENT}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    levelPillText: { color: ACCENT, fontSize: 11, fontWeight: '700' },
+    price: { color: ACCENT, fontSize: 18, fontWeight: '800' },
+    category: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    description: { color: COLORS.text, fontSize: 14, marginTop: 4 },
+    creatorText: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
+    primaryBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 15, alignItems: 'center' },
+    primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    progressCard: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10 },
+    progressTopRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    progressLabel: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+    progressPct: { color: ACCENT, fontWeight: '800', fontSize: 13 },
+    progressBarBg: { height: 8, borderRadius: 4, backgroundColor: COLORS.surfaceElevated, overflow: 'hidden' },
+    progressBarFill: { height: 8, borderRadius: 4, backgroundColor: ACCENT },
+    certBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#22c55e15', borderRadius: 10, padding: 10 },
+    certBtnText: { color: '#22c55e', fontSize: 12, fontWeight: '600', flex: 1 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
+    lessonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
+    lessonIndex: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
+    lessonIndexDone: { backgroundColor: '#22c55e' },
+    lessonIndexText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
+    lessonTitle: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+    lessonMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    completeBtn: { backgroundColor: COLORS.surfaceElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    completeBtnText: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
+    hint: { color: COLORS.textMuted, fontSize: 13 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+  }));
 
   const enroll = async () => {
     setBusy(true);
@@ -157,39 +196,3 @@ export default function CourseDetailScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 6 },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  levelPill: { backgroundColor: `${ACCENT}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  levelPillText: { color: ACCENT, fontSize: 11, fontWeight: '700' },
-  price: { color: ACCENT, fontSize: 18, fontWeight: '800' },
-  category: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  description: { color: COLORS.text, fontSize: 14, marginTop: 4 },
-  creatorText: { color: COLORS.textMuted, fontSize: 12, marginTop: 4 },
-  primaryBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 15, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  progressCard: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10 },
-  progressTopRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressLabel: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  progressPct: { color: ACCENT, fontWeight: '800', fontSize: 13 },
-  progressBarBg: { height: 8, borderRadius: 4, backgroundColor: COLORS.surfaceElevated, overflow: 'hidden' },
-  progressBarFill: { height: 8, borderRadius: 4, backgroundColor: ACCENT },
-  certBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#22c55e15', borderRadius: 10, padding: 10 },
-  certBtnText: { color: '#22c55e', fontSize: 12, fontWeight: '600', flex: 1 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
-  lessonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
-  lessonIndex: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
-  lessonIndexDone: { backgroundColor: '#22c55e' },
-  lessonIndexText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
-  lessonTitle: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  lessonMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  completeBtn: { backgroundColor: COLORS.surfaceElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  completeBtnText: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
-  hint: { color: COLORS.textMuted, fontSize: 13 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-});

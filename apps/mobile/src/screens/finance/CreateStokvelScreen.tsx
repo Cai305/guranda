@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { STOKVEL_CATEGORIES } from './FinanceHomeScreen';
 
@@ -58,6 +59,29 @@ export default function CreateStokvelScreen({ navigation }: any) {
       setSaving(false);
     }
   };
+
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: -8 },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
+    row: { flexDirection: 'row', gap: 12 },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+    chipActive: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+    chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    chipTextActive: { color: '#fff' },
+    hint: { color: COLORS.textMuted, fontSize: 12, marginTop: 8, lineHeight: 17 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
+    saveBtn: { backgroundColor: '#F59E0B', borderRadius: 14, padding: 16, alignItems: 'center' },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -155,23 +179,3 @@ export default function CreateStokvelScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: -8 },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
-  row: { flexDirection: 'row', gap: 12 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  chipActive: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
-  chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  hint: { color: COLORS.textMuted, fontSize: 12, marginTop: 8, lineHeight: 17 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
-  saveBtn: { backgroundColor: '#F59E0B', borderRadius: 14, padding: 16, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-});

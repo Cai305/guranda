@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import PlayingCard from '../../../components/cards/PlayingCard';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../../utils/api';
 import {
@@ -156,6 +157,55 @@ export default function FiveCardsGameScreen({ route, navigation }: any) {
     if (finished && mySeat !== null && state?.winnerSeat !== undefined) settleWager(!!iWon);
   }, [finished]);
 
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    timerPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 5,
+    },
+    timerText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
+    opponentsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: SPACING.sm },
+    opponentBlock: { alignItems: 'center', gap: 4 },
+    opponentAvatar: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.surface },
+    opponentName: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600', maxWidth: 100 },
+    miniHand: { flexDirection: 'row' },
+    turnDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
+    tableRow: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.xl, paddingVertical: SPACING.lg },
+    pileWrap: { alignItems: 'center', gap: 6 },
+    pileLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
+    emptyPile: {
+      width: 74, height: 104, borderRadius: RADIUS.sm,
+      borderWidth: 1, borderColor: COLORS.glassBorder, borderStyle: 'dashed',
+    },
+    hintBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center',
+      marginHorizontal: SPACING.lg, marginBottom: SPACING.sm,
+      backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
+      borderRadius: RADIUS.md, paddingVertical: 8,
+    },
+    hintText: { color: COLORS.gold, fontSize: 12, fontWeight: '700' },
+    handRow: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, alignItems: 'flex-end', flexGrow: 1, justifyContent: 'center' },
+    instructions: { textAlign: 'center', color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.lg },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
+    modalCard: {
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.xl,
+      alignItems: 'center', gap: 8, width: '80%', borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    modalTitle: { ...TYPOGRAPHY.h2 },
+    modalSubtitle: { color: COLORS.textMuted, textAlign: 'center', fontSize: 13 },
+    modalBtn: { marginTop: SPACING.md, backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24 },
+    modalBtnText: { color: '#fff', fontWeight: '700' },
+  }));
+
   if (!state) {
     return (
       <View style={[styles.root, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -279,49 +329,3 @@ export default function FiveCardsGameScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  timerPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 5,
-  },
-  timerText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
-  opponentsRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: SPACING.sm },
-  opponentBlock: { alignItems: 'center', gap: 4 },
-  opponentAvatar: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.surface },
-  opponentName: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600', maxWidth: 100 },
-  miniHand: { flexDirection: 'row' },
-  turnDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.gold },
-  tableRow: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.xl, paddingVertical: SPACING.lg },
-  pileWrap: { alignItems: 'center', gap: 6 },
-  pileLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
-  emptyPile: {
-    width: 74, height: 104, borderRadius: RADIUS.sm,
-    borderWidth: 1, borderColor: COLORS.glassBorder, borderStyle: 'dashed',
-  },
-  hintBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center',
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.sm,
-    backgroundColor: 'rgba(251,191,36,0.1)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
-    borderRadius: RADIUS.md, paddingVertical: 8,
-  },
-  hintText: { color: COLORS.gold, fontSize: 12, fontWeight: '700' },
-  handRow: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, alignItems: 'flex-end', flexGrow: 1, justifyContent: 'center' },
-  instructions: { textAlign: 'center', color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.lg },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: {
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.xl,
-    alignItems: 'center', gap: 8, width: '80%', borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  modalTitle: { ...TYPOGRAPHY.h2 },
-  modalSubtitle: { color: COLORS.textMuted, textAlign: 'center', fontSize: 13 },
-  modalBtn: { marginTop: SPACING.md, backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24 },
-  modalBtnText: { color: '#fff', fontWeight: '700' },
-});

@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,6 +16,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function WorkGigDetailScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { gigId } = route.params;
   const { user } = useAuth();
   const [gig, setGig] = useState<any>(null);
@@ -83,6 +86,38 @@ export default function WorkGigDetailScreen({ navigation, route }: any) {
     () => fetchApi(`/work/gigs/${gigId}/approve`, { method: 'POST' }),
     () => setSuccess('Payment released to the freelancer!'),
   );
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    title: { ...TYPOGRAPHY.h2, marginBottom: 6 },
+    clientText: { color: COLORS.textMuted, fontSize: 12, marginBottom: 14 },
+    badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+    statusBadge: { backgroundColor: '#8B5CF615', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
+    statusText: { color: '#8B5CF6', fontSize: 12, fontWeight: '700' },
+    budget: { color: '#8B5CF6', fontWeight: '800', fontSize: 18 },
+    section: { marginBottom: 20 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
+    hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
+    errorText: { color: '#ef4444', fontSize: 13, marginBottom: 12 },
+    successText: { color: '#22c55e', fontSize: 13, fontWeight: '600', marginBottom: 12 },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
+    actionBtn: { backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
+    actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    proposalCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
+      padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 12,
+    },
+    proposalName: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
+    proposalBudget: { color: '#8B5CF6', fontWeight: '700', fontSize: 14, marginTop: 4 },
+    proposalStatus: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+    acceptBtn: { backgroundColor: '#8B5CF6', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+    acceptBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>;
   if (!gig) return <View style={styles.center}><Text style={{ color: COLORS.textMuted }}>Gig not found</Text></View>;
@@ -187,35 +222,3 @@ export default function WorkGigDetailScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  title: { ...TYPOGRAPHY.h2, marginBottom: 6 },
-  clientText: { color: COLORS.textMuted, fontSize: 12, marginBottom: 14 },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  statusBadge: { backgroundColor: '#8B5CF615', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-  statusText: { color: '#8B5CF6', fontSize: 12, fontWeight: '700' },
-  budget: { color: '#8B5CF6', fontWeight: '800', fontSize: 18 },
-  section: { marginBottom: 20 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
-  hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
-  errorText: { color: '#ef4444', fontSize: 13, marginBottom: 12 },
-  successText: { color: '#22c55e', fontSize: 13, fontWeight: '600', marginBottom: 12 },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
-  actionBtn: { backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
-  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  proposalCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
-    padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 12,
-  },
-  proposalName: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
-  proposalBudget: { color: '#8B5CF6', fontWeight: '700', fontSize: 14, marginTop: 4 },
-  proposalStatus: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
-  acceptBtn: { backgroundColor: '#8B5CF6', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  acceptBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-});

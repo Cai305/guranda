@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -11,6 +12,55 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function StokvelDetailScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
+    back: { padding: 4, marginRight: 4 },
+    headerCenter: { flex: 1 },
+    headerTitle: { ...TYPOGRAPHY.h2 },
+    headerSub: { color: COLORS.textMuted, fontSize: 12 },
+    iconBtn: { padding: 6 },
+    walletCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: COLORS.border, gap: 8 },
+    walletTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    walletLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+    multisigPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    multisigPillText: { fontSize: 10, fontWeight: '700' },
+    walletBalance: { color: COLORS.text, fontSize: 28, fontWeight: '800' },
+    walletUnit: { fontSize: 14, color: COLORS.textMuted, fontWeight: '600' },
+    walletAddress: { color: COLORS.textMuted, fontSize: 11, fontFamily: 'monospace' },
+    description: { color: COLORS.textMuted, fontSize: 13, marginTop: 4 },
+    primaryBtn: { backgroundColor: '#F59E0B', borderRadius: 14, padding: 15, alignItems: 'center' },
+    primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    multisigBtn: { flexDirection: 'row', gap: 8, backgroundColor: '#8B5CF6', borderRadius: 14, padding: 15, alignItems: 'center', justifyContent: 'center' },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    statCard: { width: '48%', backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
+    statValue: { color: '#F59E0B', fontSize: 20, fontWeight: '800' },
+    statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
+    sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
+    sectionAction: { color: '#F59E0B', fontSize: 12, fontWeight: '700' },
+    requestCard: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
+      padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10,
+    },
+    requestTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    requestMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    requestAmount: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    statusText: { fontSize: 10, fontWeight: '700' },
+    memberRow: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
+      padding: 12, borderWidth: 1, borderColor: COLORS.border, gap: 10,
+    },
+    memberName: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+    memberRole: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    promoteBtn: { backgroundColor: COLORS.surfaceElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+    promoteBtnText: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
+    hint: { color: COLORS.textMuted, fontSize: 13 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+  }));
   const { stokvelId } = route.params;
   const [stokvel, setStokvel] = useState<any>(null);
   const [report, setReport] = useState<any>(null);
@@ -198,51 +248,3 @@ export default function StokvelDetailScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
-  back: { padding: 4, marginRight: 4 },
-  headerCenter: { flex: 1 },
-  headerTitle: { ...TYPOGRAPHY.h2 },
-  headerSub: { color: COLORS.textMuted, fontSize: 12 },
-  iconBtn: { padding: 6 },
-  walletCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: COLORS.border, gap: 8 },
-  walletTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  walletLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  multisigPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  multisigPillText: { fontSize: 10, fontWeight: '700' },
-  walletBalance: { color: COLORS.text, fontSize: 28, fontWeight: '800' },
-  walletUnit: { fontSize: 14, color: COLORS.textMuted, fontWeight: '600' },
-  walletAddress: { color: COLORS.textMuted, fontSize: 11, fontFamily: 'monospace' },
-  description: { color: COLORS.textMuted, fontSize: 13, marginTop: 4 },
-  primaryBtn: { backgroundColor: '#F59E0B', borderRadius: 14, padding: 15, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  multisigBtn: { flexDirection: 'row', gap: 8, backgroundColor: '#8B5CF6', borderRadius: 14, padding: 15, alignItems: 'center', justifyContent: 'center' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statCard: { width: '48%', backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
-  statValue: { color: '#F59E0B', fontSize: 20, fontWeight: '800' },
-  statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
-  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
-  sectionAction: { color: '#F59E0B', fontSize: 12, fontWeight: '700' },
-  requestCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14,
-    padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10,
-  },
-  requestTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  requestMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  requestAmount: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: '700' },
-  memberRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
-    padding: 12, borderWidth: 1, borderColor: COLORS.border, gap: 10,
-  },
-  memberName: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  memberRole: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  promoteBtn: { backgroundColor: COLORS.surfaceElevated, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  promoteBtnText: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
-  hint: { color: COLORS.textMuted, fontSize: 13 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-});

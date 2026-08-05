@@ -1,14 +1,46 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import io from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 
 export default function FriendsListScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    addRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
+    addInput: {
+      flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, color: COLORS.text,
+    },
+    addBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, width: 44, alignItems: 'center', justifyContent: 'center' },
+    sectionLabel: { ...TYPOGRAPHY.label, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
+    pendingRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm,
+    },
+    acceptBtn: { backgroundColor: COLORS.success, borderRadius: RADIUS.pill, padding: 8 },
+    declineBtn: { backgroundColor: COLORS.error, borderRadius: RADIUS.pill, padding: 8 },
+    friendRow: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
+    },
+    friendName: { color: COLORS.text, fontWeight: '600' },
+    friendAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface },
+    friendStatus: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  }));
   const { user } = useAuth();
   const pickForRoomId: string | undefined = route.params?.pickForRoomId;
   const [friends, setFriends] = useState<any[]>([]);
@@ -143,33 +175,3 @@ export default function FriendsListScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  addRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
-  addInput: {
-    flex: 1, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, color: COLORS.text,
-  },
-  addBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, width: 44, alignItems: 'center', justifyContent: 'center' },
-  sectionLabel: { ...TYPOGRAPHY.label, paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm },
-  pendingRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm,
-  },
-  acceptBtn: { backgroundColor: COLORS.success, borderRadius: RADIUS.pill, padding: 8 },
-  declineBtn: { backgroundColor: COLORS.error, borderRadius: RADIUS.pill, padding: 8 },
-  friendRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
-  },
-  friendName: { color: COLORS.text, fontWeight: '600' },
-  friendAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface },
-  friendStatus: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-});

@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -314,82 +315,3 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 15, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  backBtn: { padding: 5 },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { padding: SPACING.lg, paddingBottom: 40 },
-  infoCard: { marginBottom: SPACING.md },
-  coverImage: { width: '100%', height: 160, borderRadius: RADIUS.md, marginBottom: SPACING.md, backgroundColor: COLORS.surface },
-  description: { ...TYPOGRAPHY.body1, lineHeight: 22, marginBottom: 8 },
-  prompt: { ...TYPOGRAPHY.body2, fontStyle: 'italic', color: COLORS.textMuted, marginBottom: 10 },
-  metaRow: { flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
-  metaChip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  metaChipText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
-  sponsorText: { color: COLORS.textMuted, fontSize: 12, fontStyle: 'italic', marginBottom: 10 },
-  submitBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 12, marginTop: 6,
-  },
-  submitBtnText: { color: '#fff', fontWeight: '800' },
-  submittedBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: COLORS.glass, borderRadius: RADIUS.md, padding: 10, marginTop: 6,
-  },
-  submittedText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  entriesLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: 18 },
-  entryCard: {
-    width: '48%', backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden', marginBottom: 12,
-  },
-  entryThumb: { width: '100%', aspectRatio: 1, backgroundColor: '#0F172A' },
-  winnerBadge: {
-    position: 'absolute', top: 6, right: 6, backgroundColor: COLORS.gold,
-    borderRadius: RADIUS.pill, width: 22, height: 22, justifyContent: 'center', alignItems: 'center',
-  },
-  entryMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, paddingBottom: 4 },
-  entryAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.background },
-  entryAuthor: { flex: 1, fontSize: 11, fontWeight: '700', color: COLORS.text },
-  entryStatsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 8, paddingBottom: 8 },
-  entryStat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  entryStatText: { fontSize: 11, color: COLORS.textMuted },
-  emptyState: { alignItems: 'center', padding: 30, gap: 10 },
-  emptyText: { ...TYPOGRAPHY.body1, color: COLORS.textMuted, textAlign: 'center' },
-  modalMedia: { width: '100%', height: 320, backgroundColor: '#0F172A' },
-  modalCaption: { ...TYPOGRAPHY.body1, padding: SPACING.lg, paddingBottom: 0 },
-  modalActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: SPACING.lg },
-  modalActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  modalActionText: { color: COLORS.text, fontWeight: '700' },
-  commentsLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginLeft: 'auto' },
-  voteRow: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md },
-  voteLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 6 },
-  voteButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  voteNum: {
-    width: 28, height: 28, borderRadius: 14, textAlign: 'center', textAlignVertical: 'center',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.textMuted, fontWeight: '700', fontSize: 12, overflow: 'hidden',
-  },
-  voteNumActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold, color: '#1A1A1A' },
-  commentRow: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg, paddingTop: 12 },
-  commentAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface },
-  commentAuthor: { fontSize: 12, fontWeight: '700', color: COLORS.text },
-  commentText: { fontSize: 13, color: COLORS.text, marginTop: 2 },
-  inputContainer: {
-    flexDirection: 'row', padding: 15, alignItems: 'flex-end', gap: 10,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
-  },
-  input: {
-    flex: 1, backgroundColor: COLORS.surface, color: COLORS.text,
-    paddingHorizontal: 15, paddingVertical: 12, borderRadius: 20, maxHeight: 100,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  postBtn: { padding: 10, marginBottom: 2 },
-});

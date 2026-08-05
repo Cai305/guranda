@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, Alert, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
 
@@ -13,10 +14,94 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
   const { propertyId } = route.params || {};
   const { user } = useAuth();
   const { width } = useWindowDimensions();
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const galleryWidth = width - SPACING.lg * 2;
   const [property, setProperty] = useState<any>(null);
   const [tenantUsername, setTenantUsername] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#07211E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    heroImage: {
+      height: 200, marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    gallery: { marginHorizontal: SPACING.lg, borderRadius: RADIUS.lg, height: 220 },
+    galleryImage: { height: 220, borderRadius: RADIUS.lg },
+    galleryBadge: {
+      position: 'absolute', bottom: 10, right: SPACING.lg + 10,
+      flexDirection: 'row', gap: 5, alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 9, paddingVertical: 4,
+    },
+    galleryBadgeText: { color: '#FFF', fontSize: 10.5, fontWeight: '700' },
+    body: { padding: SPACING.lg },
+    priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    price: { color: '#2DD4BF', fontWeight: '800', fontSize: 20 },
+    typePill: {
+      backgroundColor: 'rgba(45,212,191,0.2)',
+      borderWidth: 1, borderColor: 'rgba(45,212,191,0.6)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10, paddingVertical: 3,
+    },
+    typePillText: { color: '#2DD4BF', fontSize: 10, fontWeight: '800' },
+    address: { color: COLORS.text, fontSize: 14, marginTop: 10 },
+    beds: { color: COLORS.textMuted, fontSize: 13, marginTop: 6 },
+    description: { color: COLORS.textMuted, fontSize: 13.5, lineHeight: 20, marginTop: 12 },
+    agentCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginTop: 20,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 12,
+    },
+    agentAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#134E4A' },
+    agentName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    agentRole: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2 },
+    chatBtn: {
+      width: 38, height: 38, borderRadius: 19,
+      backgroundColor: '#0D9488',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    assignCard: {
+      marginTop: 16,
+      backgroundColor: 'rgba(45,212,191,0.08)',
+      borderWidth: 1, borderColor: 'rgba(45,212,191,0.4)',
+      borderRadius: RADIUS.lg,
+      padding: 14,
+    },
+    assignTitle: { color: COLORS.text, fontWeight: '800', fontSize: 14 },
+    assignSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
+    assignRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    assignInput: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text,
+      paddingHorizontal: 14, paddingVertical: 9,
+      fontSize: 13,
+    },
+    assignBtn: {
+      backgroundColor: '#0D9488',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 18,
+      justifyContent: 'center',
+    },
+    assignBtnText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
+  }));
 
   useEffect(() => {
     fetchApi(`/property/${propertyId}`)
@@ -152,86 +237,3 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#07211E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  heroImage: {
-    height: 200, marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  gallery: { marginHorizontal: SPACING.lg, borderRadius: RADIUS.lg, height: 220 },
-  galleryImage: { height: 220, borderRadius: RADIUS.lg },
-  galleryBadge: {
-    position: 'absolute', bottom: 10, right: SPACING.lg + 10,
-    flexDirection: 'row', gap: 5, alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 9, paddingVertical: 4,
-  },
-  galleryBadgeText: { color: '#FFF', fontSize: 10.5, fontWeight: '700' },
-  body: { padding: SPACING.lg },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  price: { color: '#2DD4BF', fontWeight: '800', fontSize: 20 },
-  typePill: {
-    backgroundColor: 'rgba(45,212,191,0.2)',
-    borderWidth: 1, borderColor: 'rgba(45,212,191,0.6)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10, paddingVertical: 3,
-  },
-  typePillText: { color: '#2DD4BF', fontSize: 10, fontWeight: '800' },
-  address: { color: COLORS.text, fontSize: 14, marginTop: 10 },
-  beds: { color: COLORS.textMuted, fontSize: 13, marginTop: 6 },
-  description: { color: COLORS.textMuted, fontSize: 13.5, lineHeight: 20, marginTop: 12 },
-  agentCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 12,
-  },
-  agentAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#134E4A' },
-  agentName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  agentRole: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2 },
-  chatBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: '#0D9488',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  assignCard: {
-    marginTop: 16,
-    backgroundColor: 'rgba(45,212,191,0.08)',
-    borderWidth: 1, borderColor: 'rgba(45,212,191,0.4)',
-    borderRadius: RADIUS.lg,
-    padding: 14,
-  },
-  assignTitle: { color: COLORS.text, fontWeight: '800', fontSize: 14 },
-  assignSub: { color: COLORS.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
-  assignRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  assignInput: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text,
-    paddingHorizontal: 14, paddingVertical: 9,
-    fontSize: 13,
-  },
-  assignBtn: {
-    backgroundColor: '#0D9488',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 18,
-    justifyContent: 'center',
-  },
-  assignBtnText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
-});

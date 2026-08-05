@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const ROLE_META: Record<string, { label: string; color: string }> = {
@@ -33,6 +34,36 @@ export default function MyEventsScreen({ navigation }: any) {
     if (event.myRole === 'SCANNER') navigation.navigate('VerifyTicket', { eventId: event.id, eventTitle: event.title });
     else navigation.navigate('ManageEvent', { eventId: event.id });
   };
+
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    iconBtn: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    joinRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: SPACING.lg, marginBottom: 12, padding: 12,
+      backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    },
+    joinText: { color: COLORS.text, fontSize: 13, fontWeight: '600', flex: 1 },
+    card: {
+      backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
+      borderWidth: 1, borderColor: COLORS.border, gap: 6,
+    },
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+    title: { color: COLORS.text, fontSize: 15, fontWeight: '700', flex: 1 },
+    rolePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    roleText: { fontSize: 10, fontWeight: '700' },
+    sub: { color: '#10B981', fontSize: 12, fontWeight: '600' },
+    metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    meta: { color: COLORS.textMuted, fontSize: 11 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -91,30 +122,3 @@ export default function MyEventsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  iconBtn: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  joinRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: SPACING.lg, marginBottom: 12, padding: 12,
-    backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
-  },
-  joinText: { color: COLORS.text, fontSize: 13, fontWeight: '600', flex: 1 },
-  card: {
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: COLORS.border, gap: 6,
-  },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  title: { color: COLORS.text, fontSize: 15, fontWeight: '700', flex: 1 },
-  rolePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  roleText: { fontSize: 10, fontWeight: '700' },
-  sub: { color: '#10B981', fontSize: 12, fontWeight: '600' },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  meta: { color: COLORS.textMuted, fontSize: 11 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
-});

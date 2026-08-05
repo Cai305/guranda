@@ -2,7 +2,8 @@ import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { LifeModule } from '../config/modules';
 import ConstructionBadge from './ConstructionBadge';
 
@@ -76,9 +77,59 @@ interface Props {
 }
 
 export default function ModuleCard({ module, onPress, size = 'grid', installed = false }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+
   const locked = module.status === 'construction' || module.status === 'locked';
   const needsVerification = module.status === 'locked';
   const installable = module.status === 'installable' && !installed;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    wrapper: {
+      width: '48%',
+    },
+    wide: {
+      width: 200,
+    },
+    card: {
+      borderRadius: RADIUS.lg,
+      padding: 14,
+      height: 110,
+      justifyContent: 'space-between',
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    cardInstallable: {
+      borderColor: '#10B981',
+      borderWidth: 1.5,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    iconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconWrapLocked: {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    name: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    tagline: {
+      color: 'rgba(255,255,255,0.75)',
+      fontSize: 11,
+      marginTop: 2,
+    },
+  }));
 
   return (
     <TouchableOpacity
@@ -119,50 +170,3 @@ export default function ModuleCard({ module, onPress, size = 'grid', installed =
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    width: '48%',
-  },
-  wide: {
-    width: 200,
-  },
-  card: {
-    borderRadius: RADIUS.lg,
-    padding: 14,
-    height: 110,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  cardInstallable: {
-    borderColor: '#10B981',
-    borderWidth: 1.5,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconWrapLocked: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  name: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  tagline: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 11,
-    marginTop: 2,
-  },
-});

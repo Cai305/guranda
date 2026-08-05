@@ -5,7 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { COLORS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { ChatMessageDto, VemojiType, encodeVemojiMessage, parseVemojiMessage } from '@mxit2/types';
 import { Ionicons } from '@expo/vector-icons';
 import EmojiPicker from '../components/EmojiPicker';
@@ -44,13 +45,29 @@ function MediaBubble({ url, mine }: { url: string; mine: boolean }) {
   if (isAudioUrl(url)) return <VoiceMessageBubble uri={url} mine={mine} />;
   if (isVideo) {
     return (
-      <VideoView style={styles.mediaVideo} player={player} allowsPictureInPicture nativeControls />
+      <VideoView style={mediaBubbleStyles.mediaVideo} player={player} allowsPictureInPicture nativeControls />
     );
   }
-  return <Image source={{ uri: url }} style={styles.mediaImage} resizeMode="cover" />;
+  return <Image source={{ uri: url }} style={mediaBubbleStyles.mediaImage} resizeMode="cover" />;
 }
 
+const mediaBubbleStyles = StyleSheet.create({
+  mediaImage: {
+    width: 220,
+    height: 220,
+    borderRadius: 12,
+  },
+  mediaVideo: {
+    width: 220,
+    height: 220,
+    borderRadius: 12,
+    backgroundColor: '#000',
+  },
+});
+
 export default function ChatScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { user } = useAuth();
   const { roomId = 'global-room', roomName = 'Global Lounge', roomType = 'Public', targetUserId } = route?.params || {};
 
@@ -431,6 +448,401 @@ export default function ChatScreen({ route, navigation }: any) {
     );
   };
 
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    keyboardContainer: {
+      flex: 1,
+    },
+    roomHeader: {
+      padding: 12,
+      backgroundColor: COLORS.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backBtn: {
+      marginRight: 6,
+      padding: 4,
+    },
+    headerAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: COLORS.background,
+      marginRight: 10,
+    },
+    roomHeaderContent: {
+      flex: 1,
+    },
+    headerName: {
+      color: COLORS.text,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 2,
+    },
+    statusText: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+    },
+    statusDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
+      backgroundColor: '#22C55E',
+    },
+    callButtons: {
+      flexDirection: 'row',
+      gap: 4,
+    },
+    headerIconBtn: {
+      padding: 8,
+    },
+    messageList: {
+      padding: 12,
+      gap: 6,
+    },
+    messageBubble: {
+      maxWidth: '78%',
+      paddingHorizontal: 12,
+      paddingTop: 8,
+      paddingBottom: 6,
+      borderRadius: 14,
+    },
+    myMessage: {
+      alignSelf: 'flex-end',
+      backgroundColor: COLORS.primary,
+      borderBottomRightRadius: 2,
+    },
+    theirMessage: {
+      alignSelf: 'flex-start',
+      backgroundColor: COLORS.surface,
+      borderBottomLeftRadius: 2,
+    },
+    aiMessage: {
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(0, 255, 255, 0.1)',
+      borderWidth: 1,
+      borderColor: COLORS.secondary,
+      borderBottomLeftRadius: 2,
+    },
+    messageText: {
+      color: COLORS.text,
+      fontSize: 15.5,
+      lineHeight: 20,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-end',
+      marginTop: 3,
+    },
+    metaRowOnMedia: {
+      position: 'absolute',
+      bottom: 6,
+      right: 8,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      borderRadius: 8,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    metaTime: {
+      color: 'rgba(255,255,255,0.55)',
+      fontSize: 10.5,
+    },
+    metaTimeMine: {
+      color: 'rgba(255,255,255,0.75)',
+    },
+    metaTimeOnMedia: {
+      color: 'rgba(255,255,255,0.9)',
+    },
+    mediaOnlyBubble: {
+      padding: 4,
+    },
+    vemojiBubble: {
+      backgroundColor: 'transparent',
+      padding: 4,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      padding: 10,
+      alignItems: 'flex-end',
+      gap: 8,
+      backgroundColor: COLORS.background,
+    },
+    inputPill: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      paddingLeft: 8,
+      paddingRight: 6,
+    },
+    pillIconBtn: {
+      padding: 3,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pillIconBtnLast: {
+      paddingRight: 0,
+    },
+    gifButtonText: {
+      color: COLORS.textMuted,
+      fontSize: 9.5,
+      fontWeight: '800',
+      borderWidth: 1.3,
+      borderColor: COLORS.textMuted,
+      borderRadius: 4,
+      paddingHorizontal: 3,
+      paddingVertical: 1,
+    },
+    input: {
+      flex: 1,
+      color: COLORS.text,
+      paddingVertical: 10,
+      paddingHorizontal: 6,
+      fontSize: 15,
+      maxHeight: 100,
+    },
+    sendButton: {
+      backgroundColor: COLORS.primary,
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    recordingBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+      gap: 10,
+      backgroundColor: COLORS.background,
+    },
+    recordingCancelBtn: {
+      padding: 10,
+    },
+    recordingIndicator: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: COLORS.surface,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    recordingDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: '#EF4444',
+    },
+    recordingText: {
+      color: COLORS.text,
+      fontSize: 14,
+    },
+    recordingSendBtn: {
+      backgroundColor: COLORS.primary,
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    // Forwarded label, inside a message bubble
+    forwardedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginBottom: 4,
+    },
+    forwardedText: {
+      color: COLORS.textMuted,
+      fontSize: 11,
+      fontStyle: 'italic',
+    },
+
+    // Quoted reply preview, inside a message bubble
+    replyQuote: {
+      borderLeftWidth: 3,
+      borderLeftColor: COLORS.primary,
+      backgroundColor: 'rgba(0,0,0,0.15)',
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      marginBottom: 6,
+    },
+    replyQuoteMine: {
+      borderLeftColor: '#FFF',
+      backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    replyQuoteSender: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    replyQuoteText: {
+      color: COLORS.textMuted,
+      fontSize: 12.5,
+      marginTop: 1,
+    },
+
+    // "Replying to…" bar above the input, before sending
+    replyBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: 10,
+      marginTop: 6,
+      backgroundColor: COLORS.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+    },
+    replyBarAccent: {
+      width: 3,
+      alignSelf: 'stretch',
+      borderRadius: 2,
+      backgroundColor: COLORS.primary,
+    },
+    replyBarSender: {
+      color: COLORS.primary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    replyBarText: {
+      color: COLORS.textMuted,
+      fontSize: 12.5,
+      marginTop: 1,
+    },
+    replyBarClose: {
+      padding: 4,
+    },
+
+    // Message action sheet (Reply / Forward)
+    sheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    actionSheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      paddingVertical: 8,
+      paddingBottom: 24,
+    },
+    actionSheetItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    actionSheetItemText: {
+      color: COLORS.text,
+      fontSize: 15.5,
+      fontWeight: '600',
+    },
+
+    // Forward-to-chat sheet
+    forwardSheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 18,
+      borderTopRightRadius: 18,
+      padding: 16,
+      paddingBottom: 28,
+    },
+    forwardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    forwardTitle: {
+      color: COLORS.text,
+      fontSize: 17,
+      fontWeight: '800',
+    },
+    forwardEmpty: {
+      color: COLORS.textMuted,
+      fontSize: 13.5,
+      textAlign: 'center',
+      paddingVertical: 30,
+    },
+    forwardChatRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    forwardChatAvatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: COLORS.background,
+    },
+    forwardChatName: {
+      flex: 1,
+      color: COLORS.text,
+      fontSize: 14.5,
+      fontWeight: '600',
+    },
+    forwardConfirmBtn: {
+      marginTop: 14,
+      backgroundColor: COLORS.primary,
+      borderRadius: 24,
+      paddingVertical: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    forwardConfirmText: {
+      color: '#FFF',
+      fontWeight: '800',
+      fontSize: 15,
+    },
+
+    // Product card bubble
+    productBubbleWrap: {
+      marginVertical: 2,
+      maxWidth: '85%',
+    },
+    productBubbleMe: { alignSelf: 'flex-end' },
+    productBubbleThem: { alignSelf: 'flex-start' },
+    productBubbleLabel: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginBottom: 5,
+      paddingLeft: 4,
+    },
+    productBubbleLabelText: {
+      color: COLORS.primary,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+    },
+  }));
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <View style={styles.container}>
@@ -686,408 +1098,3 @@ export default function ChatScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
-  roomHeader: {
-    padding: 12,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backBtn: {
-    marginRight: 6,
-    padding: 4,
-  },
-  headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.background,
-    marginRight: 10,
-  },
-  roomHeaderContent: {
-    flex: 1,
-  },
-  headerName: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  statusText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-  },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#22C55E',
-  },
-  callButtons: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  headerIconBtn: {
-    padding: 8,
-  },
-  messageList: {
-    padding: 12,
-    gap: 6,
-  },
-  messageBubble: {
-    maxWidth: '78%',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 6,
-    borderRadius: 14,
-  },
-  myMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 2,
-  },
-  theirMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.surface,
-    borderBottomLeftRadius: 2,
-  },
-  aiMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: COLORS.secondary,
-    borderBottomLeftRadius: 2,
-  },
-  messageText: {
-    color: COLORS.text,
-    fontSize: 15.5,
-    lineHeight: 20,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    marginTop: 3,
-  },
-  metaRowOnMedia: {
-    position: 'absolute',
-    bottom: 6,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  metaTime: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 10.5,
-  },
-  metaTimeMine: {
-    color: 'rgba(255,255,255,0.75)',
-  },
-  metaTimeOnMedia: {
-    color: 'rgba(255,255,255,0.9)',
-  },
-  mediaOnlyBubble: {
-    padding: 4,
-  },
-  vemojiBubble: {
-    backgroundColor: 'transparent',
-    padding: 4,
-  },
-  mediaImage: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-  },
-  mediaVideo: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-    backgroundColor: '#000',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    alignItems: 'flex-end',
-    gap: 8,
-    backgroundColor: COLORS.background,
-  },
-  inputPill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingLeft: 8,
-    paddingRight: 6,
-  },
-  pillIconBtn: {
-    padding: 3,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pillIconBtnLast: {
-    paddingRight: 0,
-  },
-  gifButtonText: {
-    color: COLORS.textMuted,
-    fontSize: 9.5,
-    fontWeight: '800',
-    borderWidth: 1.3,
-    borderColor: COLORS.textMuted,
-    borderRadius: 4,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-  },
-  input: {
-    flex: 1,
-    color: COLORS.text,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    fontSize: 15,
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: COLORS.primary,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recordingBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    gap: 10,
-    backgroundColor: COLORS.background,
-  },
-  recordingCancelBtn: {
-    padding: 10,
-  },
-  recordingIndicator: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  recordingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#EF4444',
-  },
-  recordingText: {
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  recordingSendBtn: {
-    backgroundColor: COLORS.primary,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Forwarded label, inside a message bubble
-  forwardedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  forwardedText: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    fontStyle: 'italic',
-  },
-
-  // Quoted reply preview, inside a message bubble
-  replyQuote: {
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    marginBottom: 6,
-  },
-  replyQuoteMine: {
-    borderLeftColor: '#FFF',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  replyQuoteSender: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  replyQuoteText: {
-    color: COLORS.textMuted,
-    fontSize: 12.5,
-    marginTop: 1,
-  },
-
-  // "Replying to…" bar above the input, before sending
-  replyBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 10,
-    marginTop: 6,
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  replyBarAccent: {
-    width: 3,
-    alignSelf: 'stretch',
-    borderRadius: 2,
-    backgroundColor: COLORS.primary,
-  },
-  replyBarSender: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  replyBarText: {
-    color: COLORS.textMuted,
-    fontSize: 12.5,
-    marginTop: 1,
-  },
-  replyBarClose: {
-    padding: 4,
-  },
-
-  // Message action sheet (Reply / Forward)
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  actionSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingVertical: 8,
-    paddingBottom: 24,
-  },
-  actionSheetItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  actionSheetItemText: {
-    color: COLORS.text,
-    fontSize: 15.5,
-    fontWeight: '600',
-  },
-
-  // Forward-to-chat sheet
-  forwardSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 16,
-    paddingBottom: 28,
-  },
-  forwardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  forwardTitle: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  forwardEmpty: {
-    color: COLORS.textMuted,
-    fontSize: 13.5,
-    textAlign: 'center',
-    paddingVertical: 30,
-  },
-  forwardChatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  forwardChatAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.background,
-  },
-  forwardChatName: {
-    flex: 1,
-    color: COLORS.text,
-    fontSize: 14.5,
-    fontWeight: '600',
-  },
-  forwardConfirmBtn: {
-    marginTop: 14,
-    backgroundColor: COLORS.primary,
-    borderRadius: 24,
-    paddingVertical: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  forwardConfirmText: {
-    color: '#FFF',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-
-  // Product card bubble
-  productBubbleWrap: {
-    marginVertical: 2,
-    maxWidth: '85%',
-  },
-  productBubbleMe: { alignSelf: 'flex-end' },
-  productBubbleThem: { alignSelf: 'flex-start' },
-  productBubbleLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 5,
-    paddingLeft: 4,
-  },
-  productBubbleLabelText: {
-    color: COLORS.primary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-});

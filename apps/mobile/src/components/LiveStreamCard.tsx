@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { LiveStream, categoryOf } from '../data/mockLiveStreams';
 import { formatCount } from '../utils/format';
 
@@ -13,8 +14,99 @@ interface Props {
 }
 
 export default function LiveStreamCard({ stream, onPress, size = 'grid' }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const category = categoryOf(stream);
   const gradient = category?.gradient || COLORS.border;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    gridWrapper: {
+      width: '48%',
+    },
+    compactWrapper: {
+      width: 150,
+    },
+    thumb: {
+      height: 110,
+      borderRadius: RADIUS.md,
+      padding: 10,
+      justifyContent: 'space-between',
+      overflow: 'hidden',
+    },
+    thumbCompact: {
+      height: 90,
+    },
+    bgIcon: {
+      position: 'absolute',
+      bottom: 8,
+      right: 8,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    livePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+    liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#FF3B30',
+    },
+    livePillText: {
+      color: '#FFF',
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    viewersPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+    viewersText: {
+      color: '#FFF',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    info: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 8,
+    },
+    avatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: COLORS.surface,
+    },
+    title: {
+      color: COLORS.text,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    creatorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      marginTop: 1,
+    },
+    creatorName: {
+      color: COLORS.textMuted,
+      fontSize: 11,
+    },
+  }));
 
   return (
     <TouchableOpacity
@@ -58,91 +150,3 @@ export default function LiveStreamCard({ stream, onPress, size = 'grid' }: Props
   );
 }
 
-const styles = StyleSheet.create({
-  gridWrapper: {
-    width: '48%',
-  },
-  compactWrapper: {
-    width: 150,
-  },
-  thumb: {
-    height: 110,
-    borderRadius: RADIUS.md,
-    padding: 10,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  thumbCompact: {
-    height: 90,
-  },
-  bgIcon: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  livePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FF3B30',
-  },
-  livePillText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  viewersPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  viewersText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  info: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.surface,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  creatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 1,
-  },
-  creatorName: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-  },
-});

@@ -34,7 +34,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(API_BASE_URL);
+    const newSocket = io(API_BASE_URL, { transports: ['websocket'] });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {

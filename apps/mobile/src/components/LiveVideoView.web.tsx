@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import type { Track } from 'livekit-client';
-import { COLORS } from '../theme';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 // Web-only real video surface. Any LiveKit Track (local or remote)
 // exposes attach()/detach() which bind it straight to an
@@ -17,6 +17,13 @@ interface Props {
 
 export default function LiveVideoView({ track, muted, mirror }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      overflow: 'hidden',
+    },
+  }));
 
   useEffect(() => {
     const el = videoRef.current;
@@ -45,11 +52,3 @@ export default function LiveVideoView({ track, muted, mirror }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    overflow: 'hidden',
-  },
-});

@@ -1,13 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { ACCENT } from './LearningHomeScreen';
 
 export default function CommunityDetailScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { communityId } = route.params;
   const [community, setCommunity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +27,31 @@ export default function CommunityDetailScreen({ route, navigation }: any) {
   }, [communityId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 8 },
+    topicPill: { alignSelf: 'flex-start', backgroundColor: `${ACCENT}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    topicPillText: { color: ACCENT, fontSize: 11, fontWeight: '700' },
+    description: { color: COLORS.text, fontSize: 14 },
+    metaText: { color: COLORS.textMuted, fontSize: 12 },
+    primaryBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 15, alignItems: 'center' },
+    primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    composer: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 12, gap: 10 },
+    composerInput: { color: COLORS.text, fontSize: 14, minHeight: 50 },
+    postBtn: { alignSelf: 'flex-end', backgroundColor: ACCENT, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
+    postBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
+    postCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border, gap: 4 },
+    postAuthor: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    postContent: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
+    postTime: { color: COLORS.textMuted, fontSize: 10, marginTop: 2 },
+    hint: { color: COLORS.textMuted, fontSize: 13 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+  }));
 
   const join = async () => {
     setBusy(true);
@@ -144,28 +172,3 @@ export default function CommunityDetailScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 8 },
-  topicPill: { alignSelf: 'flex-start', backgroundColor: `${ACCENT}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  topicPillText: { color: ACCENT, fontSize: 11, fontWeight: '700' },
-  description: { color: COLORS.text, fontSize: 14 },
-  metaText: { color: COLORS.textMuted, fontSize: 12 },
-  primaryBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 15, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  composer: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 12, gap: 10 },
-  composerInput: { color: COLORS.text, fontSize: 14, minHeight: 50 },
-  postBtn: { alignSelf: 'flex-end', backgroundColor: ACCENT, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
-  postBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11 },
-  postCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border, gap: 4 },
-  postAuthor: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  postContent: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
-  postTime: { color: COLORS.textMuted, fontSize: 10, marginTop: 2 },
-  hint: { color: COLORS.textMuted, fontSize: 13 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-});

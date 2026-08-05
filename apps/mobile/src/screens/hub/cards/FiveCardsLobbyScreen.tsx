@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL } from '../../../utils/api';
 import SessionHeaderActions from '../../../components/SessionHeaderActions';
@@ -149,42 +150,3 @@ export default function FiveCardsLobbyScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  content: { padding: SPACING.lg, gap: SPACING.md },
-  sectionLabel: { ...TYPOGRAPHY.label, marginBottom: 4 },
-  chipRow: { flexDirection: 'row', gap: SPACING.sm },
-  chip: {
-    flex: 1, paddingVertical: 10, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    alignItems: 'center',
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
-  chipTextActive: { color: '#fff' },
-  jokerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-  },
-  jokerLabel: { color: COLORS.text, fontWeight: '600' },
-  primaryBtn: { borderRadius: RADIUS.pill, overflow: 'hidden', marginTop: SPACING.sm },
-  primaryBtnGrad: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 16,
-  },
-  primaryBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  secondaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 16, borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.primary,
-  },
-  secondaryBtnActive: { opacity: 0.8 },
-  secondaryBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 14 },
-  tertiaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
-  tertiaryBtnText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 13 },
-});

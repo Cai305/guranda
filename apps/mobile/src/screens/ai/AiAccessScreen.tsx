@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 // One entry per grantable capability. Fetched from GET /ai/tools (the Tool
@@ -64,6 +65,64 @@ export default function AiAccessScreen({ navigation, route }: any) {
   const [handsFreeMode, setHandsFreeMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    notice: {
+      flexDirection: 'row', gap: 12, alignItems: 'center',
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 16,
+    },
+    noticeText: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5, lineHeight: 18, flex: 1 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg, marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    sectionRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    bulkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    bulkLink: { color: COLORS.primary, fontSize: 11.5, fontWeight: '700' },
+    bulkDivider: { color: COLORS.textMuted, fontSize: 11.5 },
+    list: { paddingHorizontal: SPACING.lg, gap: 10 },
+    permRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 12,
+    },
+    permIcon: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: 'rgba(139,92,246,0.15)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    permLabel: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
+    permBlurb: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2, lineHeight: 15 },
+    activateBtn: {
+      flexDirection: 'row', gap: 8,
+      margin: SPACING.lg, marginTop: SPACING.xl,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 15,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    activateText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+    footnote: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center' },
+  }));
 
   useEffect(() => {
     (async () => {
@@ -232,60 +291,3 @@ export default function AiAccessScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  notice: {
-    flexDirection: 'row', gap: 12, alignItems: 'center',
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 16,
-  },
-  noticeText: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5, lineHeight: 18, flex: 1 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg, marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  sectionRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  bulkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  bulkLink: { color: COLORS.primary, fontSize: 11.5, fontWeight: '700' },
-  bulkDivider: { color: COLORS.textMuted, fontSize: 11.5 },
-  list: { paddingHorizontal: SPACING.lg, gap: 10 },
-  permRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 12,
-  },
-  permIcon: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(139,92,246,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  permLabel: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
-  permBlurb: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2, lineHeight: 15 },
-  activateBtn: {
-    flexDirection: 'row', gap: 8,
-    margin: SPACING.lg, marginTop: SPACING.xl,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 15,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  activateText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-  footnote: { color: COLORS.textMuted, fontSize: 11, textAlign: 'center' },
-});

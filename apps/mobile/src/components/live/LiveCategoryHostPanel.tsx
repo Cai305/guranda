@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import * as api from '../../data/liveCategoryApi';
 
 const GAME_TYPES = [
@@ -11,6 +12,50 @@ const GAME_TYPES = [
   { id: 'murabaraba', label: 'Murabaraba', icon: 'apps' },
   { id: 'wordbattle', label: 'Word Battle', icon: 'text' },
 ];
+
+// Shared styles for this file's panel + host sub-components. Every
+// sub-component below calls this hook independently (hooks can't be
+// shared across components), so each gets its own live-themed StyleSheet.
+function useHostPanelStyles() {
+  return useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    panel: {
+      marginHorizontal: SPACING.lg, marginTop: SPACING.lg,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, gap: 8,
+    },
+    panelTitle: { ...TYPOGRAPHY.label, fontSize: 11 },
+    hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
+    errorText: { color: COLORS.error, fontSize: 12 },
+    successText: { color: COLORS.success, fontSize: 12, fontWeight: '600' },
+    linkText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
+    chip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    chipTextActive: { color: '#fff' },
+    input: {
+      backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 13,
+    },
+    actionBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 12, alignItems: 'center' },
+    actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+    optionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.glassBorder },
+    radioActive: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+    scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
+    scoreSide: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    scoreBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+    scoreNum: { color: COLORS.text, fontSize: 22, fontWeight: '800', minWidth: 30, textAlign: 'center' },
+    scoreDivider: { color: COLORS.textMuted, fontSize: 18 },
+    divider: { height: 1, backgroundColor: COLORS.glassBorder, marginVertical: 8 },
+    applicantRow: { paddingVertical: 6, borderTopWidth: 1, borderTopColor: COLORS.glassBorder },
+    applicantName: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    questionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: 1, borderTopColor: COLORS.glassBorder, gap: 8 },
+  }));
+}
 
 // Category-specific host controls for Guranda Live. Rendered only for
 // real rooms (a roomId from the backend) — every action here hits a
@@ -48,6 +93,7 @@ export default function LiveCategoryHostPanel({ categoryId, roomId }: { category
 type RunFn = (fn: () => Promise<any>, onDone?: (r: any) => void) => void;
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  const styles = useHostPanelStyles();
   return (
     <View style={styles.panel}>
       <Text style={styles.panelTitle}>{title}</Text>
@@ -57,6 +103,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 function ErrorText({ error }: { error: string }) {
+  const styles = useHostPanelStyles();
   if (!error) return null;
   return <Text style={styles.errorText}>{error}</Text>;
 }
@@ -65,6 +112,7 @@ function ErrorText({ error }: { error: string }) {
 function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; error: string; busy: boolean }) {
   const [products, setProducts] = useState<any[]>([]);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const styles = useHostPanelStyles();
 
   useEffect(() => { api.getMyShoppingStore().then(s => setProducts(s?.products || [])).catch(() => {}); }, []);
 
@@ -96,6 +144,7 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
 function FoodHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; error: string; busy: boolean }) {
   const [products, setProducts] = useState<any[]>([]);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const styles = useHostPanelStyles();
 
   useEffect(() => { api.getMyEatStore().then(s => setProducts(s?.products || [])).catch(() => {}); }, []);
 
@@ -128,6 +177,9 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
   const [gameType, setGameType] = useState('pool');
   const [gameId, setGameId] = useState('');
   const [linked, setLinked] = useState(false);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
 
   return (
     <Panel title="Link a live game">
@@ -161,6 +213,7 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
 
 // ── Business Live ────────────────────────────────────────────────────────
 function BusinessHost() {
+  const styles = useHostPanelStyles();
   return (
     <Panel title="Networking">
       <Text style={styles.hint}>Viewers can tap "Connect" to open a real chat with you — check your Chats tab.</Text>
@@ -175,6 +228,9 @@ function EducationHost({ roomId, run, error, busy }: { roomId: string; run: RunF
   const [correctIndex, setCorrectIndex] = useState(0);
   const [prizePool, setPrizePool] = useState('');
   const [quiz, setQuiz] = useState<any>(null);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
 
   const setOption = (i: number, v: string) => setOptions(prev => prev.map((o, idx) => idx === i ? v : o));
 
@@ -224,6 +280,9 @@ function EntertainmentHost({ roomId, run, error, busy }: { roomId: string; run: 
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [poll, setPoll] = useState<any>(null);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
 
   const setOption = (i: number, v: string) => setOptions(prev => prev.map((o, idx) => idx === i ? v : o));
 
@@ -266,6 +325,9 @@ function SportsHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
   const [scoreB, setScoreB] = useState(0);
   const [pQuestion, setPQuestion] = useState('Who wins?');
   const [prediction, setPrediction] = useState<any>(null);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
 
   const updateScore = (a: number, b: number) => run(() => api.updateScoreboard(roomId, { teamA, teamB, scoreA: a, scoreB: b }));
 
@@ -327,6 +389,9 @@ function CareerHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
   const [salary, setSalary] = useState('');
   const [job, setJob] = useState<any>(null);
   const [applicants, setApplicants] = useState<any[]>([]);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
 
   const post = () => run(() => api.postJob(roomId, title.trim(), description.trim(), salary.trim()), (j) => setJob(j));
   const loadApplicants = () => job && api.getJobApplicants(job.id).then(setApplicants).catch(() => {});
@@ -365,6 +430,9 @@ function CareerHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
 // ── Social Live ──────────────────────────────────────────────────────────
 function SocialHost({ roomId }: { roomId: string }) {
   const [questions, setQuestions] = useState<any[]>([]);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
 
   const load = () => api.getRoomState(roomId).then(s => setQuestions(s.questions || [])).catch(() => {});
   useEffect(() => { load(); }, [roomId]);
@@ -393,41 +461,3 @@ function SocialHost({ roomId }: { roomId: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  panel: {
-    marginHorizontal: SPACING.lg, marginTop: SPACING.lg,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, gap: 8,
-  },
-  panelTitle: { ...TYPOGRAPHY.label, fontSize: 11 },
-  hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
-  errorText: { color: COLORS.error, fontSize: 12 },
-  successText: { color: COLORS.success, fontSize: 12, fontWeight: '600' },
-  linkText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  input: {
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 13,
-  },
-  actionBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 12, alignItems: 'center' },
-  actionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  optionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.glassBorder },
-  radioActive: { backgroundColor: COLORS.success, borderColor: COLORS.success },
-  scoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
-  scoreSide: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  scoreBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  scoreNum: { color: COLORS.text, fontSize: 22, fontWeight: '800', minWidth: 30, textAlign: 'center' },
-  scoreDivider: { color: COLORS.textMuted, fontSize: 18 },
-  divider: { height: 1, backgroundColor: COLORS.glassBorder, marginVertical: 8 },
-  applicantRow: { paddingVertical: 6, borderTopWidth: 1, borderTopColor: COLORS.glassBorder },
-  applicantName: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  questionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: 1, borderTopColor: COLORS.glassBorder, gap: 8 },
-});

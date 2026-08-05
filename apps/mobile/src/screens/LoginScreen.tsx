@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
-import { COLORS, TYPOGRAPHY, BRAND } from '../theme';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useAuth } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 
@@ -8,8 +9,76 @@ export default function LoginScreen({ navigation }: any) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login, sessionExpired, clearSessionExpired } = useAuth();
+  const { theme } = useTheme();
+  const { COLORS, BRAND } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      padding: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    logoMark: {
+      width: 220,
+      height: 220,
+      marginBottom: 4,
+    },
+    tagline: {
+      ...TYPOGRAPHY.body2,
+      marginTop: 6,
+      letterSpacing: 0.5,
+    },
+    sessionBanner: {
+      marginTop: 24,
+      width: '100%',
+      backgroundColor: 'rgba(239,68,68,0.15)',
+      borderWidth: 1,
+      borderColor: 'rgba(239,68,68,0.4)',
+      borderRadius: 12,
+      padding: 12,
+    },
+    sessionBannerText: {
+      color: '#EF4444',
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    form: {
+      width: '100%',
+      marginTop: 40,
+      gap: 15,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 15,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    button: {
+      backgroundColor: COLORS.primary,
+      padding: 15,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    buttonDisabled: {
+      opacity: 0.7,
+    },
+    buttonText: {
+      color: COLORS.text,
+      fontWeight: '600',
+      fontSize: 16,
+    },
+    linkText: {
+      color: COLORS.secondary,
+      textAlign: 'center',
+      marginTop: 10,
+    }
+  }));
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -94,70 +163,3 @@ export default function LoginScreen({ navigation }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoMark: {
-    width: 220,
-    height: 220,
-    marginBottom: 4,
-  },
-  tagline: {
-    ...TYPOGRAPHY.body2,
-    marginTop: 6,
-    letterSpacing: 0.5,
-  },
-  sessionBanner: {
-    marginTop: 24,
-    width: '100%',
-    backgroundColor: 'rgba(239,68,68,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.4)',
-    borderRadius: 12,
-    padding: 12,
-  },
-  sessionBannerText: {
-    color: '#EF4444',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  form: {
-    width: '100%',
-    marginTop: 40,
-    gap: 15,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: COLORS.text,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  linkText: {
-    color: COLORS.secondary,
-    textAlign: 'center',
-    marginTop: 10,
-  }
-});

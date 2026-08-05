@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 
 const CATEGORIES = [
@@ -12,9 +13,37 @@ const CATEGORIES = [
 ];
 
 export default function ChallengesLeaderboardScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [category, setCategory] = useState<string | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    categoryRow: { paddingHorizontal: SPACING.lg, gap: 8, paddingBottom: SPACING.sm },
+    chip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+    chipTextActive: { color: '#fff' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.xs,
+    },
+    rank: { color: COLORS.gold, fontWeight: '800', width: 32 },
+    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surface },
+    name: { flex: 1, color: COLORS.text, fontWeight: '600' },
+    xp: { color: COLORS.gold, fontWeight: '800' },
+  }));
 
   useFocusEffect(
     useCallback(() => {
@@ -85,29 +114,3 @@ export default function ChallengesLeaderboardScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  categoryRow: { paddingHorizontal: SPACING.lg, gap: 8, paddingBottom: SPACING.sm },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
-  chipTextActive: { color: '#fff' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.xs,
-  },
-  rank: { color: COLORS.gold, fontWeight: '800', width: 32 },
-  avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surface },
-  name: { flex: 1, color: COLORS.text, fontWeight: '600' },
-  xp: { color: COLORS.gold, fontWeight: '800' },
-});

@@ -1,15 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { ACCENT } from './LearningHomeScreen';
 
 type Tab = 'enrollments' | 'certificates';
 
 export default function MyLearningScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [tab, setTab] = useState<Tab>('enrollments');
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [certificates, setCertificates] = useState<any[]>([]);
@@ -29,6 +32,27 @@ export default function MyLearningScreen({ navigation }: any) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 8, marginBottom: 12 },
+    tabChip: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+    tabChipActive: { backgroundColor: ACCENT, borderColor: ACCENT },
+    tabLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+    tabLabelActive: { color: '#fff' },
+    card: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border },
+    cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 6 },
+    cardMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 6 },
+    progressBarBg: { height: 6, borderRadius: 3, backgroundColor: COLORS.surfaceElevated, overflow: 'hidden' },
+    progressBarFill: { height: 6, borderRadius: 3, backgroundColor: ACCENT },
+    certCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border },
+    certCode: { color: ACCENT, fontSize: 11, fontWeight: '700', marginTop: 2, fontFamily: 'monospace' },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -101,24 +125,3 @@ export default function MyLearningScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 8, marginBottom: 12 },
-  tabChip: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  tabChipActive: { backgroundColor: ACCENT, borderColor: ACCENT },
-  tabLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
-  tabLabelActive: { color: '#fff' },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border },
-  cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 6 },
-  cardMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 6 },
-  progressBarBg: { height: 6, borderRadius: 3, backgroundColor: COLORS.surfaceElevated, overflow: 'hidden' },
-  progressBarFill: { height: 6, borderRadius: 3, backgroundColor: ACCENT },
-  certCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border },
-  certCode: { color: ACCENT, fontSize: 11, fontWeight: '700', marginTop: 2, fontFamily: 'monospace' },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
-});

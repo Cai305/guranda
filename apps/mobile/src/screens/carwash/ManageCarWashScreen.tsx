@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 interface ServiceRow {
@@ -13,6 +14,8 @@ interface ServiceRow {
 }
 
 export default function ManageCarWashScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const existing = route?.params?.carWash;
   const isEdit = !!existing;
 
@@ -85,6 +88,51 @@ export default function ManageCarWashScreen({ navigation, route }: any) {
       setSubmitting(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    saveBtn: {
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 16, paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    saveText: { color: '#FFF', fontWeight: 'bold' },
+    label: { ...TYPOGRAPHY.label, marginBottom: 8, marginTop: 16 },
+    input: {
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+      color: COLORS.text,
+    },
+    servicesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, marginBottom: 16 },
+    sectionTitle: { ...TYPOGRAPHY.h3 },
+    serviceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.02)',
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      marginBottom: SPACING.md,
+    },
+    removeBtn: { padding: 8, marginLeft: 8 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -171,48 +219,3 @@ export default function ManageCarWashScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  saveBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: RADIUS.pill,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  saveText: { color: '#FFF', fontWeight: 'bold' },
-  label: { ...TYPOGRAPHY.label, marginBottom: 8, marginTop: 16 },
-  input: {
-    backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    color: COLORS.text,
-  },
-  servicesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, marginBottom: 16 },
-  sectionTitle: { ...TYPOGRAPHY.h3 },
-  serviceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    marginBottom: SPACING.md,
-  },
-  removeBtn: { padding: 8, marginLeft: 8 },
-});

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS, BRAND } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import ConstructionBadge from '../../components/ConstructionBadge';
 import { useStore } from '../../context/StoreContext';
 
@@ -27,7 +28,7 @@ export const GAMES: GameEntry[] = [
     name: '5 Cards',
     blurb: 'South African 5 Cards — draw, discard, and race to a straight or full house.',
     icon: 'albums',
-    gradient: GRADIENTS.emerald,
+    gradient: ['#10B981', '#22D3EE'],
     live: true,
     route: 'FiveCardsLobby',
     features: [],
@@ -37,7 +38,7 @@ export const GAMES: GameEntry[] = [
     name: 'Cassino',
     blurb: 'South African house rules — capture, build, and sweep the table for points.',
     icon: 'grid',
-    gradient: GRADIENTS.golden,
+    gradient: ['#F59E0B', '#FBBF24'],
     live: true,
     route: 'CassinoLobby',
     features: [],
@@ -47,7 +48,7 @@ export const GAMES: GameEntry[] = [
     name: 'Chess',
     blurb: 'Real-time multiplayer chess. Challenge anyone in the world.',
     icon: 'extension-puzzle',
-    gradient: GRADIENTS.primary,
+    gradient: ['#8B5CF6', '#6366F1'],
     live: true,
     route: 'ChessLobby',
     features: [],
@@ -57,7 +58,7 @@ export const GAMES: GameEntry[] = [
     name: 'Trivia Arcade',
     blurb: 'Fast-paced quiz rounds. Beat the timer, top the leaderboard.',
     icon: 'help-circle',
-    gradient: GRADIENTS.aurora,
+    gradient: ['#22D3EE', '#8B5CF6'],
     live: true,
     route: 'Arcade',
     features: [],
@@ -67,7 +68,7 @@ export const GAMES: GameEntry[] = [
     name: 'Ludo',
     blurb: '1v1, 2v2, 2v2v2, 4v4 or 1v5 — play real opponents or AI bots instantly.',
     icon: 'dice',
-    gradient: GRADIENTS.emerald,
+    gradient: ['#10B981', '#22D3EE'],
     live: true,
     route: 'LudoLobby',
     features: [],
@@ -77,7 +78,7 @@ export const GAMES: GameEntry[] = [
     name: 'Murabaraba',
     blurb: "South Africa's game of cows. Make mills, shoot cows — vs AI or a friend.",
     icon: 'apps',
-    gradient: GRADIENTS.sunset,
+    gradient: ['#F472B6', '#FB923C'],
     live: true,
     route: 'MurabarabaLobby',
     features: [],
@@ -87,7 +88,7 @@ export const GAMES: GameEntry[] = [
     name: 'MoonBase 2.0',
     blurb: 'The legendary social world returns — rooms, avatars and hangouts.',
     icon: 'planet',
-    gradient: GRADIENTS.midnight,
+    gradient: ['#1E1B4B', '#312E81'],
     live: true,
     route: 'MoonBase',
     features: [],
@@ -97,7 +98,7 @@ export const GAMES: GameEntry[] = [
     name: '8-Ball Pool',
     blurb: 'Classic 8-ball with MSH wagers — vs AI or a friend on one device.',
     icon: 'ellipse',
-    gradient: GRADIENTS.emerald,
+    gradient: ['#10B981', '#22D3EE'],
     live: true,
     route: 'PoolLobby',
     features: [],
@@ -107,7 +108,7 @@ export const GAMES: GameEntry[] = [
     name: 'Word Battle',
     blurb: 'Wordle Duel, Boggle or Scrabble — vs AI or a friend, with MSH wagers.',
     icon: 'text',
-    gradient: GRADIENTS.sunset,
+    gradient: ['#F472B6', '#FB923C'],
     live: true,
     route: 'WordBattleLobby',
     features: [],
@@ -117,7 +118,7 @@ export const GAMES: GameEntry[] = [
     name: 'Turbo Racing',
     blurb: 'Dodge traffic, grab boosts, race a real opponent — upgrades bought from your one wallet.',
     icon: 'speedometer',
-    gradient: GRADIENTS.crimson,
+    gradient: ['#F87171', '#F472B6'],
     live: true,
     route: 'TurboRacingLobby',
     features: ['Real-time online races', 'Car upgrades', 'MSH rewards'],
@@ -125,8 +126,145 @@ export const GAMES: GameEntry[] = [
 ];
 
 export default function GamesScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING, BRAND } = theme;
   const { installApp, isInstalled } = useStore();
   const [modal, setModal] = useState<GameEntry | null>(null);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sectionLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.md,
+      marginBottom: SPACING.md,
+    },
+    list: {
+      paddingHorizontal: SPACING.lg,
+      gap: SPACING.md,
+    },
+    gameCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      borderRadius: RADIUS.lg,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    gameIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    gameIconLocked: {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    gameTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    gameName: {
+      color: COLORS.text,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    livePill: {
+      backgroundColor: 'rgba(52, 211, 153, 0.2)',
+      borderWidth: 1,
+      borderColor: 'rgba(52, 211, 153, 0.5)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    livePillText: {
+      color: COLORS.success,
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    gameBlurb: {
+      color: 'rgba(255,255,255,0.75)',
+      fontSize: 12,
+      marginTop: 4,
+      lineHeight: 17,
+    },
+    getPill: {
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    getPillText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    // Install modal — mirrors the Guranda Store sheet
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 28,
+      alignItems: 'center',
+    },
+    sheetIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sheetTitle: { ...TYPOGRAPHY.h2, marginBottom: 4 },
+    sheetDesc: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
+    featureList: { alignSelf: 'stretch', gap: 8, marginBottom: 24 },
+    featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    featureText: { color: COLORS.text, fontSize: 13 },
+    sheetButtons: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
+    cancelBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: COLORS.surfaceElevated,
+      alignItems: 'center',
+    },
+    cancelText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 15 },
+    installBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
+    installGradient: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+    },
+    installText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  }));
 
   const mode = route?.params?.mode || 'store';
 
@@ -285,138 +423,3 @@ export default function GamesScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  list: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
-  },
-  gameCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderRadius: RADIUS.lg,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  gameIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  gameIconLocked: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  gameTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  gameName: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  livePill: {
-    backgroundColor: 'rgba(52, 211, 153, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.5)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  livePillText: {
-    color: COLORS.success,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  gameBlurb: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 17,
-  },
-  getPill: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  getPillText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  // Install modal — mirrors the Guranda Store sheet
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 28,
-    alignItems: 'center',
-  },
-  sheetIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sheetTitle: { ...TYPOGRAPHY.h2, marginBottom: 4 },
-  sheetDesc: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
-  featureList: { alignSelf: 'stretch', gap: 8, marginBottom: 24 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureText: { color: COLORS.text, fontSize: 13 },
-  sheetButtons: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceElevated,
-    alignItems: 'center',
-  },
-  cancelText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 15 },
-  installBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
-  installGradient: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-  },
-  installText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});

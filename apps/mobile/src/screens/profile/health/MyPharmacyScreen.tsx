@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityI
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 export default function MyPharmacyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const [pharmacy, setPharmacy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
@@ -39,6 +42,40 @@ export default function MyPharmacyScreen({ navigation }: any) {
       setPharmacy((p: any) => ({ ...p, products: p.products.filter((x: any) => x.id !== productId) }));
     } catch {}
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 80 },
+    emptyTitle: { ...TYPOGRAPHY.h2, color: COLORS.textMuted },
+    createBtn: { backgroundColor: '#F87171', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+    createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    card: { margin: SPACING.lg, borderRadius: 16, padding: 18, gap: 14 },
+    cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardName: { color: '#fff', fontSize: 20, fontWeight: '800' },
+    cardSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
+    openToggle: { alignItems: 'center', gap: 4 },
+    openLabel: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    statsRow: { flexDirection: 'row', gap: 24 },
+    stat: { alignItems: 'center' },
+    statNum: { color: '#fff', fontSize: 22, fontWeight: '800' },
+    statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
+    actions: { flexDirection: 'row', gap: 12, paddingHorizontal: SPACING.lg, marginBottom: 16 },
+    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
+    actionText: { color: COLORS.text, fontWeight: '600', fontSize: 14 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginBottom: 10 },
+    emptyProducts: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+    emptyProductsText: { color: COLORS.textMuted, fontSize: 14 },
+    productRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, marginHorizontal: SPACING.lg, marginBottom: 8, gap: 12, borderWidth: 1, borderColor: COLORS.border },
+    productName: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
+    productPrice: { color: '#F87171', fontWeight: '700', fontSize: 14 },
+    productActions: { flexDirection: 'row', gap: 8 },
+    editBtn: { padding: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 8 },
+    deleteBtn: { padding: 8, backgroundColor: '#ef444415', borderRadius: 8 },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>;
 
@@ -142,37 +179,3 @@ export default function MyPharmacyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 80 },
-  emptyTitle: { ...TYPOGRAPHY.h2, color: COLORS.textMuted },
-  createBtn: { backgroundColor: '#F87171', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  card: { margin: SPACING.lg, borderRadius: 16, padding: 18, gap: 14 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardName: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  cardSub: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
-  openToggle: { alignItems: 'center', gap: 4 },
-  openLabel: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  statsRow: { flexDirection: 'row', gap: 24 },
-  stat: { alignItems: 'center' },
-  statNum: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
-  actions: { flexDirection: 'row', gap: 12, paddingHorizontal: SPACING.lg, marginBottom: 16 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
-  actionText: { color: COLORS.text, fontWeight: '600', fontSize: 14 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginBottom: 10 },
-  emptyProducts: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyProductsText: { color: COLORS.textMuted, fontSize: 14 },
-  productRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, marginHorizontal: SPACING.lg, marginBottom: 8, gap: 12, borderWidth: 1, borderColor: COLORS.border },
-  productName: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
-  productPrice: { color: '#F87171', fontWeight: '700', fontSize: 14 },
-  productActions: { flexDirection: 'row', gap: 8 },
-  editBtn: { padding: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 8 },
-  deleteBtn: { padding: 8, backgroundColor: '#ef444415', borderRadius: 8 },
-});

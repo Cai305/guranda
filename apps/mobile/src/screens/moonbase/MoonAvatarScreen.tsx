@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
 
@@ -41,6 +42,8 @@ const OUTFITS = [
 ];
 
 export default function MoonAvatarScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { user, refreshProfile } = useAuth();
   const [hair, setHair] = useState('shortCurly');
   const [accessory, setAccessory] = useState('none');
@@ -78,6 +81,55 @@ export default function MoonAvatarScreen({ navigation }: any) {
       setSaving(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: '#0A0618' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    previewWrap: { alignItems: 'center', marginVertical: SPACING.md },
+    previewOrbit: {
+      width: 190, height: 190, borderRadius: 95,
+      backgroundColor: 'rgba(139,92,246,0.15)',
+      borderWidth: 2, borderColor: 'rgba(139,92,246,0.6)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    preview: { width: 165, height: 165, borderRadius: 83 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: SPACING.md,
+    },
+    chipRow: { paddingHorizontal: SPACING.lg, gap: 8 },
+    chip: {
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 9, paddingHorizontal: 16,
+    },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
+    swatchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, flexWrap: 'wrap' },
+    swatch: {
+      width: 34, height: 34, borderRadius: 17,
+      borderWidth: 2, borderColor: 'transparent',
+    },
+    swatchActive: { borderColor: '#FFF' },
+    saveBtn: {
+      flexDirection: 'row', gap: 8,
+      margin: SPACING.lg, marginTop: SPACING.xl,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 15,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    saveText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  }));
 
   const renderChips = (
     label: string,
@@ -153,52 +205,3 @@ export default function MoonAvatarScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0618' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  previewWrap: { alignItems: 'center', marginVertical: SPACING.md },
-  previewOrbit: {
-    width: 190, height: 190, borderRadius: 95,
-    backgroundColor: 'rgba(139,92,246,0.15)',
-    borderWidth: 2, borderColor: 'rgba(139,92,246,0.6)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  preview: { width: 165, height: 165, borderRadius: 83 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: SPACING.md,
-  },
-  chipRow: { paddingHorizontal: SPACING.lg, gap: 8 },
-  chip: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 9, paddingHorizontal: 16,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
-  swatchRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, flexWrap: 'wrap' },
-  swatch: {
-    width: 34, height: 34, borderRadius: 17,
-    borderWidth: 2, borderColor: 'transparent',
-  },
-  swatchActive: { borderColor: '#FFF' },
-  saveBtn: {
-    flexDirection: 'row', gap: 8,
-    margin: SPACING.lg, marginTop: SPACING.xl,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 15,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  saveText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-});

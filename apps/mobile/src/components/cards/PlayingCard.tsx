@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
-import { RADIUS } from '../../theme';
+import { View, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 export type CardSuit = 'S' | 'H' | 'D' | 'C';
 
@@ -39,6 +39,45 @@ export default function PlayingCard({
   const rankLabel = isJoker ? '★' : rank !== undefined ? (RANK_LABEL[rank] ?? String(rank)) : '';
   const glyph = suit ? SUIT_GLYPH[suit] : '';
 
+  const styles = useThemedStyles(({ RADIUS }) => ({
+    card: {
+      backgroundColor: '#FAFAFA',
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    selected: {
+      borderColor: '#8B5CF6',
+      borderWidth: 2,
+      marginTop: -8,
+    },
+    jokerCard: {
+      backgroundColor: '#F5F0FF',
+    },
+    cornerText: { fontWeight: '800' },
+    glyph: { fontWeight: '700' },
+    faceDown: {
+      backgroundColor: '#4C1D95',
+      borderColor: 'rgba(255,255,255,0.2)',
+      overflow: 'hidden',
+    },
+    faceDownPattern: {
+      width: '70%',
+      height: '70%',
+      borderRadius: RADIUS.sm,
+      borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
+  }));
+
   const content = faceDown ? (
     <View style={[styles.card, styles.faceDown, { width: dims.width, height: dims.height }]}>
       <View style={styles.faceDownPattern} />
@@ -70,42 +109,3 @@ export default function PlayingCard({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FAFAFA',
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  selected: {
-    borderColor: '#8B5CF6',
-    borderWidth: 2,
-    marginTop: -8,
-  },
-  jokerCard: {
-    backgroundColor: '#F5F0FF',
-  },
-  cornerText: { fontWeight: '800' },
-  glyph: { fontWeight: '700' },
-  faceDown: {
-    backgroundColor: '#4C1D95',
-    borderColor: 'rgba(255,255,255,0.2)',
-    overflow: 'hidden',
-  },
-  faceDownPattern: {
-    width: '70%',
-    height: '70%',
-    borderRadius: RADIUS.sm,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-});

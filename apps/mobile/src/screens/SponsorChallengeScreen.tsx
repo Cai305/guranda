@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 
 const CATEGORIES = [
@@ -20,6 +21,33 @@ export default function SponsorChallengeScreen({ navigation }: any) {
   const [budget, setBudget] = useState('');
   const [days, setDays] = useState('7');
   const [submitting, setSubmitting] = useState(false);
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    hint: { color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.lg, lineHeight: 18 },
+    label: { ...TYPOGRAPHY.label, marginBottom: 6, marginTop: SPACING.md },
+    input: {
+      backgroundColor: COLORS.surface, color: COLORS.text, padding: SPACING.md,
+      borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border,
+    },
+    textArea: { minHeight: 80 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+    },
+    chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    chipText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
+    chipTextActive: { color: '#fff' },
+    submitBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center', marginTop: SPACING.xl },
+    submitBtnText: { color: '#fff', fontWeight: '800' },
+  }));
 
   const submit = async () => {
     if (!title.trim() || !description.trim() || !budget.trim()) {
@@ -111,29 +139,3 @@ export default function SponsorChallengeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  hint: { color: COLORS.textMuted, fontSize: 13, marginBottom: SPACING.lg, lineHeight: 18 },
-  label: { ...TYPOGRAPHY.label, marginBottom: 6, marginTop: SPACING.md },
-  input: {
-    backgroundColor: COLORS.surface, color: COLORS.text, padding: SPACING.md,
-    borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border,
-  },
-  textArea: { minHeight: 80 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-  },
-  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
-  chipTextActive: { color: '#fff' },
-  submitBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center', marginTop: SPACING.xl },
-  submitBtnText: { color: '#fff', fontWeight: '800' },
-});

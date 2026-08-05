@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 interface Props {
   title: string;
@@ -10,6 +11,34 @@ interface Props {
 }
 
 export default function SectionHeader({ title, onSeeAll, seeAllLabel = 'See all' }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl,
+      marginBottom: SPACING.md,
+    },
+    title: {
+      ...TYPOGRAPHY.h3,
+      fontWeight: '600',
+    },
+    seeAll: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    seeAllText: {
+      color: COLORS.secondary,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+  }));
+
   return (
     <View style={styles.row}>
       <Text style={styles.title}>{title}</Text>
@@ -22,28 +51,3 @@ export default function SectionHeader({ title, onSeeAll, seeAllLabel = 'See all'
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.md,
-  },
-  title: {
-    ...TYPOGRAPHY.h3,
-    fontWeight: '600',
-  },
-  seeAll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  seeAllText: {
-    color: COLORS.secondary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-});

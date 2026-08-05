@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList,
+  View, Text, TouchableOpacity, TextInput, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import AiWidgetRenderer, { ToolWidget } from '../../components/ai-widgets/AiWidgetRenderer';
 
@@ -39,6 +40,8 @@ function friendlyErrorMessage(message?: string): string {
 }
 
 export default function AiChatScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [agentName, setAgentName] = useState('AI');
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState('');
@@ -155,6 +158,119 @@ export default function AiChatScreen({ navigation, route }: any) {
     );
   };
 
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+      borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    avatarOrb: {
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerName: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
+    headerStatus: { color: COLORS.success, fontSize: 11 },
+    bubble: {
+      maxWidth: '82%',
+      borderRadius: RADIUS.lg,
+      padding: 12,
+    },
+    bubbleUser: {
+      alignSelf: 'flex-end',
+      backgroundColor: COLORS.primary,
+      borderBottomRightRadius: 4,
+    },
+    bubbleText: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
+    // Widget-card container for every assistant reply — same visual language
+    // (glass fill, hairline border, RADIUS.md) as WidgetCard.tsx's tool-result
+    // cards, so a plain-text answer and a product-list answer both read as
+    // "a widget", not a chat bubble.
+    aiWidgetCard: {
+      alignSelf: 'stretch',
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderLeftWidth: 2,
+      borderLeftColor: COLORS.primary,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+    },
+    aiReplyText: { color: COLORS.text, fontSize: 14, lineHeight: 19, fontWeight: '500' },
+    aiWidgetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 8,
+    },
+    aiWidgetHeaderIcon: {
+      width: 20, height: 20, borderRadius: 10,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    aiWidgetLabel: {
+      color: COLORS.textMuted,
+      fontSize: 10.5,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    systemText: {
+      color: COLORS.textMuted, fontSize: 11.5,
+      textAlign: 'center', marginVertical: 2,
+    },
+    thinkingRow: {
+      flexDirection: 'row', gap: 8, alignItems: 'center',
+      paddingHorizontal: SPACING.lg, paddingBottom: 6,
+    },
+    thinkingText: { color: COLORS.textMuted, fontSize: 12 },
+    approvalCard: {
+      marginHorizontal: SPACING.lg, marginBottom: 8,
+      backgroundColor: 'rgba(245,158,11,0.1)',
+      borderWidth: 1, borderColor: 'rgba(245,158,11,0.5)',
+      borderRadius: RADIUS.lg,
+      padding: 14,
+    },
+    approvalHeader: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    approvalTitle: { color: '#F59E0B', fontWeight: '800', fontSize: 13 },
+    approvalSummary: { color: COLORS.text, fontSize: 13.5, marginTop: 8, lineHeight: 19 },
+    approvalButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    approvalBtn: {
+      flex: 1, paddingVertical: 11,
+      borderRadius: RADIUS.pill,
+      alignItems: 'center',
+    },
+    declineBtn: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder },
+    declineText: { color: COLORS.textMuted, fontWeight: '700' },
+    approveBtn: { backgroundColor: COLORS.success },
+    approveText: { color: '#04291B', fontWeight: '800' },
+    inputRow: {
+      flexDirection: 'row', gap: 10, alignItems: 'flex-end',
+      padding: SPACING.lg, paddingTop: 6,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text,
+      paddingHorizontal: 14, paddingVertical: 10,
+      maxHeight: 110, fontSize: 14,
+    },
+    sendBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+  }));
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
@@ -240,116 +356,3 @@ export default function AiChatScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-    borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatarOrb: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerName: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
-  headerStatus: { color: COLORS.success, fontSize: 11 },
-  bubble: {
-    maxWidth: '82%',
-    borderRadius: RADIUS.lg,
-    padding: 12,
-  },
-  bubbleUser: {
-    alignSelf: 'flex-end',
-    backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 4,
-  },
-  bubbleText: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
-  // Widget-card container for every assistant reply — same visual language
-  // (glass fill, hairline border, RADIUS.md) as WidgetCard.tsx's tool-result
-  // cards, so a plain-text answer and a product-list answer both read as
-  // "a widget", not a chat bubble.
-  aiWidgetCard: {
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderLeftWidth: 2,
-    borderLeftColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-  },
-  aiReplyText: { color: COLORS.text, fontSize: 14, lineHeight: 19, fontWeight: '500' },
-  aiWidgetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  aiWidgetHeaderIcon: {
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  aiWidgetLabel: {
-    color: COLORS.textMuted,
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  systemText: {
-    color: COLORS.textMuted, fontSize: 11.5,
-    textAlign: 'center', marginVertical: 2,
-  },
-  thinkingRow: {
-    flexDirection: 'row', gap: 8, alignItems: 'center',
-    paddingHorizontal: SPACING.lg, paddingBottom: 6,
-  },
-  thinkingText: { color: COLORS.textMuted, fontSize: 12 },
-  approvalCard: {
-    marginHorizontal: SPACING.lg, marginBottom: 8,
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.5)',
-    borderRadius: RADIUS.lg,
-    padding: 14,
-  },
-  approvalHeader: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  approvalTitle: { color: '#F59E0B', fontWeight: '800', fontSize: 13 },
-  approvalSummary: { color: COLORS.text, fontSize: 13.5, marginTop: 8, lineHeight: 19 },
-  approvalButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  approvalBtn: {
-    flex: 1, paddingVertical: 11,
-    borderRadius: RADIUS.pill,
-    alignItems: 'center',
-  },
-  declineBtn: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder },
-  declineText: { color: COLORS.textMuted, fontWeight: '700' },
-  approveBtn: { backgroundColor: COLORS.success },
-  approveText: { color: '#04291B', fontWeight: '800' },
-  inputRow: {
-    flexDirection: 'row', gap: 10, alignItems: 'flex-end',
-    padding: SPACING.lg, paddingTop: 6,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text,
-    paddingHorizontal: 14, paddingVertical: 10,
-    maxHeight: 110, fontSize: 14,
-  },
-  sendBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-});

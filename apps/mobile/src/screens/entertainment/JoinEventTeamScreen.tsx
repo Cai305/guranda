@@ -1,11 +1,37 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function JoinEventTeamScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    body: { flex: 1, alignItems: 'center', padding: SPACING.lg, paddingTop: 40 },
+    title: { ...TYPOGRAPHY.h3, marginBottom: 8, textAlign: 'center' },
+    subtitle: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
+    input: {
+      width: '100%', backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+      padding: 16, color: COLORS.text, fontSize: 18, fontWeight: '700', letterSpacing: 2, textAlign: 'center', marginBottom: 16,
+    },
+    errorText: { color: '#ef4444', fontSize: 13, marginBottom: 12 },
+    joinBtn: { width: '100%', backgroundColor: '#10B981', borderRadius: 14, padding: 16, alignItems: 'center' },
+    joinBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg, gap: 12 },
+    successIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+    successTitle: { ...TYPOGRAPHY.h2 },
+    successSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 16, textAlign: 'center' },
+    successBtn: { backgroundColor: '#10B981', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 },
+    successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    successLink: { color: COLORS.textMuted, fontSize: 13, marginTop: 12 },
+  }));
   const [code, setCode] = useState('');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
@@ -81,27 +107,3 @@ export default function JoinEventTeamScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  body: { flex: 1, alignItems: 'center', padding: SPACING.lg, paddingTop: 40 },
-  title: { ...TYPOGRAPHY.h3, marginBottom: 8, textAlign: 'center' },
-  subtitle: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
-  input: {
-    width: '100%', backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
-    padding: 16, color: COLORS.text, fontSize: 18, fontWeight: '700', letterSpacing: 2, textAlign: 'center', marginBottom: 16,
-  },
-  errorText: { color: '#ef4444', fontSize: 13, marginBottom: 12 },
-  joinBtn: { width: '100%', backgroundColor: '#10B981', borderRadius: 14, padding: 16, alignItems: 'center' },
-  joinBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg, gap: 12 },
-  successIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  successTitle: { ...TYPOGRAPHY.h2 },
-  successSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 16, textAlign: 'center' },
-  successBtn: { backgroundColor: '#10B981', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 },
-  successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successLink: { color: COLORS.textMuted, fontSize: 13, marginTop: 12 },
-});

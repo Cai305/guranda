@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { Animated, Text } from 'react-native';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 interface Props {
   icon: string;
@@ -29,6 +29,24 @@ export default function GiftToast({ icon, label, senderName, nonce }: Props) {
     ]).start();
   }, [nonce]);
 
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    wrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      alignSelf: 'center',
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      borderWidth: 1,
+      borderColor: 'rgba(251, 191, 36, 0.5)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: 8,
+    },
+    icon: { fontSize: 20 },
+    text: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    sender: { color: COLORS.gold, fontWeight: '800' },
+  }));
+
   if (!nonce) return null;
 
   return (
@@ -41,21 +59,3 @@ export default function GiftToast({ icon, label, senderName, nonce }: Props) {
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.5)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 8,
-  },
-  icon: { fontSize: 20 },
-  text: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  sender: { color: COLORS.gold, fontWeight: '800' },
-});

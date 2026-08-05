@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 export default function CardsTournamentListScreen({ navigation }: any) {
@@ -44,6 +45,40 @@ export default function CardsTournamentListScreen({ navigation }: any) {
       setCreating(false);
     }
   };
+
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    card: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
+    },
+    name: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    meta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    modalCard: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg, padding: SPACING.lg, gap: SPACING.sm },
+    input: {
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: 10, color: COLORS.text,
+    },
+    modeRow: { flexDirection: 'row', gap: SPACING.sm },
+    modeChip: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.pill, backgroundColor: COLORS.glass, alignItems: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
+    modeChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    modeChipText: { color: COLORS.text, fontWeight: '700', fontSize: 12 },
+    modalActions: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm },
+    cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.pill, alignItems: 'center', backgroundColor: COLORS.glass },
+    cancelBtnText: { color: COLORS.textMuted, fontWeight: '700' },
+    createBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.pill, alignItems: 'center', backgroundColor: COLORS.primary },
+    createBtnText: { color: '#fff', fontWeight: '800' },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -114,34 +149,3 @@ export default function CardsTournamentListScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  card: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm,
-  },
-  name: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  meta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg, padding: SPACING.lg, gap: SPACING.sm },
-  input: {
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: 10, color: COLORS.text,
-  },
-  modeRow: { flexDirection: 'row', gap: SPACING.sm },
-  modeChip: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.pill, backgroundColor: COLORS.glass, alignItems: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  modeChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  modeChipText: { color: COLORS.text, fontWeight: '700', fontSize: 12 },
-  modalActions: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.sm },
-  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.pill, alignItems: 'center', backgroundColor: COLORS.glass },
-  cancelBtnText: { color: COLORS.textMuted, fontWeight: '700' },
-  createBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.pill, alignItems: 'center', backgroundColor: COLORS.primary },
-  createBtnText: { color: '#fff', fontWeight: '800' },
-});

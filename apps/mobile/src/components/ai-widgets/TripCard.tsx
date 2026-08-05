@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 export interface Trip {
   type: 'stay' | 'car' | 'flight' | 'package';
@@ -32,6 +32,62 @@ export default function TripCard({ trip }: { trip: Trip }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const meta = TYPE_META[trip.type] ?? TYPE_META.package;
   const isConfirmed = trip.status === 'CONFIRMED';
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    card: {
+      alignSelf: 'stretch',
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+      gap: SPACING.sm,
+    },
+    headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    iconWrap: {
+      width: 30, height: 30, borderRadius: 8,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    title: { color: COLORS.text, fontWeight: '800', fontSize: 13.5 },
+    subtitle: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 1 },
+    statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill },
+    statusConfirmed: { backgroundColor: 'rgba(251,191,36,0.15)' },
+    statusOther: { backgroundColor: COLORS.glass },
+    statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+    statusTextConfirmed: { color: COLORS.gold },
+    statusTextOther: { color: COLORS.textMuted },
+    metaRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingTop: SPACING.xs, borderTopWidth: 1, borderTopColor: COLORS.glassBorder,
+    },
+    dateLabel: { color: COLORS.textMuted, fontSize: 11.5 },
+    price: { color: COLORS.gold, fontWeight: '800', fontSize: 13 },
+    actionBtn: {
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.sm, paddingVertical: 9, alignItems: 'center',
+    },
+    actionText: { color: COLORS.text, fontWeight: '700', fontSize: 11.5, letterSpacing: 0.3 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: SPACING.lg },
+    modalCard: {
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', gap: 4,
+    },
+    modalIconWrap: {
+      width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+    },
+    modalTitle: { color: COLORS.text, fontWeight: '800', fontSize: 16, textAlign: 'center' },
+    modalSubtitle: { color: COLORS.textMuted, fontSize: 12.5, marginBottom: 8, textAlign: 'center' },
+    modalDivider: { height: 1, backgroundColor: COLORS.glassBorder, alignSelf: 'stretch', marginBottom: 8 },
+    modalRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignSelf: 'stretch', paddingVertical: 4,
+    },
+    modalLabel: { color: COLORS.textMuted, fontSize: 12.5 },
+    modalValue: { color: COLORS.text, fontSize: 12.5, fontWeight: '700' },
+    closeBtn: { marginTop: 12, paddingVertical: 10, alignSelf: 'stretch', alignItems: 'center' },
+    closeBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
+  }));
 
   return (
     <View style={styles.card}>
@@ -89,59 +145,3 @@ export default function TripCard({ trip }: { trip: Trip }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  iconWrap: {
-    width: 30, height: 30, borderRadius: 8,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  title: { color: COLORS.text, fontWeight: '800', fontSize: 13.5 },
-  subtitle: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 1 },
-  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill },
-  statusConfirmed: { backgroundColor: 'rgba(251,191,36,0.15)' },
-  statusOther: { backgroundColor: COLORS.glass },
-  statusText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
-  statusTextConfirmed: { color: COLORS.gold },
-  statusTextOther: { color: COLORS.textMuted },
-  metaRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: SPACING.xs, borderTopWidth: 1, borderTopColor: COLORS.glassBorder,
-  },
-  dateLabel: { color: COLORS.textMuted, fontSize: 11.5 },
-  price: { color: COLORS.gold, fontWeight: '800', fontSize: 13 },
-  actionBtn: {
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.sm, paddingVertical: 9, alignItems: 'center',
-  },
-  actionText: { color: COLORS.text, fontWeight: '700', fontSize: 11.5, letterSpacing: 0.3 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: SPACING.lg },
-  modalCard: {
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', gap: 4,
-  },
-  modalIconWrap: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 6,
-  },
-  modalTitle: { color: COLORS.text, fontWeight: '800', fontSize: 16, textAlign: 'center' },
-  modalSubtitle: { color: COLORS.textMuted, fontSize: 12.5, marginBottom: 8, textAlign: 'center' },
-  modalDivider: { height: 1, backgroundColor: COLORS.glassBorder, alignSelf: 'stretch', marginBottom: 8 },
-  modalRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignSelf: 'stretch', paddingVertical: 4,
-  },
-  modalLabel: { color: COLORS.textMuted, fontSize: 12.5 },
-  modalValue: { color: COLORS.text, fontSize: 12.5, fontWeight: '700' },
-  closeBtn: { marginTop: 12, paddingVertical: 10, alignSelf: 'stretch', alignItems: 'center' },
-  closeBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
-});

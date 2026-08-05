@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { streamsForCategory, LiveStream } from '../../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream } from '../../data/liveApi';
@@ -23,12 +24,62 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 const dateStr = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 export default function EntertainmentHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, SPACING } = theme;
   const [tab, setTab] = useState<Tab>('movies');
   const [items, setItems] = useState<any[]>([]);
   const [streams, setStreams] = useState<LiveStream[]>(streamsForCategory('entertainment'));
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
   const cardWidth = (Math.min(width, 900) - SPACING.lg * 2 - 12) / 2;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
+    headerCenter: { flex: 1 },
+    headerTitle: { ...TYPOGRAPHY.h2 },
+    headerSub: { color: COLORS.textMuted, fontSize: 12 },
+    bookingsBtn: { padding: 6 },
+    hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
+    heroIcon: { position: 'absolute', right: 16, top: 12 },
+    heroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 4 },
+    heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+    tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 8, marginBottom: 16 },
+    tabChip: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+      paddingVertical: 9, borderRadius: 20,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+    },
+    tabChipActive: { backgroundColor: '#F97316', borderColor: '#F97316' },
+    tabLabel: { color: COLORS.textMuted, fontSize: 10.5, fontWeight: '700' },
+    tabLabelActive: { color: '#fff' },
+    grid: {
+      paddingHorizontal: SPACING.lg, gap: 12,
+      flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
+    },
+    card: {
+      backgroundColor: COLORS.surface, borderRadius: 16, overflow: 'hidden',
+      borderWidth: 1, borderColor: COLORS.border, marginBottom: 12,
+    },
+    cardImage: { width: '100%', height: 150, justifyContent: 'center', alignItems: 'center' },
+    cardInfo: { padding: 10 },
+    cardName: { color: COLORS.text, fontSize: 13, fontWeight: '700', marginBottom: 2 },
+    cardSub: { color: COLORS.textMuted, fontSize: 11, marginBottom: 4 },
+    cardPrice: { color: '#F97316', fontWeight: '800', fontSize: 15 },
+    cardPriceUnit: { color: COLORS.textMuted, fontWeight: '500', fontSize: 11 },
+    listCard: {
+      backgroundColor: COLORS.surface, borderRadius: 16, overflow: 'hidden',
+      borderWidth: 1, borderColor: COLORS.border, flexDirection: 'row',
+    },
+    listImage: { width: 100, height: 110, justifyContent: 'center', alignItems: 'center' },
+    listInfo: { flex: 1, padding: 12 },
+    listTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
+    listSub: { color: '#F97316', fontSize: 12, fontWeight: '600', marginBottom: 4 },
+    listMeta: { color: COLORS.textMuted, fontSize: 11, marginBottom: 6 },
+    listPrice: { color: '#F97316', fontWeight: '800', fontSize: 15 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    emptySub: { color: COLORS.textMuted, fontSize: 13 },
+  }));
 
   const load = useCallback(async (currentTab: Tab) => {
     if (currentTab === 'streaming') {
@@ -195,52 +246,3 @@ export default function EntertainmentHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
-  headerCenter: { flex: 1 },
-  headerTitle: { ...TYPOGRAPHY.h2 },
-  headerSub: { color: COLORS.textMuted, fontSize: 12 },
-  bookingsBtn: { padding: 6 },
-  hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
-  heroIcon: { position: 'absolute', right: 16, top: 12 },
-  heroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  tabRow: { flexDirection: 'row', paddingHorizontal: SPACING.lg, gap: 8, marginBottom: 16 },
-  tabChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
-    paddingVertical: 9, borderRadius: 20,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-  },
-  tabChipActive: { backgroundColor: '#F97316', borderColor: '#F97316' },
-  tabLabel: { color: COLORS.textMuted, fontSize: 10.5, fontWeight: '700' },
-  tabLabelActive: { color: '#fff' },
-  grid: {
-    paddingHorizontal: SPACING.lg, gap: 12,
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
-  },
-  card: {
-    backgroundColor: COLORS.surface, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.border, marginBottom: 12,
-  },
-  cardImage: { width: '100%', height: 150, justifyContent: 'center', alignItems: 'center' },
-  cardInfo: { padding: 10 },
-  cardName: { color: COLORS.text, fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  cardSub: { color: COLORS.textMuted, fontSize: 11, marginBottom: 4 },
-  cardPrice: { color: '#F97316', fontWeight: '800', fontSize: 15 },
-  cardPriceUnit: { color: COLORS.textMuted, fontWeight: '500', fontSize: 11 },
-  listCard: {
-    backgroundColor: COLORS.surface, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.border, flexDirection: 'row',
-  },
-  listImage: { width: 100, height: 110, justifyContent: 'center', alignItems: 'center' },
-  listInfo: { flex: 1, padding: 12 },
-  listTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14, marginBottom: 2 },
-  listSub: { color: '#F97316', fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  listMeta: { color: COLORS.textMuted, fontSize: 11, marginBottom: 6 },
-  listPrice: { color: '#F97316', fontWeight: '800', fontSize: 15 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  emptySub: { color: COLORS.textMuted, fontSize: 13 },
-});

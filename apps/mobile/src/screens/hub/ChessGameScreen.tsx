@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
@@ -12,6 +13,8 @@ import ChessboardComponent from '../../components/ChessboardComponent';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
 export default function ChessGameScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const { gameId } = route.params;
   const { user } = useAuth();
   const [game, setGame] = useState<ChessGameDto | null>(null);
@@ -22,6 +25,120 @@ export default function ChessGameScreen({ route, navigation }: any) {
   const [rematchRequested, setRematchRequested] = useState(false);
   const [rematchRequestedByMe, setRematchRequestedByMe] = useState(false);
   const [rematchDeclined, setRematchDeclined] = useState(false);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+    },
+    gameContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: 10,
+    },
+    playerInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 15,
+      backgroundColor: COLORS.surface,
+      borderRadius: 12,
+      marginVertical: 10,
+    },
+    playerDetails: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    playerName: {
+      ...TYPOGRAPHY.body1,
+      fontWeight: 'bold',
+    },
+    timerBadge: {
+      backgroundColor: COLORS.background,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    timerText: {
+      ...TYPOGRAPHY.h3,
+      fontVariant: ['tabular-nums'],
+    },
+    boardWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginVertical: 20,
+    },
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modal: {
+      backgroundColor: COLORS.surface,
+      padding: 30,
+      borderRadius: 20,
+      alignItems: 'center',
+      minWidth: 280,
+    },
+    rematchSection: {
+      marginTop: 20,
+      width: '100%',
+      alignItems: 'center',
+    },
+    waitingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    rematchBtnRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    rematchBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: COLORS.primary,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 999,
+    },
+    acceptBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: COLORS.success,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+    },
+    declineBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: COLORS.error,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+    },
+    btnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+      fontSize: 14,
+    },
+    leaveBtn: {
+      marginTop: 16,
+      padding: 10,
+    },
+  }));
 
   useEffect(() => {
     // 1. Fetch initial state
@@ -277,117 +394,3 @@ export default function ChessGameScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  gameContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  playerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    marginVertical: 10,
-  },
-  playerDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  playerName: {
-    ...TYPOGRAPHY.body1,
-    fontWeight: 'bold',
-  },
-  timerBadge: {
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  timerText: {
-    ...TYPOGRAPHY.h3,
-    fontVariant: ['tabular-nums'],
-  },
-  boardWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modal: {
-    backgroundColor: COLORS.surface,
-    padding: 30,
-    borderRadius: 20,
-    alignItems: 'center',
-    minWidth: 280,
-  },
-  rematchSection: {
-    marginTop: 20,
-    width: '100%',
-    alignItems: 'center',
-  },
-  waitingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rematchBtnRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  rematchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 999,
-  },
-  acceptBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.success,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-  },
-  declineBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.error,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-  },
-  btnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  leaveBtn: {
-    marginTop: 16,
-    padding: 10,
-  },
-});

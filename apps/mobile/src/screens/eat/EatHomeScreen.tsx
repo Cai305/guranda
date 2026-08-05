@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useCart } from '../../context/CartContext';
 
@@ -19,11 +20,109 @@ const CAT_ICONS: Record<string, string> = {
 };
 
 export default function EatHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const { itemCount } = useCart();
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: 12,
+    },
+    back: { padding: 4, marginRight: 8 },
+    headerCenter: { flex: 1 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2 },
+    headerSub: { color: COLORS.textMuted, fontSize: 12 },
+    cartBtn: { padding: 4, position: 'relative' },
+    cartBadge: {
+      position: 'absolute',
+      top: -2,
+      right: -4,
+      backgroundColor: '#ef4444',
+      borderRadius: 8,
+      width: 16,
+      height: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    cartBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: SPACING.lg,
+      marginBottom: 12,
+      backgroundColor: COLORS.surface,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
+    hero: {
+      marginHorizontal: SPACING.lg,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 16,
+      overflow: 'hidden',
+    },
+    heroIcon: { position: 'absolute', right: 16, top: 12 },
+    heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
+    heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+    catScroll: { marginBottom: 16 },
+    catContent: { paddingHorizontal: SPACING.lg, gap: 8 },
+    catChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    catChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    catLabel: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    catLabelActive: { color: '#fff' },
+    storeList: { paddingHorizontal: SPACING.lg, gap: 12 },
+    storeCard: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 16,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    storeCover: {
+      height: 100,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    storeInfo: { padding: 14 },
+    storeTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+    storeName: { ...TYPOGRAPHY.h3, flex: 1 },
+    statusDot: { width: 8, height: 8, borderRadius: 4 },
+    storeCategory: { color: '#ef4444', fontSize: 12, fontWeight: '600', marginBottom: 4 },
+    storeDesc: { color: COLORS.textMuted, fontSize: 12, marginBottom: 6 },
+    storeMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+    storeRating: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
+    storeDot: { color: COLORS.textMuted, fontSize: 12 },
+    storeAddr: { color: COLORS.textMuted, fontSize: 11, flex: 1 },
+    storeFees: { flexDirection: 'row', justifyContent: 'space-between' },
+    storeFeeText: { color: COLORS.textMuted, fontSize: 11 },
+    storeItems: { color: COLORS.textMuted, fontSize: 11 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    emptySub: { color: COLORS.textMuted, fontSize: 13 },
+  }));
 
   const load = async (cat?: string) => {
     setLoading(true);
@@ -160,100 +259,3 @@ export default function EatHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 12,
-  },
-  back: { padding: 4, marginRight: 8 },
-  headerCenter: { flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2 },
-  headerSub: { color: COLORS.textMuted, fontSize: 12 },
-  cartBtn: { padding: 4, position: 'relative' },
-  cartBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -4,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    width: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cartBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: SPACING.lg,
-    marginBottom: 12,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
-  hero: {
-    marginHorizontal: SPACING.lg,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  heroIcon: { position: 'absolute', right: 16, top: 12 },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  catScroll: { marginBottom: 16 },
-  catContent: { paddingHorizontal: SPACING.lg, gap: 8 },
-  catChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  catChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-  catLabel: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  catLabelActive: { color: '#fff' },
-  storeList: { paddingHorizontal: SPACING.lg, gap: 12 },
-  storeCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  storeCover: {
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storeInfo: { padding: 14 },
-  storeTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-  storeName: { ...TYPOGRAPHY.h3, flex: 1 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  storeCategory: { color: '#ef4444', fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  storeDesc: { color: COLORS.textMuted, fontSize: 12, marginBottom: 6 },
-  storeMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  storeRating: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
-  storeDot: { color: COLORS.textMuted, fontSize: 12 },
-  storeAddr: { color: COLORS.textMuted, fontSize: 11, flex: 1 },
-  storeFees: { flexDirection: 'row', justifyContent: 'space-between' },
-  storeFeeText: { color: COLORS.textMuted, fontSize: 11 },
-  storeItems: { color: COLORS.textMuted, fontSize: 11 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  emptySub: { color: COLORS.textMuted, fontSize: 13 },
-});

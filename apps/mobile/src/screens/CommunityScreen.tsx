@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { CommunityDetailsDto } from '@mxit2/types';
 
 export default function CommunityScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { communityId, communityName } = route.params;
   const [community, setCommunity] = useState<CommunityDetailsDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +43,124 @@ export default function CommunityScreen({ route, navigation }: any) {
       console.error(e);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    backBtn: {
+      padding: 5,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    infoSection: {
+      padding: 20,
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    iconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: '#3A86FF',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 15,
+    },
+    title: {
+      ...TYPOGRAPHY.h2,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    description: {
+      ...TYPOGRAPHY.body1,
+      color: COLORS.textMuted,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    members: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.secondary,
+      fontWeight: 'bold',
+      marginBottom: 20,
+    },
+    joinBtn: {
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 24,
+    },
+    joinBtnText: {
+      ...TYPOGRAPHY.body1,
+      color: COLORS.surface,
+      fontWeight: 'bold',
+    },
+    joinedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,255,0,0.1)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      gap: 4,
+    },
+    joinedText: {
+      color: COLORS.primary,
+      fontWeight: 'bold',
+    },
+    roomsSection: {
+      flex: 1,
+      paddingTop: 20,
+    },
+    roomsHeader: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      fontWeight: 'bold',
+      paddingHorizontal: 20,
+      marginBottom: 10,
+    },
+    listContent: {
+      paddingHorizontal: 15,
+    },
+    roomItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      padding: 15,
+      borderRadius: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    roomName: {
+      ...TYPOGRAPHY.body1,
+      flex: 1,
+      marginLeft: 12,
+      fontWeight: '500',
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorText: {
+      ...TYPOGRAPHY.body1,
+      color: COLORS.textMuted,
+    }
+  }));
 
   const renderRoom = ({ item }: { item: { id: string, name: string, type: string } }) => (
     <TouchableOpacity 
@@ -110,121 +231,3 @@ export default function CommunityScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  backBtn: {
-    padding: 5,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoSection: {
-    padding: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#3A86FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  title: {
-    ...TYPOGRAPHY.h2,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  description: {
-    ...TYPOGRAPHY.body1,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  members: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.secondary,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  joinBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  joinBtnText: {
-    ...TYPOGRAPHY.body1,
-    color: COLORS.surface,
-    fontWeight: 'bold',
-  },
-  joinedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,255,0,0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  joinedText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-  },
-  roomsSection: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  roomsHeader: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    fontWeight: 'bold',
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
-  listContent: {
-    paddingHorizontal: 15,
-  },
-  roomItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  roomName: {
-    ...TYPOGRAPHY.body1,
-    flex: 1,
-    marginLeft: 12,
-    fontWeight: '500',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    ...TYPOGRAPHY.body1,
-    color: COLORS.textMuted,
-  }
-});

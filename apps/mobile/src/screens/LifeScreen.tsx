@@ -1,13 +1,16 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING, BRAND, GRADIENTS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { LifeModule } from '../config/modules';
 import ModuleCard from '../components/ModuleCard';
 import { fetchApi } from '../utils/api';
 
 export default function LifeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { GRADIENTS, BRAND } = theme;
   const [hasRelationship, setHasRelationship] = useState(false);
   // Local-clock gate for the Couples tile — checked on focus and every 60s
   // while this screen is mounted, so it appears live at 21:00 without
@@ -103,6 +106,124 @@ export default function LifeScreen({ navigation }: any) {
     }
   };
 
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.lg,
+      paddingBottom: SPACING.xl,
+    },
+    title: {
+      ...TYPOGRAPHY.h1,
+    },
+    subtitle: {
+      ...TYPOGRAPHY.body2,
+      marginTop: 4,
+    },
+    sectionLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      rowGap: SPACING.md,
+    },
+    // Modal
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 28,
+      alignItems: 'center',
+    },
+    sheetIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sheetTitle: {
+      ...TYPOGRAPHY.h2,
+      marginBottom: 4,
+    },
+    sheetTagline: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    sheetDesc: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 16,
+    },
+    featureList: {
+      alignSelf: 'stretch',
+      gap: 8,
+      marginBottom: 24,
+    },
+    featureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    featureText: {
+      color: COLORS.text,
+      fontSize: 13,
+    },
+    sheetButtons: {
+      flexDirection: 'row',
+      gap: 12,
+      alignSelf: 'stretch',
+    },
+    cancelBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: COLORS.surfaceElevated,
+      alignItems: 'center',
+    },
+    cancelText: {
+      color: COLORS.textMuted,
+      fontWeight: '600',
+      fontSize: 15,
+    },
+    installBtn: {
+      flex: 2,
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
+    installGradient: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+    },
+    installText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 15,
+    },
+  }));
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -120,121 +241,3 @@ export default function LifeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xl,
-  },
-  title: {
-    ...TYPOGRAPHY.h1,
-  },
-  subtitle: {
-    ...TYPOGRAPHY.body2,
-    marginTop: 4,
-  },
-  sectionLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    rowGap: SPACING.md,
-  },
-  // Modal
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 28,
-    alignItems: 'center',
-  },
-  sheetIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sheetTitle: {
-    ...TYPOGRAPHY.h2,
-    marginBottom: 4,
-  },
-  sheetTagline: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  sheetDesc: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  featureList: {
-    alignSelf: 'stretch',
-    gap: 8,
-    marginBottom: 24,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  featureText: {
-    color: COLORS.text,
-    fontSize: 13,
-  },
-  sheetButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    alignSelf: 'stretch',
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceElevated,
-    alignItems: 'center',
-  },
-  cancelText: {
-    color: COLORS.textMuted,
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  installBtn: {
-    flex: 2,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  installGradient: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-  },
-  installText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-});

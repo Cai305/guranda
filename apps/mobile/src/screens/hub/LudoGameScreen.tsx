@@ -9,7 +9,8 @@ import io, { Socket } from 'socket.io-client';
 import {
   LudoGameDto, LUDO_MODES, LudoMode, SEAT_COLORS, getLegalMoves, getTeamOf,
 } from '@mxit2/types';
-import { TYPOGRAPHY, RADIUS, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import LudoBoard from '../../components/LudoBoard';
@@ -131,6 +132,8 @@ function DiceZone({
 
 // ── Main screen ──────────────────────────────────────────────────────────────
 export default function LudoGameScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { TYPOGRAPHY, GRADIENTS } = theme;
   const { gameId, mySeat: mySeatParam } = route.params;
   const ludoSession = {
     id: 'ludo',
@@ -436,6 +439,34 @@ function GameOverModal({ iWon, game, mode, mySeat, onLeave }: {
   mySeat: number | null;
   onLeave: () => void;
 }) {
+  const ov = useThemedStyles(({ RADIUS }) => ({
+    backdrop: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    card: {
+      width: 300,
+      borderRadius: RADIUS.xl,
+      padding: 32,
+      alignItems: 'center',
+      gap: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(242,194,31,0.3)',
+    },
+    emoji: { fontSize: 52 },
+    title: { color: '#FFF', fontSize: 24, fontWeight: '800', textAlign: 'center' },
+    winnerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    winnerDot: { width: 12, height: 12, borderRadius: 6 },
+    winnerLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 13 },
+    leaveBtn: {
+      borderRadius: RADIUS.pill,
+      paddingVertical: 12, paddingHorizontal: 32,
+      marginTop: 4,
+    },
+    leaveBtnText: { color: '#1E0A38', fontWeight: '900', fontSize: 15, letterSpacing: 0.5 },
+  }));
+
   return (
     <View style={ov.backdrop}>
       <LinearGradient
@@ -613,33 +644,4 @@ const dz = StyleSheet.create({
     letterSpacing: 0.8,
     textAlign: 'center',
   },
-});
-
-// Overlay
-const ov = StyleSheet.create({
-  backdrop: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  card: {
-    width: 300,
-    borderRadius: RADIUS.xl,
-    padding: 32,
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(242,194,31,0.3)',
-  },
-  emoji: { fontSize: 52 },
-  title: { color: '#FFF', fontSize: 24, fontWeight: '800', textAlign: 'center' },
-  winnerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  winnerDot: { width: 12, height: 12, borderRadius: 6 },
-  winnerLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 13 },
-  leaveBtn: {
-    borderRadius: RADIUS.pill,
-    paddingVertical: 12, paddingHorizontal: 32,
-    marginTop: 4,
-  },
-  leaveBtnText: { color: '#1E0A38', fontWeight: '900', fontSize: 15, letterSpacing: 0.5 },
 });

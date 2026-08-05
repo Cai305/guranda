@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { LiveCategory } from '../config/liveCategories';
 import ConstructionBadge from './ConstructionBadge';
 
@@ -12,6 +13,47 @@ interface Props {
 }
 
 export default function LiveCategoryCard({ category, onPress }: Props) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    wrapper: {
+      width: 150,
+    },
+    card: {
+      borderRadius: RADIUS.lg,
+      padding: 14,
+      height: 100,
+      justifyContent: 'space-between',
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    iconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconWrapLocked: {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    name: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    tagline: {
+      color: 'rgba(255,255,255,0.75)',
+      fontSize: 10,
+      marginTop: 2,
+    },
+  }));
   const locked = category.status === 'construction';
 
   return (
@@ -38,43 +80,3 @@ export default function LiveCategoryCard({ category, onPress }: Props) {
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    width: 150,
-  },
-  card: {
-    borderRadius: RADIUS.lg,
-    padding: 14,
-    height: 100,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconWrapLocked: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  name: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  tagline: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 10,
-    marginTop: 2,
-  },
-});

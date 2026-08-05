@@ -4,7 +4,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { COLORS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 
 // Leaflet is loaded from CDN at runtime — declare the global
 declare global {
@@ -44,6 +45,22 @@ export default function LeafletMap({
   const [ready, setReady] = useState(
     typeof window !== 'undefined' && !!window.L
   );
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS }) => ({
+    loading: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: '#1a2332',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    loadingText: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+      marginTop: 10,
+    },
+  }));
 
   // ── 1. Load Leaflet CSS + JS from CDN ───────────────────────────────────
   useEffect(() => {
@@ -209,18 +226,3 @@ export default function LeafletMap({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: '#1a2332',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  loadingText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    marginTop: 10,
-  },
-});

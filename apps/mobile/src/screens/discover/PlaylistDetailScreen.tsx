@@ -1,17 +1,31 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
 
 export default function PlaylistDetailScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const { playlistId, playlistName } = route.params;
   const [videos, setVideos] = useState<VideoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    title: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    meta: { color: COLORS.textMuted, fontSize: 12, paddingHorizontal: SPACING.lg, paddingBottom: 8 },
+    sep: { height: 1, backgroundColor: COLORS.border },
+    empty: { alignItems: 'center', paddingTop: 80, gap: 12, paddingHorizontal: 32 },
+    emptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
+    emptyHint: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
+  }));
 
   const load = useCallback(async () => {
     try {
@@ -78,15 +92,3 @@ export default function PlaylistDetailScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  title: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  meta: { color: COLORS.textMuted, fontSize: 12, paddingHorizontal: SPACING.lg, paddingBottom: 8 },
-  sep: { height: 1, backgroundColor: COLORS.border },
-  empty: { alignItems: 'center', paddingTop: 80, gap: 12, paddingHorizontal: 32 },
-  emptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
-  emptyHint: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
-});

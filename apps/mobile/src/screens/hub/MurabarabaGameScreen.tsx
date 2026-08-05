@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import MurabarabaBoard, { P1_COLOR, P2_COLOR } from '../../games/murabaraba/MurabarabaBoard';
 import {
   GameState, Player,
@@ -164,6 +165,74 @@ export default function MurabarabaGameScreen({ navigation, route }: any) {
     return `${nameOf(state.turn)}: move a cow`;
   };
 
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, TYPOGRAPHY } = theme;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    playerPanel: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginHorizontal: SPACING.lg, marginVertical: 6,
+      padding: 12,
+      borderRadius: RADIUS.lg,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    playerPanelActive: { borderColor: COLORS.success },
+    cowDot: { width: 22, height: 22, borderRadius: 11 },
+    playerName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    playerMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    boardWrap: { alignItems: 'center', justifyContent: 'center', flex: 1 },
+    statusBar: {
+      margin: SPACING.lg,
+      padding: 14,
+      borderRadius: RADIUS.lg,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      alignItems: 'center',
+    },
+    statusBarShoot: { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.12)' },
+    statusText: { color: COLORS.text, fontWeight: '600', fontSize: 14 },
+    overlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    overlayCard: {
+      width: '80%',
+      borderRadius: RADIUS.lg,
+      padding: 24,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    overlayEmoji: { fontSize: 44 },
+    overlayTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 8 },
+    overlaySub: { color: COLORS.textMuted, fontSize: 13, marginTop: 6, textAlign: 'center' },
+    overlayBtn: {
+      marginTop: 18,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 12, paddingHorizontal: 36,
+    },
+    overlayBtnText: { color: '#FFF', fontWeight: '700' },
+    overlayBtnGhost: { marginTop: 10, paddingVertical: 8 },
+    overlayBtnGhostText: { color: COLORS.textMuted, fontWeight: '600' },
+  }));
+
   const renderPlayerPanel = (p: Player) => {
     const active = state.turn === p && state.winner === null && !state.draw;
     return (
@@ -269,67 +338,3 @@ export default function MurabarabaGameScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  playerPanel: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: SPACING.lg, marginVertical: 6,
-    padding: 12,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  playerPanelActive: { borderColor: COLORS.success },
-  cowDot: { width: 22, height: 22, borderRadius: 11 },
-  playerName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  playerMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  boardWrap: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  statusBar: {
-    margin: SPACING.lg,
-    padding: 14,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    alignItems: 'center',
-  },
-  statusBarShoot: { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.12)' },
-  statusText: { color: COLORS.text, fontWeight: '600', fontSize: 14 },
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  overlayCard: {
-    width: '80%',
-    borderRadius: RADIUS.lg,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  overlayEmoji: { fontSize: 44 },
-  overlayTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 8 },
-  overlaySub: { color: COLORS.textMuted, fontSize: 13, marginTop: 6, textAlign: 'center' },
-  overlayBtn: {
-    marginTop: 18,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 12, paddingHorizontal: 36,
-  },
-  overlayBtnText: { color: '#FFF', fontWeight: '700' },
-  overlayBtnGhost: { marginTop: 10, paddingVertical: 8 },
-  overlayBtnGhostText: { color: COLORS.textMuted, fontWeight: '600' },
-});

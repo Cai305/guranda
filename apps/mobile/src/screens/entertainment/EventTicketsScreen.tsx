@@ -1,12 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 export default function EventTicketsScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, padding: SPACING.lg },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h3, flex: 1, textAlign: 'center', fontWeight: '700' },
+    subMeta: { color: COLORS.textMuted, fontSize: 13 },
+    ticketCard: {
+      backgroundColor: COLORS.surface, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border,
+      padding: 20, alignItems: 'center', gap: 10,
+    },
+    ticketLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+    qrWrapper: { padding: 16, backgroundColor: COLORS.text, borderRadius: 16 },
+    ticketCode: { color: COLORS.text, fontSize: 18, fontWeight: '800', letterSpacing: 2 },
+    checkedInPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#22c55e22', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+    checkedInText: { color: '#22c55e', fontSize: 11, fontWeight: '700' },
+    pendingText: { color: COLORS.textMuted, fontSize: 12 },
+  }));
   const { bookingId } = route.params;
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -61,22 +82,3 @@ export default function EventTicketsScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, padding: SPACING.lg },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h3, flex: 1, textAlign: 'center', fontWeight: '700' },
-  subMeta: { color: COLORS.textMuted, fontSize: 13 },
-  ticketCard: {
-    backgroundColor: COLORS.surface, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border,
-    padding: 20, alignItems: 'center', gap: 10,
-  },
-  ticketLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  qrWrapper: { padding: 16, backgroundColor: COLORS.text, borderRadius: 16 },
-  ticketCode: { color: COLORS.text, fontSize: 18, fontWeight: '800', letterSpacing: 2 },
-  checkedInPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#22c55e22', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
-  checkedInText: { color: '#22c55e', fontSize: 11, fontWeight: '700' },
-  pendingText: { color: COLORS.textMuted, fontSize: 12 },
-});

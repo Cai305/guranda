@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootNavigator from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/context/AuthContext';
-import { COLORS } from './src/theme';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { SocketProvider } from './src/context/SocketContext';
 import { StoreProvider } from './src/context/StoreContext';
 import { ActiveSessionProvider } from './src/context/ActiveSessionContext';
@@ -37,42 +37,51 @@ const linking = {
   }
 };
 
+function AppContent() {
+  const { theme } = useTheme();
+  return (
+    <AuthProvider>
+      <FeatureFlagsProvider>
+      <StoreProvider>
+      <ActiveSessionProvider>
+        <CartProvider>
+        <ShoppingCartProvider>
+        <SocketProvider>
+          <StatusBar style="light" />
+          <NavigationContainer ref={navigationRef} linking={linking} theme={{
+            ...DarkTheme,
+            colors: {
+              ...DarkTheme.colors,
+              primary: theme.COLORS.primary,
+              background: theme.COLORS.background,
+              card: theme.COLORS.surface,
+              text: theme.COLORS.text,
+              border: theme.COLORS.border,
+              notification: theme.COLORS.secondary,
+            }
+          }}>
+            <RootNavigator />
+          </NavigationContainer>
+          <AiFloatingOrb />
+          <IncomingCallOverlay />
+          <UploadStatusOverlay />
+          <WebAlertHost />
+        </SocketProvider>
+        </ShoppingCartProvider>
+        </CartProvider>
+      </ActiveSessionProvider>
+      </StoreProvider>
+      </FeatureFlagsProvider>
+    </AuthProvider>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <FeatureFlagsProvider>
-        <StoreProvider>
-        <ActiveSessionProvider>
-          <CartProvider>
-          <ShoppingCartProvider>
-          <SocketProvider>
-            <StatusBar style="light" />
-            <NavigationContainer ref={navigationRef} linking={linking} theme={{
-              ...DarkTheme,
-              colors: {
-                ...DarkTheme.colors,
-                primary: COLORS.primary,
-                background: COLORS.background,
-                card: COLORS.surface,
-                text: COLORS.text,
-                border: COLORS.border,
-                notification: COLORS.secondary,
-              }
-            }}>
-              <RootNavigator />
-            </NavigationContainer>
-            <AiFloatingOrb />
-            <IncomingCallOverlay />
-            <UploadStatusOverlay />
-            <WebAlertHost />
-          </SocketProvider>
-          </ShoppingCartProvider>
-          </CartProvider>
-        </ActiveSessionProvider>
-        </StoreProvider>
-        </FeatureFlagsProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

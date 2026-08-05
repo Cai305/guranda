@@ -4,13 +4,13 @@ import {
   Modal, ActivityIndicator, StyleSheet, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const TENOR_API_KEY = 'LIVDSRZULELA';
 const TENOR_BASE = 'https://tenor.googleapis.com/v2';
 const NUM_COLS = 2;
 const SCREEN_W = Dimensions.get('window').width;
-const GIF_SIZE = (SCREEN_W - SPACING.lg * 2 - SPACING.sm) / NUM_COLS;
 
 interface TenorGif {
   id: string;
@@ -29,6 +29,87 @@ export default function GifPicker({ visible, onClose, onSelect }: GifPickerProps
   const [gifs, setGifs] = useState<TenorGif[]>([]);
   const [loading, setLoading] = useState(false);
   const [nextPos, setNextPos] = useState<string | null>(null);
+
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const GIF_SIZE = (SCREEN_W - theme.SPACING.lg * 2 - theme.SPACING.sm) / NUM_COLS;
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    overlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.6)',
+    },
+    sheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '75%',
+      paddingBottom: 20,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    headerTitle: {
+      color: COLORS.text,
+      fontSize: 17,
+      fontWeight: '700',
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: COLORS.glass,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: SPACING.lg,
+      marginVertical: SPACING.sm,
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    searchInput: {
+      flex: 1,
+      color: COLORS.text,
+      fontSize: 14,
+    },
+    loadingWrap: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: 200,
+    },
+    gifCell: {
+      width: GIF_SIZE,
+      height: GIF_SIZE * 0.75,
+      borderRadius: RADIUS.md,
+      overflow: 'hidden',
+      backgroundColor: COLORS.glass,
+    },
+    gifImage: {
+      width: '100%',
+      height: '100%',
+    },
+    tenorCredit: {
+      color: COLORS.textMuted,
+      fontSize: 10,
+      textAlign: 'center',
+      marginTop: 4,
+    },
+  }));
 
   const fetchGifs = useCallback(async (searchQuery: string, next?: string) => {
     setLoading(true);
@@ -162,80 +243,3 @@ export default function GifPicker({ visible, onClose, onSelect }: GifPickerProps
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '75%',
-    paddingBottom: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.glass,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: SPACING.lg,
-    marginVertical: SPACING.sm,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchInput: {
-    flex: 1,
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  loadingWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 200,
-  },
-  gifCell: {
-    width: GIF_SIZE,
-    height: GIF_SIZE * 0.75,
-    borderRadius: RADIUS.md,
-    overflow: 'hidden',
-    backgroundColor: COLORS.glass,
-  },
-  gifImage: {
-    width: '100%',
-    height: '100%',
-  },
-  tenorCredit: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-});

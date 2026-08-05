@@ -1,24 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, Modal, TouchableOpacity, TextInput,
+  View, Text, Modal, TouchableOpacity, TextInput,
   FlatList, Image, ActivityIndicator, ScrollView, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, RADIUS, SPACING, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { useShoppingCart } from '../context/ShoppingCartContext';
 import { ProductCardData } from './cards/ProductMiniCard';
-
-// ── Mini apps that expose product/service browsing ───────────
-const PRODUCT_APPS = [
-  { id: 'shopping', label: 'Shopping', icon: 'bag-handle', gradient: GRADIENTS.emerald, endpoint: '/shopping/products' },
-  { id: 'eat', label: 'Food & Eat', icon: 'restaurant', gradient: GRADIENTS.sunset, endpoint: '/eat/products' },
-  { id: 'health', label: 'Health', icon: 'medkit', gradient: ['#10B981', '#059669'] as [string, string], endpoint: '/health/products' },
-  { id: 'marketplace', label: 'Marketplace', icon: 'pricetags', gradient: GRADIENTS.ocean, endpoint: '/marketplace/listings' },
-  { id: 'travel', label: 'Travel', icon: 'airplane', gradient: GRADIENTS.aurora, endpoint: '/travel/stays' },
-  { id: 'property', label: 'Property', icon: 'home', gradient: GRADIENTS.midnight, endpoint: '/property/listings' },
-];
 
 interface Props {
   visible: boolean;
@@ -27,6 +18,19 @@ interface Props {
 }
 
 export default function MiniAppProductPicker({ visible, onClose, onSendProduct }: Props) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, SPACING } = theme;
+
+  // ── Mini apps that expose product/service browsing ───────────
+  const PRODUCT_APPS = [
+    { id: 'shopping', label: 'Shopping', icon: 'bag-handle', gradient: GRADIENTS.emerald, endpoint: '/shopping/products' },
+    { id: 'eat', label: 'Food & Eat', icon: 'restaurant', gradient: GRADIENTS.sunset, endpoint: '/eat/products' },
+    { id: 'health', label: 'Health', icon: 'medkit', gradient: ['#10B981', '#059669'] as [string, string], endpoint: '/health/products' },
+    { id: 'marketplace', label: 'Marketplace', icon: 'pricetags', gradient: GRADIENTS.ocean, endpoint: '/marketplace/listings' },
+    { id: 'travel', label: 'Travel', icon: 'airplane', gradient: GRADIENTS.aurora, endpoint: '/travel/stays' },
+    { id: 'property', label: 'Property', icon: 'home', gradient: GRADIENTS.midnight, endpoint: '/property/listings' },
+  ];
+
   const [step, setStep] = useState<'apps' | 'products'>('apps');
   const [selectedApp, setSelectedApp] = useState(PRODUCT_APPS[0]);
   const [products, setProducts] = useState<any[]>([]);
@@ -76,6 +80,65 @@ export default function MiniAppProductPicker({ visible, onClose, onSendProduct }
     onSendProduct(toProductCard(raw));
     onClose();
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
+    sheet: { flex: 1, backgroundColor: COLORS.surface },
+    handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+      borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center' },
+    closeBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'flex-end' },
+    headerTitle: { ...TYPOGRAPHY.h2, fontSize: 17 },
+    subtitle: { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', marginBottom: SPACING.lg, paddingHorizontal: SPACING.md },
+    appGrid: { padding: SPACING.lg, gap: SPACING.md },
+    grid: { gap: 10 },
+    appTile: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.border, padding: 16,
+    },
+    appIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+    appLabel: { flex: 1, color: COLORS.text, fontWeight: '700', fontSize: 16 },
+
+    // Search
+    searchWrap: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
+    searchBar: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 10,
+    },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
+
+    // Empty
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, paddingBottom: 60 },
+    emptyText: { color: COLORS.textMuted, fontSize: 15 },
+
+    // Product row
+    productRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.border, padding: 12,
+    },
+    productThumb: { width: 56, height: 56, borderRadius: RADIUS.md, overflow: 'hidden' },
+    productThumbImg: { width: 56, height: 56, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
+    productInfo: { flex: 1, gap: 2 },
+    productName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    productStore: { color: COLORS.textMuted, fontSize: 12 },
+    productPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 15, marginTop: 3 },
+    productActions: { gap: 6 },
+    sendBtn: { borderRadius: RADIUS.pill, overflow: 'hidden' },
+    sendBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 7 },
+    sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+    suggestBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(139,92,246,0.08)',
+    },
+    suggestBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
+  }));
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -211,62 +274,3 @@ export default function MiniAppProductPicker({ visible, onClose, onSendProduct }
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: COLORS.surface },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center' },
-  closeBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'flex-end' },
-  headerTitle: { ...TYPOGRAPHY.h2, fontSize: 17 },
-  subtitle: { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', marginBottom: SPACING.lg, paddingHorizontal: SPACING.md },
-  appGrid: { padding: SPACING.lg, gap: SPACING.md },
-  grid: { gap: 10 },
-  appTile: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border, padding: 16,
-  },
-  appIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  appLabel: { flex: 1, color: COLORS.text, fontWeight: '700', fontSize: 16 },
-
-  // Search
-  searchWrap: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 10,
-  },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
-
-  // Empty
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10, paddingBottom: 60 },
-  emptyText: { color: COLORS.textMuted, fontSize: 15 },
-
-  // Product row
-  productRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border, padding: 12,
-  },
-  productThumb: { width: 56, height: 56, borderRadius: RADIUS.md, overflow: 'hidden' },
-  productThumbImg: { width: 56, height: 56, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
-  productInfo: { flex: 1, gap: 2 },
-  productName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  productStore: { color: COLORS.textMuted, fontSize: 12 },
-  productPrice: { color: COLORS.secondary, fontWeight: '800', fontSize: 15, marginTop: 3 },
-  productActions: { gap: 6 },
-  sendBtn: { borderRadius: RADIUS.pill, overflow: 'hidden' },
-  sendBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 7 },
-  sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  suggestBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(139,92,246,0.08)',
-  },
-  suggestBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 12 },
-});

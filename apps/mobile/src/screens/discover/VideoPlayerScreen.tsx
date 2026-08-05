@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Share, Modal, Alert, Platform, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Share, Modal, Alert, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi, API_BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
@@ -19,6 +20,8 @@ if (Platform.OS === 'web') {
 export default function VideoPlayerScreen({ navigation, route }: any) {
   const { videoId } = route.params;
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [video, setVideo] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [related, setRelated] = useState<VideoMeta[]>([]);
@@ -126,6 +129,55 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
   };
 
   const videoUrl = video?.url ? (video.url.startsWith('http') ? video.url : `${API_BASE_URL}${video.url}`) : '';
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    playerPlaceholder: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
+    backOverlay: { position: 'absolute', top: 0, left: 0 },
+    backBtn: { margin: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    titleBlock: { paddingHorizontal: SPACING.lg, paddingTop: 12, paddingBottom: 8 },
+    videoTitle: { ...TYPOGRAPHY.h3, fontSize: 16, lineHeight: 22, marginBottom: 4 },
+    videoMeta: { color: COLORS.textMuted, fontSize: 12 },
+    giftMeta: { color: COLORS.gold, fontSize: 12, fontWeight: '600', marginTop: 4 },
+    actionRow: { paddingHorizontal: SPACING.lg, gap: 4, alignItems: 'center', paddingVertical: 4 },
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface },
+    actionBtnActive: { backgroundColor: COLORS.primary + '22' },
+    actionLabel: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    actionDivider: { width: 1, height: 24, backgroundColor: COLORS.border, marginHorizontal: 4 },
+    creatorRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+    creatorAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7c3aed', justifyContent: 'center', alignItems: 'center' },
+    creatorAvatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    creatorInfo: { flex: 1 },
+    creatorName: { ...TYPOGRAPHY.body1, fontWeight: '700' },
+    creatorSub: { color: COLORS.textMuted, fontSize: 12 },
+    subscribeBtn: { backgroundColor: COLORS.text, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+    subscribeBtnText: { color: COLORS.background, fontWeight: '700', fontSize: 13 },
+    subscribedBtn: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
+    subscribedBtnText: { color: COLORS.text },
+    descBlock: { paddingHorizontal: SPACING.lg, paddingVertical: 10, backgroundColor: COLORS.surface, marginHorizontal: SPACING.lg, borderRadius: 10, gap: 4 },
+    descText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+    descToggle: { color: COLORS.primary, fontSize: 12, fontWeight: '600', marginTop: 2 },
+    divider: { height: 8, backgroundColor: COLORS.surface, marginVertical: 8 },
+    commentsHeader: { paddingHorizontal: SPACING.lg, paddingBottom: 12 },
+    commentsTitle: { ...TYPOGRAPHY.h3, fontSize: 15 },
+    commentInput: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.lg, gap: 10, marginBottom: 16 },
+    commentField: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, color: COLORS.text, fontSize: 13, borderWidth: 1, borderColor: COLORS.border, minHeight: 36 },
+    commentSend: { padding: 8 },
+    commentRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, paddingVertical: 8 },
+    commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+    commentAvatarText: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    commentBody: { flex: 1 },
+    commentUser: { color: COLORS.text, fontWeight: '700', fontSize: 12, marginBottom: 2 },
+    commentText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+    relatedTitle: { ...TYPOGRAPHY.h3, paddingHorizontal: SPACING.lg, paddingBottom: 8, fontSize: 15 },
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+    sheet: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 36, gap: 4 },
+    sheetTitle: { ...TYPOGRAPHY.h3, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
+    sheetLabel: { ...TYPOGRAPHY.body1, fontSize: 15 },
+    sheetHint: { color: COLORS.textMuted, fontSize: 13, paddingVertical: 8 },
+  }));
 
   if (!video) {
     return (
@@ -314,52 +366,3 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  playerPlaceholder: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
-  backOverlay: { position: 'absolute', top: 0, left: 0 },
-  backBtn: { margin: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  titleBlock: { paddingHorizontal: SPACING.lg, paddingTop: 12, paddingBottom: 8 },
-  videoTitle: { ...TYPOGRAPHY.h3, fontSize: 16, lineHeight: 22, marginBottom: 4 },
-  videoMeta: { color: COLORS.textMuted, fontSize: 12 },
-  giftMeta: { color: COLORS.gold, fontSize: 12, fontWeight: '600', marginTop: 4 },
-  actionRow: { paddingHorizontal: SPACING.lg, gap: 4, alignItems: 'center', paddingVertical: 4 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface },
-  actionBtnActive: { backgroundColor: COLORS.primary + '22' },
-  actionLabel: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  actionDivider: { width: 1, height: 24, backgroundColor: COLORS.border, marginHorizontal: 4 },
-  creatorRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
-  creatorAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#7c3aed', justifyContent: 'center', alignItems: 'center' },
-  creatorAvatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  creatorInfo: { flex: 1 },
-  creatorName: { ...TYPOGRAPHY.body1, fontWeight: '700' },
-  creatorSub: { color: COLORS.textMuted, fontSize: 12 },
-  subscribeBtn: { backgroundColor: COLORS.text, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  subscribeBtnText: { color: COLORS.background, fontWeight: '700', fontSize: 13 },
-  subscribedBtn: { backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
-  subscribedBtnText: { color: COLORS.text },
-  descBlock: { paddingHorizontal: SPACING.lg, paddingVertical: 10, backgroundColor: COLORS.surface, marginHorizontal: SPACING.lg, borderRadius: 10, gap: 4 },
-  descText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
-  descToggle: { color: COLORS.primary, fontSize: 12, fontWeight: '600', marginTop: 2 },
-  divider: { height: 8, backgroundColor: COLORS.surface, marginVertical: 8 },
-  commentsHeader: { paddingHorizontal: SPACING.lg, paddingBottom: 12 },
-  commentsTitle: { ...TYPOGRAPHY.h3, fontSize: 15 },
-  commentInput: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: SPACING.lg, gap: 10, marginBottom: 16 },
-  commentField: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, color: COLORS.text, fontSize: 13, borderWidth: 1, borderColor: COLORS.border, minHeight: 36 },
-  commentSend: { padding: 8 },
-  commentRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg, paddingVertical: 8 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  commentAvatarText: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  commentBody: { flex: 1 },
-  commentUser: { color: COLORS.text, fontWeight: '700', fontSize: 12, marginBottom: 2 },
-  commentText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
-  relatedTitle: { ...TYPOGRAPHY.h3, paddingHorizontal: SPACING.lg, paddingBottom: 8, fontSize: 15 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: { backgroundColor: COLORS.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 36, gap: 4 },
-  sheetTitle: { ...TYPOGRAPHY.h3, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
-  sheetLabel: { ...TYPOGRAPHY.body1, fontSize: 15 },
-  sheetHint: { color: COLORS.textMuted, fontSize: 13, paddingVertical: 8 },
-});

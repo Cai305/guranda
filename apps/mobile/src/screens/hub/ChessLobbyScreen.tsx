@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import io, { Socket } from 'socket.io-client';
@@ -15,10 +16,78 @@ const TIME_CONTROLS = [
 ];
 
 export default function ChessLobbyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const { user } = useAuth();
   const [selectedTime, setSelectedTime] = useState<number>(600);
   const [isSearching, setIsSearching] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+    },
+    content: {
+      flex: 1,
+      padding: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    optionsContainer: {
+      flexDirection: 'row',
+      gap: 15,
+      marginBottom: 40,
+    },
+    timeOption: {
+      backgroundColor: COLORS.surface,
+      padding: 20,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 100,
+      height: 100,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    timeOptionSelected: {
+      borderColor: COLORS.primary,
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    },
+    timeOptionText: {
+      color: COLORS.textMuted,
+      marginTop: 8,
+      fontWeight: '600',
+    },
+    timeOptionTextSelected: {
+      color: COLORS.text,
+    },
+    findMatchBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.primary,
+      paddingVertical: 16,
+      paddingHorizontal: 32,
+      borderRadius: 999,
+      gap: 10,
+      width: '100%',
+      justifyContent: 'center',
+    },
+    findMatchBtnDisabled: {
+      opacity: 0.7,
+    },
+    findMatchText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 18,
+    },
+  }));
 
   useEffect(() => {
     const newSocket = io(`${API_BASE_URL}/chess`);
@@ -121,69 +190,3 @@ export default function ChessLobbyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionsContainer: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 40,
-  },
-  timeOption: {
-    backgroundColor: COLORS.surface,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 100,
-    height: 100,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  timeOptionSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  timeOptionText: {
-    color: COLORS.textMuted,
-    marginTop: 8,
-    fontWeight: '600',
-  },
-  timeOptionTextSelected: {
-    color: COLORS.text,
-  },
-  findMatchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 999,
-    gap: 10,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  findMatchBtnDisabled: {
-    opacity: 0.7,
-  },
-  findMatchText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-});
