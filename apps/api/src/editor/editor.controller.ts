@@ -7,12 +7,18 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { removeBackground } from '@imgly/background-removal-node';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { join } from 'path';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { uploadToSupabase } from '../supabase.util';
 import { LLM_ADAPTER } from '../ai-runtime/llm-adapter.token';
 import type { LlmAdapter } from '../ai-runtime/llm-adapter.interface';
 import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+
+const execFileAsync = promisify(execFile);
+// dist/editor/editor.controller.js -> apps/api/scripts/bg-removal-worker.js
+const BG_REMOVAL_WORKER = join(__dirname, '..', '..', 'scripts', 'bg-removal-worker.js');
 
 @UseGuards(JwtAuthGuard)
 @Controller('editor')
@@ -24,28 +30,32 @@ export class EditorController {
     private featureFlags: FeatureFlagsService,
   ) {}
 
-  // Runs the segmentation model in-process (ONNX via @imgly/background-removal-node)
-  // — no third-party API key, no per-call cost. First call in a process pays a
-  // one-time model download/warm-up; subsequent calls reuse it.
+  // Runs the segmentation model (ONNX via @imgly/background-removal-node) in
+  // a dedicated child process — no third-party API key, no per-call cost.
+  // Deliberately NOT imported/run in this process: it pulls in
+  // onnxruntime-node + sharp, both native addons whose bundled OpenSSL/libvips
+  // collide with Prisma's own native query engine when loaded into the same
+  // process, breaking every DB TLS connection. See bg-removal-worker.js.
   @Post('remove-background')
   async removeBackgroundEndpoint(@Body() body: { imageUrl?: string }) {
     const imageUrl = body?.imageUrl?.trim();
     if (!imageUrl) throw new BadRequestException('imageUrl is required');
 
-    let blob: Blob;
+    let stdout: Buffer;
     try {
-      blob = await removeBackground(imageUrl, {
-        model: 'medium',
-        output: { format: 'image/png', quality: 1 },
+      const result = await execFileAsync('node', [BG_REMOVAL_WORKER, imageUrl], {
+        encoding: 'buffer',
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 60_000,
       });
+      stdout = result.stdout as unknown as Buffer;
     } catch (e: any) {
-      this.logger.error(`Background removal failed: ${e?.message ?? e}`);
+      this.logger.error(`Background removal failed: ${e?.stderr?.toString?.() ?? e?.message ?? e}`);
       throw new BadRequestException('Could not process that image');
     }
 
-    const buffer = Buffer.from(await blob.arrayBuffer());
     const file = {
-      buffer,
+      buffer: stdout,
       mimetype: 'image/png',
       originalname: 'bg-removed.png',
     } as Express.Multer.File;
