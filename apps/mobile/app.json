@@ -77,7 +77,9 @@
           "photosPermission": "Guranda saves the posters and edited photos you create to your photo library.",
           "savePhotosPermission": "Guranda saves the posters and edited photos you create to your photo library."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-splash-screen"
     ]
   }
 }

@@ -1,8 +1,8 @@
-import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Canvas, ColorMatrix, Group, Image, useImage } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, runOnJS } from 'react-native-reanimated';
+import { useDerivedValue, useSharedValue, runOnJS } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ColorMatrix as Matrix, IDENTITY_MATRIX } from './filters';
 import { Layer, LayerTransform } from './types';
@@ -16,6 +16,7 @@ export type EditorCanvasHandle = {
 type Props = {
   imageUri?: string | null;
   backgroundGradient?: readonly [string, string] | null;
+  transparentBackground?: boolean;
   width: number;
   height: number;
   filterMatrix: Matrix;
@@ -30,6 +31,7 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, Props>(function EditorCanvas
   {
     imageUri,
     backgroundGradient,
+    transparentBackground,
     width,
     height,
     filterMatrix,
@@ -42,6 +44,7 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, Props>(function EditorCanvas
   ref,
 ) {
   const image = useImage(imageUri ?? undefined);
+  const [snap, setSnap] = useState({ x: false, y: false });
 
   const bgX = useSharedValue(0);
   const bgY = useSharedValue(0);
@@ -95,6 +98,8 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, Props>(function EditorCanvas
     runOnJS(deselectRef.current)();
   });
 
+  const handleSnapChange = (x: boolean, y: boolean) => setSnap((prev) => (prev.x === x && prev.y === y ? prev : { x, y }));
+
   return (
     <View style={[styles.container, { width, height }]}>
       <GestureDetector gesture={Gesture.Race(bgGesture, tapBackground)}>
@@ -109,22 +114,30 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, Props>(function EditorCanvas
             </Canvas>
           ) : backgroundGradient ? (
             <LinearGradient colors={backgroundGradient} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-          ) : (
+          ) : !transparentBackground ? (
             <View style={[StyleSheet.absoluteFill, styles.emptyBg]} />
-          )}
+          ) : null}
         </View>
       </GestureDetector>
 
       {!cropEnabled &&
-        layers.map((layer) => (
-          <LayerView
-            key={layer.id}
-            layer={layer}
-            selected={layer.id === selectedLayerId}
-            onSelect={onSelectLayer}
-            onChange={onChangeLayerTransform}
-          />
-        ))}
+        layers
+          .filter((l) => !l.hidden)
+          .map((layer) => (
+            <LayerView
+              key={layer.id}
+              layer={layer}
+              selected={layer.id === selectedLayerId}
+              canvasWidth={width}
+              canvasHeight={height}
+              onSelect={onSelectLayer}
+              onChange={onChangeLayerTransform}
+              onSnapChange={handleSnapChange}
+            />
+          ))}
+
+      {!cropEnabled && snap.x && <View pointerEvents="none" style={[styles.guideV, { left: width / 2 }]} />}
+      {!cropEnabled && snap.y && <View pointerEvents="none" style={[styles.guideH, { top: height / 2 }]} />}
     </View>
   );
 });
@@ -135,9 +148,22 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
     borderRadius: 16,
-    backgroundColor: '#000',
   },
   emptyBg: {
     backgroundColor: '#1A1A26',
+  },
+  guideV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1.5,
+    backgroundColor: '#FF2D78',
+  },
+  guideH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1.5,
+    backgroundColor: '#FF2D78',
   },
 });

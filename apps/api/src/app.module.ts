@@ -63,6 +63,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReactionsModule } from './reactions/reactions.module';
 import { TrustSafetyModule } from './trust-safety/trust-safety.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
+import { EditorModule } from './editor/editor.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { IntelligenceModule } from './intelligence/intelligence.module';
     RideModule,
     EatModule,
     UploadModule,
+    EditorModule,
     VideoModule,
     AiModule,
     MoonbaseModule,
