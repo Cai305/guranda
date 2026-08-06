@@ -1,0 +1,302 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --primary: #7c3aed;
+    --primary-light: #a78bfa;
+    --secondary: #06b6d4;
+    --accent: #ec4899;
+  }
+
+  body {
+    @apply bg-black text-white overflow-x-hidden;
+  }
+
+  html {
+    @apply scroll-smooth;
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .gradient-primary {
+    @apply bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600;
+  }
+
+  .gradient-secondary {
+    @apply bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400 bg-clip-text text-transparent;
+  }
+
+  /* Enhanced Glass Effects - iPhone Frosted Style */
+  .glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl;
+  }
+
+  .glass-sm {
+    @apply bg-white/8 backdrop-blur-xl border border-white/15 rounded-xl;
+  }
+
+  .glass-lg {
+    @apply bg-white/12 backdrop-blur-2xl border border-white/25 rounded-3xl;
+  }
+
+  .glass-frosted {
+    @apply bg-white/8 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-xl;
+  }
+
+  .glass-subtle {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl;
+  }
+
+  /* Apply glass to grey backgrounds */
+  .bg-grey-glass {
+    @apply bg-white/8 backdrop-blur-xl border border-white/15;
+  }
+
+  .bg-white-glass {
+    @apply bg-white/8 backdrop-blur-xl border border-white/15;
+  }
+
+  .section-container {
+    @apply px-5 sm:px-8 lg:px-12 py-12 sm:py-16 md:py-24;
+  }
+
+  .button-primary {
+    @apply px-6 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold text-white bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 active:scale-95;
+  }
+
+  .button-secondary {
+    @apply px-6 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold text-white bg-white/5 backdrop-blur-md border-2 border-white/20 hover:border-white/40 hover:bg-white/10 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.8s ease-out forwards;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.8s ease-out forwards;
+  }
+
+  .animate-slide-left {
+    animation: slideLeft 0.8s ease-out forwards;
+  }
+
+  .animate-slide-right {
+    animation: slideRight 0.8s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.6s ease-out forwards;
+  }
+
+  .animate-glow {
+    animation: glow 3s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulseSubtle 2s ease-in-out infinite;
+  }
+
+  .backdrop-blur-xl {
+    backdrop-filter: blur(24px);
+  }
+
+  /* Enhanced animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideLeft {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideRight {
+    from {
+      opacity: 0;
+      transform: translateX(-40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes glow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulseSubtle {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+  }
+
+  .bg-dot-pattern {
+    background-image: radial-gradient(circle, rgba(124, 58, 237, 0.15) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .gradient-mesh {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(236, 72, 153, 0.1) 50%, rgba(6, 182, 212, 0.12) 100%);
+  }
+
+  .smooth-transition {
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .hover-lift {
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Shimmer sweep */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2.4s infinite;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Orbit ring */
+  @keyframes orbit {
+    from { transform: rotate(0deg) translateX(60px) rotate(0deg); }
+    to   { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
+  }
+
+  .animate-orbit {
+    animation: orbit 6s linear infinite;
+  }
+
+  /* Typing cursor blink */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  .animate-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  /* Gradient border spin */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+
+  .text-reveal {
+    animation: textReveal 0.8s ease-out forwards;
+  }
+
+  @keyframes textReveal {
+    from { opacity: 0; clip-path: inset(0 100% 0 0); }
+    to   { opacity: 1; clip-path: inset(0 0 0 0); }
+  }
+}
