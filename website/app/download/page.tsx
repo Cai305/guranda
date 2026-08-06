@@ -64,7 +64,7 @@ export default function DownloadPage() {
                 <p className="text-gray-400 mb-7 leading-relaxed">Download the beta and get full access to every Guranda service today. No waitlist.</p>
                 <div className="space-y-3 mb-7">
                   <motion.div whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
-                    <Link href="#" className="button-primary flex items-center justify-center gap-2.5 py-4 w-full shadow-[0_0_30px_rgba(34,197,94,0.25)]">
+                    <Link href="https://drive.google.com/file/d/1WHMTHDPWlbnlVxEFy5g5mgPUBQo_251T/view?usp=drive_link" target="_blank" rel="noopener noreferrer" className="button-primary flex items-center justify-center gap-2.5 py-4 w-full shadow-[0_0_30px_rgba(34,197,94,0.25)]">
                       <FaDownload /> Download APK <FaArrowRight className="text-sm ml-auto" />
                     </Link>
                   </motion.div>
@@ -75,7 +75,7 @@ export default function DownloadPage() {
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <span className="flex items-center gap-1"><FaShieldAlt className="text-green-400" /> Verified safe</span>
                   <span>•</span>
-                  <span>v1.0.0 Beta</span>
+                  <span>Nano v1.0.0</span>
                   <span>•</span>
                   <span>~125 MB</span>
                 </div>

@@ -15,8 +15,8 @@
     },
     {
       "name": "website",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd /d C:\\Users\\USER\\Desktop\\website && npm run dev -- -p 3010"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "website", "--", "-p", "3010"],
       "port": 3010
     }
   ]
