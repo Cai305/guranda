@@ -41,6 +41,13 @@ export class PostsController {
     return this.postsService.getFollowingFeed(req.user.userId, take ? Number(take) : undefined, cursor);
   }
 
+  // TEMPORARY — see PostsService.backfillLegacyMedia. Remove once the
+  // legacy Post.mediaUrl/mediaType columns are dropped.
+  @Post('admin/backfill-media')
+  backfillLegacyMedia() {
+    return this.postsService.backfillLegacyMedia();
+  }
+
   @Get(':id')
   getPost(@Param('id') postId: string, @Request() req: any) {
     return this.postsService.getPost(postId, req.user?.userId);

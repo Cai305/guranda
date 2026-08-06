@@ -65,6 +65,33 @@ export class PostsService {
     private postsGateway: PostsGateway,
   ) {}
 
+  // TEMPORARY (see schema.prisma note on Post.mediaUrl/mediaType): copies
+  // the legacy singular mediaUrl/mediaType columns into PostMedia rows for
+  // any post that doesn't have one yet, so the old columns can be dropped
+  // without losing data. Idempotent — safe to call more than once. Remove
+  // this method + its controller route once the columns are gone.
+  async backfillLegacyMedia() {
+    const rows: { id: string; mediaUrl: string | null; mediaType: string | null }[] =
+      await this.prisma.$queryRaw`SELECT id, "mediaUrl", "mediaType" FROM "Post" WHERE "mediaUrl" IS NOT NULL`;
+    const existing = await this.prisma.postMedia.findMany({
+      where: { postId: { in: rows.map((r) => r.id) } },
+      select: { postId: true },
+    });
+    const alreadyMigrated = new Set(existing.map((e) => e.postId));
+    const toMigrate = rows.filter((r) => !alreadyMigrated.has(r.id));
+    if (toMigrate.length) {
+      await this.prisma.postMedia.createMany({
+        data: toMigrate.map((r) => ({
+          postId: r.id,
+          url: r.mediaUrl!,
+          type: r.mediaType ?? 'IMAGE',
+          position: 0,
+        })),
+      });
+    }
+    return { totalLegacy: rows.length, migrated: toMigrate.length };
+  }
+
   async createPost(
     userId: string,
     content: string,

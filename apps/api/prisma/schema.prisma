@@ -408,6 +408,12 @@ model Post {
   authorId  String
   author    User           @relation(fields: [authorId], references: [id])
   content   String
+  // TEMPORARY: kept alongside `media` only to let this push add the
+  // PostMedia table without triggering Prisma's data-loss guard on the
+  // 3 legacy rows still populated in production. Removed again once
+  // those rows are backfilled into PostMedia — see migration notes.
+  mediaUrl  String?
+  mediaType String?
   media     PostMedia[]
   likes     PostLike[]
   comments  Comment[]
