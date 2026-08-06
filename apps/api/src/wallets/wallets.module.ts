@@ -8,9 +8,10 @@ import { WalletAiToolsProvider } from './wallet-ai-tools.provider';
 import { PrismaService } from '../prisma.service';
 import { VerificationModule } from '../verification/verification.module';
 import { AdminModule } from '../admin/admin.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [VerificationModule, AdminModule],
+  imports: [VerificationModule, AdminModule, EventsModule],
   controllers: [WalletsController, AdminDepositsController],
   providers: [WalletsService, PrismaService, WalletAiToolsProvider],
   exports: [WalletsService],

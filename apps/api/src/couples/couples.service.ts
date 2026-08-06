@@ -19,6 +19,13 @@ const DEFAULT_TEMPLATES: { level: number; title: string; description: string; in
   { level: 8, title: 'Write Each Other a Letter', description: 'Write a short letter to your partner about what they mean to you.', xpReward: 140 },
   { level: 9, title: 'Recreate Your First Date', description: 'Recreate your first date together, wherever you are.', xpReward: 160 },
   { level: 10, title: 'Dream Big Together', description: 'Share a dream or goal you want to achieve together this year.', xpReward: 180 },
+  // Extends past level 10 — the unlock/never-runs-dry logic already
+  // generates past this point; these are hand-authored levels rather than
+  // AI-generated ones, matching the request for a broader conversation-game
+  // catalog (Would You Rather, Spin the Bottle, Cards).
+  { level: 11, title: 'Would You Rather', description: 'Take turns asking each other "Would you rather..." questions — no repeats, no skipping.', xpReward: 90 },
+  { level: 12, title: 'Spin the Bottle', description: 'Play a two-player round of Spin the Bottle — winner picks the next dare.', xpReward: 100 },
+  { level: 13, title: 'Card Game Night', description: 'Play a round of 5 Cards or Cassino together in the Games hub.', xpReward: 100 },
 ];
 
 function todayDateOnly(): Date {

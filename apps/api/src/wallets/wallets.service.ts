@@ -6,6 +6,7 @@ import {
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
+import { EventBusService } from '../events/event-bus.service';
 
 // Content Contribution Remuneration pays out once a month, on the 14th, at
 // midnight — this must stay in sync with the @Cron expression on
@@ -35,6 +36,7 @@ export class WalletsService {
   constructor(
     private prisma: PrismaService,
     private verificationService: VerificationService,
+    private eventBus: EventBusService,
   ) {}
 
   async getMyWallet(userId: string) {
@@ -127,9 +129,94 @@ export class WalletsService {
           status: 'SUCCESS',
         },
       }),
+      this.prisma.event.create(
+        this.eventBus.write('wallet.transfer.completed', senderWallet.id, {
+          senderWalletId: senderWallet.id,
+          recipientWalletId: recipientWallet.id,
+          amount: value,
+        }),
+      ),
     ]);
 
     return { success: true, transaction };
+  }
+
+  /**
+   * Available balance for holds is a COMPUTED value (balance minus the sum
+   * of this wallet's active holds), not a stored field — deliberately, so
+   * every existing call site that reads `wallet.balanceMasheleni` directly
+   * keeps working unchanged; only hold-aware flows need to think in terms
+   * of "available" vs "total".
+   */
+  async availableBalance(walletId: string): Promise<number> {
+    const [wallet, activeHolds] = await Promise.all([
+      this.prisma.wallet.findUniqueOrThrow({ where: { id: walletId } }),
+      this.prisma.walletHold.aggregate({
+        where: { walletId, status: 'HELD' },
+        _sum: { amount: true },
+      }),
+    ]);
+    return Number(wallet.balanceMasheleni) - (activeHolds._sum.amount ?? 0);
+  }
+
+  /**
+   * Escrow primitive (§10/§25 of the platform evolution plan): reserves
+   * `amount` without touching balanceMasheleni yet. No live flow calls this
+   * today — no booking/purchase flow needs a multi-step approve-then-spend
+   * yet — this is the seed for the AI-planned-purchase flow described in
+   * the plan's §7, tested directly rather than wired into an existing path.
+   */
+  async holdFunds(walletId: string, amount: number, reason: string, ttlMinutes = 15) {
+    if (!(amount > 0)) throw new BadRequestException('Invalid hold amount');
+    const available = await this.availableBalance(walletId);
+    if (available < amount) {
+      throw new BadRequestException(`Not enough available balance — ${available} MSH free`);
+    }
+    return this.prisma.walletHold.create({
+      data: {
+        walletId,
+        amount,
+        reason,
+        expiresAt: new Date(Date.now() + ttlMinutes * 60_000),
+      },
+    });
+  }
+
+  /** Converts a HELD row into a real atomic debit — the actual spend. */
+  async captureHold(holdId: string) {
+    const hold = await this.prisma.walletHold.findUniqueOrThrow({ where: { id: holdId } });
+    if (hold.status !== 'HELD') {
+      throw new BadRequestException(`Hold is ${hold.status}, not HELD`);
+    }
+    const [, , , updatedHold] = await this.prisma.$transaction([
+      this.prisma.wallet.update({
+        where: { id: hold.walletId },
+        data: { balanceMasheleni: { decrement: hold.amount } },
+      }),
+      this.prisma.transaction.create({
+        data: { walletId: hold.walletId, amount: -hold.amount, type: 'PAYMENT', status: 'SUCCESS' },
+      }),
+      this.prisma.event.create(
+        this.eventBus.write('wallet.hold.captured', hold.walletId, { holdId, amount: hold.amount, reason: hold.reason }),
+      ),
+      this.prisma.walletHold.update({
+        where: { id: holdId },
+        data: { status: 'CAPTURED', resolvedAt: new Date() },
+      }),
+    ]);
+    return updatedHold;
+  }
+
+  /** Releases a hold back to spendable balance — nothing to reverse, since holding never touched balanceMasheleni. */
+  async releaseHold(holdId: string) {
+    const hold = await this.prisma.walletHold.findUniqueOrThrow({ where: { id: holdId } });
+    if (hold.status !== 'HELD') {
+      throw new BadRequestException(`Hold is ${hold.status}, not HELD`);
+    }
+    return this.prisma.walletHold.update({
+      where: { id: holdId },
+      data: { status: 'RELEASED', resolvedAt: new Date() },
+    });
   }
 
   /**

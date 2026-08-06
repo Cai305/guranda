@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { RelationshipStatusType } from '@prisma/client';
 
 const AUTHOR_SELECT = {
@@ -17,7 +18,10 @@ function toFlatAuthor(user: any) {
 
 @Injectable()
 export class RelationshipsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private async hasActiveRelationship(userId: string): Promise<boolean> {
     const existing = await this.prisma.relationship.findFirst({
@@ -69,6 +73,17 @@ export class RelationshipsService {
         'Someone wants to link up as a couple on Guranda',
       );
     }
+    // Persistent inbox entry alongside the push — push is fire-and-forget
+    // and does nothing for a user who wasn't looking at their phone at the
+    // time; this is the first real Notification consumer (§25 of the
+    // platform evolution plan).
+    await this.notifications.create(
+      partnerId,
+      'relationship.request',
+      'New relationship request',
+      'Someone wants to link up as a couple on Guranda',
+      { requestId: request.id, requesterId },
+    );
     return request;
   }
 

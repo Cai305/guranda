@@ -59,6 +59,10 @@ import { CarwashModule } from './carwash/carwash.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { RelationshipsModule } from './relationships/relationships.module';
 import { CouplesModule } from './couples/couples.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ReactionsModule } from './reactions/reactions.module';
+import { TrustSafetyModule } from './trust-safety/trust-safety.module';
+import { IntelligenceModule } from './intelligence/intelligence.module';
 
 @Module({
   imports: [
@@ -122,6 +126,10 @@ import { CouplesModule } from './couples/couples.module';
     ChallengesModule,
     RelationshipsModule,
     CouplesModule,
+    NotificationsModule,
+    ReactionsModule,
+    TrustSafetyModule,
+    IntelligenceModule,
   ],
   controllers: [AppController],
   providers: [

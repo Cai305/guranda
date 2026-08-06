@@ -4,9 +4,11 @@ import { PostsController } from './posts.controller';
 import { PrismaService } from '../prisma.service';
 import { RankingModule } from '../ranking/ranking.module';
 import { PostsAiToolsProvider } from './posts-ai-tools.provider';
+import { EventsModule } from '../events/events.module';
+import { MentionsModule } from '../mentions/mentions.module';
 
 @Module({
-  imports: [RankingModule],
+  imports: [RankingModule, EventsModule, MentionsModule],
   controllers: [PostsController],
   providers: [PostsService, PrismaService, PostsAiToolsProvider],
 })

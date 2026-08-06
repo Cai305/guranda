@@ -161,6 +161,7 @@ model User {
   relationshipRequestsReceived RelationshipRequest[]  @relation("relationshipRequestsReceived")
   relationshipsAsUserA         Relationship[]          @relation("relationshipUserA")
   relationshipsAsUserB         Relationship[]          @relation("relationshipUserB")
+  notifications                Notification[]
 }
 
 model UserProfile {
@@ -183,6 +184,109 @@ model UserProfile {
   autoStatusEnabled Boolean @default(true)
 }
 
+// Outbox-pattern domain event log. A row here is written inside the SAME
+// $transaction as the domain change it describes, so an event can never be
+// lost or drift from what actually happened — see EventBusService. Consumers
+// (Trust & Safety, Intelligence, Notifications) poll `processedAt IS NULL`
+// rather than subscribing directly, so a slow/broken consumer can never block
+// the write path that emitted the event.
+model Event {
+  id          String    @id @default(uuid())
+  type        String // e.g. "wallet.transfer.completed", "post.created"
+  aggregateId String // id of the entity this event happened to
+  payload     Json
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([processedAt])
+  @@index([type, createdAt])
+}
+
+// Polymorphic — one model for every "@thing" reference instead of a parser
+// per surface. sourceType/sourceId is where the mention was written
+// (a chat message, a post, a comment, a status update); targetType/targetId
+// is what it points at (user | product | store | game | event | stream |
+// creator | ...). No foreign keys on purpose: targets span a dozen+ existing
+// tables this model deliberately doesn't couple to.
+model Mention {
+  id         String   @id @default(uuid())
+  sourceType String
+  sourceId   String
+  targetType String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  @@index([sourceType, sourceId])
+  @@index([targetType, targetId])
+}
+
+// The generic inbox every "someone wants your attention" feature should
+// write into, instead of each one (friend requests, relationship requests,
+// couple reminders, ...) hand-rolling its own push-only notification.
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  type      String // "relationship.request" | "friend.request" | ...
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+// Queryable, DB-driven reaction/gift catalog — sits alongside the existing
+// hardcoded GIFT_CATALOG in gifts.service.ts (untouched, still used by
+// sendGift() for the 6 existing gift types) rather than replacing it.
+// amount: 0 means a free reaction — no wallet transaction, engagement only.
+// creatorSharePct: 100 preserves today's gift behavior (100% to recipient);
+// a lower value is what makes a *reaction* different from a *gift* — the
+// remainder is the platform's share, same idea as CCR's pending-funds split.
+model ReactionType {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  label           String
+  icon            String
+  amount          Float
+  creatorSharePct Int      @default(100)
+  createdAt       DateTime @default(now())
+}
+
+// A capability (mini-app / external developer tool, not the user's own AI —
+// that's already gated by AiAgent.permissions) that a user has explicitly
+// granted or revoked access to something of theirs. Seed for §11/§13 of the
+// platform evolution plan; nothing consumes this yet since no third-party
+// capability exists in the product today.
+model CapabilityGrant {
+  id             String    @id @default(uuid())
+  userId         String
+  capabilityKey  String // dot-namespaced, same convention as ToolDefinition.name
+  scope          String // e.g. "identity:read:displayName,avatar"
+  grantedAt      DateTime  @default(now())
+  revokedAt      DateTime?
+
+  @@unique([userId, capabilityKey])
+}
+
+// A flag raised by the Trust & Safety Engine's automated watchers, consuming
+// the Event Bus. Deliberately NOT a moderation action — every flag lands in
+// a human-reviewed queue (mirrors AdminAuditLog's existing pattern); nothing
+// here auto-deletes or auto-blocks anything.
+model TrustSafetyFlag {
+  id         String    @id @default(uuid())
+  eventType  String // the Event.type that triggered this flag
+  aggregateId String
+  reason     String
+  severity   String    @default("LOW") // LOW | MEDIUM | HIGH
+  status     String    @default("OPEN") // OPEN | REVIEWED | DISMISSED
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@index([status, severity])
+}
+
 model Wallet {
   id               String           @id @default(uuid())
   userId           String           @unique
@@ -196,8 +300,29 @@ model Wallet {
   encryptedSeed    String?
   transactions     Transaction[]
   depositRequests  DepositRequest[]
+  holds            WalletHold[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+}
+
+// Escrow primitive: reserves balance without debiting it, so a multi-step
+// flow (e.g. an AI-planned booking waiting on user approval) can hold funds,
+// then either capture() — convert the hold into a real debit — or release()
+// it back to the spendable balance. Every existing atomic-debit call site
+// (sendMasheleni, gifts, deposits) is untouched; this is a new, additive
+// primitive, not a replacement for them.
+model WalletHold {
+  id        String    @id @default(uuid())
+  walletId  String
+  wallet    Wallet    @relation(fields: [walletId], references: [id])
+  amount    Float
+  reason    String
+  status    String    @default("HELD") // HELD | CAPTURED | RELEASED | EXPIRED
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([walletId, status])
 }
 
 model Transaction {

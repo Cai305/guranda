@@ -4,6 +4,8 @@ import {
   ContentRankingService,
   ReputationLevel,
 } from '../ranking/content-ranking.service';
+import { EventBusService } from '../events/event-bus.service';
+import { MentionsService, MentionRef } from '../mentions/mentions.service';
 
 // Author fields safe to return to any client. Was previously fetched via
 // `include: { author: { include: { profile: true } } }`, which returns the
@@ -50,6 +52,8 @@ export class PostsService {
   constructor(
     private prisma: PrismaService,
     private ranking: ContentRankingService,
+    private eventBus: EventBusService,
+    private mentions: MentionsService,
   ) {}
 
   async createPost(
@@ -57,17 +61,30 @@ export class PostsService {
     content: string,
     mediaUrl?: string,
     mediaType?: string,
+    mentions?: MentionRef[],
   ) {
-    const post = await this.prisma.post.create({
-      data: {
-        authorId: userId,
-        content,
-        mediaUrl,
-        mediaType,
-      },
-      include: {
-        author: { select: AUTHOR_SELECT },
-      },
+    const post = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.post.create({
+        data: {
+          authorId: userId,
+          content,
+          mediaUrl,
+          mediaType,
+        },
+        include: {
+          author: { select: AUTHOR_SELECT },
+        },
+      });
+      await tx.event.create(
+        this.eventBus.write('post.created', created.id, {
+          authorId: userId,
+          hasMedia: !!mediaUrl,
+        }),
+      );
+      if (mentions?.length) {
+        await this.mentions.record('post', created.id, mentions, tx);
+      }
+      return created;
     });
     return { ...post, author: toPostAuthor(post.author) };
   }

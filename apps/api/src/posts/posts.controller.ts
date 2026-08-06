@@ -40,13 +40,21 @@ export class PostsController {
   @Post()
   createPost(
     @Request() req: any,
-    @Body() body: { content: string; mediaUrl?: string; mediaType?: string },
+    @Body() body: {
+      content: string;
+      mediaUrl?: string;
+      mediaType?: string;
+      // Already-resolved references the client's mention-picker attached,
+      // e.g. [{ targetType: 'user', targetId: '...' }] — see MentionsService.
+      mentions?: { targetType: string; targetId: string }[];
+    },
   ) {
     return this.postsService.createPost(
       req.user.userId,
       body.content,
       body.mediaUrl,
       body.mediaType,
+      body.mentions,
     );
   }
 

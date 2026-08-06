@@ -460,3 +460,59 @@ export interface MarketplaceListingDto {
   bids?: MarketplaceBidDto[];
 }
 
+// ============================================================
+// Guranda Runtime — platform evolution seed types (see the
+// "Guranda Platform Evolution" architecture doc). These are the
+// shared contracts a first external mini-app/capability developer
+// would import from @guranda/sdk; nothing in the product consumes
+// them yet since no third-party capability exists today.
+// ============================================================
+
+/**
+ * Declared by a mini-app/capability so the Guranda Runtime's Capability
+ * Registry can discover what it exposes and what it needs — the manifest
+ * equivalent of a NestJS module's ToolDefinition[] (see
+ * apps/api/src/tool-registry/tool-registry.types.ts), but for something
+ * built outside this repo rather than a first-party module.
+ */
+export interface CapabilityManifest {
+  /** Unique, dot-namespaced, e.g. "acme.trip-planner". */
+  key: string;
+  name: string;
+  version: string; // semver
+  description: string;
+  /** Identity/wallet scopes this capability needs — matches CapabilityGrant.scope shape. */
+  requiredScopes: string[];
+  /** Tools this capability exposes, in the same JsonSchema shape as ToolDefinition.inputSchema. */
+  tools: {
+    name: string;
+    description: string;
+    inputSchema: Record<string, unknown>;
+    sensitive: boolean;
+  }[];
+}
+
+export interface MentionRef {
+  targetType: string;
+  targetId: string;
+}
+
+export interface NotificationDto {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+  readAt?: Date | null;
+  createdAt: Date;
+}
+
+export interface ReactionTypeDto {
+  key: string;
+  label: string;
+  icon: string;
+  amount: number;
+  creatorSharePct: number;
+}
+
