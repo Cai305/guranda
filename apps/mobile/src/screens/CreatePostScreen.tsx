@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,42 +9,52 @@ import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadMedia } from '../utils/api';
 
+const MAX_ITEMS = 10;
+
+type MediaItem = { uri: string; kind: 'image' | 'video' };
+
 export default function CreatePostScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY } = theme;
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [mediaKind, setMediaKind] = useState<'image' | 'video' | null>(null);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  // Which slot the photo editor round-trip is updating — a ref because it
+  // must survive navigating away to MediaEditor and back without resetting
+  // (this screen instance stays mounted the whole time, just backgrounded).
+  const editingIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (route?.params?.prefilledImageUri) {
-      setMediaUri(route.params.prefilledImageUri);
-      setMediaKind('image');
+      setMediaItems((prev) => [...prev, { uri: route.params.prefilledImageUri, kind: 'image' }]);
       navigation.setParams({ prefilledImageUri: undefined });
     }
   }, [route?.params?.prefilledImageUri]);
 
   useEffect(() => {
     if (route?.params?.editedImageUri) {
-      setMediaUri(route.params.editedImageUri);
-      setMediaKind('image');
+      const idx = editingIndexRef.current;
+      const uri = route.params.editedImageUri;
+      if (idx !== null) {
+        setMediaItems((prev) => prev.map((m, i) => (i === idx ? { ...m, uri } : m)));
+      }
+      editingIndexRef.current = null;
       navigation.setParams({ editedImageUri: undefined });
     }
   }, [route?.params?.editedImageUri]);
 
-  const editPhoto = () => {
-    if (!mediaUri || mediaKind !== 'image') return;
+  const editPhoto = (index: number) => {
+    const item = mediaItems[index];
+    if (!item || item.kind !== 'image') return;
+    editingIndexRef.current = index;
     navigation.navigate('MediaEditor', {
-      initialImageUri: mediaUri,
+      initialImageUri: item.uri,
       mode: 'photo',
       aspectRatio: 1,
       returnScreen: 'CreatePost',
       returnParamKey: 'editedImageUri',
     });
   };
-
-  const player = useVideoPlayer(mediaKind === 'video' ? mediaUri : null, p => { p.loop = true; });
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
     container: {
@@ -84,29 +95,53 @@ export default function CreatePostScreen({ navigation, route }: any) {
       color: COLORS.text,
       minHeight: 120,
     },
-    mediaPreviewWrap: {
-      marginHorizontal: SPACING.lg,
-      borderRadius: RADIUS.lg,
+    mediaStrip: {
+      paddingHorizontal: SPACING.lg,
+      gap: 10,
+      paddingBottom: 8,
+    },
+    mediaThumbWrap: {
+      width: 90,
+      height: 90,
+      borderRadius: RADIUS.md,
       overflow: 'hidden',
       position: 'relative',
-    },
-    mediaPreview: {
-      width: '100%',
-      height: 280,
       backgroundColor: COLORS.surface,
+    },
+    mediaThumb: {
+      width: '100%',
+      height: '100%',
+    },
+    videoBadge: {
+      position: 'absolute',
+      bottom: 4,
+      left: 4,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      borderRadius: 10,
+      padding: 3,
     },
     removeMediaBtn: {
       position: 'absolute',
-      top: 8,
-      right: 8,
+      top: 3,
+      right: 3,
     },
     editMediaBtn: {
       position: 'absolute',
-      top: 8,
-      left: 8,
-      backgroundColor: 'rgba(0,0,0,0.45)',
-      borderRadius: 16,
-      padding: 4,
+      bottom: 3,
+      right: 3,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      borderRadius: 12,
+      padding: 3,
+    },
+    addMoreTile: {
+      width: 90,
+      height: 90,
+      borderRadius: RADIUS.md,
+      borderWidth: 1.5,
+      borderColor: COLORS.border,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     toolbar: {
       flexDirection: 'row',
@@ -127,39 +162,44 @@ export default function CreatePostScreen({ navigation, route }: any) {
   }));
 
   const pickMedia = async () => {
+    const remaining = MAX_ITEMS - mediaItems.length;
+    if (remaining <= 0) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
       allowsEditing: false,
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
       quality: 0.8,
     });
     if (!result.canceled) {
-      const asset = result.assets[0];
-      setMediaUri(asset.uri);
-      setMediaKind(asset.type === 'video' ? 'video' : 'image');
+      const picked: MediaItem[] = result.assets.map((a) => ({
+        uri: a.uri,
+        kind: a.type === 'video' ? 'video' : 'image',
+      }));
+      setMediaItems((prev) => [...prev, ...picked].slice(0, MAX_ITEMS));
     }
   };
 
-  const removeMedia = () => {
-    setMediaUri(null);
-    setMediaKind(null);
+  const removeMediaAt = (index: number) => {
+    setMediaItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handlePost = async () => {
-    if (!content.trim() && !mediaUri) return;
+    if (!content.trim() && mediaItems.length === 0) return;
 
     try {
       setLoading(true);
-      let mediaUrl: string | undefined;
-      let mediaType: 'IMAGE' | 'VIDEO' | undefined;
-      if (mediaUri && mediaKind) {
-        const uploaded = await uploadMedia(mediaUri, mediaKind);
-        mediaUrl = uploaded.url;
-        mediaType = uploaded.mediaType;
+      let media: { url: string; type: string }[] | undefined;
+      if (mediaItems.length) {
+        const uploaded = await Promise.all(
+          mediaItems.map((m) => uploadMedia(m.uri, m.kind)),
+        );
+        media = uploaded.map((u) => ({ url: u.url, type: u.mediaType }));
       }
 
       const res = await fetchApi('/posts', {
         method: 'POST',
-        body: JSON.stringify({ content: content.trim(), mediaUrl, mediaType })
+        body: JSON.stringify({ content: content.trim(), media }),
       });
 
       if (res.ok) {
@@ -175,7 +215,7 @@ export default function CreatePostScreen({ navigation, route }: any) {
     }
   };
 
-  const canPost = (content.trim().length > 0 || !!mediaUri) && !loading;
+  const canPost = (content.trim().length > 0 || mediaItems.length > 0) && !loading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -212,23 +252,37 @@ export default function CreatePostScreen({ navigation, route }: any) {
           textAlignVertical="top"
         />
 
-        {mediaUri ? (
-          <View style={styles.mediaPreviewWrap}>
-            {mediaKind === 'video' ? (
-              <VideoView style={styles.mediaPreview} player={player} contentFit="cover" nativeControls={false} />
-            ) : (
-              <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
-            )}
-            {mediaKind === 'image' && (
-              <TouchableOpacity style={styles.editMediaBtn} onPress={editPhoto}>
-                <Ionicons name="color-wand-outline" size={22} color="#fff" />
+        {mediaItems.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mediaStrip}>
+            {mediaItems.map((item, index) => (
+              <View key={`${item.uri}_${index}`} style={styles.mediaThumbWrap}>
+                {item.kind === 'video' ? (
+                  <VideoThumb uri={item.uri} style={styles.mediaThumb} />
+                ) : (
+                  <ExpoImage source={{ uri: item.uri }} style={styles.mediaThumb} contentFit="cover" cachePolicy="disk" />
+                )}
+                {item.kind === 'video' && (
+                  <View style={styles.videoBadge}>
+                    <Ionicons name="videocam" size={12} color="#fff" />
+                  </View>
+                )}
+                {item.kind === 'image' && (
+                  <TouchableOpacity style={styles.editMediaBtn} onPress={() => editPhoto(index)}>
+                    <Ionicons name="color-wand-outline" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.removeMediaBtn} onPress={() => removeMediaAt(index)}>
+                  <Ionicons name="close-circle" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {mediaItems.length < MAX_ITEMS && (
+              <TouchableOpacity style={styles.addMoreTile} onPress={pickMedia}>
+                <Ionicons name="add" size={26} color={COLORS.textMuted} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.removeMediaBtn} onPress={removeMedia}>
-              <Ionicons name="close-circle" size={26} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        ) : null}
+          </ScrollView>
+        )}
 
         <View style={styles.toolbar}>
           <TouchableOpacity style={styles.mediaBtn} onPress={pickMedia}>
@@ -241,3 +295,13 @@ export default function CreatePostScreen({ navigation, route }: any) {
   );
 }
 
+// Muted, non-interactive preview loop for a video thumbnail in the compose
+// strip — full playback controls belong on the feed card, not here.
+function VideoThumb({ uri, style }: { uri: string; style: any }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+  return <VideoView style={style} player={player} contentFit="cover" nativeControls={false} />;
+}

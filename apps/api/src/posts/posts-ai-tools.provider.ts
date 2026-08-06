@@ -47,8 +47,7 @@ export class PostsAiToolsProvider implements OnModuleInit {
             this.posts.createPost(
               ctx.userId,
               input.content,
-              input.mediaUrl,
-              input.mediaType,
+              input.mediaUrl ? [{ url: input.mediaUrl, type: input.mediaType ?? 'IMAGE' }] : undefined,
             ),
           describeResult: () => 'Post created.',
         },

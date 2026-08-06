@@ -1,37 +1,26 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, Share } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { fetchApi } from '../utils/api';
 import { PostDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import TrendingStoriesFeed from '../components/TrendingStoriesFeed';
 import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
+import PostMediaCarousel from '../components/PostMediaCarousel';
 
 const CHALLENGE_CATEGORIES = [
   'DANCE', 'COMEDY', 'FITNESS', 'GAMING', 'PHOTOGRAPHY', 'COOKING',
   'BUSINESS', 'MUSIC', 'LIFESTYLE', 'SPORTS', 'COUPLES', 'SPONSORED',
 ];
 
-function PostMedia({ mediaUrl, mediaType }: { mediaUrl: string, mediaType?: 'IMAGE' | 'VIDEO' }) {
-  const isVideo = mediaType === 'VIDEO';
-  const player = useVideoPlayer(isVideo ? mediaUrl : null, p => { p.loop = false; });
-  const styles = useThemedStyles(({ COLORS }) => ({
-    postMedia: {
-      width: '100%',
-      height: 280,
-      backgroundColor: COLORS.background,
-    },
-  }));
-  if (isVideo) {
-    return <VideoView style={styles.postMedia} player={player} contentFit="cover" nativeControls />;
-  }
-  return <Image source={{ uri: mediaUrl }} style={styles.postMedia} resizeMode="cover" />;
-}
+const FEED_PAGE_SIZE = 20;
 
 // Compact X-style relative time — "13h", "3d", "just now" — instead of a
 // full locale date string, matching the reference feed's density.
@@ -49,12 +38,23 @@ function timeAgo(iso: string): string {
 
 export default function ExploreScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'trending'>('feed');
   const [feedMode, setFeedMode] = useState<'forYou' | 'following'>('forYou');
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [challengeCategory, setChallengeCategory] = useState<string | null>(null);
+  const [challengeSubTab, setChallengeSubTab] = useState<'feed' | 'browse'>('feed');
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [newPostCount, setNewPostCount] = useState(0);
+  // The single post currently most-visible in the viewport — gates which
+  // carousel (if any) is allowed to mount/play a video, so scrolled-off posts
+  // never keep decoding video in the background.
+  const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
+  const cursorRef = useRef<string | null>(null);
+  const listRef = useRef<FlatList<PostDto>>(null);
   // Dedupes view-impression calls per post per screen visit — reset only on
   // a real feed refetch (mode switch or pull-to-refresh), not on scroll.
   const viewedIds = useRef(new Set<string>());
@@ -68,6 +68,21 @@ export default function ExploreScreen({ navigation }: any) {
       }
     }, [activeTab, feedMode, challengeCategory])
   );
+
+  // Live "new posts" signal — X-style: never silently splice new items into
+  // a feed the user is actively scrolled through, just surface a count and
+  // let them opt into refreshing (see the banner in the feed's ListHeader).
+  React.useEffect(() => {
+    if (!socket || activeTab !== 'feed') return;
+    const handler = (payload: { authorId: string }) => {
+      if (payload.authorId === user?.userId) return; // own post — already visible via navigation-back refetch
+      setNewPostCount((c) => c + 1);
+    };
+    socket.on('post_created', handler);
+    return () => {
+      socket.off('post_created', handler);
+    };
+  }, [socket, activeTab, user?.userId]);
 
   const fetchChallenges = async () => {
     try {
@@ -88,16 +103,45 @@ export default function ExploreScreen({ navigation }: any) {
     try {
       setLoading(true);
       viewedIds.current.clear();
-      const res = await fetchApi(feedMode === 'following' ? '/posts/following' : '/posts');
+      cursorRef.current = null;
+      setNewPostCount(0);
+      const endpoint = feedMode === 'following' ? '/posts/following' : '/posts';
+      const res = await fetchApi(`${endpoint}?take=${FEED_PAGE_SIZE}`);
       if (res.ok) {
-        const data = await res.json();
+        const data: PostDto[] = await res.json();
         setPosts(data);
+        cursorRef.current = data.length ? String(data[data.length - 1].createdAt) : null;
+        setHasMore(data.length === FEED_PAGE_SIZE);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadMorePosts = async () => {
+    if (loadingMore || !hasMore || !cursorRef.current || activeTab !== 'feed') return;
+    try {
+      setLoadingMore(true);
+      const endpoint = feedMode === 'following' ? '/posts/following' : '/posts';
+      const res = await fetchApi(`${endpoint}?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(cursorRef.current)}`);
+      if (res.ok) {
+        const data: PostDto[] = await res.json();
+        setPosts((prev) => [...prev, ...data]);
+        cursorRef.current = data.length ? String(data[data.length - 1].createdAt) : cursorRef.current;
+        setHasMore(data.length === FEED_PAGE_SIZE);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const refreshWithNewPosts = () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    fetchFeed();
   };
 
   const handleFollow = async (authorId: string) => {
@@ -115,6 +159,10 @@ export default function ExploreScreen({ navigation }: any) {
   };
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    // Most-visible item drives which post's video (if any) is allowed to
+    // mount — picking viewableItems[0] rather than tracking a whole set
+    // keeps at most one video decoding at a time, TikTok/Instagram-style.
+    setVisiblePostId(viewableItems[0]?.item?.id ?? null);
     for (const v of viewableItems) {
       const postId = v.item?.id;
       if (!postId || viewedIds.current.has(postId)) continue;
@@ -208,9 +256,11 @@ export default function ExploreScreen({ navigation }: any) {
         <TouchableOpacity activeOpacity={0.85} onPress={openDetail}>
           <View style={styles.postHeader}>
             <View style={styles.postAvatarCol}>
-              <Image
+              <ExpoImage
                 source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
                 style={styles.postAvatar}
+                cachePolicy="disk"
+                transition={100}
               />
             </View>
             <View style={styles.postAuthorInfo}>
@@ -231,9 +281,9 @@ export default function ExploreScreen({ navigation }: any) {
             )}
           </View>
           {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
-          {item.mediaUrl ? (
+          {item.media?.length ? (
             <View style={styles.postMediaWrap}>
-              <PostMedia mediaUrl={item.mediaUrl} mediaType={item.mediaType} />
+              <PostMediaCarousel media={item.media} active={item.id === visiblePostId} />
             </View>
           ) : null}
         </TouchableOpacity>
@@ -428,6 +478,28 @@ export default function ExploreScreen({ navigation }: any) {
       overflow: 'hidden',
       marginBottom: 15,
     },
+    newPostsBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      alignSelf: 'center',
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      marginBottom: 12,
+      elevation: 3,
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+    },
+    newPostsBannerText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 13,
+    },
     postActions: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -475,7 +547,94 @@ export default function ExploreScreen({ navigation }: any) {
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 4,
-    }
+    },
+
+    // ── Challenge sub-tabs ──────────────────────────────────
+    challengeSubTabRow: {
+      flexDirection: 'row',
+      marginHorizontal: 20,
+      marginBottom: 14,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    challengeSubTab: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 9,
+      borderRadius: RADIUS.sm,
+    },
+    challengeSubTabActive: {
+      backgroundColor: COLORS.primary,
+    },
+    challengeSubTabText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    challengeSubTabTextActive: {
+      color: '#fff',
+    },
+
+    // ── Feed entry card (For You tap-to-open) ───────────────
+    feedEntryCard: {
+      marginHorizontal: 20,
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    feedEntryGradientWrap: {
+      backgroundColor: '#0F0A1E',
+      padding: 28,
+      alignItems: 'center',
+      gap: 10,
+      minHeight: 220,
+      justifyContent: 'center',
+    },
+    feedEntryIconRow: {
+      width: 80, height: 80, borderRadius: 40,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center', alignItems: 'center',
+      marginBottom: 6,
+    },
+    feedEntryTitle: {
+      color: '#fff',
+      fontSize: 20,
+      fontWeight: '800',
+    },
+    feedEntrySubtitle: {
+      color: 'rgba(255,255,255,0.6)',
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 19,
+    },
+    feedEntryBadgeRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 4,
+    },
+    feedEntryBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      backgroundColor: 'rgba(139,92,246,0.3)',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: 'rgba(139,92,246,0.5)',
+    },
+    feedEntryBadgeText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '700',
+    },
   }));
 
   return (
@@ -520,45 +679,85 @@ export default function ExploreScreen({ navigation }: any) {
 
       {activeTab === 'challenges' ? (
         <>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={[{ key: null, label: 'All' }, ...CHALLENGE_CATEGORIES.map((c) => ({ key: c, label: c.charAt(0) + c.slice(1).toLowerCase() }))]}
-            keyExtractor={(item) => item.key ?? 'all'}
-            contentContainerStyle={styles.categoryRow}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.categoryChip, challengeCategory === item.key && styles.categoryChipActive]}
-                onPress={() => setChallengeCategory(item.key)}
-              >
-                <Text style={[styles.categoryChipText, challengeCategory === item.key && styles.categoryChipTextActive]}>
-                  {item.label}
-                </Text>
+          {/* ── Challenges sub-tab bar ── */}
+          <View style={styles.challengeSubTabRow}>
+            <TouchableOpacity
+              style={[styles.challengeSubTab, challengeSubTab === 'feed' && styles.challengeSubTabActive]}
+              onPress={() => setChallengeSubTab('feed')}
+            >
+              <Ionicons name="play" size={14} color={challengeSubTab === 'feed' ? '#fff' : COLORS.textMuted} />
+              <Text style={[styles.challengeSubTabText, challengeSubTab === 'feed' && styles.challengeSubTabTextActive]}>
+                For You
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.challengeSubTab, challengeSubTab === 'browse' && styles.challengeSubTabActive]}
+              onPress={() => setChallengeSubTab('browse')}
+            >
+              <Ionicons name="grid" size={14} color={challengeSubTab === 'browse' ? '#fff' : COLORS.textMuted} />
+              <Text style={[styles.challengeSubTabText, challengeSubTab === 'browse' && styles.challengeSubTabTextActive]}>
+                Browse
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {challengeSubTab === 'feed' ? (
+            /* ── For You: navigate directly ── */
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingTop: 40 }}>
+              <LinearGradient colors={['#8B5CF6', '#6366F1']} style={{ width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="play-circle" size={40} color="#fff" />
+              </LinearGradient>
+              <Text style={{ color: COLORS.text, fontSize: 17, fontWeight: '800' }}>For You Feed</Text>
+              <Text style={{ color: COLORS.textMuted, fontSize: 13, textAlign: 'center', paddingHorizontal: 32 }}>Infinite scroll through challenge entries from your area and beyond</Text>
+              <TouchableOpacity style={{ backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 28, paddingVertical: 13 }} onPress={() => navigation.navigate('ChallengesFeed')}>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Open Feed</Text>
               </TouchableOpacity>
-            )}
-          />
-          <FlatList
-            data={challenges}
-            keyExtractor={(item) => item.id}
-            renderItem={renderChallenge}
-            numColumns={2}
-            columnWrapperStyle={{ justifyContent: 'space-between' }}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            refreshing={loading}
-            onRefresh={fetchChallenges}
-            ListEmptyComponent={
-              !loading ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="trophy-outline" size={48} color={COLORS.textMuted} />
-                  <Text style={styles.emptyText}>No active challenges right now — check back soon!</Text>
-                </View>
-              ) : null
-            }
-          />
+            </View>
+          ) : (
+            /* ── Browse: category filter + grid ── */
+            <>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={[{ key: null, label: 'All' }, ...CHALLENGE_CATEGORIES.map((c) => ({ key: c, label: c.charAt(0) + c.slice(1).toLowerCase() }))]}
+                keyExtractor={(item) => item.key ?? 'all'}
+                contentContainerStyle={styles.categoryRow}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.categoryChip, challengeCategory === item.key && styles.categoryChipActive]}
+                    onPress={() => setChallengeCategory(item.key)}
+                  >
+                    <Text style={[styles.categoryChipText, challengeCategory === item.key && styles.categoryChipTextActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <FlatList
+                data={challenges}
+                keyExtractor={(item) => item.id}
+                renderItem={renderChallenge}
+                numColumns={2}
+                columnWrapperStyle={{ justifyContent: 'space-between' }}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                refreshing={loading}
+                onRefresh={fetchChallenges}
+                ListEmptyComponent={
+                  !loading ? (
+                    <View style={styles.emptyState}>
+                      <Ionicons name="trophy-outline" size={48} color={COLORS.textMuted} />
+                      <Text style={styles.emptyText}>No active challenges right now — check back soon!</Text>
+                    </View>
+                  ) : null
+                }
+              />
+            </>
+          )}
         </>
       ) : activeTab === 'feed' ? (
         <FlatList
+          ref={listRef}
           data={posts}
           keyExtractor={(item) => item.id}
           renderItem={renderPost}
@@ -568,21 +767,40 @@ export default function ExploreScreen({ navigation }: any) {
           onRefresh={fetchFeed}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60, minimumViewTime: 500 }}
+          onEndReached={loadMorePosts}
+          onEndReachedThreshold={0.6}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+          removeClippedSubviews
           ListHeaderComponent={
-            <View style={styles.feedModeRow}>
-              <TouchableOpacity
-                style={[styles.feedModeTab, feedMode === 'forYou' && styles.feedModeTabActive]}
-                onPress={() => setFeedMode('forYou')}
-              >
-                <Text style={[styles.feedModeText, feedMode === 'forYou' && styles.feedModeTextActive]}>For You</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.feedModeTab, feedMode === 'following' && styles.feedModeTabActive]}
-                onPress={() => setFeedMode('following')}
-              >
-                <Text style={[styles.feedModeText, feedMode === 'following' && styles.feedModeTextActive]}>Following</Text>
-              </TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.feedModeRow}>
+                <TouchableOpacity
+                  style={[styles.feedModeTab, feedMode === 'forYou' && styles.feedModeTabActive]}
+                  onPress={() => setFeedMode('forYou')}
+                >
+                  <Text style={[styles.feedModeText, feedMode === 'forYou' && styles.feedModeTextActive]}>For You</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.feedModeTab, feedMode === 'following' && styles.feedModeTabActive]}
+                  onPress={() => setFeedMode('following')}
+                >
+                  <Text style={[styles.feedModeText, feedMode === 'following' && styles.feedModeTextActive]}>Following</Text>
+                </TouchableOpacity>
+              </View>
+              {newPostCount > 0 && (
+                <TouchableOpacity style={styles.newPostsBanner} activeOpacity={0.85} onPress={refreshWithNewPosts}>
+                  <Ionicons name="arrow-up" size={14} color="#fff" />
+                  <Text style={styles.newPostsBannerText}>
+                    {newPostCount === 1 ? '1 new post' : `${newPostCount} new posts`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          }
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
           }
           ListEmptyComponent={
             !loading ? (

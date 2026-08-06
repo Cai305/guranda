@@ -112,13 +112,19 @@ export interface PostAuthor extends UserProfile {
   isFollowedByMe?: boolean;
 }
 
+export interface PostMediaDto {
+  id?: string;
+  url: string;
+  type: 'IMAGE' | 'VIDEO';
+  position?: number;
+}
+
 export interface PostDto {
   id: string;
   authorId: string;
   author?: PostAuthor;
   content: string;
-  mediaUrl?: string;
-  mediaType?: 'IMAGE' | 'VIDEO';
+  media?: PostMediaDto[];
   likes?: { id: string, userId: string }[];
   comments?: CommentDto[];
   reposts?: { id: string, userId: string }[];

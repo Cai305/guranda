@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -16,8 +17,12 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Get()
-  getFeed(@Request() req: any) {
-    return this.postsService.getFeed(req.user?.userId);
+  getFeed(
+    @Request() req: any,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.postsService.getFeed(req.user?.userId, take ? Number(take) : undefined, cursor);
   }
 
   // Literal routes before any ':id'-style route below, so Nest doesn't try
@@ -28,8 +33,12 @@ export class PostsController {
   }
 
   @Get('following')
-  getFollowingFeed(@Request() req: any) {
-    return this.postsService.getFollowingFeed(req.user.userId);
+  getFollowingFeed(
+    @Request() req: any,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.postsService.getFollowingFeed(req.user.userId, take ? Number(take) : undefined, cursor);
   }
 
   @Get(':id')
@@ -42,8 +51,8 @@ export class PostsController {
     @Request() req: any,
     @Body() body: {
       content: string;
-      mediaUrl?: string;
-      mediaType?: string;
+      // One or more already-uploaded media items, in display order.
+      media?: { url: string; type: string }[];
       // Already-resolved references the client's mention-picker attached,
       // e.g. [{ targetType: 'user', targetId: '...' }] — see MentionsService.
       mentions?: { targetType: string; targetId: string }[];
@@ -52,8 +61,7 @@ export class PostsController {
     return this.postsService.createPost(
       req.user.userId,
       body.content,
-      body.mediaUrl,
-      body.mediaType,
+      body.media,
       body.mentions,
     );
   }

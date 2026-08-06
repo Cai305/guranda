@@ -6,6 +6,14 @@ import {
 } from '../ranking/content-ranking.service';
 import { EventBusService } from '../events/event-bus.service';
 import { MentionsService, MentionRef } from '../mentions/mentions.service';
+import { PostsGateway } from './posts.gateway';
+
+export type PostMediaInput = { url: string; type: string };
+
+function toPositiveInt(raw: number | undefined, fallback: number, max = 50): number {
+  if (raw === undefined || !Number.isFinite(raw) || raw < 0) return fallback;
+  return Math.min(Math.trunc(raw), max);
+}
 
 // Author fields safe to return to any client. Was previously fetched via
 // `include: { author: { include: { profile: true } } }`, which returns the
@@ -54,13 +62,13 @@ export class PostsService {
     private ranking: ContentRankingService,
     private eventBus: EventBusService,
     private mentions: MentionsService,
+    private postsGateway: PostsGateway,
   ) {}
 
   async createPost(
     userId: string,
     content: string,
-    mediaUrl?: string,
-    mediaType?: string,
+    media?: PostMediaInput[],
     mentions?: MentionRef[],
   ) {
     const post = await this.prisma.$transaction(async (tx) => {
@@ -68,17 +76,19 @@ export class PostsService {
         data: {
           authorId: userId,
           content,
-          mediaUrl,
-          mediaType,
+          media: {
+            create: (media ?? []).map((m, i) => ({ url: m.url, type: m.type, position: i })),
+          },
         },
         include: {
           author: { select: AUTHOR_SELECT },
+          media: { orderBy: { position: 'asc' } },
         },
       });
       await tx.event.create(
         this.eventBus.write('post.created', created.id, {
           authorId: userId,
-          hasMedia: !!mediaUrl,
+          hasMedia: (media?.length ?? 0) > 0,
         }),
       );
       if (mentions?.length) {
@@ -86,6 +96,7 @@ export class PostsService {
       }
       return created;
     });
+    this.postsGateway.broadcastNewPost(post);
     return { ...post, author: toPostAuthor(post.author) };
   }
 
@@ -123,14 +134,21 @@ export class PostsService {
     }));
   }
 
-  async getFeed(viewerId?: string) {
+  // Cursor is the ISO createdAt of the last post the client already has —
+  // simpler and less error-prone than an id-based cursor here, since Post.id
+  // is a random UUID (not sortable), so `id: {lt: cursor}` wouldn't actually
+  // track recency the way it does for models with sequential/sortable ids.
+  async getFeed(viewerId?: string, take = 20, cursor?: string) {
+    const pageSize = toPositiveInt(take, 20);
     // Widen the raw pool beyond what's actually shown — ranking needs
-    // candidates to reorder, not just the newest 50.
+    // candidates to reorder, not just the newest page.
     const [posts, viewer] = await Promise.all([
       this.prisma.post.findMany({
+        where: cursor ? { createdAt: { lt: new Date(cursor) } } : undefined,
         orderBy: { createdAt: 'desc' },
         include: {
           author: { select: FEED_AUTHOR_SELECT },
+          media: { orderBy: { position: 'asc' } },
           likes: true,
           reposts: true,
           comments: {
@@ -138,7 +156,7 @@ export class PostsService {
             orderBy: { createdAt: 'asc' },
           },
         },
-        take: 200,
+        take: Math.max(pageSize * 4, 50),
       }),
       viewerId
         ? this.prisma.user.findUnique({
@@ -161,7 +179,7 @@ export class PostsService {
           viewerLat: viewer?.locationLat,
           viewerLng: viewer?.locationLng,
         }),
-      50,
+      pageSize,
     );
 
     return this.hydrate(ranked, viewerId);
@@ -169,7 +187,7 @@ export class PostsService {
 
   // Following tab — plain reverse-chronological, not the "For You" ranking
   // algorithm, matching the reference feed's distinction between the two.
-  async getFollowingFeed(viewerId: string) {
+  async getFollowingFeed(viewerId: string, take = 20, cursor?: string) {
     const follows = await this.prisma.follow.findMany({
       where: { followerId: viewerId },
       select: { followingId: true },
@@ -177,10 +195,14 @@ export class PostsService {
     if (!follows.length) return [];
 
     const posts = await this.prisma.post.findMany({
-      where: { authorId: { in: follows.map((f) => f.followingId) } },
+      where: {
+        authorId: { in: follows.map((f) => f.followingId) },
+        ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         author: { select: AUTHOR_SELECT },
+        media: { orderBy: { position: 'asc' } },
         likes: true,
         reposts: true,
         comments: {
@@ -188,7 +210,7 @@ export class PostsService {
           orderBy: { createdAt: 'asc' },
         },
       },
-      take: 100,
+      take: toPositiveInt(take, 20),
     });
 
     return this.hydrate(posts, viewerId);
@@ -203,6 +225,7 @@ export class PostsService {
       where: { id },
       include: {
         author: { select: AUTHOR_SELECT },
+        media: { orderBy: { position: 'asc' } },
         likes: true,
         reposts: true,
         comments: {

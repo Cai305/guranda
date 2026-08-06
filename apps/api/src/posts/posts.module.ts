@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { PostsController } from './posts.controller';
+import { PostsGateway } from './posts.gateway';
 import { PrismaService } from '../prisma.service';
 import { RankingModule } from '../ranking/ranking.module';
 import { PostsAiToolsProvider } from './posts-ai-tools.provider';
@@ -10,6 +11,6 @@ import { MentionsModule } from '../mentions/mentions.module';
 @Module({
   imports: [RankingModule, EventsModule, MentionsModule],
   controllers: [PostsController],
-  providers: [PostsService, PrismaService, PostsAiToolsProvider],
+  providers: [PostsService, PrismaService, PostsAiToolsProvider, PostsGateway],
 })
 export class PostsModule {}

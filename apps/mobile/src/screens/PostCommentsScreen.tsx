@@ -2,20 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, FlatList, Image, Share, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { COLORS, TYPOGRAPHY, RADIUS } from '../theme';
 import { fetchApi } from '../utils/api';
 import { CommentDto, PostDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
-
-function PostMedia({ mediaUrl, mediaType }: { mediaUrl: string, mediaType?: 'IMAGE' | 'VIDEO' }) {
-  const isVideo = mediaType === 'VIDEO';
-  const player = useVideoPlayer(isVideo ? mediaUrl : null, p => { p.loop = false; });
-  if (isVideo) {
-    return <VideoView style={styles.postMedia} player={player} contentFit="cover" nativeControls />;
-  }
-  return <Image source={{ uri: mediaUrl }} style={styles.postMedia} resizeMode="cover" />;
-}
+import PostMediaCarousel from '../components/PostMediaCarousel';
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -249,9 +240,9 @@ export default function PostCommentsScreen({ route, navigation }: any) {
                 </View>
               </View>
               {post.content ? <Text style={styles.postContent}>{post.content}</Text> : null}
-              {post.mediaUrl ? (
+              {post.media?.length ? (
                 <View style={styles.postMediaWrap}>
-                  <PostMedia mediaUrl={post.mediaUrl} mediaType={post.mediaType} />
+                  <PostMediaCarousel media={post.media} active />
                 </View>
               ) : null}
               <View style={styles.postActions}>
@@ -398,11 +389,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     overflow: 'hidden',
     marginBottom: 15,
-  },
-  postMedia: {
-    width: '100%',
-    height: 280,
-    backgroundColor: COLORS.background,
   },
   postActions: {
     flexDirection: 'row',

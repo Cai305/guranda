@@ -408,8 +408,7 @@ model Post {
   authorId  String
   author    User           @relation(fields: [authorId], references: [id])
   content   String
-  mediaUrl  String?
-  mediaType String?
+  media     PostMedia[]
   likes     PostLike[]
   comments  Comment[]
   reposts   PostRepost[]
@@ -419,6 +418,25 @@ model Post {
   // not a unique-viewer count. See PostsService.recordView.
   views     Int            @default(0)
   createdAt DateTime       @default(now())
+
+  // Feed pagination is cursor-based on createdAt (see PostsService.getFeed) —
+  // index it, plus authorId for the Following-tab filter and profile post lists.
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+// One or more images/videos attached to a post, in display order — replaces
+// the old single mediaUrl/mediaType pair so a post can carry a mixed
+// image+video gallery (CreatePostScreen's picker allows multi-select).
+model PostMedia {
+  id       String @id @default(uuid())
+  postId   String
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url      String
+  type     String // 'IMAGE' | 'VIDEO'
+  position Int    @default(0)
+
+  @@index([postId])
 }
 
 // General user-to-user follow graph, backing the Social Feed's Following
@@ -2774,6 +2792,8 @@ model Challenge {
   category        ChallengeCategory
   type            ChallengeType
   status          ChallengeStatus   @default(DRAFT)
+  scope           String            @default("NATIONAL") // LOCAL | DISTRICT | PROVINCIAL | NATIONAL
+  location        String?           // human-readable label, e.g. "Soweto", "Gauteng"
   startAt         DateTime
   endAt           DateTime
   xpReward        Int               @default(50)
@@ -2794,6 +2814,7 @@ model Challenge {
 
   @@index([status, category])
   @@index([status, endAt])
+  @@index([scope])
 }
 
 model ChallengeEntry {
@@ -2838,13 +2859,17 @@ model ChallengeEntryVote {
 }
 
 model ChallengeEntryComment {
-  id        String         @id @default(uuid())
-  entryId   String
-  entry     ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User           @relation(fields: [authorId], references: [id])
-  content   String
-  createdAt DateTime       @default(now())
+  id           String         @id @default(uuid())
+  entryId      String
+  entry        ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User           @relation(fields: [authorId], references: [id])
+  content      String
+  boostAmount  Float          @default(0) // MSH paid to pin this comment; 0 = free
+  boostedAt    DateTime?      // set when a boost payment is made
+  createdAt    DateTime       @default(now())
+
+  @@index([entryId, boostAmount])
 }
 
 model ChallengeCategoryStat {
