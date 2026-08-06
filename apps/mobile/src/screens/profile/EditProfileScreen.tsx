@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +14,7 @@ const RELATIONSHIP_OPTIONS: { value: string; label: string }[] = [
   { value: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
 ];
 
-export default function EditProfileScreen({ navigation }: any) {
+export default function EditProfileScreen({ navigation, route }: any) {
   const { user, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -51,6 +51,24 @@ export default function EditProfileScreen({ navigation }: any) {
     if (!result.canceled && result.assets[0].uri) {
       setAvatarUri(result.assets[0].uri);
     }
+  };
+
+  useEffect(() => {
+    if (route?.params?.editedImageUri) {
+      setAvatarUri(route.params.editedImageUri);
+      navigation.setParams({ editedImageUri: undefined });
+    }
+  }, [route?.params?.editedImageUri]);
+
+  const editAvatar = () => {
+    if (!avatarUri) return;
+    navigation.navigate('MediaEditor', {
+      initialImageUri: avatarUri,
+      mode: 'photo',
+      aspectRatio: 1,
+      returnScreen: 'EditProfile',
+      returnParamKey: 'editedImageUri',
+    });
   };
 
   const handleSave = async () => {
@@ -105,6 +123,11 @@ export default function EditProfileScreen({ navigation }: any) {
           <TouchableOpacity style={styles.editAvatarBtn} onPress={pickImage}>
             <Ionicons name="camera" size={20} color="#FFF" />
           </TouchableOpacity>
+          {avatarUri ? (
+            <TouchableOpacity style={styles.editAvatarWandBtn} onPress={editAvatar}>
+              <Ionicons name="color-wand-outline" size={16} color="#FFF" />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={styles.formGroup}>
@@ -223,6 +246,19 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: COLORS.background,
+  },
+  editAvatarWandBtn: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    backgroundColor: COLORS.secondary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, Alert,
   ActivityIndicator, Switch, PanResponder, Animated, Modal, FlatList,
@@ -46,7 +46,7 @@ interface PlacedSticker {
   pan: Animated.ValueXY;
 }
 
-export default function CreateStoryScreen({ navigation }: any) {
+export default function CreateStoryScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
   const [text, setText] = useState('');
@@ -278,6 +278,33 @@ export default function CreateStoryScreen({ navigation }: any) {
     if (!result.canceled) {
       setMediaUri(result.assets[0].uri);
     }
+  };
+
+  // A poster/photo built in the media editor, or handed back after editing
+  // the currently-picked photo, arrives via these route params.
+  useEffect(() => {
+    if (route?.params?.prefilledImageUri) {
+      setMediaUri(route.params.prefilledImageUri);
+      navigation.setParams({ prefilledImageUri: undefined });
+    }
+  }, [route?.params?.prefilledImageUri]);
+
+  useEffect(() => {
+    if (route?.params?.editedImageUri) {
+      setMediaUri(route.params.editedImageUri);
+      navigation.setParams({ editedImageUri: undefined });
+    }
+  }, [route?.params?.editedImageUri]);
+
+  const editPhoto = () => {
+    if (!mediaUri) return;
+    navigation.navigate('MediaEditor', {
+      initialImageUri: mediaUri,
+      mode: 'photo',
+      aspectRatio: 9 / 16,
+      returnScreen: 'CreateStory',
+      returnParamKey: 'editedImageUri',
+    });
   };
 
   const pickMusic = async () => {
@@ -535,7 +562,10 @@ export default function CreateStoryScreen({ navigation }: any) {
               <View style={styles.photoRow}>
                 <Image source={{ uri: mediaUri }} style={styles.photoThumb} />
                 <Text style={styles.photoBtnText}>Change photo</Text>
-                <TouchableOpacity onPress={() => setMediaUri(null)}>
+                <TouchableOpacity onPress={editPhoto} hitSlop={8}>
+                  <Ionicons name="color-wand-outline" size={20} color={COLORS.secondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setMediaUri(null)} hitSlop={8}>
                   <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
                 </TouchableOpacity>
               </View>

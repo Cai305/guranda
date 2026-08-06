@@ -57,6 +57,9 @@ import MyRentalsScreen from '../screens/property/MyRentalsScreen';
 import LeaseScreen from '../screens/property/LeaseScreen';
 import CreateStoryScreen from '../screens/CreateStoryScreen';
 import StoryViewerScreen from '../screens/StoryViewerScreen';
+import MediaEditorScreen from '../screens/editor/MediaEditorScreen';
+import PosterCreatorScreen from '../screens/editor/PosterCreatorScreen';
+import PosterResultScreen from '../screens/editor/PosterResultScreen';
 import MarketplaceHomeScreen from '../screens/marketplace/MarketplaceHomeScreen';
 import MarketplaceFormScreen from '../screens/marketplace/MarketplaceFormScreen';
 import MarketplaceDetailScreen from '../screens/marketplace/MarketplaceDetailScreen';
@@ -226,6 +229,9 @@ export default function RootNavigator() {
           <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
           <Stack.Screen name="CreateStory" component={CreateStoryScreen} />
           <Stack.Screen name="StoryViewer" component={StoryViewerScreen} options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="MediaEditor" component={MediaEditorScreen} options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="PosterCreator" component={PosterCreatorScreen} options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="PosterResult" component={PosterResultScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="HairHome" component={HairHomeScreen} />
           <Stack.Screen name="HairdresserProfile" component={HairdresserProfileScreen} />
           <Stack.Screen name="HairService" component={HairServiceScreen} />

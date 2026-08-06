@@ -82,6 +82,17 @@ export const MODULES: LifeModule[] = [
     route: { name: 'Main', params: { screen: 'Life', params: { screen: 'Games' } } },
   },
   {
+    id: 'poster',
+    name: 'Poster & Editor',
+    icon: 'color-wand',
+    gradient: GRADIENTS.sunset,
+    status: 'live',
+    tagline: 'Design, edit, share',
+    description: 'Create posters from templates and edit your photos with filters, text, and stickers — the same tool that powers editing across Stories, Posts and your profile photo.',
+    features: ['Poster templates', 'Filters & adjustments', 'Crop & rotate', 'Text & stickers', 'Save, share or post'],
+    route: { name: 'PosterCreator' },
+  },
+  {
     id: 'work',
     name: 'Work',
     icon: 'briefcase',

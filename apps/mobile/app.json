@@ -70,6 +70,13 @@
           "microphonePermission": "Guranda uses the microphone so you can talk to your AI companion.",
           "speechRecognitionPermission": "Guranda uses on-device speech recognition to turn what you say to your AI companion into text."
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Guranda saves the posters and edited photos you create to your photo library.",
+          "savePhotosPermission": "Guranda saves the posters and edited photos you create to your photo library."
+        }
       ]
     ]
   }

@@ -46,7 +46,7 @@ export default function HubScreen({ route, navigation }: any) {
   }, []);
 
   // Mini apps
-  const miniAppIds = ['health', 'travel', 'learning', 'shopping', 'property', 'finance', 'work', 'marketplace', 'username-market', 'ride', 'eat', 'hair', 'entertainment', 'carfind', 'carwash'];
+  const miniAppIds = ['poster', 'health', 'travel', 'learning', 'shopping', 'property', 'finance', 'work', 'marketplace', 'username-market', 'ride', 'eat', 'hair', 'entertainment', 'carfind', 'carwash'];
   const baseMiniApps = miniAppIds.map(id => MODULES.find(m => m.id === id)).filter(Boolean) as LifeModule[];
   
   // Games as modules

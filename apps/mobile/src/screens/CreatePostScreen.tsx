@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,13 +8,40 @@ import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadMedia } from '../utils/api';
 
-export default function CreatePostScreen({ navigation }: any) {
+export default function CreatePostScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY } = theme;
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [mediaKind, setMediaKind] = useState<'image' | 'video' | null>(null);
+
+  useEffect(() => {
+    if (route?.params?.prefilledImageUri) {
+      setMediaUri(route.params.prefilledImageUri);
+      setMediaKind('image');
+      navigation.setParams({ prefilledImageUri: undefined });
+    }
+  }, [route?.params?.prefilledImageUri]);
+
+  useEffect(() => {
+    if (route?.params?.editedImageUri) {
+      setMediaUri(route.params.editedImageUri);
+      setMediaKind('image');
+      navigation.setParams({ editedImageUri: undefined });
+    }
+  }, [route?.params?.editedImageUri]);
+
+  const editPhoto = () => {
+    if (!mediaUri || mediaKind !== 'image') return;
+    navigation.navigate('MediaEditor', {
+      initialImageUri: mediaUri,
+      mode: 'photo',
+      aspectRatio: 1,
+      returnScreen: 'CreatePost',
+      returnParamKey: 'editedImageUri',
+    });
+  };
 
   const player = useVideoPlayer(mediaKind === 'video' ? mediaUri : null, p => { p.loop = true; });
 
@@ -72,6 +99,14 @@ export default function CreatePostScreen({ navigation }: any) {
       position: 'absolute',
       top: 8,
       right: 8,
+    },
+    editMediaBtn: {
+      position: 'absolute',
+      top: 8,
+      left: 8,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      borderRadius: 16,
+      padding: 4,
     },
     toolbar: {
       flexDirection: 'row',
@@ -183,6 +218,11 @@ export default function CreatePostScreen({ navigation }: any) {
               <VideoView style={styles.mediaPreview} player={player} contentFit="cover" nativeControls={false} />
             ) : (
               <Image source={{ uri: mediaUri }} style={styles.mediaPreview} resizeMode="cover" />
+            )}
+            {mediaKind === 'image' && (
+              <TouchableOpacity style={styles.editMediaBtn} onPress={editPhoto}>
+                <Ionicons name="color-wand-outline" size={22} color="#fff" />
+              </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.removeMediaBtn} onPress={removeMedia}>
               <Ionicons name="close-circle" size={26} color="#fff" />
