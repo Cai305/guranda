@@ -2,7 +2,7 @@ services:
   - type: web
     name: guranda-api
     env: node
-    buildCommand: npm install && npx turbo run build --filter=api && cd apps/api && npx prisma db push --skip-generate
+    buildCommand: npm install --include=dev && npx turbo run build --filter=api && cd apps/api && npx prisma db push --skip-generate
     startCommand: cd apps/api && npm run start:prod
     envVars:
       - key: NODE_ENV
