@@ -3,8 +3,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase's pooled connection (PgBouncer transaction mode, port 6543) doesn't
+  // support the prepared statements `prisma db push`/`migrate` need — schema
+  // changes must go through the direct connection instead. Runtime queries keep
+  // using the pooled `url` above; only schema operations use this.
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
