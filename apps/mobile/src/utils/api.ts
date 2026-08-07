@@ -74,8 +74,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     headers,
   });
 
-  // Handle unauthorized responses by clearing stored auth data
-  if (response.status === 401) {
+  // A 401 with no token attached just means this call was never
+  // authenticated in the first place (e.g. a component that fires a request
+  // on mount regardless of login state) — that's not a session "expiring",
+  // so only treat it as one when a token was actually sent and rejected.
+  if (response.status === 401 && token) {
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem('userToken');
