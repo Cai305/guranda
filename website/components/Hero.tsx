@@ -138,30 +138,28 @@ export default function Hero() {
           ))}
         </motion.div>
 
-        {/* Hero visual */}
+        {/* Hero visual — icon grid floats directly on the page background,
+            no enclosing card, matching AISection's orbit treatment */}
         <motion.div
           initial={{ opacity: 0, y: 60, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.8, duration: 1, ease: 'easeOut' }}
           className="relative mx-auto max-w-3xl"
         >
-          <div className="absolute -inset-px rounded-3xl bg-gradient-to-r from-violet-600/50 via-pink-600/30 to-cyan-600/50 blur-sm" />
-          <div className="relative bg-black/30 backdrop-blur-xl rounded-3xl overflow-hidden aspect-video flex items-center justify-center border border-white/10 shadow-[0_40px_80px_rgba(0,0,0,0.7)]">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-900/20 via-transparent to-cyan-900/20" />
-            <div className="relative z-10 grid grid-cols-3 sm:grid-cols-4 gap-5 p-10 w-full">
-              {['💬','🎮','📡','💰','🚗','🍽️','✈️','🤖','📚','💼','🏠','🎭'].map((e, i) => (
-                <motion.div
-                  key={i}
-                  className="flex flex-col items-center"
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 3 + (i % 3) * 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
-                >
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl sm:text-3xl backdrop-blur-md shadow-lg">
-                    {e}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-cyan-600/10 blur-3xl -z-10" />
+          <div className="relative grid grid-cols-3 sm:grid-cols-4 gap-5 sm:gap-8 p-6 sm:p-10 w-full">
+            {['💬','🎮','📡','💰','🚗','🍽️','✈️','🤖','📚','💼','🏠','🎭'].map((e, i) => (
+              <motion.div
+                key={i}
+                className="flex flex-col items-center"
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 3 + (i % 3) * 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+              >
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl sm:text-3xl backdrop-blur-md shadow-lg">
+                  {e}
+                </div>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
 
