@@ -64,9 +64,10 @@ const STATS = [
 export default function StatsSection() {
   return (
     <section className="section-container max-w-5xl mx-auto">
-      <div className="relative overflow-hidden glass-frosted rounded-3xl p-10 sm:p-16 border-white/10">
-        {/* Background glow */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-cyan-600/5 pointer-events-none" />
+      {/* Stats float directly on the page background — no enclosing card,
+          matching AISection's orbit treatment — just an ambient glow. */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-cyan-600/10 blur-3xl -z-10 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-0.5 bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
 
         <motion.div
