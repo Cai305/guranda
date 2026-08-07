@@ -70,29 +70,36 @@ export default function FeatureShowcase({
           </div>
         </motion.div>
 
-        {/* Visual side */}
+        {/* Visual side — icon floats directly on the page background (no
+            enclosing card), matching AISection's orbit treatment */}
         <motion.div
           initial={{ opacity: 0, x: reversed ? -60 : 60 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className={`relative ${reversed ? 'md:order-1' : ''}`}
+          className={`relative aspect-square flex items-center justify-center ${reversed ? 'md:order-1' : ''}`}
         >
-          {/* Glow ring */}
-          <div className={`absolute -inset-4 rounded-3xl bg-gradient-to-br ${gradient} opacity-10 blur-2xl`} />
+          {/* Ambient glow */}
+          <div className={`absolute inset-8 rounded-full bg-gradient-to-br ${gradient} opacity-10 blur-3xl`} />
           <motion.div
-            className="relative glass-frosted rounded-3xl overflow-hidden aspect-square flex items-center justify-center border-white/20 shadow-2xl"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: 'spring', stiffness: 200 }}
+            className="relative z-10 flex items-center justify-center"
+            whileHover={{ scale: 1.05 }}
+            animate={{ y: [0, -12, 0] }}
+            transition={{ y: { duration: 5, repeat: Infinity, ease: 'easeInOut' }, scale: { type: 'spring', stiffness: 200 } }}
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-5`} />
-            <motion.div
-              className="relative z-10 flex items-center justify-center"
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              {image || <div className="text-8xl">📱</div>}
-            </motion.div>
+            {/* Pulse rings — expand outward from the icon's own shape,
+                colored by its gradient, so the motion reads as coming
+                from the icon rather than a generic ambient effect. */}
+            {[1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                className={`absolute inset-0 rounded-[2.5rem] bg-gradient-to-br ${gradient} -z-10`}
+                initial={{ scale: 1, opacity: 0.35 }}
+                animate={{ scale: 1.15 + i * 0.22, opacity: 0 }}
+                transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.6, ease: 'easeOut' }}
+              />
+            ))}
+            {image || <div className="text-8xl">📱</div>}
           </motion.div>
         </motion.div>
       </div>
