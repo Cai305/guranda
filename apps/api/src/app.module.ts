@@ -64,6 +64,7 @@ import { ReactionsModule } from './reactions/reactions.module';
 import { TrustSafetyModule } from './trust-safety/trust-safety.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
 import { EditorModule } from './editor/editor.module';
+import { AssistantModule } from './assistant/assistant.module';
 
 @Module({
   imports: [
@@ -132,6 +133,7 @@ import { EditorModule } from './editor/editor.module';
     ReactionsModule,
     TrustSafetyModule,
     IntelligenceModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [

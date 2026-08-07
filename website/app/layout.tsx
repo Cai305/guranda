@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import GlobalBackground3DWrapper from '@/components/GlobalBackground3DWrapper'
+import AssistantWidget from '@/components/AssistantWidget'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -53,6 +54,7 @@ export default function RootLayout({
         <div className="relative" style={{ zIndex: 1 }}>
           {children}
         </div>
+        <AssistantWidget />
       </body>
     </html>
   )
