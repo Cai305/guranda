@@ -28,7 +28,7 @@ export default function Hero() {
   }, [])
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14 sm:pt-16 lg:pt-20">
 
       {/* Dot grid overlay */}
       <div className="absolute inset-0 bg-dot-pattern opacity-20 pointer-events-none" />
@@ -45,7 +45,7 @@ export default function Hero() {
           initial={{ opacity: 0, scale: 0.8, y: -20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'backOut' }}
-          className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-full border border-violet-500/40 bg-black/40 backdrop-blur-md"
+          className="inline-flex items-center gap-2 mb-4 sm:mb-6 lg:mb-8 px-5 py-2.5 rounded-full border border-violet-500/40 bg-black/40 backdrop-blur-md"
         >
           <motion.span
             animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
@@ -86,7 +86,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="text-lg sm:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed"
+          className="text-lg sm:text-xl text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed"
         >
           Guranda is the digital operating system for everyday African life. One identity, one wallet, one connected world.
         </motion.p>
@@ -96,7 +96,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.7 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-14"
+          className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-10"
         >
           <motion.div whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.97 }}>
             <Link href="/download"
@@ -121,7 +121,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9 }}
-          className="flex flex-wrap justify-center gap-3 mb-14"
+          className="flex flex-wrap justify-center gap-3 mb-8 sm:mb-10"
         >
           {PILLS.map((pill, i) => (
             <motion.div
@@ -147,7 +147,11 @@ export default function Hero() {
           className="relative mx-auto max-w-3xl"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-cyan-600/10 blur-3xl -z-10" />
-          <div className="relative grid grid-cols-3 sm:grid-cols-4 gap-5 sm:gap-8 p-6 sm:p-10 w-full">
+          {/* 4 columns at every size (not just sm:+) — 3 compact rows
+              instead of 4 tall ones. Three size tiers (base/sm/lg) so the
+              whole hero keeps fitting close to one viewport at in-between
+              widths too, not just phone and full desktop. */}
+          <div className="relative grid grid-cols-4 gap-2 sm:gap-4 lg:gap-8 p-2 sm:p-5 lg:p-10 w-full">
             {['💬','🎮','📡','💰','🚗','🍽️','✈️','🤖','📚','💼','🏠','🎭'].map((e, i) => (
               <motion.div
                 key={i}
@@ -155,7 +159,7 @@ export default function Hero() {
                 animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 3 + (i % 3) * 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl sm:text-3xl backdrop-blur-md shadow-lg">
+                <div className="w-8 h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 rounded-lg sm:rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-base sm:text-xl lg:text-3xl backdrop-blur-md shadow-lg">
                   {e}
                 </div>
               </motion.div>
