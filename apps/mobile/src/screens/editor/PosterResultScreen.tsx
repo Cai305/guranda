@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Share, Alert, ActivityIndicator } from 'react-native';
+import { Platform, View, Text, TouchableOpacity, StyleSheet, Image, Share, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as MediaLibrary from 'expo-media-library';
+import type * as MediaLibraryType from 'expo-media-library';
 import { useTheme } from '../../context/ThemeContext';
+
+// expo-media-library has no web implementation — load it only on native
+const MediaLibrary: typeof MediaLibraryType | null =
+  Platform.OS !== 'web' ? require('expo-media-library') : null;
+
+const saveToGalleryWeb = (uri: string) => {
+  const a = document.createElement('a');
+  a.href = uri;
+  a.download = 'poster.png';
+  a.click();
+};
 
 export default function PosterResultScreen({ navigation, route }: any) {
   const { theme } = useTheme();
@@ -11,6 +22,11 @@ export default function PosterResultScreen({ navigation, route }: any) {
   const [saving, setSaving] = useState(false);
 
   const saveToGallery = async () => {
+    if (Platform.OS === 'web') {
+      saveToGalleryWeb(imageUri);
+      return;
+    }
+    if (!MediaLibrary) return;
     setSaving(true);
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -21,7 +37,7 @@ export default function PosterResultScreen({ navigation, route }: any) {
       await MediaLibrary.saveToLibraryAsync(imageUri);
       Alert.alert('Saved', 'Your poster was saved to your photo library.');
     } catch (e) {
-      Alert.alert('Couldn’t save', e instanceof Error ? e.message : 'Please try again.');
+      Alert.alert("Couldn't save", e instanceof Error ? e.message : 'Please try again.');
     } finally {
       setSaving(false);
     }
