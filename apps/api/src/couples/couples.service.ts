@@ -1,10 +1,11 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
 import { rankForXp } from '../relationships/relationships.service';
 import { LLM_ADAPTER } from '../ai-runtime/llm-adapter.token';
 import type { LlmAdapter } from '../ai-runtime/llm-adapter.interface';
+import { SEED_PROMPTS, PromptType, SpiceLevelSeed } from './couple-prompts.data';
 
 // Seeded once on boot, same upsert-by-stable-key pattern as
 // AchievementsService.onModuleInit()'s DEFAULT_ACHIEVEMENTS.
@@ -50,6 +51,23 @@ export class CouplesService implements OnModuleInit {
         update: { title: t.title, description: t.description, instructions: t.instructions, xpReward: t.xpReward },
       });
     }
+    await this.seedPrompts();
+  }
+
+  // Only seeds a (type, level) pool the first time it's empty — re-running
+  // this on every boot must never duplicate rows, and CouplePrompt has no
+  // natural unique key to upsert against (free-text content), so an
+  // empty-pool check is the idempotency guard here instead.
+  private async seedPrompts() {
+    for (const type of Object.keys(SEED_PROMPTS) as PromptType[]) {
+      for (const level of Object.keys(SEED_PROMPTS[type]) as SpiceLevelSeed[]) {
+        const existing = await this.prisma.couplePrompt.count({ where: { type, spiceLevel: level } });
+        if (existing > 0) continue;
+        await this.prisma.couplePrompt.createMany({
+          data: SEED_PROMPTS[type][level].map((text) => ({ type, spiceLevel: level, text })),
+        });
+      }
+    }
   }
 
   private async myActiveRelationship(userId: string) {
@@ -58,6 +76,112 @@ export class CouplesService implements OnModuleInit {
     });
     if (!relationship) throw new BadRequestException('You need an accepted relationship to access Couples Challenges');
     return relationship;
+  }
+
+  private isAdult(dateOfBirth: Date | null | undefined): boolean {
+    if (!dateOfBirth) return false;
+    const now = new Date();
+    let age = now.getFullYear() - dateOfBirth.getFullYear();
+    const hadBirthdayThisYear =
+      now.getMonth() > dateOfBirth.getMonth() ||
+      (now.getMonth() === dateOfBirth.getMonth() && now.getDate() >= dateOfBirth.getDate());
+    if (!hadBirthdayThisYear) age -= 1;
+    return age >= 18;
+  }
+
+  // SPICY only ever unlocks once BOTH partners have opted in AND both have
+  // a verified 18+ dateOfBirth on file — self-reported opt-in alone isn't
+  // enough for adult content, and one partner can't unlock it unilaterally.
+  private async isSpicyUnlocked(relationship: { userAId: string; userBId: string; spicyOptInA: boolean; spicyOptInB: boolean }) {
+    if (!relationship.spicyOptInA || !relationship.spicyOptInB) return false;
+    const [verA, verB] = await Promise.all([
+      this.prisma.verification.findUnique({ where: { userId: relationship.userAId } }),
+      this.prisma.verification.findUnique({ where: { userId: relationship.userBId } }),
+    ]);
+    return (
+      verA?.status === 'VERIFIED' && this.isAdult(verA.dateOfBirth) &&
+      verB?.status === 'VERIFIED' && this.isAdult(verB.dateOfBirth)
+    );
+  }
+
+  async getSpiceSettings(userId: string) {
+    const relationship = await this.myActiveRelationship(userId);
+    const isUserA = relationship.userAId === userId;
+    const myOptIn = isUserA ? relationship.spicyOptInA : relationship.spicyOptInB;
+    const partnerOptIn = isUserA ? relationship.spicyOptInB : relationship.spicyOptInA;
+    const spicyUnlocked = await this.isSpicyUnlocked(relationship);
+    return {
+      spiceLevel: relationship.spiceLevel,
+      myOptIn,
+      partnerOptIn,
+      spicyUnlocked,
+    };
+  }
+
+  async setSpiceLevel(userId: string, level: SpiceLevelSeed) {
+    const relationship = await this.myActiveRelationship(userId);
+    if (level === 'SPICY' && !(await this.isSpicyUnlocked(relationship))) {
+      throw new ForbiddenException('Both partners need to opt in and be verified 18+ to unlock Spicy content');
+    }
+    await this.prisma.relationship.update({ where: { id: relationship.id }, data: { spiceLevel: level } });
+    return this.getSpiceSettings(userId);
+  }
+
+  async setSpicyOptIn(userId: string, optIn: boolean) {
+    const relationship = await this.myActiveRelationship(userId);
+    const isUserA = relationship.userAId === userId;
+    await this.prisma.relationship.update({
+      where: { id: relationship.id },
+      data: isUserA ? { spicyOptInA: optIn } : { spicyOptInB: optIn },
+    });
+    return this.getSpiceSettings(userId);
+  }
+
+  // Draws one unseen prompt of `type` at the couple's current spice level,
+  // reshuffling (clearing seen rows for that type+level) once the pool is
+  // exhausted, like a shuffled deck running out and getting reshuffled.
+  // Re-validates SPICY eligibility here too, not just at set-level time — a
+  // partner can revoke their opt-in at any moment, and this must reflect
+  // that on the very next draw rather than the stale relationship.spiceLevel.
+  async drawPrompt(userId: string, type: PromptType) {
+    const relationship = await this.myActiveRelationship(userId);
+    let level = relationship.spiceLevel as SpiceLevelSeed;
+    let downgraded = false;
+    if (level === 'SPICY' && !(await this.isSpicyUnlocked(relationship))) {
+      level = 'FLIRTY';
+      downgraded = true;
+    }
+
+    let candidates = await this.prisma.couplePrompt.findMany({
+      where: { type, spiceLevel: level, seenBy: { none: { relationshipId: relationship.id } } },
+    });
+
+    if (candidates.length === 0) {
+      const pool = await this.prisma.couplePrompt.findMany({ where: { type, spiceLevel: level }, select: { id: true } });
+      await this.prisma.couplePromptSeen.deleteMany({
+        where: { relationshipId: relationship.id, promptId: { in: pool.map((p) => p.id) } },
+      });
+      candidates = await this.prisma.couplePrompt.findMany({ where: { type, spiceLevel: level } });
+    }
+
+    if (candidates.length === 0) throw new NotFoundException('No prompts available for this type yet');
+    const prompt = candidates[Math.floor(Math.random() * candidates.length)];
+
+    await this.prisma.couplePromptSeen.upsert({
+      where: { relationshipId_promptId: { relationshipId: relationship.id, promptId: prompt.id } },
+      create: { relationshipId: relationship.id, promptId: prompt.id },
+      update: {},
+    });
+
+    return { id: prompt.id, type: prompt.type, spiceLevel: prompt.spiceLevel, text: prompt.text, downgraded };
+  }
+
+  // Spin the Bottle — the "spin" picks Truth or Dare at random, then draws
+  // a prompt from that pool the same way drawPrompt does.
+  async spinBottle(userId: string) {
+    const category: PromptType = Math.random() < 0.5 ? 'TRUTH' : 'DARE';
+    const prompt = await this.drawPrompt(userId, category);
+    return { category, prompt };
   }
 
   async getChallenges(userId: string) {

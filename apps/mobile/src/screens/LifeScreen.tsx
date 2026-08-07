@@ -96,7 +96,7 @@ export default function LifeScreen({ navigation }: any) {
       status: 'live',
       description: '',
       features: [],
-      route: { name: 'CouplesChallenges' },
+      route: { name: 'CouplesHub' },
     } as LifeModule] : []),
   ];
 

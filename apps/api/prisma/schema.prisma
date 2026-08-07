@@ -2943,7 +2943,16 @@ model Relationship {
   status           String    @default("active") // active | ended
   createdAt        DateTime  @default(now())
 
+  // The couple's shared spice-level preference for Truth or Dare / Spin the
+  // Bottle / Couples Cards. SPICY only actually unlocks once BOTH partners
+  // have opted in here AND both have a verified 18+ dateOfBirth (checked at
+  // request time in CouplesService — never trust this field alone).
+  spiceLevel  SpiceLevel @default(SWEET)
+  spicyOptInA Boolean    @default(false)
+  spicyOptInB Boolean    @default(false)
+
   completions CoupleChallengeCompletion[]
+  promptsSeen CouplePromptSeen[]
 
   @@unique([userAId, userBId])
 }
@@ -2978,6 +2987,52 @@ model CoupleChallengeCompletion {
   note              String?
 
   @@unique([relationshipId, templateId])
+}
+
+// ============================================================
+// Truth or Dare / Spin the Bottle / Couples Cards — one shared prompt pool
+// (by type + spice level) drawn from for all three game shells. SPICY
+// content is intimate/suggestive by design, never graphic — see the
+// content notes in couples.service.ts's SEED_PROMPTS. Gated behind mutual
+// opt-in (Relationship.spicyOptInA/B) plus a verified 18+ dateOfBirth for
+// both partners, checked server-side on every draw.
+// ============================================================
+
+enum CouplePromptType {
+  TRUTH
+  DARE
+  CARD
+}
+
+enum SpiceLevel {
+  SWEET
+  FLIRTY
+  SPICY
+}
+
+model CouplePrompt {
+  id         String             @id @default(uuid())
+  type       CouplePromptType
+  spiceLevel SpiceLevel
+  text       String
+  createdAt  DateTime           @default(now())
+  seenBy     CouplePromptSeen[]
+
+  @@index([type, spiceLevel])
+}
+
+// A prompt this couple has already drawn — lets a draw pick from the
+// unseen remainder of the pool first, reshuffling (clearing these rows for
+// that type+level) once they've exhausted it, like a shuffled deck.
+model CouplePromptSeen {
+  id             String       @id @default(uuid())
+  relationshipId String
+  relationship   Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  promptId       String
+  prompt         CouplePrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  seenAt         DateTime     @default(now())
+
+  @@unique([relationshipId, promptId])
 }
 
 // ============================================================

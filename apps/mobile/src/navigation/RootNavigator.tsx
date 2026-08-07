@@ -14,6 +14,10 @@ import SendRelationshipRequestScreen from '../screens/SendRelationshipRequestScr
 import RelationshipRequestsScreen from '../screens/RelationshipRequestsScreen';
 import CouplesChallengesScreen from '../screens/CouplesChallengesScreen';
 import SponsorChallengeScreen from '../screens/SponsorChallengeScreen';
+import CouplesHubScreen from '../screens/CouplesHubScreen';
+import TruthOrDareScreen from '../screens/TruthOrDareScreen';
+import SpinTheBottleScreen from '../screens/SpinTheBottleScreen';
+import CouplesCardsScreen from '../screens/CouplesCardsScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
@@ -140,6 +144,10 @@ export default function RootNavigator() {
           <Stack.Screen name="RelationshipRequests" component={RelationshipRequestsScreen} />
           <Stack.Screen name="CouplesChallenges" component={CouplesChallengesScreen} />
           <Stack.Screen name="SponsorChallenge" component={SponsorChallengeScreen} />
+          <Stack.Screen name="CouplesHub" component={CouplesHubScreen} />
+          <Stack.Screen name="TruthOrDare" component={TruthOrDareScreen} />
+          <Stack.Screen name="SpinTheBottle" component={SpinTheBottleScreen} />
+          <Stack.Screen name="CouplesCards" component={CouplesCardsScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />
