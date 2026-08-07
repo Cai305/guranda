@@ -255,6 +255,7 @@ export default function ChessGameScreen({ route, navigation }: any) {
     );
   }
 
+  const isSpectator = user?.userId !== game.whiteId && user?.userId !== game.blackId;
   const isWhite = user?.userId === game.whiteId;
   const opponent = isWhite ? game.blackPlayer : game.whitePlayer;
   const myTime = isWhite ? game.whiteTime : game.blackTime;
@@ -272,6 +273,9 @@ export default function ChessGameScreen({ route, navigation }: any) {
   // Determine result text
   const getResultText = () => {
     if (game.status === 'draw') return '½ - ½ Draw';
+    if (isSpectator) {
+      return game.status === 'white_won' ? '🎉 White Won!' : 'Black Won!';
+    }
     const iWon =
       (game.status === 'white_won' && isWhite) ||
       (game.status === 'black_won' && !isWhite);
@@ -291,25 +295,31 @@ export default function ChessGameScreen({ route, navigation }: any) {
             route: { name: 'Main', params: { screen: 'Life', params: { screen: 'ChessGame', params: { gameId } } } },
           }}
         />
-        <Text style={TYPOGRAPHY.h3}>Chess</Text>
-        <TouchableOpacity onPress={resign} disabled={isGameOver}>
-          <Ionicons
-            name="flag-outline"
-            size={24}
-            color={isGameOver ? COLORS.textMuted : COLORS.error}
-          />
-        </TouchableOpacity>
+        <Text style={TYPOGRAPHY.h3}>Chess{isSpectator ? ' · Watching' : ''}</Text>
+        {isSpectator ? (
+          <View style={{ width: 24 }} />
+        ) : (
+          <TouchableOpacity onPress={resign} disabled={isGameOver}>
+            <Ionicons
+              name="flag-outline"
+              size={24}
+              color={isGameOver ? COLORS.textMuted : COLORS.error}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.gameContainer}>
-        {/* Opponent Info */}
+        {/* Black side */}
         <View style={styles.playerInfo}>
           <View style={styles.playerDetails}>
             <Ionicons name="person-circle-outline" size={32} color={COLORS.textMuted} />
-            <Text style={styles.playerName}>{opponent?.displayName || 'Opponent'}</Text>
+            <Text style={styles.playerName}>
+              {isSpectator ? (game.blackPlayer?.displayName || 'Black') : (opponent?.displayName || 'Opponent')}
+            </Text>
           </View>
           <View style={styles.timerBadge}>
-            <Text style={styles.timerText}>{formatTime(oppTime)}</Text>
+            <Text style={styles.timerText}>{formatTime(isSpectator ? game.blackTime : oppTime)}</Text>
           </View>
         </View>
 
@@ -318,19 +328,21 @@ export default function ChessGameScreen({ route, navigation }: any) {
           <ChessboardComponent
             fen={localFen}
             onMove={handleMove}
-            flipped={!isWhite}
-            disabled={isGameOver}
+            flipped={!isSpectator && !isWhite}
+            disabled={isGameOver || isSpectator}
           />
         </View>
 
-        {/* My Info */}
+        {/* White side */}
         <View style={styles.playerInfo}>
           <View style={styles.playerDetails}>
             <Ionicons name="person-circle" size={32} color={COLORS.primary} />
-            <Text style={styles.playerName}>You</Text>
+            <Text style={styles.playerName}>
+              {isSpectator ? (game.whitePlayer?.displayName || 'White') : 'You'}
+            </Text>
           </View>
           <View style={styles.timerBadge}>
-            <Text style={styles.timerText}>{formatTime(myTime)}</Text>
+            <Text style={styles.timerText}>{formatTime(isSpectator ? game.whiteTime : myTime)}</Text>
           </View>
         </View>
       </View>
@@ -348,9 +360,9 @@ export default function ChessGameScreen({ route, navigation }: any) {
               {game.status.replace(/_/g, ' ').toUpperCase()}
             </Text>
 
-            {/* Rematch Section */}
+            {/* Rematch Section — players only, spectators can't rematch */}
             <View style={styles.rematchSection}>
-              {rematchDeclined ? (
+              {isSpectator ? null : rematchDeclined ? (
                 <Text style={[TYPOGRAPHY.body2, { textAlign: 'center' }]}>
                   Rematch declined
                 </Text>

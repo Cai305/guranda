@@ -79,10 +79,10 @@ export async function fetchLiveRooms(): Promise<RealLiveStream[]> {
   }
 }
 
-export async function goLive(title: string, categoryId: string) {
+export async function goLive(title: string, categoryId: string, conversationTopic?: string) {
   const res = await fetchApi('/live/rooms', {
     method: 'POST',
-    body: JSON.stringify({ title, categoryId }),
+    body: JSON.stringify({ title, categoryId, conversationTopic }),
   });
   if (!res.ok) throw new Error('Failed to start your stream. Please try again.');
   return res.json() as Promise<{

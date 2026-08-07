@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -87,6 +87,8 @@ export default function LiveCategoryHostPanel({ categoryId, roomId }: { category
   if (categoryId === 'sports') return <SportsHost roomId={roomId} run={run} error={error} busy={busy} />;
   if (categoryId === 'career') return <CareerHost roomId={roomId} run={run} error={error} busy={busy} />;
   if (categoryId === 'social') return <SocialHost roomId={roomId} />;
+  if (categoryId === 'conversation') return <ConversationHost roomId={roomId} run={run} error={error} busy={busy} />;
+  if (categoryId === 'dating') return <DatingHost roomId={roomId} run={run} error={error} busy={busy} />;
   return null;
 }
 
@@ -111,30 +113,126 @@ function ErrorText({ error }: { error: string }) {
 // ── Live Shopping ────────────────────────────────────────────────────────
 function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; error: string; busy: boolean }) {
   const [products, setProducts] = useState<any[]>([]);
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<any[]>([]); // ordered, chosen products
+  const [style, setStyle] = useState<'SPOTLIGHT' | 'SHELF'>('SPOTLIGHT');
+  const [showcase, setShowcase] = useState<any[]>([]);
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
+  const [saved, setSaved] = useState(false);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const styles = useHostPanelStyles();
 
-  useEffect(() => { api.getMyShoppingStore().then(s => setProducts(s?.products || [])).catch(() => {}); }, []);
+  useEffect(() => {
+    api.getMyShoppingStore().then(s => setProducts(s?.products || [])).catch(() => {});
+    api.getRoomState(roomId).then(s => {
+      if (s.showcaseProducts?.length) {
+        setShowcase(s.showcaseProducts);
+        setSpotlightIndex(s.spotlightIndex || 0);
+        setStyle(s.shopStyle || 'SPOTLIGHT');
+        setSaved(true);
+      }
+    }).catch(() => {});
+  }, [roomId]);
+
+  const toggleProduct = (p: any) => {
+    setSelected(prev => {
+      if (prev.some(x => x.id === p.id)) return prev.filter(x => x.id !== p.id);
+      if (prev.length >= 10) return prev;
+      return [...prev, p];
+    });
+  };
+  const move = (index: number, dir: -1 | 1) => {
+    setSelected(prev => {
+      const next = [...prev];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const save = () => run(
+    () => api.saveShowcase(roomId, selected.map(p => p.id), style),
+    (state: any) => { setShowcase(state.showcaseProducts || []); setSpotlightIndex(0); setSaved(true); },
+  );
+
+  const advance = (dir: -1 | 1) => {
+    const next = Math.max(0, Math.min(showcase.length - 1, spotlightIndex + dir));
+    if (next === spotlightIndex) return;
+    run(() => api.setSpotlight(roomId, next), () => setSpotlightIndex(next));
+  };
+
+  if (saved) {
+    return (
+      <Panel title={`Showcase live · ${style === 'SPOTLIGHT' ? 'Spotlight' : 'Shelf'}`}>
+        {showcase.map((s, i) => (
+          <Text key={s.productId} style={[styles.hint, style === 'SPOTLIGHT' && i === spotlightIndex && { color: COLORS.text, fontWeight: '700' }]}>
+            {i + 1}. {s.product?.name} · {s.product?.price} MSH
+          </Text>
+        ))}
+        {style === 'SPOTLIGHT' && (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+            <TouchableOpacity style={[styles.actionBtn, { flex: 1 }]} disabled={busy || spotlightIndex === 0} onPress={() => advance(-1)}>
+              <Text style={styles.actionBtnText}>Prev</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { flex: 1 }]} disabled={busy || spotlightIndex >= showcase.length - 1} onPress={() => advance(1)}>
+              <Text style={styles.actionBtnText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <TouchableOpacity onPress={() => setSaved(false)}><Text style={styles.linkText}>Edit showcase</Text></TouchableOpacity>
+        <ErrorText error={error} />
+      </Panel>
+    );
+  }
 
   return (
-    <Panel title="Pin a product">
+    <Panel title="Build your showcase (1-10 products)">
       {products.length === 0 ? (
         <Text style={styles.hint}>You don't have any products yet — add some in My Shop first.</Text>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {products.map(p => (
-            <TouchableOpacity
-              key={p.id}
-              style={[styles.chip, pinnedId === p.id && styles.chipActive]}
-              onPress={() => run(() => api.pinShoppingProduct(roomId, p.id), () => setPinnedId(p.id))}
-              disabled={busy}
-            >
-              <Text style={[styles.chipText, pinnedId === p.id && styles.chipTextActive]}>{p.name} · {p.price} MSH</Text>
-            </TouchableOpacity>
-          ))}
+          {products.map(p => {
+            const active = selected.some(x => x.id === p.id);
+            return (
+              <TouchableOpacity key={p.id} style={[styles.chip, active && styles.chipActive]} onPress={() => toggleProduct(p)} disabled={busy}>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{p.name} · {p.price} MSH</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       )}
-      {pinnedId && <Text style={styles.successText}>Pinned live — viewers can buy now.</Text>}
+      {selected.length > 0 && (
+        <View style={{ marginTop: 8, gap: 4 }}>
+          {selected.map((p, i) => (
+            <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={[styles.hint, { flex: 1 }]}>{i + 1}. {p.name}</Text>
+              <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0}>
+                <Ionicons name="chevron-up" size={16} color={i === 0 ? COLORS.glassBorder : COLORS.textMuted} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => move(i, 1)} disabled={i === selected.length - 1}>
+                <Ionicons name="chevron-down" size={16} color={i === selected.length - 1 ? COLORS.glassBorder : COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+      <Text style={styles.hint}>{selected.length}/10 selected</Text>
+      <View style={styles.optionRow}>
+        <TouchableOpacity style={styles.optionRow} onPress={() => setStyle('SPOTLIGHT')}>
+          <View style={[styles.radio, style === 'SPOTLIGHT' && styles.radioActive]} />
+          <Text style={styles.hint}>Spotlight — advance one at a time</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.optionRow}>
+        <TouchableOpacity style={styles.optionRow} onPress={() => setStyle('SHELF')}>
+          <View style={[styles.radio, style === 'SHELF' && styles.radioActive]} />
+          <Text style={styles.hint}>Shelf — all visible, all buyable</Text>
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity style={styles.actionBtn} disabled={busy || selected.length === 0} onPress={save}>
+        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Save Showcase</Text>}
+      </TouchableOpacity>
       <ErrorText error={error} />
     </Panel>
   );
@@ -177,9 +275,27 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
   const [gameType, setGameType] = useState('pool');
   const [gameId, setGameId] = useState('');
   const [linked, setLinked] = useState(false);
+  const [chessMode, setChessMode] = useState<'HOST_PLAYS' | 'HOST_MANAGES'>('HOST_PLAYS');
+  const [friends, setFriends] = useState<any[]>([]);
+  const [opponentId, setOpponentId] = useState<string | null>(null);
+  const [whiteId, setWhiteId] = useState<string | null>(null);
+  const [blackId, setBlackId] = useState<string | null>(null);
   const { theme } = useTheme();
   const { COLORS } = theme;
   const styles = useHostPanelStyles();
+
+  useEffect(() => {
+    if (gameType === 'chess' && friends.length === 0) {
+      api.getFriends().then(setFriends).catch(() => {});
+    }
+  }, [gameType]);
+
+  const startChess = () => run(
+    () => api.startChessMatch(roomId, chessMode === 'HOST_PLAYS'
+      ? { mode: 'HOST_PLAYS', opponentId: opponentId! }
+      : { mode: 'HOST_MANAGES', whiteId: whiteId!, blackId: blackId! }),
+    () => setLinked(true),
+  );
 
   return (
     <Panel title="Link a live game">
@@ -191,22 +307,83 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
           </TouchableOpacity>
         ))}
       </ScrollView>
-      <TextInput
-        style={styles.input}
-        placeholder="Paste the game ID from your game screen"
-        placeholderTextColor={COLORS.textMuted}
-        value={gameId}
-        onChangeText={setGameId}
-      />
-      <TouchableOpacity
-        style={styles.actionBtn}
-        disabled={busy || !gameId.trim()}
-        onPress={() => run(() => api.linkGame(roomId, gameType, gameId.trim()), () => setLinked(true))}
-      >
-        <Text style={styles.actionBtnText}>Link Game</Text>
-      </TouchableOpacity>
-      {linked && <Text style={styles.successText}>Linked — viewers can see it's live now.</Text>}
-      <ErrorText error={error} />
+
+      {gameType === 'chess' ? (
+        linked ? (
+          <Text style={styles.successText}>Match started — viewers can watch it live now.</Text>
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              <TouchableOpacity style={[styles.chip, chessMode === 'HOST_PLAYS' && styles.chipActive]} onPress={() => setChessMode('HOST_PLAYS')}>
+                <Text style={[styles.chipText, chessMode === 'HOST_PLAYS' && styles.chipTextActive]}>I'll play</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.chip, chessMode === 'HOST_MANAGES' && styles.chipActive]} onPress={() => setChessMode('HOST_MANAGES')}>
+                <Text style={[styles.chipText, chessMode === 'HOST_MANAGES' && styles.chipTextActive]}>I'll manage a match</Text>
+              </TouchableOpacity>
+            </View>
+            {friends.length === 0 ? (
+              <Text style={styles.hint}>No friends to pick from yet.</Text>
+            ) : chessMode === 'HOST_PLAYS' ? (
+              <>
+                <Text style={styles.hint}>Pick your opponent</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginVertical: 6 }}>
+                  {friends.map(f => (
+                    <TouchableOpacity key={f.id} style={[styles.chip, opponentId === f.id && styles.chipActive]} onPress={() => setOpponentId(f.id)}>
+                      <Text style={[styles.chipText, opponentId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : (
+              <>
+                <Text style={styles.hint}>Pick Player 1 (White)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginVertical: 6 }}>
+                  {friends.map(f => (
+                    <TouchableOpacity key={f.id} style={[styles.chip, whiteId === f.id && styles.chipActive]} onPress={() => setWhiteId(f.id)}>
+                      <Text style={[styles.chipText, whiteId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <Text style={styles.hint}>Pick Player 2 (Black)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginVertical: 6 }}>
+                  {friends.map(f => (
+                    <TouchableOpacity key={f.id} style={[styles.chip, blackId === f.id && styles.chipActive]} onPress={() => setBlackId(f.id)}>
+                      <Text style={[styles.chipText, blackId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.actionBtn}
+              disabled={busy || (chessMode === 'HOST_PLAYS' ? !opponentId : !whiteId || !blackId || whiteId === blackId)}
+              onPress={startChess}
+            >
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Start Match</Text>}
+            </TouchableOpacity>
+            <ErrorText error={error} />
+          </>
+        )
+      ) : (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Paste the game ID from your game screen"
+            placeholderTextColor={COLORS.textMuted}
+            value={gameId}
+            onChangeText={setGameId}
+          />
+          <TouchableOpacity
+            style={styles.actionBtn}
+            disabled={busy || !gameId.trim()}
+            onPress={() => run(() => api.linkGame(roomId, gameType, gameId.trim()), () => setLinked(true))}
+          >
+            <Text style={styles.actionBtnText}>Link Game</Text>
+          </TouchableOpacity>
+          {linked && <Text style={styles.successText}>Linked — viewers can see it's live now.</Text>}
+          <ErrorText error={error} />
+        </>
+      )}
     </Panel>
   );
 }
@@ -457,6 +634,119 @@ function SocialHost({ roomId }: { roomId: string }) {
           </View>
         ))
       )}
+    </Panel>
+  );
+}
+
+// ── Conversation Live ────────────────────────────────────────────────────
+function ConversationHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; error: string; busy: boolean }) {
+  const [topic, setTopic] = useState('');
+  const [saved, setSaved] = useState('');
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
+
+  useEffect(() => { api.getRoomState(roomId).then(s => setTopic(s.conversationTopic || '')).catch(() => {}); }, [roomId]);
+
+  const update = () => run(() => api.updateConversationTopic(roomId, topic.trim()), () => setSaved(topic.trim()));
+
+  return (
+    <Panel title="Conversation topic">
+      <TextInput
+        style={styles.input}
+        placeholder="What are you talking about? e.g. Banter, Politics, Relationships…"
+        placeholderTextColor={COLORS.textMuted}
+        value={topic}
+        onChangeText={setTopic}
+      />
+      <Text style={styles.hint}>Change it any time — viewers see the update instantly.</Text>
+      <TouchableOpacity style={styles.actionBtn} disabled={busy || !topic.trim()} onPress={update}>
+        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Update Topic</Text>}
+      </TouchableOpacity>
+      {saved ? <Text style={styles.successText}>Topic is now "{saved}"</Text> : null}
+      <ErrorText error={error} />
+    </Panel>
+  );
+}
+
+// ── Dating Live ──────────────────────────────────────────────────────────
+function DatingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; error: string; busy: boolean }) {
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [pairA, setPairA] = useState<string | null>(null);
+  const [pairB, setPairB] = useState<string | null>(null);
+  const [featured, setFeatured] = useState<{ a: any; b: any } | null>(null);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useHostPanelStyles();
+
+  const load = () => {
+    api.getDatingApplicants(roomId).then(setApplicants).catch(() => {});
+    api.getRoomState(roomId).then(s => {
+      if (s.featuredApplicantA && s.featuredApplicantB) setFeatured({ a: s.featuredApplicantA, b: s.featuredApplicantB });
+      else setFeatured(null);
+    }).catch(() => {});
+  };
+  useEffect(() => { load(); }, [roomId]);
+
+  const pick = (id: string) => {
+    if (pairA === id) { setPairA(null); return; }
+    if (pairB === id) { setPairB(null); return; }
+    if (!pairA) { setPairA(id); return; }
+    if (!pairB) { setPairB(id); return; }
+  };
+
+  const feature = () => run(
+    () => api.featureDatingPair(roomId, pairA!, pairB!),
+    () => { setPairA(null); setPairB(null); load(); },
+  );
+  const launchPoll = () => run(() => api.launchPoll(roomId, 'Match or Pass?', ['Match 💘', 'Pass 👋']));
+  const pass = () => run(() => api.passDatingPair(roomId), load);
+  const match = () => run(() => api.declareDatingMatch(roomId), load);
+
+  if (featured) {
+    return (
+      <Panel title="Featured pair">
+        <Text style={styles.applicantName}>{featured.a.user?.profile?.displayName || featured.a.user?.username}</Text>
+        <Text style={styles.hint}>{featured.a.bio}</Text>
+        <Text style={[styles.applicantName, { marginTop: 6 }]}>{featured.b.user?.profile?.displayName || featured.b.user?.username}</Text>
+        <Text style={styles.hint}>{featured.b.bio}</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          <TouchableOpacity style={[styles.actionBtn, { flex: 1 }]} disabled={busy} onPress={launchPoll}>
+            <Text style={styles.actionBtnText}>Launch Poll</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: COLORS.success }]} disabled={busy} onPress={match}>
+            <Text style={styles.actionBtnText}>Declare Match</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity onPress={pass} disabled={busy}><Text style={styles.linkText}>Pass on this pair</Text></TouchableOpacity>
+        <ErrorText error={error} />
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel title="Applicants">
+      <TouchableOpacity onPress={load}><Text style={styles.linkText}>Refresh</Text></TouchableOpacity>
+      {applicants.length === 0 ? (
+        <Text style={styles.hint}>No applicants yet.</Text>
+      ) : (
+        applicants.map(a => {
+          const selectedAs = pairA === a.id ? 'A' : pairB === a.id ? 'B' : null;
+          return (
+            <TouchableOpacity key={a.id} style={styles.applicantRow} onPress={() => pick(a.id)}>
+              <Text style={[styles.applicantName, selectedAs && { color: COLORS.primary }]}>
+                {selectedAs ? `[${selectedAs}] ` : ''}{a.user?.profile?.displayName || a.user?.username}
+              </Text>
+              <Text style={styles.hint}>{a.bio}</Text>
+            </TouchableOpacity>
+          );
+        })
+      )}
+      <Text style={styles.hint}>Tap two applicants to pick a pair.</Text>
+      <TouchableOpacity style={styles.actionBtn} disabled={busy || !pairA || !pairB} onPress={feature}>
+        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Feature This Pair</Text>}
+      </TouchableOpacity>
+      <ErrorText error={error} />
     </Panel>
   );
 }

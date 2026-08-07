@@ -17,6 +17,7 @@ const MOCK_FRIENDS = [
 export default function GoLiveScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('social');
+  const [conversationTopic, setConversationTopic] = useState('');
   const [scheduled, setScheduled] = useState(false);
   const [scheduleWhen, setScheduleWhen] = useState('');
   const [invitedGuests, setInvitedGuests] = useState<string[]>([]);
@@ -55,7 +56,7 @@ export default function GoLiveScreen({ navigation }: any) {
 
     setStarting(true);
     try {
-      const room = await goLive(title.trim(), categoryId);
+      const room = await goLive(title.trim(), categoryId, categoryId === 'conversation' ? conversationTopic.trim() : undefined);
       navigation.replace('LiveHost', {
         roomId: room.id,
         roomName: room.roomName,
@@ -118,6 +119,20 @@ export default function GoLiveScreen({ navigation }: any) {
             ))}
           </View>
         </View>
+
+        {categoryId === 'conversation' && (
+          <View style={styles.card}>
+            <Text style={styles.label}>Topic</Text>
+            <Text style={styles.hint}>Banter, Politics, Relationships — whatever you're talking about. You can change this any time once you're live.</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Relationship red flags"
+              placeholderTextColor={COLORS.textMuted}
+              value={conversationTopic}
+              onChangeText={setConversationTopic}
+            />
+          </View>
+        )}
 
         <View style={styles.card}>
           <View style={styles.rowBetween}>

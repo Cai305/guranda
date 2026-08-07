@@ -37,6 +37,16 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     status: 'live',
   },
   {
+    id: 'conversation',
+    name: 'Conversation Live',
+    icon: 'chatbubbles',
+    gradient: GRADIENTS.blue,
+    tagline: 'Talk about anything',
+    description: 'Pure conversation — banter, hot takes, politics, relationships, whatever the host wants to dig into. The topic is set by the host and can change any time, right there on screen.',
+    features: ['Freely set the topic', 'Change the topic any time, live', 'Live comments', 'Emoji reactions', 'Gifting', 'Share stream'],
+    status: 'live',
+  },
+  {
     id: 'shopping',
     name: 'Live Shopping',
     icon: 'pricetags',
@@ -134,6 +144,16 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     description: 'Job fairs, interviews and networking events — build your career without leaving your digital life.',
     features: ['Job fairs', 'Interviews', 'Networking', 'Career advice', 'Company presentations'],
     futureIntegration: 'Work',
+    status: 'live',
+  },
+  {
+    id: 'dating',
+    name: 'Dating Live',
+    icon: 'heart-circle',
+    gradient: GRADIENTS.sunset,
+    tagline: 'Find your match, live',
+    description: 'A host-run matchmaking show — viewers apply to be a contestant, the host features a pair at a time, the audience votes Match or Pass, and a declared match opens a real chat between them.',
+    features: ['Apply to be a contestant', 'Host features a pair', 'Audience votes Match or Pass', 'Host declares a match', 'Instant chat on a match'],
     status: 'live',
   },
 ];

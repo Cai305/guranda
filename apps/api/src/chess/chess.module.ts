@@ -8,5 +8,6 @@ import { ChessAiToolsProvider } from './chess-ai-tools.provider';
 @Module({
   controllers: [ChessController],
   providers: [ChessService, ChessGateway, PrismaService, ChessAiToolsProvider],
+  exports: [ChessService],
 })
 export class ChessModule {}

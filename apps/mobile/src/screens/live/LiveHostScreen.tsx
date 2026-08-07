@@ -12,6 +12,7 @@ import * as LiveKit from '../../live/liveKit';
 import LiveCategoryHostPanel from '../../components/live/LiveCategoryHostPanel';
 import { useLiveSocket } from '../../live/useLiveSocket';
 import { useAuth } from '../../context/AuthContext';
+import * as modApi from '../../data/liveCategoryApi';
 
 // Host-side studio. On web, with a real room from GoLiveScreen,
 // this publishes actual camera/mic to LiveKit. Everywhere else
@@ -26,7 +27,7 @@ export default function LiveHostScreen({ navigation, route }: any) {
   // Real or simulated room name for socket event scope
   const actualRoomName = roomName || `mock-room-${title}`;
   const hostName = user?.displayName || user?.username || 'Host';
-  const { raisedHands, speakers, sendAudioRoomEvent } = useLiveSocket(actualRoomName, hostName);
+  const { raisedHands, speakers, sendAudioRoomEvent, participants, categoryEvent } = useLiveSocket(actualRoomName, hostName, user?.userId);
 
   const [viewers, setViewers] = useState(1);
   const [muted, setMuted] = useState(false);
@@ -145,6 +146,21 @@ export default function LiveHostScreen({ navigation, route }: any) {
   const activeSpeakers = Object.entries(speakers).filter(([_, s]) => s.timerEnd > Date.now());
 
   const [modPanelOpen, setModPanelOpen] = useState(false);
+  const [modState, setModState] = useState<{ moderators: any[]; muted: any[]; banned: any[] }>({
+    moderators: [], muted: [], banned: [],
+  });
+
+  const loadModState = () => {
+    if (!isReal || !roomId) return;
+    modApi.getModerationState(roomId).then(setModState).catch(() => {});
+  };
+  useEffect(() => { loadModState(); }, [isReal, roomId]);
+  useEffect(() => { if (categoryEvent?.type === 'live_moderation_update') loadModState(); }, [categoryEvent?.nonce]);
+
+  const runMod = (fn: () => Promise<any>) => fn().then(loadModState).catch((e: any) => Alert.alert('Error', e.message));
+  const isModerator = (userId: string) => modState.moderators.some((m) => m.userId === userId);
+  const isMuted = (userId: string) => modState.muted.some((m) => m.userId === userId);
+  const otherParticipants = participants.filter((p) => p.userId !== user?.userId);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -266,6 +282,66 @@ export default function LiveHostScreen({ navigation, route }: any) {
                   </View>
                 );
               })
+            )}
+            <Text style={[styles.modBoxTitle, { marginTop: 12 }]}>Viewers ({otherParticipants.length})</Text>
+            {otherParticipants.length === 0 ? (
+              <Text style={styles.modBoxEmpty}>No one else here yet.</Text>
+            ) : (
+              otherParticipants.map((p) => {
+                const mod = isModerator(p.userId);
+                const muted = isMuted(p.userId);
+                return (
+                  <View key={p.userId} style={styles.modRow}>
+                    <View>
+                      <Text style={styles.modRowName}>{p.username}</Text>
+                      {mod && <Text style={styles.modRowSub}>Moderator</Text>}
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      <TouchableOpacity
+                        style={styles.modActionBtn}
+                        onPress={() => runMod(() => mod
+                          ? modApi.revokeModerator(roomId, p.userId)
+                          : modApi.assignModerator(roomId, p.userId))}
+                      >
+                        <Text style={styles.modActionText}>{mod ? 'Revoke Mod' : 'Make Mod'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modActionBtn, { backgroundColor: COLORS.warning }]}
+                        onPress={() => runMod(() => muted
+                          ? modApi.unmuteUser(roomId, p.userId)
+                          : modApi.muteUser(roomId, p.userId))}
+                      >
+                        <Text style={styles.modActionText}>{muted ? 'Unmute' : 'Mute'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modActionBtn, { backgroundColor: COLORS.error }]}
+                        onPress={() => runMod(() => modApi.kickUser(roomId, p.userId))}
+                      >
+                        <Text style={styles.modActionText}>Kick</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modActionBtn, { backgroundColor: COLORS.error }]}
+                        onPress={() => runMod(() => modApi.banUser(roomId, p.userId))}
+                      >
+                        <Text style={styles.modActionText}>Ban</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+            {modState.banned.length > 0 && (
+              <>
+                <Text style={[styles.modBoxTitle, { marginTop: 12 }]}>Banned ({modState.banned.length})</Text>
+                {modState.banned.map((b) => (
+                  <View key={b.userId} style={styles.modRow}>
+                    <Text style={styles.modRowName}>{b.user?.profile?.displayName || b.user?.username}</Text>
+                    <TouchableOpacity style={styles.modActionBtn} onPress={() => runMod(() => modApi.unbanUser(roomId, b.userId))}>
+                      <Text style={styles.modActionText}>Unban</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
             )}
           </ScrollView>
         </View>

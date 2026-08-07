@@ -21,7 +21,9 @@ import CustomEmoji from '../../components/live/CustomEmoji';
 import EmojiBurstOverlay from '../../components/live/EmojiBurstOverlay';
 import GifPicker from '../../components/live/GifPicker';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import LiveCategoryViewerPanel from '../../components/live/LiveCategoryViewerPanel';
 import { GRADIENTS } from '../../theme';
+import * as modApi from '../../data/liveCategoryApi';
 
 const INITIAL_CHAT = [
   { id: 'c1', senderName: 'Zanele_K', text: 'this is so good 🔥', msgType: 'text' as const },
@@ -67,15 +69,47 @@ export default function LiveViewerScreen({ navigation, route }: any) {
     messages: liveMessages,
     sendMessage: sendLiveMessage,
     sendSpecialMessage,
+    deleteMessage,
     sendReaction: sendLiveReaction,
     lastReaction,
     lastGift,
     lastSpecialMsg,
     roomEnded,
+    kicked,
+    participants,
     raisedHands,
     speakers,
     sendAudioRoomEvent,
-  } = useLiveSocket(actualRoomName, myName);
+    categoryEvent,
+  } = useLiveSocket(actualRoomName, myName, user?.userId);
+
+  // Moderation: am I the host or a moderator of this stream? Drives the
+  // delete-message affordance on chat bubbles and the compact moderator
+  // action panel below (for assigned moderators — the host's full panel
+  // lives in LiveHostScreen).
+  const [modState, setModState] = useState<{ moderators: any[]; muted: any[]; banned: any[] } | null>(null);
+  const [modPanelOpen, setModPanelOpen] = useState(false);
+  const isHost = isRealStream && stream?.creator?.id === user?.userId;
+  const loadModState = () => {
+    if (!isRealStream || !realStream.roomId) return;
+    modApi.getModerationState(realStream.roomId).then(setModState).catch(() => setModState(null));
+  };
+  useEffect(() => { loadModState(); }, [isRealStream, realStream?.roomId]);
+  useEffect(() => { if (categoryEvent?.type === 'live_moderation_update') loadModState(); }, [categoryEvent?.nonce]);
+  const isModerator = !!modState && (isHost || modState.moderators.some((m) => m.userId === user?.userId));
+  const canModerate = isModerator;
+  const runMod = (fn: () => Promise<any>) => fn().then(loadModState).catch((e: any) => Alert.alert('Error', e.message));
+
+  useEffect(() => {
+    if (!kicked) return;
+    Alert.alert(
+      kicked === 'banned' ? 'Removed' : 'Removed',
+      kicked === 'banned'
+        ? 'The host has banned you from this stream.'
+        : 'The host has removed you from this stream.',
+      [{ text: 'OK', onPress: () => navigation.goBack() }],
+    );
+  }, [kicked]);
 
   const [remoteVideoTrack, setRemoteVideoTrack] = useState<any>(null);
   const [liveParticipantCount, setLiveParticipantCount] = useState<number | null>(null);
@@ -274,6 +308,11 @@ export default function LiveViewerScreen({ navigation, route }: any) {
               <Text style={styles.viewersText}>{formatCount(displayViewers)}</Text>
             </View>
           </View>
+          {isModerator && (
+            <TouchableOpacity style={styles.circleBtn} onPress={() => setModPanelOpen((o) => !o)}>
+              <Ionicons name="shield-checkmark" size={18} color="#FFF" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.circleBtn} onPress={shareStream}>
             <Ionicons name="share-social-outline" size={18} color="#FFF" />
           </TouchableOpacity>
@@ -316,6 +355,60 @@ export default function LiveViewerScreen({ navigation, route }: any) {
         {/* Tap area — double-tap to like */}
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleDoubleTap} />
 
+        {isRealStream && realStream.roomId && (
+          <View style={styles.categoryPanelWrap}>
+            <LiveCategoryViewerPanel
+              categoryId={category?.id || realStream.categoryId}
+              roomId={realStream.roomId}
+              navigation={navigation}
+              categoryEvent={categoryEvent}
+            />
+          </View>
+        )}
+
+        {modPanelOpen && isModerator && (
+          <View style={styles.modMiniPanel}>
+            <View style={styles.modMiniHeader}>
+              <Text style={styles.modMiniTitle}>Moderator tools</Text>
+              <TouchableOpacity onPress={() => setModPanelOpen(false)}>
+                <Ionicons name="close" size={18} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 190 }} showsVerticalScrollIndicator={false}>
+              {participants.filter((p) => p.userId !== user?.userId && p.userId !== stream?.creator?.id).length === 0 ? (
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>No one else here yet.</Text>
+              ) : (
+                participants
+                  .filter((p) => p.userId !== user?.userId && p.userId !== stream?.creator?.id)
+                  .map((p) => {
+                    const muted = !!modState?.muted.some((m) => m.userId === p.userId);
+                    return (
+                      <View key={p.userId} style={styles.modMiniRow}>
+                        <Text style={styles.modMiniName}>{p.username}</Text>
+                        <View style={{ flexDirection: 'row' }}>
+                          <TouchableOpacity
+                            style={styles.modMiniBtn}
+                            onPress={() => runMod(() => muted
+                              ? modApi.unmuteUser(realStream.roomId, p.userId)
+                              : modApi.muteUser(realStream.roomId, p.userId))}
+                          >
+                            <Text style={styles.modMiniBtnText}>{muted ? 'Unmute' : 'Mute'}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.modMiniBtn, { backgroundColor: COLORS.error }]}
+                            onPress={() => runMod(() => modApi.kickUser(realStream.roomId, p.userId))}
+                          >
+                            <Text style={styles.modMiniBtnText}>Kick</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })
+              )}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Bottom overlay: chat + floating actions */}
         <View style={styles.bottomOverlayArea}>
           <View style={styles.chatOverlayContainer}>
@@ -333,6 +426,11 @@ export default function LiveViewerScreen({ navigation, route }: any) {
                     <Image source={{ uri: m.gifUrl }} style={styles.chatGif} resizeMode="cover" />
                   ) : (
                     <Text style={styles.chatLine}>{m.text}</Text>
+                  )}
+                  {isRealStream && canModerate && (
+                    <TouchableOpacity style={styles.chatDeleteBtn} onPress={() => deleteMessage(m.id)}>
+                      <Ionicons name="trash-outline" size={12} color="rgba(255,255,255,0.6)" />
+                    </TouchableOpacity>
                   )}
                 </View>
               ))}
@@ -466,9 +564,22 @@ const styles = StyleSheet.create({
 
   giftToastWrap: { position: 'absolute', top: 100, left: 0, right: 0, alignItems: 'center' },
 
+  categoryPanelWrap: { maxHeight: 220, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
   bottomOverlayArea: { flexDirection: 'row', paddingHorizontal: SPACING.md, marginBottom: SPACING.sm, alignItems: 'flex-end', minHeight: 200 },
   chatOverlayContainer: { flex: 1, maxHeight: 200, marginRight: SPACING.md },
   chatMessageBubble: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.md, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 6, alignSelf: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', maxWidth: '90%' },
+  chatDeleteBtn: { marginLeft: 8, padding: 2 },
+  modMiniPanel: {
+    position: 'absolute', bottom: 220, left: SPACING.md, right: SPACING.md,
+    backgroundColor: 'rgba(18,18,26,0.97)', borderRadius: RADIUS.lg, padding: SPACING.md,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', zIndex: 100, maxHeight: 260,
+  },
+  modMiniHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  modMiniTitle: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  modMiniRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  modMiniName: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  modMiniBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 6 },
+  modMiniBtnText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   chatUser: { color: COLORS.secondary, fontWeight: '700', fontSize: 13 },
   chatLine: { color: '#FFF', fontSize: 13, lineHeight: 18, flex: 1 },
   chatGif: { width: 140, height: 100, borderRadius: RADIUS.sm, marginTop: 4 },

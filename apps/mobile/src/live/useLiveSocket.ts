@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../utils/api';
 
 export interface LiveChatMessage {
   id: string;
+  senderId?: string;
   senderName: string;
   text: string;
   ts: number;
@@ -45,20 +46,30 @@ export interface LiveAudioRoomEvent {
   ts: number;
 }
 
-export function useLiveSocket(roomName: string | undefined, myName: string) {
+export interface LiveParticipant {
+  userId: string;
+  username: string;
+}
+
+// roomName, my display name, and (for the moderation roster + mute/kick
+// targeting) my real userId — undefined is fine for mock/simulated rooms,
+// they just won't get a roster entry.
+export function useLiveSocket(roomName: string | undefined, myName: string, myUserId?: string) {
   const socketRef = useRef<Socket | null>(null);
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const [lastReaction, setLastReaction] = useState<{ emoji: string; nonce: number } | null>(null);
   const [lastGift, setLastGift] = useState<LiveGiftEvent | null>(null);
   const [roomEnded, setRoomEnded] = useState(false);
   const [lastSpecialMsg, setLastSpecialMsg] = useState<LiveChatMessage | null>(null);
+  const [kicked, setKicked] = useState<'kicked' | 'banned' | null>(null);
+  const [participants, setParticipants] = useState<LiveParticipant[]>([]);
 
   // Audio Room State
   const [raisedHands, setRaisedHands] = useState<string[]>([]);
   const [speakers, setSpeakers] = useState<Record<string, { timerEnd: number }>>({});
 
   // Category feature events (Shopping/Food/Gaming/Education/
-  // Entertainment/Sports/Career updates). Each carries its own
+  // Entertainment/Sports/Career/moderation updates). Each carries its own
   // payload shape; consumers read whichever ones their category
   // cares about and ignore the rest.
   const [categoryEvent, setCategoryEvent] = useState<{ type: string; payload: any; nonce: number } | null>(null);
@@ -68,18 +79,24 @@ export function useLiveSocket(roomName: string | undefined, myName: string) {
     const socket = io(`${API_BASE_URL}/live`);
     socketRef.current = socket;
 
-    socket.on('connect', () => socket.emit('join_live_room', { roomName }));
+    socket.on('connect', () => socket.emit('join_live_room', { roomName, userId: myUserId, username: myName }));
     socket.on('live_chat_message', (msg: LiveChatMessage) => {
       setMessages(prev => [...prev, msg]);
       // Trigger sound cue for incoming special emoji messages
       if (msg.msgType === 'emoji') setLastSpecialMsg({ ...msg, ts: Date.now() });
+    });
+    socket.on('live_chat_message_deleted', (data: { messageId: string }) => {
+      setMessages(prev => prev.filter(m => m.id !== data.messageId));
     });
     socket.on('live_reaction', (data: { emoji: string }) =>
       setLastReaction({ emoji: data.emoji, nonce: Date.now() }));
     socket.on('live_gift', (gift: Omit<LiveGiftEvent, 'nonce'>) =>
       setLastGift({ ...gift, nonce: Date.now() }));
     socket.on('live_room_ended', () => setRoomEnded(true));
-    
+    socket.on('live_kicked', (data: { reason: 'kicked' | 'banned' }) => setKicked(data.reason));
+    socket.on('live_participants_update', (data: { participants: LiveParticipant[] }) =>
+      setParticipants(data.participants));
+
     socket.on('live_audio_room_event', (event: LiveAudioRoomEvent) => {
       if (event.type === 'raise_hand') {
         setRaisedHands(prev => {
@@ -102,30 +119,36 @@ export function useLiveSocket(roomName: string | undefined, myName: string) {
     const categoryEvents = [
       'live_pinned_product', 'live_pinned_food', 'live_linked_game', 'live_score_update',
       'live_quiz_update', 'live_poll_update', 'live_prediction_update', 'live_job_posted', 'live_question_asked',
+      'live_topic_update', 'live_showcase_update', 'live_dating_update', 'live_moderation_update',
     ];
     categoryEvents.forEach(type => {
       socket.on(type, (payload: any) => setCategoryEvent({ type, payload, nonce: Date.now() }));
     });
 
     return () => {
-      socket.emit('leave_live_room', { roomName });
+      socket.emit('leave_live_room', { roomName, userId: myUserId });
       socket.disconnect();
       socketRef.current = null;
     };
   }, [roomName]);
 
   const sendMessage = useCallback((text: string) => {
-    socketRef.current?.emit('live_chat_message', { roomName, senderName: myName, text, msgType: 'text' });
-  }, [roomName, myName]);
+    socketRef.current?.emit('live_chat_message', { roomName, senderId: myUserId, senderName: myName, text, msgType: 'text' });
+  }, [roomName, myName, myUserId]);
 
   const sendSpecialMessage = useCallback((msg: LiveSpecialMessagePayload) => {
     socketRef.current?.emit('live_chat_message', {
       roomName,
+      senderId: myUserId,
       senderName: myName,
       text: '',
       ...msg,
     });
-  }, [roomName, myName]);
+  }, [roomName, myName, myUserId]);
+
+  const deleteMessage = useCallback((messageId: string) => {
+    socketRef.current?.emit('delete_chat_message', { roomName, messageId, userId: myUserId });
+  }, [roomName, myUserId]);
 
   const sendReaction = useCallback((emoji: string) => {
     socketRef.current?.emit('live_reaction', { roomName, emoji });
@@ -135,15 +158,18 @@ export function useLiveSocket(roomName: string | undefined, myName: string) {
     socketRef.current?.emit('live_audio_room_event', { roomName, type, payload });
   }, [roomName]);
 
-  return { 
-    messages, 
+  return {
+    messages,
     sendMessage,
     sendSpecialMessage,
-    sendReaction, 
-    lastReaction, 
+    deleteMessage,
+    sendReaction,
+    lastReaction,
     lastGift,
     lastSpecialMsg,
-    roomEnded, 
+    roomEnded,
+    kicked,
+    participants,
     categoryEvent,
     raisedHands,
     speakers,

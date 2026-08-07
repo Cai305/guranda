@@ -8,9 +8,11 @@ import { EatModule } from '../eat/eat.module';
 import { ChatModule } from '../chat/chat.module';
 import { RankingModule } from '../ranking/ranking.module';
 import { LiveAiToolsProvider } from './live-ai-tools.provider';
+import { ChessModule } from '../chess/chess.module';
+import { FriendsModule } from '../friends/friends.module';
 
 @Module({
-  imports: [ShoppingModule, EatModule, ChatModule, RankingModule],
+  imports: [ShoppingModule, EatModule, ChatModule, RankingModule, ChessModule, FriendsModule],
   controllers: [LiveController],
   providers: [LiveService, LiveGateway, PrismaService, LiveAiToolsProvider],
   exports: [LiveGateway],

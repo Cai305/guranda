@@ -107,6 +107,9 @@ model User {
   livePollVotes                LivePollVote[]
   livePredictionBets           LivePredictionBet[]
   liveJobApplications          LiveJobApplication[]
+  liveDatingApplications       LiveDatingApplicant[]
+  liveModeratorRoles           LiveRoomModerator[]
+  liveModerationActions        LiveRoomModerationAction[]
   liveQuestionsAsked           LiveQuestion[]
   workCompaniesOwned           WorkCompany[]             @relation("workCompaniesOwned")
   workJobsPosted               WorkJob[]                 @relation("workJobsPosted")
@@ -641,11 +644,26 @@ model LiveRoom {
   scoreA                  Int     @default(0)
   scoreB                  Int     @default(0)
 
-  quizzes     LiveQuiz[]
-  polls       LivePoll[]
-  predictions LivePrediction[]
-  jobPostings LiveJobPosting[]
-  questions   LiveQuestion[]
+  // Conversation Live — freely typed, host can change any time.
+  conversationTopic String?
+  // Gaming Live (chess only) — how the linked chess match was set up.
+  gameMode          String? // 'HOST_PLAYS' | 'HOST_MANAGES'
+  // Live Shopping — presentation style chosen by the host per stream.
+  shopStyle         String? // 'SPOTLIGHT' | 'SHELF'
+  spotlightIndex    Int     @default(0) // SPOTLIGHT: index into the ordered showcase
+  // Dating Live — the pair currently on stage.
+  featuredApplicantAId String?
+  featuredApplicantBId String?
+
+  quizzes           LiveQuiz[]
+  polls             LivePoll[]
+  predictions       LivePrediction[]
+  jobPostings       LiveJobPosting[]
+  questions         LiveQuestion[]
+  showcaseProducts  LiveShowcaseProduct[]
+  datingApplicants  LiveDatingApplicant[]
+  moderators        LiveRoomModerator[]
+  moderationActions LiveRoomModerationAction[]
 }
 
 // ── Education Live: real quizzes with an optional host-funded prize ──────
@@ -758,6 +776,70 @@ model LiveQuestion {
   text      String
   answered  Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+// ── Live Shopping: ordered product showcase (1-10 products) ──────────────
+// Host resubmits the whole ordered list on every "Save Showcase"
+// (replace-in-place), matching how the host "arranges the flow" from
+// the panel — position is display/flow order, not insertion order.
+model LiveShowcaseProduct {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  productId String
+  position  Int
+  createdAt DateTime @default(now())
+
+  @@unique([roomId, productId])
+  @@index([roomId, position])
+}
+
+// ── Dating Live: host-run matchmaking show ────────────────────────────────
+// A viewer applies once per room; the host features two applicants as a
+// pair. "Match or Pass?" audience voting reuses the existing LivePoll
+// model directly — no separate voting table needed.
+model LiveDatingApplicant {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  bio       String
+  status    String   @default("PENDING") // PENDING | FEATURED | PASSED | MATCHED
+  createdAt DateTime @default(now())
+
+  @@unique([roomId, userId])
+}
+
+// ── Live moderation ────────────────────────────────────────────────────────
+// The host can promote any viewer to moderator for the duration of the
+// stream (persisted per room, not global — a moderator in one stream has
+// no powers in another). Moderators and the host share the same action
+// set: mute (blocks chat), kick (removes now, can rejoin), ban (removes
+// + blocks rejoining), delete a chat message. Mute/ban are recorded here
+// so they survive a gateway restart/reconnect; kick is real-time only
+// (LiveGateway forcibly disconnects the socket) and isn't persisted.
+model LiveRoomModerator {
+  id         String   @id @default(uuid())
+  roomId     String
+  room       LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([roomId, userId])
+}
+
+model LiveRoomModerationAction {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // 'MUTED' | 'BANNED'
+  createdAt DateTime @default(now())
+
+  @@unique([roomId, userId, type])
 }
 
 model LudoGame {

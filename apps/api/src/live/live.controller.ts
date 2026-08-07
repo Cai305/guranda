@@ -40,13 +40,15 @@ export class LiveController {
   @Post('rooms')
   async goLive(
     @Request() req: any,
-    @Body() body: { title: string; categoryId: string },
+    @Body()
+    body: { title: string; categoryId: string; conversationTopic?: string },
   ) {
     return this.liveService.goLive(
       req.user.userId,
       req.user.username,
       body.title,
       body.categoryId,
+      body.conversationTopic,
     );
   }
 
@@ -62,6 +64,21 @@ export class LiveController {
     const { roomName } = await this.liveService.end(id, req.user.userId);
     this.liveGateway.broadcastRoomEnded(roomName);
     return { success: true };
+  }
+
+  // ── Conversation Live ────────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Patch('rooms/:id/topic')
+  async updateTopic(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('topic') topic: string,
+  ) {
+    const room = await this.liveService.updateTopic(req.user.userId, id, topic);
+    this.liveGateway.broadcastToRoom(room.roomName, 'live_topic_update', {
+      topic: room.conversationTopic,
+    });
+    return room;
   }
 
   // ── Live Shopping ────────────────────────────────────────────────────────
@@ -91,6 +108,51 @@ export class LiveController {
     @Body() body: { quantity?: number; shippingAddress: string },
   ) {
     return this.liveService.buyPinnedProduct(req.user.userId, id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/showcase')
+  async saveShowcase(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { productIds: string[]; style: 'SPOTLIGHT' | 'SHELF' },
+  ) {
+    const state = await this.liveService.saveShowcase(req.user.userId, id, body);
+    this.liveGateway.broadcastToRoom(state.roomName, 'live_showcase_update', {
+      showcaseProducts: state.showcaseProducts,
+      shopStyle: state.shopStyle,
+      spotlightIndex: state.spotlightIndex,
+    });
+    return state;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('rooms/:id/showcase/spotlight')
+  async setShowcaseSpotlight(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('index') index: number,
+  ) {
+    const room = await this.liveService.setShowcaseSpotlight(
+      req.user.userId,
+      id,
+      index,
+    );
+    this.liveGateway.broadcastToRoom(room.roomName, 'live_showcase_update', {
+      spotlightIndex: room.spotlightIndex,
+    });
+    return room;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/showcase/buy')
+  async buyShowcaseProduct(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body()
+    body: { productId: string; quantity?: number; shippingAddress: string },
+  ) {
+    return this.liveService.buyShowcaseProduct(req.user.userId, id, body);
   }
 
   // ── Food Live ────────────────────────────────────────────────────────────
@@ -134,6 +196,32 @@ export class LiveController {
     this.liveGateway.broadcastToRoom(room.roomName, 'live_linked_game', {
       gameType: room.linkedGameType,
       gameId: room.linkedGameId,
+    });
+    return room;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/chess/start')
+  async startChessMatch(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      mode: 'HOST_PLAYS' | 'HOST_MANAGES';
+      opponentId?: string;
+      whiteId?: string;
+      blackId?: string;
+    },
+  ) {
+    const room = await this.liveService.startChessMatch(
+      req.user.userId,
+      id,
+      body,
+    );
+    this.liveGateway.broadcastToRoom(room.roomName, 'live_linked_game', {
+      gameType: room.linkedGameType,
+      gameId: room.linkedGameId,
+      gameMode: room.gameMode,
     });
     return room;
   }
@@ -355,5 +443,156 @@ export class LiveController {
     @Param('questionId') questionId: string,
   ) {
     return this.liveService.markQuestionAnswered(req.user.userId, questionId);
+  }
+
+  // ── Dating Live: host-run matchmaking show ────────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/dating/apply')
+  async applyDating(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('bio') bio: string,
+  ) {
+    return this.liveService.applyDating(req.user.userId, id, bio);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('rooms/:id/dating/applicants')
+  async getDatingApplicants(@Request() req: any, @Param('id') id: string) {
+    return this.liveService.getDatingApplicants(req.user.userId, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/dating/feature')
+  async featureDatingPair(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { applicantAId: string; applicantBId: string },
+  ) {
+    const state = await this.liveService.featureDatingPair(
+      req.user.userId,
+      id,
+      body,
+    );
+    this.liveGateway.broadcastToRoom(state.roomName, 'live_dating_update', {
+      featuredApplicantA: state.featuredApplicantA,
+      featuredApplicantB: state.featuredApplicantB,
+    });
+    return state;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/dating/pass')
+  async passDatingPair(@Request() req: any, @Param('id') id: string) {
+    const state = await this.liveService.passDatingPair(req.user.userId, id);
+    this.liveGateway.broadcastToRoom(state.roomName, 'live_dating_update', {
+      featuredApplicantA: null,
+      featuredApplicantB: null,
+    });
+    return state;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/dating/match')
+  async declareDatingMatch(@Request() req: any, @Param('id') id: string) {
+    const room = await this.liveService.getRoomState(id);
+    const result = await this.liveService.declareDatingMatch(
+      req.user.userId,
+      id,
+    );
+    this.liveGateway.broadcastToRoom(room.roomName, 'live_dating_update', {
+      matched: true,
+      featuredApplicantA: null,
+      featuredApplicantB: null,
+    });
+    return result;
+  }
+
+  // ── Live moderation ────────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Get('rooms/:id/moderation')
+  async getModerationState(@Request() req: any, @Param('id') id: string) {
+    return this.liveService.getModerationState(req.user.userId, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/moderators')
+  async assignModerator(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const mod = await this.liveService.assignModerator(req.user.userId, id, userId);
+    return mod;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/moderators/revoke')
+  async revokeModerator(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    return this.liveService.revokeModerator(req.user.userId, id, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/mute')
+  async muteUser(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const { roomName } = await this.liveService.muteUser(req.user.userId, id, userId);
+    this.liveGateway.setMuted(roomName, userId, true);
+    this.liveGateway.broadcastToRoom(roomName, 'live_moderation_update', {});
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/unmute')
+  async unmuteUser(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const { roomName } = await this.liveService.unmuteUser(req.user.userId, id, userId);
+    this.liveGateway.setMuted(roomName, userId, false);
+    this.liveGateway.broadcastToRoom(roomName, 'live_moderation_update', {});
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/kick')
+  async kickUser(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const { roomName } = await this.liveService.kickUser(req.user.userId, id, userId);
+    this.liveGateway.kickUser(roomName, userId, 'kicked');
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/ban')
+  async banUser(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const { roomName } = await this.liveService.banUser(req.user.userId, id, userId);
+    this.liveGateway.kickUser(roomName, userId, 'banned');
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/unban')
+  async unbanUser(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    return this.liveService.unbanUser(req.user.userId, id, userId);
   }
 }

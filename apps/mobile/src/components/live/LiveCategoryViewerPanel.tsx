@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import * as api from '../../data/liveCategoryApi';
@@ -32,7 +32,7 @@ const panelStylesFactory = ({ COLORS, TYPOGRAPHY, RADIUS, SPACING }: any) => ({
   scoreText: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
   scoreDivider: { color: COLORS.textMuted, fontSize: 16 },
   jobCard: { borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder, paddingBottom: 8, marginBottom: 4 },
-});
+} as const);
 
 const WATCHABLE_GAMES: Record<string, string> = { pool: 'PoolGame', ludo: 'LudoGame', chess: 'ChessGame' };
 
@@ -78,6 +78,8 @@ export default function LiveCategoryViewerPanel({
   if (categoryId === 'sports') return <SportsViewer state={state} run={run} error={error} busy={busy} success={success} setSuccess={setSuccess} />;
   if (categoryId === 'career') return <CareerViewer state={state} run={run} error={error} success={success} setSuccess={setSuccess} busy={busy} />;
   if (categoryId === 'social') return <SocialViewer roomId={roomId} run={run} error={error} busy={busy} />;
+  if (categoryId === 'conversation') return <ConversationViewer state={state} />;
+  if (categoryId === 'dating') return <DatingViewer roomId={roomId} state={state} run={run} error={error} success={success} setSuccess={setSuccess} busy={busy} />;
   return null;
 }
 
@@ -102,24 +104,64 @@ function SuccessText({ text }: { text: string }) {
 // ── Live Shopping ────────────────────────────────────────────────────────
 function ShoppingViewer({ roomId, state, run, error, success, setSuccess, busy }: any) {
   const [address, setAddress] = useState('');
+  const [previewIndex, setPreviewIndex] = useState(0);
   const { theme } = useTheme();
   const { COLORS } = theme;
   const styles = useThemedStyles(panelStylesFactory);
-  const product = state.pinnedShoppingProduct;
-  if (!product) return <Panel title="Live Shopping"><Text style={styles.hint}>Nothing pinned yet — check back soon.</Text></Panel>;
+  const showcase = state.showcaseProducts || [];
 
+  useEffect(() => { setPreviewIndex(state.spotlightIndex || 0); }, [state.spotlightIndex]);
+
+  if (showcase.length === 0) return <Panel title="Live Shopping"><Text style={styles.hint}>Nothing showcased yet — check back soon.</Text></Panel>;
+
+  const buy = (productId: string) => run(
+    () => api.buyShowcaseProduct(roomId, productId, 1, address.trim()),
+    () => setSuccess('Order placed! Check My Orders.'),
+  );
+
+  if (state.shopStyle === 'SHELF') {
+    return (
+      <Panel title="Showcase">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 8 }}>
+          {showcase.map((s: any) => (
+            <View key={s.productId} style={{ minWidth: 130 }}>
+              <Text style={styles.itemName} numberOfLines={1}>{s.product?.name}</Text>
+              <Text style={styles.itemPrice}>{s.product?.price} MSH</Text>
+              <TouchableOpacity style={styles.actionBtn} disabled={busy || !address.trim()} onPress={() => buy(s.productId)}>
+                <Text style={styles.actionBtnText}>Buy</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+        <TextInput style={styles.input} placeholder="Shipping address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
+        <ErrorText error={error} />
+        <SuccessText text={success} />
+      </Panel>
+    );
+  }
+
+  const current = showcase[previewIndex] || showcase[0];
   return (
-    <Panel title="Pinned product">
-      <Text style={styles.itemName}>{product.name}</Text>
-      <Text style={styles.itemPrice}>{product.price} MSH</Text>
+    <Panel title="Spotlight">
+      <Text style={styles.itemName}>{current.product?.name}</Text>
+      <Text style={styles.itemPrice}>{current.product?.price} MSH</Text>
       <TextInput style={styles.input} placeholder="Shipping address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
-      <TouchableOpacity
-        style={styles.actionBtn}
-        disabled={busy || !address.trim()}
-        onPress={() => run(() => api.buyPinnedProduct(roomId, 1, address.trim()), () => setSuccess('Order placed! Check My Orders.'))}
-      >
+      <TouchableOpacity style={styles.actionBtn} disabled={busy || !address.trim()} onPress={() => buy(current.productId)}>
         {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Buy Now</Text>}
       </TouchableOpacity>
+      {showcase.length > 1 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 8 }}>
+          {showcase.map((s: any, i: number) => (
+            <TouchableOpacity
+              key={s.productId}
+              style={[styles.optionBtn, i === previewIndex && styles.optionBtnActive]}
+              onPress={() => setPreviewIndex(i)}
+            >
+              <Text style={styles.optionText} numberOfLines={1}>{s.product?.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
       <ErrorText error={error} />
       <SuccessText text={success} />
     </Panel>
@@ -219,15 +261,13 @@ function EducationViewer({ state, run, error, busy }: any) {
   );
 }
 
-// ── Entertainment Live ───────────────────────────────────────────────────
-function EntertainmentViewer({ state, run, busy }: any) {
+// Shared by Entertainment Live and Dating Live's "Match or Pass?" vote.
+function PollBlock({ poll, run, busy }: any) {
   const [voted, setVoted] = useState<number | null>(null);
   const styles = useThemedStyles(panelStylesFactory);
-  const poll = state.polls?.[0];
-  if (!poll) return <Panel title="Entertainment Live"><Text style={styles.hint}>No poll right now.</Text></Panel>;
-
+  if (!poll) return null;
   return (
-    <Panel title="Live poll">
+    <>
       <Text style={styles.itemName}>{poll.question}</Text>
       {poll.options.map((opt: string, i: number) => (
         <TouchableOpacity
@@ -239,6 +279,19 @@ function EntertainmentViewer({ state, run, busy }: any) {
           <Text style={styles.optionText}>{opt}</Text>
         </TouchableOpacity>
       ))}
+    </>
+  );
+}
+
+// ── Entertainment Live ───────────────────────────────────────────────────
+function EntertainmentViewer({ state, run, busy }: any) {
+  const styles = useThemedStyles(panelStylesFactory);
+  const poll = state.polls?.[0];
+  if (!poll) return <Panel title="Entertainment Live"><Text style={styles.hint}>No poll right now.</Text></Panel>;
+
+  return (
+    <Panel title="Live poll">
+      <PollBlock poll={poll} run={run} busy={busy} />
     </Panel>
   );
 }
@@ -342,6 +395,66 @@ function SocialViewer({ roomId, run, error, busy }: any) {
       </TouchableOpacity>
       {sent && <Text style={styles.successText}>Question sent to the host!</Text>}
       <ErrorText error={error} />
+    </Panel>
+  );
+}
+
+// ── Conversation Live ────────────────────────────────────────────────────
+function ConversationViewer({ state }: any) {
+  const styles = useThemedStyles(panelStylesFactory);
+  if (!state.conversationTopic) return <Panel title="Conversation Live"><Text style={styles.hint}>The host hasn't set a topic yet.</Text></Panel>;
+  return (
+    <Panel title="Right now, they're talking about">
+      <Text style={styles.itemName}>{state.conversationTopic}</Text>
+    </Panel>
+  );
+}
+
+// ── Dating Live ──────────────────────────────────────────────────────────
+function DatingViewer({ roomId, state, run, error, success, busy }: any) {
+  const [bio, setBio] = useState('');
+  const [applied, setApplied] = useState(false);
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(panelStylesFactory);
+  const a = state.featuredApplicantA;
+  const b = state.featuredApplicantB;
+  const poll = state.polls?.[0];
+
+  const apply = () => run(() => api.applyDating(roomId, bio.trim()), () => setApplied(true));
+
+  return (
+    <Panel title={a && b ? 'Featured pair' : 'Dating Live'}>
+      {a && b ? (
+        <>
+          <Text style={styles.itemName}>{a.user?.profile?.displayName || a.user?.username}</Text>
+          <Text style={styles.hint}>{a.bio}</Text>
+          <Text style={[styles.itemName, { marginTop: 6 }]}>{b.user?.profile?.displayName || b.user?.username}</Text>
+          <Text style={styles.hint}>{b.bio}</Text>
+          {poll && poll.status === 'OPEN' && (
+            <View style={{ marginTop: 8 }}>
+              <PollBlock poll={poll} run={run} busy={busy} />
+            </View>
+          )}
+        </>
+      ) : (
+        <Text style={styles.hint}>No one's featured right now.</Text>
+      )}
+      <View style={{ marginTop: 10 }}>
+        {applied ? (
+          <Text style={styles.successText}>You're in the queue — the host may feature you soon.</Text>
+        ) : (
+          <>
+            <Text style={styles.hint}>Want to be a contestant?</Text>
+            <TextInput style={styles.input} placeholder="Tell us a little about you…" placeholderTextColor={COLORS.textMuted} value={bio} onChangeText={setBio} />
+            <TouchableOpacity style={styles.actionBtn} disabled={busy || !bio.trim()} onPress={apply}>
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Apply</Text>}
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+      <ErrorText error={error} />
+      <SuccessText text={success} />
     </Panel>
   );
 }

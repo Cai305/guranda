@@ -16,12 +16,24 @@ export function getRoomState(roomId: string) {
   return fetchApi(`/live/rooms/${roomId}/state`).then(unwrap);
 }
 
+export const getFriends = () => fetchApi('/friends').then(unwrap);
+
+// Conversation Live
+export const updateConversationTopic = (roomId: string, topic: string) =>
+  fetchApi(`/live/rooms/${roomId}/topic`, { method: 'PATCH', body: JSON.stringify({ topic }) }).then(unwrap);
+
 // Live Shopping
 export const pinShoppingProduct = (roomId: string, productId: string) =>
   fetchApi(`/live/rooms/${roomId}/pin-product`, { method: 'POST', body: JSON.stringify({ productId }) }).then(unwrap);
 export const buyPinnedProduct = (roomId: string, quantity: number, shippingAddress: string) =>
   fetchApi(`/live/rooms/${roomId}/buy-pinned`, { method: 'POST', body: JSON.stringify({ quantity, shippingAddress }) }).then(unwrap);
 export const getMyShoppingStore = () => fetchApi('/shopping/my-store').then(unwrap);
+export const saveShowcase = (roomId: string, productIds: string[], style: 'SPOTLIGHT' | 'SHELF') =>
+  fetchApi(`/live/rooms/${roomId}/showcase`, { method: 'POST', body: JSON.stringify({ productIds, style }) }).then(unwrap);
+export const setSpotlight = (roomId: string, index: number) =>
+  fetchApi(`/live/rooms/${roomId}/showcase/spotlight`, { method: 'PATCH', body: JSON.stringify({ index }) }).then(unwrap);
+export const buyShowcaseProduct = (roomId: string, productId: string, quantity: number, shippingAddress: string) =>
+  fetchApi(`/live/rooms/${roomId}/showcase/buy`, { method: 'POST', body: JSON.stringify({ productId, quantity, shippingAddress }) }).then(unwrap);
 
 // Food Live
 export const pinEatProduct = (roomId: string, productId: string) =>
@@ -33,6 +45,10 @@ export const getMyEatStore = () => fetchApi('/eat/my-store').then(unwrap);
 // Gaming Live
 export const linkGame = (roomId: string, gameType: string, gameId: string) =>
   fetchApi(`/live/rooms/${roomId}/link-game`, { method: 'POST', body: JSON.stringify({ gameType, gameId }) }).then(unwrap);
+export const startChessMatch = (
+  roomId: string,
+  dto: { mode: 'HOST_PLAYS' | 'HOST_MANAGES'; opponentId?: string; whiteId?: string; blackId?: string },
+) => fetchApi(`/live/rooms/${roomId}/chess/start`, { method: 'POST', body: JSON.stringify(dto) }).then(unwrap);
 
 // Business Live
 export const connectWithHost = (roomId: string) =>
@@ -74,3 +90,34 @@ export const askQuestion = (roomId: string, text: string) =>
   fetchApi(`/live/rooms/${roomId}/question`, { method: 'POST', body: JSON.stringify({ text }) }).then(unwrap);
 export const markQuestionAnswered = (questionId: string) =>
   fetchApi(`/live/question/${questionId}/answered`, { method: 'PATCH' }).then(unwrap);
+
+// Dating Live
+export const applyDating = (roomId: string, bio: string) =>
+  fetchApi(`/live/rooms/${roomId}/dating/apply`, { method: 'POST', body: JSON.stringify({ bio }) }).then(unwrap);
+export const getDatingApplicants = (roomId: string) =>
+  fetchApi(`/live/rooms/${roomId}/dating/applicants`).then(unwrap);
+export const featureDatingPair = (roomId: string, applicantAId: string, applicantBId: string) =>
+  fetchApi(`/live/rooms/${roomId}/dating/feature`, { method: 'POST', body: JSON.stringify({ applicantAId, applicantBId }) }).then(unwrap);
+export const passDatingPair = (roomId: string) =>
+  fetchApi(`/live/rooms/${roomId}/dating/pass`, { method: 'POST' }).then(unwrap);
+export const declareDatingMatch = (roomId: string) =>
+  fetchApi(`/live/rooms/${roomId}/dating/match`, { method: 'POST' }).then(unwrap);
+
+// Live moderation — host or any current moderator can call mute/unmute/kick/ban;
+// assign/revoke moderator and unban are host-only (enforced server-side).
+export const getModerationState = (roomId: string) =>
+  fetchApi(`/live/rooms/${roomId}/moderation`).then(unwrap);
+export const assignModerator = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/moderators`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+export const revokeModerator = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/moderators/revoke`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+export const muteUser = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/mute`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+export const unmuteUser = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/unmute`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+export const kickUser = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/kick`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+export const banUser = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/ban`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+export const unbanUser = (roomId: string, userId: string) =>
+  fetchApi(`/live/rooms/${roomId}/unban`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);

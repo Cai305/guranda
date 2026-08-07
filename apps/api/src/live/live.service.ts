@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma.service';
 import { ShoppingService } from '../shopping/shopping.service';
 import { EatService } from '../eat/eat.service';
 import { ChatService } from '../chat/chat.service';
+import { ChessService } from '../chess/chess.service';
+import { FriendsService } from '../friends/friends.service';
 import {
   ContentRankingService,
   ReputationLevel,
@@ -27,6 +29,8 @@ export class LiveService {
     private shoppingService: ShoppingService,
     private eatService: EatService,
     private chatService: ChatService,
+    private chessService: ChessService,
+    private friendsService: FriendsService,
     private ranking: ContentRankingService,
   ) {
     const httpUrl = process.env.LIVEKIT_HTTP_URL || 'http://localhost:7880';
@@ -75,6 +79,7 @@ export class LiveService {
     hostName: string,
     title: string,
     categoryId: string,
+    conversationTopic?: string,
   ) {
     const roomName = `live-${randomUUID()}`;
     await this.roomService.createRoom({
@@ -84,7 +89,13 @@ export class LiveService {
     });
 
     const room = await this.prisma.liveRoom.create({
-      data: { roomName, title, categoryId, hostId },
+      data: {
+        roomName,
+        title,
+        categoryId,
+        hostId,
+        conversationTopic: conversationTopic?.trim() || null,
+      },
     });
 
     const token = await this.mintToken(roomName, hostId, hostName, true);
@@ -138,6 +149,12 @@ export class LiveService {
     });
     if (!room || !room.isLive)
       throw new NotFoundException('This stream has ended');
+    if (room.hostId !== userId) {
+      const banned = await this.prisma.liveRoomModerationAction.findUnique({
+        where: { roomId_userId_type: { roomId: room.id, userId, type: 'BANNED' } },
+      });
+      if (banned) throw new ForbiddenException('You have been banned from this stream');
+    }
 
     // The host rejoining their own still-live room (app backgrounded,
     // screen navigated away and back, etc.) needs a publish-capable token
@@ -197,24 +214,67 @@ export class LiveService {
         },
         jobPostings: { orderBy: { createdAt: 'desc' } },
         questions: { orderBy: { createdAt: 'desc' }, take: 50 },
+        showcaseProducts: { orderBy: { position: 'asc' } },
       },
     });
     if (!room) throw new NotFoundException('Stream not found');
 
-    const [pinnedShoppingProduct, pinnedEatProduct] = await Promise.all([
-      room.pinnedShoppingProductId
-        ? this.prisma.shoppingProduct.findUnique({
-            where: { id: room.pinnedShoppingProductId },
-          })
-        : null,
-      room.pinnedEatProductId
-        ? this.prisma.eatProduct.findUnique({
-            where: { id: room.pinnedEatProductId },
-          })
-        : null,
-    ]);
+    const [pinnedShoppingProduct, pinnedEatProduct, showcaseItems, featuredA, featuredB] =
+      await Promise.all([
+        room.pinnedShoppingProductId
+          ? this.prisma.shoppingProduct.findUnique({
+              where: { id: room.pinnedShoppingProductId },
+            })
+          : null,
+        room.pinnedEatProductId
+          ? this.prisma.eatProduct.findUnique({
+              where: { id: room.pinnedEatProductId },
+            })
+          : null,
+        room.showcaseProducts.length
+          ? this.prisma.shoppingProduct.findMany({
+              where: { id: { in: room.showcaseProducts.map((s) => s.productId) } },
+            })
+          : [],
+        room.featuredApplicantAId
+          ? this.prisma.liveDatingApplicant.findUnique({
+              where: { id: room.featuredApplicantAId },
+              include: { user: { select: { id: true, username: true, profile: true } } },
+            })
+          : null,
+        room.featuredApplicantBId
+          ? this.prisma.liveDatingApplicant.findUnique({
+              where: { id: room.featuredApplicantBId },
+              include: { user: { select: { id: true, username: true, profile: true } } },
+            })
+          : null,
+      ]);
 
-    return { ...room, pinnedShoppingProduct, pinnedEatProduct };
+    const productById = new Map(showcaseItems.map((p): [string, typeof p] => [p.id, p]));
+    const showcaseProducts = room.showcaseProducts
+      .map((s) => ({ ...s, product: productById.get(s.productId) }))
+      .filter((s) => !!s.product);
+
+    return {
+      ...room,
+      pinnedShoppingProduct,
+      pinnedEatProduct,
+      showcaseProducts,
+      featuredApplicantA: featuredA,
+      featuredApplicantB: featuredB,
+    };
+  }
+
+  // ── Conversation Live ────────────────────────────────────────────────────
+  // Freely typed by the host, changeable at any point during the stream —
+  // not just at go-live setup.
+  async updateTopic(hostId: string, roomId: string, topic: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    return this.prisma.liveRoom.update({
+      where: { id: roomId },
+      data: { conversationTopic: topic?.trim() || null },
+    });
   }
 
   // ── Live Shopping ────────────────────────────────────────────────────────
@@ -254,6 +314,81 @@ export class LiveService {
       items: [{ productId: product.id, quantity: dto.quantity || 1 }],
       shippingAddress: dto.shippingAddress,
       notes: `Bought live during "${room.title}"`,
+    });
+  }
+
+  // Multi-product showcase (1-10 products, ordered) — replaces the whole
+  // showcase in place each time the host saves it, so "arranging the
+  // flow" is just resubmitting the full ordered list.
+  async saveShowcase(
+    hostId: string,
+    roomId: string,
+    dto: { productIds: string[]; style: 'SPOTLIGHT' | 'SHELF' },
+  ) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    const ids = [...new Set(dto.productIds || [])];
+    if (ids.length < 1 || ids.length > 10)
+      throw new BadRequestException('Showcase 1 to 10 products');
+    if (dto.style !== 'SPOTLIGHT' && dto.style !== 'SHELF')
+      throw new BadRequestException('Style must be SPOTLIGHT or SHELF');
+
+    const products = await this.prisma.shoppingProduct.findMany({
+      where: { id: { in: ids } },
+      include: { store: true },
+    });
+    if (products.length !== ids.length)
+      throw new NotFoundException('One or more products not found');
+    if (products.some((p) => p.store.ownerId !== hostId))
+      throw new ForbiddenException('You can only showcase your own products');
+
+    await this.prisma.$transaction([
+      this.prisma.liveShowcaseProduct.deleteMany({ where: { roomId } }),
+      this.prisma.liveShowcaseProduct.createMany({
+        data: ids.map((productId, position) => ({ roomId, productId, position })),
+      }),
+      this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { shopStyle: dto.style, spotlightIndex: 0 },
+      }),
+    ]);
+    return this.getRoomState(roomId);
+  }
+
+  async setShowcaseSpotlight(hostId: string, roomId: string, index: number) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    const count = await this.prisma.liveShowcaseProduct.count({ where: { roomId } });
+    if (index < 0 || index >= count)
+      throw new BadRequestException('Index out of range');
+    return this.prisma.liveRoom.update({
+      where: { id: roomId },
+      data: { spotlightIndex: index },
+    });
+  }
+
+  async buyShowcaseProduct(
+    buyerId: string,
+    roomId: string,
+    dto: { productId: string; quantity?: number; shippingAddress: string },
+  ) {
+    await this.getRoom(roomId);
+    if (!dto.shippingAddress)
+      throw new BadRequestException('Shipping address is required');
+    const inShowcase = await this.prisma.liveShowcaseProduct.findUnique({
+      where: { roomId_productId: { roomId, productId: dto.productId } },
+    });
+    if (!inShowcase)
+      throw new BadRequestException('That product is not in this stream\'s showcase');
+    const product = await this.prisma.shoppingProduct.findUnique({
+      where: { id: dto.productId },
+    });
+    if (!product) throw new NotFoundException('Product no longer exists');
+    return this.shoppingService.placeOrder(buyerId, {
+      storeId: product.storeId,
+      items: [{ productId: product.id, quantity: dto.quantity || 1 }],
+      shippingAddress: dto.shippingAddress,
+      notes: `Bought live during a showcase`,
     });
   }
 
@@ -310,6 +445,62 @@ export class LiveService {
     return this.prisma.liveRoom.update({
       where: { id: roomId },
       data: { linkedGameType: dto.gameType, linkedGameId: dto.gameId },
+    });
+  }
+
+  // Chess only gets a real in-app match-creation flow (the other game
+  // types keep the paste-an-existing-ID flow above). The chess socket
+  // gateway already lets any client spectate a gameId room with zero
+  // access control, so this only needs to create the game + link it.
+  async startChessMatch(
+    hostId: string,
+    roomId: string,
+    dto: {
+      mode: 'HOST_PLAYS' | 'HOST_MANAGES';
+      opponentId?: string;
+      whiteId?: string;
+      blackId?: string;
+    },
+  ) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+
+    let whiteId: string;
+    let blackId: string;
+    if (dto.mode === 'HOST_PLAYS') {
+      if (!dto.opponentId)
+        throw new BadRequestException('Pick an opponent to play against');
+      if (dto.opponentId === hostId)
+        throw new BadRequestException("You can't play against yourself");
+      if (!(await this.friendsService.areFriends(hostId, dto.opponentId)))
+        throw new ForbiddenException('You can only start a match with a friend');
+      whiteId = hostId;
+      blackId = dto.opponentId;
+    } else if (dto.mode === 'HOST_MANAGES') {
+      if (!dto.whiteId || !dto.blackId)
+        throw new BadRequestException('Pick two players to manage a match between');
+      if (dto.whiteId === dto.blackId)
+        throw new BadRequestException('Pick two different players');
+      if (dto.whiteId === hostId || dto.blackId === hostId)
+        throw new BadRequestException(
+          'In Host Manages mode the host referees, not plays — pick two other players',
+        );
+      const [friendA, friendB] = await Promise.all([
+        this.friendsService.areFriends(hostId, dto.whiteId),
+        this.friendsService.areFriends(hostId, dto.blackId),
+      ]);
+      if (!friendA || !friendB)
+        throw new ForbiddenException('Both players must be your friends');
+      whiteId = dto.whiteId;
+      blackId = dto.blackId;
+    } else {
+      throw new BadRequestException('Unknown mode');
+    }
+
+    const game = await this.chessService.createGame(whiteId, blackId, 600);
+    return this.prisma.liveRoom.update({
+      where: { id: roomId },
+      data: { linkedGameType: 'chess', linkedGameId: game.id, gameMode: dto.mode },
     });
   }
 
@@ -725,5 +916,219 @@ export class LiveService {
       where: { id: questionId },
       data: { answered: true },
     });
+  }
+
+  // ── Dating Live: host-run matchmaking show ────────────────────────────────
+  // "Match or Pass?" audience voting reuses launchPoll/votePoll above
+  // directly — no dedicated voting endpoints needed here.
+  async applyDating(userId: string, roomId: string, bio: string) {
+    const room = await this.getRoom(roomId);
+    if (room.hostId === userId)
+      throw new BadRequestException("You can't apply to your own stream");
+    const trimmed = (bio || '').trim().slice(0, 200);
+    if (!trimmed) throw new BadRequestException('Tell us a little about you first');
+    return this.prisma.liveDatingApplicant.upsert({
+      where: { roomId_userId: { roomId, userId } },
+      create: { roomId, userId, bio: trimmed },
+      update: { bio: trimmed },
+    });
+  }
+
+  async getDatingApplicants(hostId: string, roomId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    return this.prisma.liveDatingApplicant.findMany({
+      where: { roomId, status: 'PENDING' },
+      include: { user: { select: { id: true, username: true, profile: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async featureDatingPair(
+    hostId: string,
+    roomId: string,
+    dto: { applicantAId: string; applicantBId: string },
+  ) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    if (dto.applicantAId === dto.applicantBId)
+      throw new BadRequestException('Pick two different applicants');
+    const [a, b] = await Promise.all([
+      this.prisma.liveDatingApplicant.findUnique({ where: { id: dto.applicantAId } }),
+      this.prisma.liveDatingApplicant.findUnique({ where: { id: dto.applicantBId } }),
+    ]);
+    if (!a || a.roomId !== roomId || !b || b.roomId !== roomId)
+      throw new NotFoundException('Applicant not found in this stream');
+
+    await this.prisma.$transaction([
+      this.prisma.liveDatingApplicant.update({
+        where: { id: a.id },
+        data: { status: 'FEATURED' },
+      }),
+      this.prisma.liveDatingApplicant.update({
+        where: { id: b.id },
+        data: { status: 'FEATURED' },
+      }),
+      this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { featuredApplicantAId: a.id, featuredApplicantBId: b.id },
+      }),
+    ]);
+    return this.getRoomState(roomId);
+  }
+
+  async passDatingPair(hostId: string, roomId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    const ids = [room.featuredApplicantAId, room.featuredApplicantBId].filter(
+      (id): id is string => !!id,
+    );
+    await this.prisma.$transaction([
+      ...(ids.length
+        ? [
+            this.prisma.liveDatingApplicant.updateMany({
+              where: { id: { in: ids } },
+              data: { status: 'PASSED' },
+            }),
+          ]
+        : []),
+      this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { featuredApplicantAId: null, featuredApplicantBId: null },
+      }),
+    ]);
+    return this.getRoomState(roomId);
+  }
+
+  async declareDatingMatch(hostId: string, roomId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    if (!room.featuredApplicantAId || !room.featuredApplicantBId)
+      throw new BadRequestException('Feature a pair before declaring a match');
+    const [a, b] = await Promise.all([
+      this.prisma.liveDatingApplicant.findUnique({
+        where: { id: room.featuredApplicantAId },
+      }),
+      this.prisma.liveDatingApplicant.findUnique({
+        where: { id: room.featuredApplicantBId },
+      }),
+    ]);
+    if (!a || !b) throw new NotFoundException('Featured applicants not found');
+
+    await this.prisma.$transaction([
+      this.prisma.liveDatingApplicant.update({
+        where: { id: a.id },
+        data: { status: 'MATCHED' },
+      }),
+      this.prisma.liveDatingApplicant.update({
+        where: { id: b.id },
+        data: { status: 'MATCHED' },
+      }),
+      this.prisma.liveRoom.update({
+        where: { id: roomId },
+        data: { featuredApplicantAId: null, featuredApplicantBId: null },
+      }),
+    ]);
+    await this.chatService.createDirectChat(a.userId, b.userId);
+    return { matched: true, applicantAId: a.userId, applicantBId: b.userId };
+  }
+
+  // ── Live moderation ────────────────────────────────────────────────────
+  // Assign/revoke moderator is host-only. Mute/kick/ban can be done by the
+  // host OR any current moderator — assertCanModerate covers both.
+  private async assertCanModerate(room: { id: string; hostId: string }, actorId: string) {
+    if (room.hostId === actorId) return;
+    const mod = await this.prisma.liveRoomModerator.findUnique({
+      where: { roomId_userId: { roomId: room.id, userId: actorId } },
+    });
+    if (!mod) throw new ForbiddenException('Only the host or a moderator can do this');
+  }
+
+  async getModerationState(userId: string, roomId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, userId);
+    const [moderators, actions] = await Promise.all([
+      this.prisma.liveRoomModerator.findMany({
+        where: { roomId },
+        include: { user: { select: { id: true, username: true, profile: true } } },
+      }),
+      this.prisma.liveRoomModerationAction.findMany({
+        where: { roomId },
+        include: { user: { select: { id: true, username: true, profile: true } } },
+      }),
+    ]);
+    return {
+      moderators,
+      muted: actions.filter((a) => a.type === 'MUTED'),
+      banned: actions.filter((a) => a.type === 'BANNED'),
+    };
+  }
+
+  async assignModerator(hostId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    if (userId === hostId)
+      throw new BadRequestException("You're already running the show");
+    return this.prisma.liveRoomModerator.upsert({
+      where: { roomId_userId: { roomId, userId } },
+      create: { roomId, userId },
+      update: {},
+    });
+  }
+
+  async revokeModerator(hostId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    await this.prisma.liveRoomModerator.deleteMany({ where: { roomId, userId } });
+    return { success: true };
+  }
+
+  async muteUser(actorId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, actorId);
+    if (userId === room.hostId) throw new BadRequestException("You can't mute the host");
+    await this.prisma.liveRoomModerationAction.upsert({
+      where: { roomId_userId_type: { roomId, userId, type: 'MUTED' } },
+      create: { roomId, userId, type: 'MUTED' },
+      update: {},
+    });
+    return { roomName: room.roomName };
+  }
+
+  async unmuteUser(actorId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, actorId);
+    await this.prisma.liveRoomModerationAction.deleteMany({
+      where: { roomId, userId, type: 'MUTED' },
+    });
+    return { roomName: room.roomName };
+  }
+
+  async kickUser(actorId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, actorId);
+    if (userId === room.hostId) throw new BadRequestException("You can't kick the host");
+    return { roomName: room.roomName };
+  }
+
+  async banUser(actorId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, actorId);
+    if (userId === room.hostId) throw new BadRequestException("You can't ban the host");
+    await this.prisma.liveRoomModerationAction.upsert({
+      where: { roomId_userId_type: { roomId, userId, type: 'BANNED' } },
+      create: { roomId, userId, type: 'BANNED' },
+      update: {},
+    });
+    return { roomName: room.roomName };
+  }
+
+  async unbanUser(hostId: string, roomId: string, userId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    await this.prisma.liveRoomModerationAction.deleteMany({
+      where: { roomId, userId, type: 'BANNED' },
+    });
+    return { success: true };
   }
 }
