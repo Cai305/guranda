@@ -338,14 +338,16 @@ export default function FAQSection() {
         </AnimatePresence>
       </motion.div>
 
-      {/* Still Need Help CTA */}
+      {/* Still Need Help CTA — floats directly on the page background, no
+          enclosing card, matching AISection's treatment */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
         viewport={{ once: true }}
-        className="mt-16 glass-frosted p-8 sm:p-12 rounded-3xl text-center backdrop-blur-xl border-white/20"
+        className="relative mt-16 py-8 sm:py-12 text-center"
       >
+        <div className="absolute inset-x-0 inset-y-4 bg-gradient-to-br from-violet-600/10 via-transparent to-pink-600/10 blur-3xl -z-10 pointer-events-none" />
         <h3 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
           Still have questions?
         </h3>

@@ -14,16 +14,14 @@ export default function DownloadCTA() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9 }}
         viewport={{ once: true }}
-        className="relative overflow-hidden rounded-3xl"
+        className="relative"
       >
-        {/* Multi-layer background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900/60 via-purple-900/40 to-pink-900/50" />
-        <div className="absolute inset-0 bg-dot-pattern opacity-20" />
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-pink-600/20 rounded-full blur-3xl" />
-        <div className="absolute inset-0 border border-white/10 rounded-3xl" />
+        {/* Ambient glow — content floats directly on the page background,
+            no enclosing card, matching AISection's treatment */}
+        <div className="absolute -top-16 -left-16 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl -z-10" />
+        <div className="absolute -bottom-16 -right-16 w-96 h-96 bg-pink-600/15 rounded-full blur-3xl -z-10" />
 
-        <div className="relative z-10 p-10 sm:p-16 text-center">
+        <div className="relative z-10 py-10 sm:py-16 text-center">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
