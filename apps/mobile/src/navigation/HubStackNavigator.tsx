@@ -62,6 +62,7 @@ import CommunityDetailScreen from '../screens/learning/CommunityDetailScreen';
 import MyLearningScreen from '../screens/learning/MyLearningScreen';
 import MySessionsScreen from '../screens/learning/MySessionsScreen';
 import EntertainmentHomeScreen from '../screens/entertainment/EntertainmentHomeScreen';
+import EventsHomeScreen from '../screens/events/EventsHomeScreen';
 import MovieDetailScreen from '../screens/entertainment/MovieDetailScreen';
 import ConcertDetailScreen from '../screens/entertainment/ConcertDetailScreen';
 import EventDetailScreen from '../screens/entertainment/EventDetailScreen';
@@ -163,6 +164,7 @@ export default function HubStackNavigator() {
       <Stack.Screen name="MyLearning" component={MyLearningScreen} />
       <Stack.Screen name="MySessions" component={MySessionsScreen} />
       <Stack.Screen name="EntertainmentHome" component={EntertainmentHomeScreen} />
+      <Stack.Screen name="EventsHome" component={EventsHomeScreen} />
       <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
       <Stack.Screen name="ConcertDetail" component={ConcertDetailScreen} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} />

@@ -225,6 +225,17 @@ export const MODULES: LifeModule[] = [
     route: { name: 'HairHome' },
   },
   {
+    id: 'events',
+    name: 'Events',
+    icon: 'ticket',
+    gradient: ['#10B981', '#22D3EE'] as [string, string],
+    status: 'live',
+    tagline: 'Book live events near you',
+    description: 'Discover concerts, festivals, comedy shows, sports and more. Buy tickets with your Guranda wallet, manage your own events, and check in guests on the door.',
+    features: ['Browse & filter events', 'Book tickets with MSH', 'Create & manage events', 'Invite team members', 'QR ticket check-in'],
+    route: { name: 'Main', params: { screen: 'Life', params: { screen: 'EventsHome' } } },
+  },
+  {
     id: 'entertainment',
     name: 'Entertainment',
     icon: 'film',
@@ -272,6 +283,19 @@ export const MODULES: LifeModule[] = [
 
 export const getModule = (id: string): LifeModule | undefined =>
   MODULES.find(m => m.id === id);
+
+// The curated set of modules that count as "mini apps" for the Store, the
+// Home screen's "Explore Mini Apps" preview strip, and any other mini-app
+// surface — deliberately excludes core sections (AI, Discovery, Live,
+// Social, Games, Mini Apps itself) that already have their own top-level
+// tile elsewhere. Includes both 'installable' apps and the handful that
+// are 'live' (Poster & Editor, Events) but are still browsed/opened the
+// same way a mini app is.
+export const MINI_APP_IDS = [
+  'poster', 'events', 'health', 'travel', 'learning', 'shopping', 'property',
+  'finance', 'work', 'marketplace', 'username-market', 'ride', 'eat', 'hair',
+  'entertainment', 'carfind', 'carwash',
+];
 
 // Applies the admin dashboard's per-module feature flags on top of the
 // static registry: OFF hides a module behind Under Construction, and

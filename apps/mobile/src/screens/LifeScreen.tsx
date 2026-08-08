@@ -12,10 +12,6 @@ export default function LifeScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { GRADIENTS, BRAND } = theme;
   const [hasRelationship, setHasRelationship] = useState(false);
-  // Local-clock gate for the Couples tile — checked on focus and every 60s
-  // while this screen is mounted, so it appears live at 21:00 without
-  // needing a manual reload.
-  const [isAfter9pm, setIsAfter9pm] = useState(() => new Date().getHours() >= 21);
 
   useFocusEffect(
     useCallback(() => {
@@ -23,9 +19,6 @@ export default function LifeScreen({ navigation }: any) {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => setHasRelationship(!!d))
         .catch(() => {});
-      setIsAfter9pm(new Date().getHours() >= 21);
-      const interval = setInterval(() => setIsAfter9pm(new Date().getHours() >= 21), 60_000);
-      return () => clearInterval(interval);
     }, [])
   );
 
@@ -85,9 +78,10 @@ export default function LifeScreen({ navigation }: any) {
       features: [],
       route: { name: 'Main', params: { screen: 'Life', params: { screen: 'Hub', params: { mode: 'store' } } } }
     },
-    // Only shown once linked to a partner AND after 21:00 local time — see
-    // the spec's "secret unlock" — hidden the rest of the day.
-    ...(hasRelationship && isAfter9pm ? [{
+    // TEMP for testing: the 21:00 "secret unlock" gate is disabled — shown
+    // any time once linked to a partner. Re-add `&& isAfter9pm` below to
+    // restore the original after-dark-only behavior.
+    ...(hasRelationship ? [{
       id: 'couples_challenges',
       name: 'Couples',
       icon: 'heart',

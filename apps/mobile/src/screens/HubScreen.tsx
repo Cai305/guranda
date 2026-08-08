@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
-import { MODULES, LifeModule } from '../config/modules';
+import { MODULES, LifeModule, MINI_APP_IDS } from '../config/modules';
 import { useStore } from '../context/StoreContext';
 import { fetchApi } from '../utils/api';
 
@@ -46,8 +46,7 @@ export default function HubScreen({ route, navigation }: any) {
   }, []);
 
   // Mini apps
-  const miniAppIds = ['poster', 'health', 'travel', 'learning', 'shopping', 'property', 'finance', 'work', 'marketplace', 'username-market', 'ride', 'eat', 'hair', 'entertainment', 'carfind', 'carwash'];
-  const baseMiniApps = miniAppIds.map(id => MODULES.find(m => m.id === id)).filter(Boolean) as LifeModule[];
+  const baseMiniApps = MINI_APP_IDS.map(id => MODULES.find(m => m.id === id)).filter(Boolean) as LifeModule[];
   
   // Games as modules
   const gamesAsModules: LifeModule[] = GAMES.map(g => ({

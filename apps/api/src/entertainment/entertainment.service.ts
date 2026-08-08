@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { uploadBufferToSupabase } from '../supabase.util';
 
 // No ambiguous characters (0/O, 1/I/L) — these get typed by hand at the door.
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -576,7 +577,140 @@ export class EntertainmentService {
     );
   }
 
-  // ── Shared wallet debit for a booking (curated catalog, no host payout) ─
+  async giftTicket(
+    buyerId: string,
+    eventId: string,
+    dto: { recipientUserId: string; tickets?: number },
+  ) {
+    if (!dto.recipientUserId) throw new BadRequestException('recipientUserId is required');
+    if (dto.recipientUserId === buyerId)
+      throw new BadRequestException('You cannot gift a ticket to yourself — use bookEvent instead');
+
+    const [event, recipient] = await Promise.all([
+      this.prisma.eventListing.findUnique({ where: { id: eventId } }),
+      this.prisma.user.findUnique({
+        where: { id: dto.recipientUserId },
+        select: { id: true, username: true },
+      }),
+    ]);
+    if (!event) throw new NotFoundException('Event not found');
+    if (!recipient) throw new NotFoundException('Recipient user not found');
+
+    const tickets = Number(dto.tickets) || 1;
+    if (event.ticketsAvailable < tickets)
+      throw new BadRequestException('Not enough tickets available');
+
+    const totalPrice = parseFloat((event.price * tickets).toFixed(2));
+
+    // Buyer pays; tickets are issued to the recipient.
+    return this.payAndBook({
+      userId: buyerId,
+      totalPrice,
+      create: () =>
+        this.prisma.eventBooking.create({
+          data: {
+            eventId,
+            userId: dto.recipientUserId,   // booking belongs to recipient
+            tickets,
+            totalPrice,
+            ticketItems: {
+              create: Array.from({ length: tickets }, () => ({
+                code: generateCode(8),
+              })),
+            },
+          },
+          include: { ticketItems: true, event: true },
+        }),
+      extra: [
+        this.prisma.eventListing.update({
+          where: { id: eventId },
+          data: { ticketsAvailable: { decrement: tickets } },
+        }),
+      ],
+    });
+  }
+
+  /**
+   * Produce a light shareable summary of an event for embedding as a
+   * structured message in chat.  No side effects — the actual booking
+   * happens via bookEvent / giftTicket.
+   */
+  async getEventShareCard(eventId: string) {
+    const event = await this.prisma.eventListing.findUnique({
+      where: { id: eventId },
+      include: { organizer: { select: { id: true, username: true } } },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+    return {
+      id: event.id,
+      title: event.title,
+      category: event.category,
+      venue: event.venue,
+      city: event.city,
+      startsAt: event.startsAt.toISOString(),
+      price: event.price,
+      ticketsAvailable: event.ticketsAvailable,
+      posterUrl: event.posterUrl,
+      description: event.description,
+      organizer: event.organizer?.username ?? null,
+    };
+  }
+
+  /**
+   * Generate an event poster using the configured LLM provider's image
+   * generation capability, then persist it to Supabase storage and attach
+   * the URL to the event record.
+   *
+   * We call OpenAI DALL·E via fetch (no SDK dependency) rather than routing
+   * through AgentRuntimeService — poster generation is a single deterministic
+   * call, not a multi-turn reasoning loop.
+   */
+  async generatePoster(
+    userId: string,
+    eventId: string | null,
+    dto: { title: string; category: string; venue: string; city: string; date: string; vibe?: string },
+  ) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new BadRequestException('AI image generation is not configured on this server');
+
+    const prompt = [
+      `Create a vibrant, professional event poster for "${dto.title}".`,
+      `Category: ${dto.category}. Venue: ${dto.venue}, ${dto.city}.`,
+      `Date: ${dto.date}.`,
+      dto.vibe ? `Vibe: ${dto.vibe}.` : '',
+      'Modern, bold typography. Dark background with vivid accent colours.',
+      'No watermarks, no text overlays — just the visual design.',
+    ].filter(Boolean).join(' ');
+
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', response_format: 'b64_json' }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new BadRequestException((err as any)?.error?.message || 'Image generation failed');
+    }
+
+    const { data } = await response.json() as { data: { b64_json: string }[] };
+    const b64 = data[0]?.b64_json;
+    if (!b64) throw new BadRequestException('No image returned from AI provider');
+
+    // Save to Supabase storage
+    const buffer = Buffer.from(b64, 'base64');
+    const posterUrl = await uploadBufferToSupabase(buffer, 'image/png', 'posters');
+
+    // Attach to the event record if an eventId was provided
+    if (eventId) {
+      const event = await this.prisma.eventListing.findUnique({ where: { id: eventId } });
+      if (event && event.organizerId === userId) {
+        await this.prisma.eventListing.update({ where: { id: eventId }, data: { posterUrl } });
+      }
+    }
+
+    return { posterUrl };
+  }
   private async payAndBook(opts: {
     userId: string;
     totalPrice: number;

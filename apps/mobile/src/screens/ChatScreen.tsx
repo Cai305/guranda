@@ -21,7 +21,9 @@ import { useLiveSound, LIVE_SOUND_DURATION_MS } from '../live/useLiveSound';
 import { fetchApi, uploadMedia } from '../utils/api';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import MiniAppProductPicker from '../components/MiniAppProductPicker';
+import MiniAppEventPicker from '../components/MiniAppEventPicker';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
+import EventMiniCard, { decodeEventCard } from '../components/cards/EventMiniCard';
 
 const isVideoUrl = (url: string) => /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(url);
 const isAudioUrl = (url: string) => /\.(m4a|mp3|wav|aac|3gp|ogg|caf)(\?|$)/i.test(url);
@@ -78,6 +80,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showVemojiPicker, setShowVemojiPicker] = useState(false);
   const [showProductPicker, setShowProductPicker] = useState(false);
+  const [showEventPicker, setShowEventPicker]     = useState(false);
   const [emojiBurst, setEmojiBurst] = useState<{ type: VemojiType; nonce: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessageDto | null>(null);
   const [actionSheetMessage, setActionSheetMessage] = useState<ChatMessageDto | null>(null);
@@ -317,6 +320,18 @@ export default function ChatScreen({ route, navigation }: any) {
     setReplyingTo(null);
   };
 
+  const sendEventCard = (encodedPayload: string) => {
+    if (!socket || !user?.userId) return;
+    const newMsg: ChatMessageDto = {
+      chatId: roomId,
+      senderId: user.userId,
+      content: encodedPayload,
+      replyToId: replyingTo?.id,
+    };
+    socket.emit('send_message', newMsg);
+    setReplyingTo(null);
+  };
+
   const sendVemoji = (type: VemojiType) => {
     if (!socket || !user?.userId) return;
     const newMsg: ChatMessageDto = { chatId: roomId, senderId: user.userId, content: encodeVemojiMessage(type), replyToId: replyingTo?.id };
@@ -371,9 +386,35 @@ export default function ChatScreen({ route, navigation }: any) {
       try { const parsed = JSON.parse(item.content); if (parsed.__productCard) { const { __productCard, ...rest } = parsed; productCard = rest as ProductCardData; } } catch {}
     }
 
+    // Detect event card payload
+    const eventCard = item.content?.includes('__eventCard') ? decodeEventCard(item.content) : null;
+
     const replyPreviewText = item.replyTo
       ? (parseVemojiMessage(item.replyTo.content) ? '🔥 Vemoji' : (item.replyTo.content || (item.replyTo.mediaUrl ? '📎 Attachment' : '')))
       : '';
+
+    if (eventCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          {isMe && (
+            <View style={styles.productBubbleLabel}>
+              <Ionicons name="calendar" size={11} color={COLORS.primary} />
+              <Text style={styles.productBubbleLabelText}>Event</Text>
+            </View>
+          )}
+          <EventMiniCard
+            event={eventCard}
+            chatTargetUserId={isMe ? targetUserId : undefined}
+            chatTargetName={isMe ? roomName : undefined}
+            navigation={navigation}
+            canBook={true}
+          />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
 
     if (productCard) {
       return (
@@ -971,6 +1012,12 @@ export default function ChatScreen({ route, navigation }: any) {
                 >
                   <Ionicons name="bag-handle-outline" size={18} color={COLORS.primary} />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pillIconBtn, styles.pillIconBtnLast]}
+                  onPress={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowVemojiPicker(false); setShowProductPicker(false); setShowEventPicker(true); }}
+                >
+                  <Ionicons name="calendar-outline" size={18} color="#ec4899" />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
@@ -996,6 +1043,11 @@ export default function ChatScreen({ route, navigation }: any) {
             visible={showProductPicker}
             onClose={() => setShowProductPicker(false)}
             onSendProduct={sendProductCard}
+          />
+          <MiniAppEventPicker
+            visible={showEventPicker}
+            onClose={() => setShowEventPicker(false)}
+            onSendEvent={sendEventCard}
           />
         </KeyboardAvoidingView>
       </View>

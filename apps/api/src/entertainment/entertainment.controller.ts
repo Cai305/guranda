@@ -106,6 +106,32 @@ export class EntertainmentController {
     return this.entertainmentService.bookEvent(req.user.userId, id, body);
   }
 
+  /** Gift a ticket to another user — the caller pays, the recipient owns the booking. */
+  @Post('events/:id/gift-ticket')
+  giftTicket(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.entertainmentService.giftTicket(req.user.userId, id, body);
+  }
+
+  /** Return a lightweight shareable card for embedding in a chat message. */
+  @Get('events/:id/share-card')
+  getEventShareCard(@Param('id') id: string) {
+    return this.entertainmentService.getEventShareCard(id);
+  }
+
+  /**
+   * Generate an AI poster for an event and (optionally) attach it.
+   * Pass eventId in the body to attach; omit it to just get the URL (for the
+   * pre-save flow in EventFormScreen).
+   */
+  @Post('events/generate-poster')
+  generatePoster(@Request() req: any, @Body() body: any) {
+    return this.entertainmentService.generatePoster(
+      req.user.userId,
+      body.eventId ?? null,
+      body,
+    );
+  }
+
   // Team management
   @Get('events/:id/team')
   getTeam(@Request() req: any, @Param('id') id: string) {

@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
-import { useEffectiveModules, LifeModule } from '../config/modules';
+import { useEffectiveModules, LifeModule, MINI_APP_IDS } from '../config/modules';
 import { AI_ENABLED } from '../config/featureFlags';
 import ModuleCard from '../components/ModuleCard';
 import SectionHeader from '../components/SectionHeader';
@@ -98,7 +98,7 @@ export default function HomeScreen({ navigation }: any) {
   ];
 
   const { isInstalled } = useStore();
-  const recommended = MODULES.filter(m => m.status === 'installable').slice(0, 8);
+  const recommended = MINI_APP_IDS.map(id => MODULES.find(m => m.id === id)).filter(Boolean).slice(0, 8) as LifeModule[];
 
   const openChat = (item: any) => {
     const companionId = AI_ENABLED ? FIXED_COMPANION_IDS[item.id] : undefined;

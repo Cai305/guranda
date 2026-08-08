@@ -73,3 +73,25 @@ export async function deleteFromSupabase(url: string): Promise<void> {
     // non-fatal — file may already be gone
   }
 }
+
+/**
+ * Upload a raw Buffer (e.g. AI-generated image bytes) directly to Supabase
+ * without going through multer. Used by entertainment.service's generatePoster.
+ */
+export async function uploadBufferToSupabase(
+  buffer: Buffer,
+  mimeType: string,
+  folder: string,
+): Promise<string> {
+  await ensureBucket();
+  const ext = mimeType.split('/')[1] || 'bin';
+  const path = `${folder}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
+
+  const { error } = await getClient()
+    .storage.from(BUCKET)
+    .upload(path, buffer, { contentType: mimeType, upsert: false });
+  if (error) throw error;
+
+  const { data } = getClient().storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
