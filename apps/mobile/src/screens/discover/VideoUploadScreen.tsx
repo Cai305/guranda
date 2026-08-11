@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, xhrUploadFormData } from '../../utils/api';
 import { startUpload, updateUploadProgress, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
+import { generateVideoThumbnail } from '../../utils/videoThumbnail';
 
 const CATEGORIES = ['Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
 const MIN_DURATION_S = 45;
@@ -22,6 +23,20 @@ export default function VideoUploadScreen({ navigation }: any) {
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [durationError, setDurationError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [generatingThumbnail, setGeneratingThumbnail] = useState(false);
+
+  // Grabs a poster frame the moment a valid video is picked, well ahead of
+  // the actual upload — so by the time the user taps "Upload" it's already
+  // sitting in the form data (or the field is just quietly absent, if
+  // extraction failed; a video posts fine without a thumbnail too).
+  const generateThumbnailFor = async (uri: string) => {
+    setThumbnailUrl(null);
+    setGeneratingThumbnail(true);
+    const url = await generateVideoThumbnail(uri);
+    setThumbnailUrl(url);
+    setGeneratingThumbnail(false);
+  };
 
   const pickVideo = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -53,6 +68,7 @@ export default function VideoUploadScreen({ navigation }: any) {
     setDurationError('');
     setVideoUri(asset.uri);
     setVideoDuration(durationSec);
+    generateThumbnailFor(asset.uri);
 
     // On web: also verify duration via HTML5 video element
     if (Platform.OS === 'web') {
@@ -105,6 +121,7 @@ export default function VideoUploadScreen({ navigation }: any) {
     form.append('category', category);
     form.append('tags', tags);
     form.append('duration', String(videoDuration ?? 60));
+    if (thumbnailUrl) form.append('thumbnailUrl', thumbnailUrl);
 
     // xhrUploadFormData (not fetch) is what makes the real percentage in the
     // progress bar possible — fetch has no upload-progress event.
@@ -141,6 +158,7 @@ export default function VideoUploadScreen({ navigation }: any) {
     videoEmptyTitle: { ...TYPOGRAPHY.h3, color: COLORS.textMuted },
     videoEmptyHint: { color: COLORS.textMuted, fontSize: 12 },
     videoPickedBox: { alignItems: 'center', paddingVertical: 32, gap: 8, backgroundColor: '#22c55e10' },
+    thumbnailPreview: { width: 120, height: 68, borderRadius: 8, backgroundColor: COLORS.surface },
     videoPickedText: { ...TYPOGRAPHY.body1, color: '#22c55e', fontWeight: '700' },
     videoDuration: { color: COLORS.textMuted, fontSize: 13 },
     rePickBtn: { marginTop: 4, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.surface },
@@ -174,7 +192,13 @@ export default function VideoUploadScreen({ navigation }: any) {
         <TouchableOpacity style={styles.videoPicker} onPress={pickVideo}>
           {videoUri ? (
             <View style={styles.videoPickedBox}>
-              <Ionicons name="checkmark-circle" size={48} color="#22c55e" />
+              {thumbnailUrl ? (
+                <Image source={{ uri: thumbnailUrl }} style={styles.thumbnailPreview} />
+              ) : generatingThumbnail ? (
+                <ActivityIndicator color="#22c55e" />
+              ) : (
+                <Ionicons name="checkmark-circle" size={48} color="#22c55e" />
+              )}
               <Text style={styles.videoPickedText}>Video selected</Text>
               {videoDuration && <Text style={styles.videoDuration}>{Math.floor(videoDuration / 60)}:{String(videoDuration % 60).padStart(2, '0')}</Text>}
               <TouchableOpacity style={styles.rePickBtn} onPress={pickVideo}>

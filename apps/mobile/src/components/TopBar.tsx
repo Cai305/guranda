@@ -123,7 +123,7 @@ export default function TopBar({ navigation }: { navigation?: any }) {
       >
         <View style={styles.avatarContainer}>
           <Image
-            source={{ uri: 'https://api.dicebear.com/7.x/avataaars/png?seed=' + (user?.username || 'lifeos') }}
+            source={{ uri: user?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/png?seed=' + (user?.username || 'lifeos') }}
             style={styles.avatar}
           />
           <View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]} />

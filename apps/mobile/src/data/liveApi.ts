@@ -94,8 +94,55 @@ export async function joinRoom(roomId: string) {
   const res = await fetchApi(`/live/rooms/${roomId}/join`, { method: 'POST' });
   if (!res.ok) throw new Error('This stream is no longer available.');
   return res.json() as Promise<{
-    roomName: string; token: string; wsUrl: string; isHost: boolean; title: string; categoryId: string;
+    roomName: string; token: string; wsUrl: string; isHost: boolean; isGuest: boolean; title: string; categoryId: string;
   }>;
+}
+
+// ── Multi-guest streaming ───────────────────────────────────────────────
+export type LiveGuest = {
+  id: string;
+  userId: string;
+  status: 'INVITED' | 'ACCEPTED' | 'DECLINED' | 'REMOVED';
+  user: { id: string; username: string; profile?: { displayName?: string | null } | null };
+};
+
+export async function inviteGuest(roomId: string, userId: string) {
+  const res = await fetchApi(`/live/rooms/${roomId}/guests/invite`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Could not invite that friend.');
+  return res.json();
+}
+
+export async function listGuests(roomId: string): Promise<LiveGuest[]> {
+  const res = await fetchApi(`/live/rooms/${roomId}/guests`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getMyGuestInvite(roomId: string) {
+  const res = await fetchApi(`/live/rooms/${roomId}/guests/mine`);
+  if (!res.ok) return null;
+  return res.json() as Promise<{ status: LiveGuest['status'] } | null>;
+}
+
+export async function respondGuestInvite(roomId: string, accept: boolean) {
+  const res = await fetchApi(`/live/rooms/${roomId}/guests/respond`, {
+    method: 'POST',
+    body: JSON.stringify({ accept }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.message || 'Could not respond to the invite.');
+  return res.json();
+}
+
+export async function removeGuest(roomId: string, userId: string) {
+  const res = await fetchApi(`/live/rooms/${roomId}/guests/remove`, {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) throw new Error('Could not remove that guest.');
+  return res.json();
 }
 
 // Shared entry point for tapping a live tile anywhere in the app (Home,

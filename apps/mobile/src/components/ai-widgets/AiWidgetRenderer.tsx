@@ -4,6 +4,8 @@ import WidgetCard, { WidgetCardProps } from './WidgetCard';
 import RideStatusCard from './RideStatusCard';
 import TripCard, { Trip } from './TripCard';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import PlatformWidget from '../widgets/PlatformWidget';
+import { PlatformWidgetData } from '../widgets/platformWidget';
 
 export interface ToolWidget {
   toolCallId: string;
@@ -15,6 +17,14 @@ export interface ToolWidget {
 interface AiWidgetRendererProps {
   widgets: ToolWidget[];
   navigation: any;
+}
+
+// AI tools can return a single portable widget (or a list of them). This is
+// the same data contract used by chat messages and comment bodies.
+function platformWidgets(widget: ToolWidget): PlatformWidgetData[] {
+  if (widget.renderAs !== 'platform-widget' && widget.renderAs !== 'widget') return [];
+  const data = Array.isArray(widget.data) ? widget.data : [widget.data];
+  return data.filter((item): item is PlatformWidgetData => !!item && typeof item.title === 'string' && typeof item.type === 'string');
 }
 
 // Navigates to a screen that lives inside the "Life" tab's nested stack
@@ -134,6 +144,14 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
   return (
     <View style={styles.container}>
       {widgets.map((widget) => {
+        const portable = platformWidgets(widget);
+        if (portable.length) {
+          return (
+            <ScrollView key={widget.toolCallId} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+              {portable.slice(0, 10).map((item, i) => <PlatformWidget key={`${item.type}-${item.id || i}`} widget={item} navigation={navigation} compact />)}
+            </ScrollView>
+          );
+        }
         if (widget.renderAs === 'trip-list') {
           const trips: Trip[] = Array.isArray(widget.data) ? widget.data : [];
           if (trips.length === 0) return null;

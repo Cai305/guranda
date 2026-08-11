@@ -335,4 +335,32 @@ export const MINI_APP_MANAGE_REGISTRY: MiniAppManageEntry[] = [
     },
     resolveRoute: () => ({ name: 'MyCarWashes' }),
   },
+  {
+    id: 'hair',
+    label: 'Salon',
+    icon: 'cut',
+    iconColor: '#F472B6',
+    crudCapability: 'full',
+    fetchSummary: async () => {
+      const salon = await getJson('/hair/mine');
+      const services = salon?.services ?? [];
+      const products = salon?.products ?? [];
+      const count = services.length + products.length;
+      // Booking payment currently happens up front at booking time (see
+      // hair.service.ts createBooking) so any non-cancelled booking is
+      // already-earned revenue for this salon.
+      const paidBookings = (salon?.bookings ?? []).filter((b: any) => b.status !== 'CANCELLED');
+      const revenue = paidBookings.length ? paidBookings.reduce((sum: number, b: any) => sum + Number(b.totalPrice), 0) : undefined;
+      const revenueDates = paidBookings.length ? paidBookings.map((b: any) => b.createdAt).filter(Boolean) : undefined;
+      return {
+        count,
+        countLabel: plural(count, 'Listing', 'Listings'),
+        dates: [...services, ...products].map((x: any) => x.createdAt).filter(Boolean),
+        raw: salon,
+        revenue,
+        revenueDates,
+      };
+    },
+    resolveRoute: () => ({ name: 'MySalon' }),
+  },
 ];

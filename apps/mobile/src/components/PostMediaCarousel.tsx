@@ -28,8 +28,19 @@ function MediaItem({ item, isActive, height }: { item: PostMediaDto; isActive: b
         {isActive ? (
           <VideoView style={StyleSheet.absoluteFill} player={player} contentFit="cover" nativeControls />
         ) : (
-          <View style={[StyleSheet.absoluteFill, styles.videoPlaceholder]}>
-            <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.85)" />
+          <View style={StyleSheet.absoluteFill}>
+            {item.thumbnailUrl ? (
+              <Image
+                source={{ uri: item.thumbnailUrl }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                cachePolicy="disk"
+                recyclingKey={item.thumbnailUrl}
+              />
+            ) : null}
+            <View style={[StyleSheet.absoluteFill, styles.videoPlaceholder]}>
+              <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.85)" />
+            </View>
           </View>
         )}
       </View>

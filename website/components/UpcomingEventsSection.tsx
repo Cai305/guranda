@@ -77,7 +77,7 @@ function CountUnit({ v, l }: { v: number; l: string }) {
   return (
     <div className="flex flex-col items-center">
       <div className="w-10 h-10 rounded-xl bg-black/30 border border-white/10 flex items-center justify-center">
-        <span className="text-sm font-black text-white tabular-nums">{String(v).padStart(2, '0')}</span>
+        <span className="text-sm font-black text-white tabular-nums" suppressHydrationWarning>{String(v).padStart(2, '0')}</span>
       </div>
       <span className="text-[9px] text-gray-600 mt-1 font-bold uppercase tracking-widest">{l}</span>
     </div>

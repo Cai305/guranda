@@ -8,7 +8,7 @@ import { EventBusService } from '../events/event-bus.service';
 import { MentionsService, MentionRef } from '../mentions/mentions.service';
 import { PostsGateway } from './posts.gateway';
 
-export type PostMediaInput = { url: string; type: string };
+export type PostMediaInput = { url: string; type: string; thumbnailUrl?: string };
 
 function toPositiveInt(raw: number | undefined, fallback: number, max = 50): number {
   if (raw === undefined || !Number.isFinite(raw) || raw < 0) return fallback;
@@ -104,7 +104,7 @@ export class PostsService {
           authorId: userId,
           content,
           media: {
-            create: (media ?? []).map((m, i) => ({ url: m.url, type: m.type, position: i })),
+            create: (media ?? []).map((m, i) => ({ url: m.url, type: m.type, position: i, thumbnailUrl: m.thumbnailUrl ?? null })),
           },
         },
         include: {

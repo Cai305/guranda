@@ -118,6 +118,22 @@ export class AdminController {
     return this.adminService.getDiscovery();
   }
 
+  @Get('live/reports')
+  getLiveReports(@Query('status') status?: string) {
+    return this.adminService.getLiveReports(status);
+  }
+
+  @Post('live/reports/:id/resolve')
+  async resolveLiveReport(
+    @Param('id') id: string,
+    @Body() body: { status?: 'reviewed' | 'actioned' | 'dismissed' },
+    @Request() req: any,
+  ) {
+    const result = await this.adminService.resolveLiveReport(id, body.status ?? 'reviewed', req.admin?.adminId ?? null);
+    await this.audit.log(req.admin, 'live.report.resolve', { type: 'LiveStreamReport', id });
+    return result;
+  }
+
   @Get('health')
   getHealth() {
     return this.adminService.getHealth();

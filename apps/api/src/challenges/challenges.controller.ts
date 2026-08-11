@@ -36,6 +36,40 @@ export class ChallengesController {
     return this.challenges.listActive(category, type, toPositiveInt(take, 20), toPositiveInt(skip, 0));
   }
 
+  // Must come before ':id' routes so Nest doesn't treat 'entries' as an id.
+  @Get('entries/feed')
+  entriesFeed(
+    @Request() req: any,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+    @Query('scope') scope?: string,
+  ) {
+    return this.challenges.getEntriesFeed(
+      req.user.userId,
+      toPositiveInt(take, 15),
+      cursor,
+      search,
+      category,
+      scope,
+    );
+  }
+
+  @Get('entries/:entryId/stats')
+  entryStats(@Param('entryId') entryId: string) {
+    return this.challenges.getEntryStats(entryId);
+  }
+
+  @Post('entries/:commentId/boost')
+  boostComment(
+    @Param('commentId') commentId: string,
+    @Body() body: { mshAmount: number },
+    @Request() req: any,
+  ) {
+    return this.challenges.boostComment(req.user.userId, commentId, body.mshAmount);
+  }
+
   @Get(':id')
   detail(
     @Param('id') id: string,

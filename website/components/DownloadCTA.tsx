@@ -14,10 +14,13 @@ export default function DownloadCTA() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9 }}
         viewport={{ once: true }}
-        className="relative"
+        className="relative overflow-hidden"
       >
         {/* Ambient glow — content floats directly on the page background,
-            no enclosing card, matching AISection's treatment */}
+            no enclosing card, matching AISection's treatment. Clipped by
+            the parent's overflow-hidden so the -top/-bottom/-left/-right
+            offsets on these fixed 384px blobs can't push the page wider
+            than the viewport on small screens. */}
         <div className="absolute -top-16 -left-16 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl -z-10" />
         <div className="absolute -bottom-16 -right-16 w-96 h-96 bg-pink-600/15 rounded-full blur-3xl -z-10" />
 

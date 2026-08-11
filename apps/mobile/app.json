@@ -80,7 +80,8 @@
       ],
       "expo-font",
       "expo-splash-screen",
-      "expo-image"
+      "expo-image",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -24,7 +24,7 @@ interface Props {
 
 export default function GiftSheet({ visible, onClose, recipientId, recipientName, context, contextId, onSent }: Props) {
   const { theme } = useTheme();
-  const { COLORS } = theme;
+  const { COLORS, SPACING } = theme;
   const [catalog, setCatalog] = useState<GiftCatalogItem[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [sendingKey, setSendingKey] = useState<string | null>(null);
@@ -43,6 +43,10 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
       paddingBottom: SPACING.xxl,
       borderWidth: 1,
       borderColor: COLORS.glassBorder,
+      maxHeight: '80%',
+    },
+    scroll: {
+      maxHeight: 420,
     },
     handle: {
       width: 40,
@@ -149,26 +153,28 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
           {loadingCatalog ? (
             <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SPACING.xl }} />
           ) : (
-            <View style={styles.grid}>
-              {catalog.map(item => (
-                <TouchableOpacity
-                  key={item.key}
-                  style={styles.card}
-                  disabled={!!sendingKey}
-                  onPress={() => sendGift(item)}
-                >
-                  {sendingKey === item.key ? (
-                    <ActivityIndicator color={COLORS.primary} />
-                  ) : (
-                    <>
-                      <Text style={styles.cardIcon}>{item.icon}</Text>
-                      <Text style={styles.cardLabel}>{item.label}</Text>
-                      <Text style={styles.cardAmount}>{item.amount} MSH</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
+            <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.grid}>
+                {catalog.map(item => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={styles.card}
+                    disabled={!!sendingKey}
+                    onPress={() => sendGift(item)}
+                  >
+                    {sendingKey === item.key ? (
+                      <ActivityIndicator color={COLORS.primary} />
+                    ) : (
+                      <>
+                        <Text style={styles.cardIcon}>{item.icon}</Text>
+                        <Text style={styles.cardLabel}>{item.label}</Text>
+                        <Text style={styles.cardAmount}>{item.amount} MSH</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           )}
 
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>

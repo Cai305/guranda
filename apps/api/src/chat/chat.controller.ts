@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Request,
@@ -31,6 +32,37 @@ export class ChatController {
   async getChatMessages(@Param('id') chatId: string, @Request() req: any) {
     const userId = req.user.userId;
     return this.chatService.getMessages(chatId, userId);
+  }
+
+  // Sets the default wallpaper applied to every chat this user has —
+  // "for everyone". Pass wallpaperUrl: null to clear it back to the app
+  // default.
+  @Patch('wallpaper')
+  async setGlobalWallpaper(
+    @Request() req: any,
+    @Body('wallpaperUrl') wallpaperUrl: string | null,
+  ) {
+    return this.chatService.setGlobalWallpaper(req.user.userId, wallpaperUrl ?? null);
+  }
+
+  // Resolved wallpaper for one chat — this chat's own override if set,
+  // otherwise the caller's global default.
+  @Get(':id/wallpaper')
+  async getChatWallpaper(@Param('id') chatId: string, @Request() req: any) {
+    return this.chatService.getWallpaper(chatId, req.user.userId);
+  }
+
+  // Sets a wallpaper for just this one chat — "for an individual" — this
+  // member's row only, doesn't touch the other participant's wallpaper or
+  // this user's global default. Pass wallpaperUrl: null to clear the
+  // override and fall back to the global default again.
+  @Patch(':id/wallpaper')
+  async setChatWallpaper(
+    @Param('id') chatId: string,
+    @Request() req: any,
+    @Body('wallpaperUrl') wallpaperUrl: string | null,
+  ) {
+    return this.chatService.setChatWallpaper(chatId, req.user.userId, wallpaperUrl ?? null);
   }
 
   @Post('direct')

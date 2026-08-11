@@ -59,7 +59,7 @@ export class PostsController {
     @Body() body: {
       content: string;
       // One or more already-uploaded media items, in display order.
-      media?: { url: string; type: string }[];
+      media?: { url: string; type: string; thumbnailUrl?: string }[];
       // Already-resolved references the client's mention-picker attached,
       // e.g. [{ targetType: 'user', targetId: '...' }] — see MentionsService.
       mentions?: { targetType: string; targetId: string }[];

@@ -12,6 +12,6 @@ async function bootstrap() {
     // `ngrok-skip-browser-warning` header before a login request reaches API.
     allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'ngrok-skip-browser-warning'],
   });
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
 }
 bootstrap();

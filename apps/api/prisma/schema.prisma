@@ -110,6 +110,7 @@ model User {
   liveDatingApplications       LiveDatingApplicant[]
   liveModeratorRoles           LiveRoomModerator[]
   liveModerationActions        LiveRoomModerationAction[]
+  liveRoomGuestInvites         LiveRoomGuest[]
   liveQuestionsAsked           LiveQuestion[]
   workCompaniesOwned           WorkCompany[]             @relation("workCompaniesOwned")
   workJobsPosted               WorkJob[]                 @relation("workJobsPosted")
@@ -159,6 +160,9 @@ model User {
   referredBy                   Referral?                 @relation("referredBy")
   reportsFiled                 PlayerReport[]            @relation("reportsFiled")
   reportsReceived              PlayerReport[]            @relation("reportsReceived")
+  liveStreamReportsFiled        LiveStreamReport[]        @relation("LiveStreamReportsFiled")
+  liveStreamReportsReceived     LiveStreamReport[]        @relation("LiveStreamReportsReceived")
+  liveStreamReportsReviewed     LiveStreamReport[]        @relation("LiveStreamReportsReviewed")
   challengeEntries             ChallengeEntry[]
   challengeEntryLikes          ChallengeEntryLike[]
   challengeEntryVotes          ChallengeEntryVote[]
@@ -190,6 +194,11 @@ model UserProfile {
   // UsersService.resolveActiveStatus), overriding statusMessage. Off = show
   // statusMessage verbatim.
   autoStatusEnabled Boolean @default(true)
+  // Default chat wallpaper applied to every conversation this user has —
+  // a solid color, gradient key, or image URL (mobile decides how to
+  // render each format). Individual chats can override it via
+  // ChatMember.wallpaperUrl.
+  chatWallpaperUrl  String?
 }
 
 // Outbox-pattern domain event log. A row here is written inside the SAME
@@ -383,6 +392,10 @@ model ChatMember {
   role       String   @default("MEMBER") // ADMIN, MOD, MEMBER
   joinedAt   DateTime @default(now())
   lastReadAt DateTime @default(now())
+  // Per-chat wallpaper override, this member only — takes precedence over
+  // their UserProfile.chatWallpaperUrl default for this one conversation.
+  // null falls back to the global default.
+  wallpaperUrl String?
 
   @@unique([chatId, userId])
 }
@@ -438,12 +451,17 @@ model Post {
 // the old single mediaUrl/mediaType pair so a post can carry a mixed
 // image+video gallery (CreatePostScreen's picker allows multi-select).
 model PostMedia {
-  id       String @id @default(uuid())
-  postId   String
-  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  url      String
-  type     String // 'IMAGE' | 'VIDEO'
-  position Int    @default(0)
+  id           String  @id @default(uuid())
+  postId       String
+  post         Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url          String
+  type         String // 'IMAGE' | 'VIDEO'
+  position     Int     @default(0)
+  // First-frame poster for VIDEO items, generated client-side at upload
+  // time and uploaded alongside the video — lets the feed render a real
+  // frame instead of a blank box before playback starts, same as YouTube.
+  // Always null for IMAGE items.
+  thumbnailUrl String?
 
   @@index([postId])
 }
@@ -664,6 +682,8 @@ model LiveRoom {
   datingApplicants  LiveDatingApplicant[]
   moderators        LiveRoomModerator[]
   moderationActions LiveRoomModerationAction[]
+  reports           LiveStreamReport[]
+  guests            LiveRoomGuest[]
 }
 
 // ── Education Live: real quizzes with an optional host-funded prize ──────
@@ -840,6 +860,47 @@ model LiveRoomModerationAction {
   createdAt DateTime @default(now())
 
   @@unique([roomId, userId, type])
+}
+
+// ── Multi-guest live streaming ────────────────────────────────────────────
+// The host invites a friend to go on stage alongside them. Once ACCEPTED,
+// LiveService.join() mints that user a publish-capable LiveKit token, same
+// as the host — they show up as a real second (or third...) camera feed,
+// not just a viewer. REMOVED covers both the host revoking an invite/guest
+// and the guest being taken off stage; DECLINED is the guest's own no.
+model LiveRoomGuest {
+  id          String   @id @default(uuid())
+  roomId      String
+  room        LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  status      String   @default("INVITED") // INVITED | ACCEPTED | DECLINED | REMOVED
+  invitedAt   DateTime @default(now())
+  respondedAt DateTime?
+
+  @@unique([roomId, userId])
+}
+
+model LiveStreamReport {
+  id             String   @id @default(uuid())
+  roomId         String
+  room           LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reporterId     String
+  reporter       User     @relation("LiveStreamReportsFiled", fields: [reporterId], references: [id])
+  reportedUserId String
+  reportedUser   User     @relation("LiveStreamReportsReceived", fields: [reportedUserId], references: [id])
+  reason         String   // 'harassment' | 'inappropriate_content' | 'spam' | 'violence' | 'hate_speech' | 'other'
+  details        String?
+  status         String   @default("open") // open | reviewed | actioned | dismissed
+  reviewedById   String?
+  reviewedBy     User?    @relation("LiveStreamReportsReviewed", fields: [reviewedById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([roomId])
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([status])
 }
 
 model LudoGame {
@@ -1259,6 +1320,7 @@ model AiSession {
   userId       String   @unique
   activeModule String?
   taskSummary  String?
+  activeAgentId String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

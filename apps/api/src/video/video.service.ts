@@ -50,6 +50,21 @@ export class VideoService {
     });
   }
 
+  // watchProgress (seconds into the video, from WatchHistory) for every
+  // video this user has ever watched — attached to feed/trending/search
+  // results so the client can render a YouTube-style red "watched up to
+  // here" bar under the thumbnail. Empty map for a logged-out/new viewer.
+  private async getWatchProgressMap(
+    userId?: string,
+  ): Promise<Record<string, number>> {
+    if (!userId) return {};
+    const rows = await this.prisma.watchHistory.findMany({
+      where: { userId },
+      select: { videoId: true, progress: true },
+    });
+    return Object.fromEntries(rows.map((r) => [r.videoId, r.progress]));
+  }
+
   // ── Feed (personalized) ───────────────────────────────────────────────────
   async getFeed(userId: string) {
     const interests = await this.prisma.userInterest.findMany({
@@ -57,11 +72,7 @@ export class VideoService {
     });
     const interestCategories = interests.map((i) => i.category);
 
-    const history = await this.prisma.watchHistory.findMany({
-      where: { userId },
-      select: { videoId: true },
-    });
-    const watchedIds = history.map((h) => h.videoId);
+    const progressMap = await this.getWatchProgressMap(userId);
 
     const [videos, viewer] = await Promise.all([
       this.prisma.video.findMany({
@@ -97,7 +108,7 @@ export class VideoService {
       score += Math.floor(v.views / 100);
       const age = (Date.now() - v.createdAt.getTime()) / 86400000;
       if (age < 7) score += 20;
-      if (watchedIds.includes(v.id)) score -= 5;
+      if (progressMap[v.id] !== undefined) score -= 5;
       // Reputation+proximity term, additive alongside the existing
       // interest/views/recency signal rather than replacing it — scaled to
       // roughly the same 0-50+ range as the score above.
@@ -117,6 +128,7 @@ export class VideoService {
         score,
         liked: likedSet.has(v.id),
         savedLater: wlSet.has(v.id),
+        watchProgress: progressMap[v.id] ?? 0,
       };
     });
 
@@ -183,10 +195,12 @@ export class VideoService {
           ).map((w) => w.videoId),
         )
       : new Set<string>();
+    const progressMap = await this.getWatchProgressMap(userId);
     return videos.map((v) => ({
       ...v,
       liked: likedSet.has(v.id),
       savedLater: wlSet.has(v.id),
+      watchProgress: progressMap[v.id] ?? 0,
     }));
   }
 
@@ -219,7 +233,12 @@ export class VideoService {
           ).map((l) => l.videoId),
         )
       : new Set<string>();
-    return videos.map((v) => ({ ...v, liked: likedSet.has(v.id) }));
+    const progressMap = await this.getWatchProgressMap(userId);
+    return videos.map((v) => ({
+      ...v,
+      liked: likedSet.has(v.id),
+      watchProgress: progressMap[v.id] ?? 0,
+    }));
   }
 
   // ── Single video ──────────────────────────────────────────────────────────
@@ -279,6 +298,17 @@ export class VideoService {
       where: { id: videoId },
       data: { views: { increment: 1 } },
     });
+    await this.prisma.watchHistory.upsert({
+      where: { userId_videoId: { userId, videoId } },
+      update: { progress, watchedAt: new Date() },
+      create: { userId, videoId, progress },
+    });
+  }
+
+  // Heartbeat from an in-progress playback session — updates how far the
+  // user has watched without re-incrementing the view count (that only
+  // happens once, from recordView at playback start).
+  async updateWatchProgress(videoId: string, userId: string, progress: number) {
     await this.prisma.watchHistory.upsert({
       where: { userId_videoId: { userId, videoId } },
       update: { progress, watchedAt: new Date() },
@@ -363,7 +393,7 @@ export class VideoService {
     return this.prisma.playlist.create({ data: { userId, name, isPublic } });
   }
 
-  async getPlaylist(id: string) {
+  async getPlaylist(id: string, userId?: string) {
     const pl = await this.prisma.playlist.findUnique({
       where: { id },
       include: {
@@ -382,7 +412,14 @@ export class VideoService {
       },
     });
     if (!pl) throw new NotFoundException('Playlist not found');
-    return pl;
+    const progressMap = await this.getWatchProgressMap(userId);
+    return {
+      ...pl,
+      videos: pl.videos.map((pv) => ({
+        ...pv,
+        video: { ...pv.video, watchProgress: progressMap[pv.video.id] ?? 0 },
+      })),
+    };
   }
 
   async addToPlaylist(playlistId: string, videoId: string, userId: string) {
@@ -440,7 +477,12 @@ export class VideoService {
       },
       orderBy: { addedAt: 'desc' },
     });
-    return entries.map((e) => ({ ...e.video, savedLater: true }));
+    const progressMap = await this.getWatchProgressMap(userId);
+    return entries.map((e) => ({
+      ...e.video,
+      savedLater: true,
+      watchProgress: progressMap[e.video.id] ?? 0,
+    }));
   }
 
   async addWatchLater(videoId: string, userId: string) {

@@ -117,6 +117,9 @@ export interface PostMediaDto {
   url: string;
   type: 'IMAGE' | 'VIDEO';
   position?: number;
+  // First-frame poster for VIDEO items, generated client-side at upload
+  // time. Always undefined/null for IMAGE items.
+  thumbnailUrl?: string | null;
 }
 
 export interface PostDto {

@@ -6,9 +6,11 @@ import {
   Param,
   Request,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { FeatureFlagsService } from './feature-flags.service';
 import { AdminAccessGuard } from '../admin/admin-access.guard';
 import { AdminAuditService } from '../admin/admin-audit.service';
@@ -18,6 +20,10 @@ import { SetFeatureFlagDto } from './dto/set-feature-flag.dto';
 export class FeatureFlagsController {
   constructor(private readonly featureFlagsService: FeatureFlagsService) {}
 
+  // Public endpoint — cache for 5 minutes. Feature flags change only when an
+  // admin explicitly toggles one, so we get huge read savings at zero UX cost.
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300_000) // 5 minutes in ms
   @Get()
   getAll() {
     return this.featureFlagsService.getAll();

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  ActivityIndicator, Image, Alert, Modal,
+  ActivityIndicator, Image, Alert, Modal, Platform,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -34,15 +35,35 @@ interface PosterSectionProps {
   venue: string;
   city: string;
   date: string;
+  navigation: any;
+  designedPosterUri?: string;
+  clearDesignedPosterUri: () => void;
 }
 
-function PosterSection({ posterUrl, onPosterUrl, eventId, title, category, venue, city, date }: PosterSectionProps) {
+function PosterSection({ posterUrl, onPosterUrl, eventId, title, category, venue, city, date, navigation, designedPosterUri, clearDesignedPosterUri }: PosterSectionProps) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const [uploading, setUploading]   = useState(false);
   const [generating, setGenerating] = useState(false);
   const [vibeModal, setVibeModal]   = useState(false);
   const [vibe, setVibe]             = useState('');
+
+  // Handle poster returned from Poster Creator mini-app
+  useEffect(() => {
+    if (!designedPosterUri) return;
+    clearDesignedPosterUri();
+    (async () => {
+      setUploading(true);
+      try {
+        const uploaded = await uploadMedia(designedPosterUri, 'image');
+        onPosterUrl(uploaded.url);
+      } catch (e: any) {
+        Alert.alert('Upload failed', e.message || 'Could not upload the designed poster.');
+      } finally {
+        setUploading(false);
+      }
+    })();
+  }, [designedPosterUri]);
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
     container: { gap: 10 },
@@ -99,6 +120,16 @@ function PosterSection({ posterUrl, onPosterUrl, eventId, title, category, venue
     vibeGenerateText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     vibeCancelBtn: { alignItems: 'center', paddingVertical: 10 },
     vibeCancelText: { color: COLORS.textMuted, fontSize: 14 },
+    designBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 6, paddingVertical: 10, paddingHorizontal: 12,
+      borderRadius: RADIUS.lg, overflow: 'hidden', minWidth: 100,
+    },
+    designBtnGrad: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 6, paddingVertical: 10, paddingHorizontal: 12,
+    },
+    designBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   }));
 
   const pickFromLibrary = async () => {
@@ -196,6 +227,22 @@ function PosterSection({ posterUrl, onPosterUrl, eventId, title, category, venue
         )}
       </View>
 
+      {/* Design in Poster Creator */}
+      <TouchableOpacity
+        style={styles.designBtn}
+        onPress={() => navigation.navigate('PosterCreator', {
+          returnScreen: 'EventForm',
+          returnParamKey: 'designedPosterUri',
+          initialCategory: 'event',
+        })}
+        disabled={uploading || generating}
+      >
+        <LinearGradient colors={['#10B981', '#22D3EE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.designBtnGrad}>
+          <Ionicons name="brush-outline" size={16} color="#fff" />
+          <Text style={styles.designBtnText}>Design in Poster Creator</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+
       {/* Vibe prompt modal */}
       <Modal visible={vibeModal} transparent animationType="slide" onRequestClose={() => setVibeModal(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setVibeModal(false)}>
@@ -244,6 +291,8 @@ export default function EventFormScreen({ navigation, route }: any) {
   const [city, setCity]                     = useState('');
   const [date, setDate]                     = useState('');
   const [time, setTime]                     = useState('20:00');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [price, setPrice]                   = useState('0');
   const [ticketsTotal, setTicketsTotal]     = useState('100');
   const [ticketsAvailable, setTicketsAvailable] = useState<number | null>(null);
@@ -393,13 +442,148 @@ export default function EventFormScreen({ navigation, route }: any) {
         </View>
 
         <View style={styles.row}>
+          {/* ── Date picker ── */}
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Date *</Text>
-            <TextInput style={styles.input} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textMuted} value={date} onChangeText={setDate} />
+            {Platform.OS === 'web' ? (
+              <TextInput
+                style={styles.input}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={COLORS.textMuted}
+                value={date}
+                onChangeText={setDate}
+              />
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.input, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={date ? COLORS.text : COLORS.textMuted} />
+                  <Text style={{ color: date ? COLORS.text : COLORS.textMuted, fontSize: 14, flex: 1 }}>
+                    {date
+                      ? new Date(date + 'T00:00:00').toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Select date'}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && Platform.OS === 'ios' && (
+                  <Modal transparent animationType="slide" onRequestClose={() => setShowDatePicker(false)}>
+                    <TouchableOpacity style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
+                      <View style={{ backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 30, paddingTop: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, marginBottom: 8 }}>
+                          <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                            <Text style={{ color: '#7c3aed', fontWeight: '700', fontSize: 16 }}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <DateTimePicker
+                          value={date ? new Date(date + 'T00:00:00') : new Date()}
+                          mode="date"
+                          display="inline"
+                          minimumDate={new Date()}
+                          themeVariant="dark"
+                          onChange={(_: DateTimePickerEvent, selected?: Date) => {
+                            if (selected) {
+                              const y = selected.getFullYear();
+                              const m = String(selected.getMonth() + 1).padStart(2, '0');
+                              const d = String(selected.getDate()).padStart(2, '0');
+                              setDate(`${y}-${m}-${d}`);
+                            }
+                          }}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
+                )}
+                {showDatePicker && Platform.OS === 'android' && (
+                  <DateTimePicker
+                    value={date ? new Date(date + 'T00:00:00') : new Date()}
+                    mode="date"
+                    display="calendar"
+                    minimumDate={new Date()}
+                    onChange={(_: DateTimePickerEvent, selected?: Date) => {
+                      setShowDatePicker(false);
+                      if (selected) {
+                        const y = selected.getFullYear();
+                        const m = String(selected.getMonth() + 1).padStart(2, '0');
+                        const d = String(selected.getDate()).padStart(2, '0');
+                        setDate(`${y}-${m}-${d}`);
+                      }
+                    }}
+                  />
+                )}
+              </>
+            )}
           </View>
+
+          {/* ── Time picker ── */}
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Time</Text>
-            <TextInput style={styles.input} placeholder="HH:MM" placeholderTextColor={COLORS.textMuted} value={time} onChangeText={setTime} />
+            {Platform.OS === 'web' ? (
+              <TextInput
+                style={styles.input}
+                placeholder="HH:MM"
+                placeholderTextColor={COLORS.textMuted}
+                value={time}
+                onChangeText={setTime}
+              />
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.input, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}
+                  onPress={() => setShowTimePicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="time-outline" size={18} color={COLORS.text} />
+                  <Text style={{ color: COLORS.text, fontSize: 14, flex: 1 }}>
+                    {time || '20:00'}
+                  </Text>
+                </TouchableOpacity>
+                {showTimePicker && Platform.OS === 'ios' && (
+                  <Modal transparent animationType="slide" onRequestClose={() => setShowTimePicker(false)}>
+                    <TouchableOpacity style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }} activeOpacity={1} onPress={() => setShowTimePicker(false)}>
+                      <View style={{ backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 30, paddingTop: 12 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, marginBottom: 8 }}>
+                          <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                            <Text style={{ color: '#7c3aed', fontWeight: '700', fontSize: 16 }}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <DateTimePicker
+                          value={(() => { const [h, m] = (time || '20:00').split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()}
+                          mode="time"
+                          display="spinner"
+                          is24Hour={true}
+                          themeVariant="dark"
+                          onChange={(_: DateTimePickerEvent, selected?: Date) => {
+                            if (selected) {
+                              const hh = String(selected.getHours()).padStart(2, '0');
+                              const mm = String(selected.getMinutes()).padStart(2, '0');
+                              setTime(`${hh}:${mm}`);
+                            }
+                          }}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
+                )}
+                {showTimePicker && Platform.OS === 'android' && (
+                  <DateTimePicker
+                    value={(() => { const [h, m] = (time || '20:00').split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()}
+                    mode="time"
+                    display="clock"
+                    is24Hour={true}
+                    onChange={(_: DateTimePickerEvent, selected?: Date) => {
+                      setShowTimePicker(false);
+                      if (selected) {
+                        const hh = String(selected.getHours()).padStart(2, '0');
+                        const mm = String(selected.getMinutes()).padStart(2, '0');
+                        setTime(`${hh}:${mm}`);
+                      }
+                    }}
+                  />
+                )}
+              </>
+            )}
           </View>
         </View>
 
@@ -441,6 +625,9 @@ export default function EventFormScreen({ navigation, route }: any) {
           venue={venue}
           city={city}
           date={date}
+          navigation={navigation}
+          designedPosterUri={route?.params?.designedPosterUri}
+          clearDesignedPosterUri={() => navigation.setParams({ designedPosterUri: undefined })}
         />
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

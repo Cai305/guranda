@@ -12,6 +12,61 @@ export class ChatService {
     private usersService: UsersService,
   ) {}
 
+  // ── Chat wallpaper ─────────────────────────────────────────────────────
+  // Two layers: a global default (UserProfile.chatWallpaperUrl, applies to
+  // every chat this user opens) and a per-chat override (ChatMember.
+  // wallpaperUrl, this user + this chat only). The value itself is either
+  // a full image URL (uploaded custom wallpaper) or a short preset id the
+  // client resolves against its own PRESET_WALLPAPERS table — the server
+  // treats it as an opaque string either way.
+
+  async setGlobalWallpaper(userId: string, wallpaperUrl: string | null) {
+    await this.prisma.userProfile.update({
+      where: { userId },
+      data: { chatWallpaperUrl: wallpaperUrl },
+    });
+    return { chatWallpaperUrl: wallpaperUrl };
+  }
+
+  async setChatWallpaper(
+    chatId: string,
+    userId: string,
+    wallpaperUrl: string | null,
+  ) {
+    const membership = await this.prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId, userId } },
+    });
+    if (!membership) {
+      throw new BadRequestException('You are not a member of this chat');
+    }
+    await this.prisma.chatMember.update({
+      where: { chatId_userId: { chatId, userId } },
+      data: { wallpaperUrl },
+    });
+    return { chatId, wallpaperUrl };
+  }
+
+  async getWallpaper(chatId: string, userId: string) {
+    const [membership, profile] = await Promise.all([
+      this.prisma.chatMember.findUnique({
+        where: { chatId_userId: { chatId, userId } },
+        select: { wallpaperUrl: true },
+      }),
+      this.prisma.userProfile.findUnique({
+        where: { userId },
+        select: { chatWallpaperUrl: true },
+      }),
+    ]);
+    if (!membership) {
+      throw new BadRequestException('You are not a member of this chat');
+    }
+    return {
+      wallpaperUrl: membership.wallpaperUrl ?? profile?.chatWallpaperUrl ?? null,
+      isPerChatOverride: !!membership.wallpaperUrl,
+      globalWallpaperUrl: profile?.chatWallpaperUrl ?? null,
+    };
+  }
+
   async getUserChats(userId: string) {
     const memberships = await this.prisma.chatMember.findMany({
       where: { userId },

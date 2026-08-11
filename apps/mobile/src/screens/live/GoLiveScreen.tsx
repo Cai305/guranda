@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { LIVE_CATEGORIES, getLiveCategory } from '../../config/liveCategories';
-import ComingSoonNote from '../../components/ComingSoonNote';
-import { goLive } from '../../data/liveApi';
+import { goLive, inviteGuest } from '../../data/liveApi';
+import { getFriends } from '../../data/liveCategoryApi';
 
-const MOCK_FRIENDS = [
-  { id: 'f1', name: 'Zanele K' },
-  { id: 'f2', name: 'Mo Dev' },
-  { id: 'f3', name: 'Thabo M' },
-];
+type Friend = { id: string; username: string; profile?: { displayName?: string } | null };
 
 export default function GoLiveScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
@@ -20,12 +16,23 @@ export default function GoLiveScreen({ navigation }: any) {
   const [conversationTopic, setConversationTopic] = useState('');
   const [scheduled, setScheduled] = useState(false);
   const [scheduleWhen, setScheduleWhen] = useState('');
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(true);
   const [invitedGuests, setInvitedGuests] = useState<string[]>([]);
   const [moderatorsOn, setModeratorsOn] = useState(false);
   const [starting, setStarting] = useState(false);
 
   const category = getLiveCategory(categoryId);
   const availableCategories = LIVE_CATEGORIES.filter(c => c.status === 'live');
+
+  useEffect(() => {
+    // /friends returns [{friendshipId, user: {id, username, profile}}] —
+    // flatten to the {id, username, profile} shape this screen renders.
+    getFriends()
+      .then((rows: any[]) => setFriends(rows.map((r) => r.user)))
+      .catch(() => setFriends([]))
+      .finally(() => setLoadingFriends(false));
+  }, []);
 
   const toggleGuest = (id: string) => {
     setInvitedGuests(prev => prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]);
@@ -45,18 +52,16 @@ export default function GoLiveScreen({ navigation }: any) {
     // Real camera streaming only runs on web today (see LiveHostScreen).
     // On native we still open the host studio in its honest preview mode.
     if (Platform.OS !== 'web') {
-      navigation.replace('LiveHost', {
-        title: title.trim(),
-        categoryId,
-        guestCount: invitedGuests.length,
-        moderatorsOn,
-      });
+      navigation.replace('LiveHost', { title: title.trim(), categoryId, moderatorsOn });
       return;
     }
 
     setStarting(true);
     try {
       const room = await goLive(title.trim(), categoryId, categoryId === 'conversation' ? conversationTopic.trim() : undefined);
+      // Best-effort — a friend who unfriended you between selecting them
+      // and going live shouldn't block the stream from starting.
+      await Promise.allSettled(invitedGuests.map((guestId) => inviteGuest(room.id, guestId)));
       navigation.replace('LiveHost', {
         roomId: room.id,
         roomName: room.roomName,
@@ -64,7 +69,6 @@ export default function GoLiveScreen({ navigation }: any) {
         wsUrl: room.wsUrl,
         title: room.title,
         categoryId: room.categoryId,
-        guestCount: invitedGuests.length,
         moderatorsOn,
       });
     } catch (e: any) {
@@ -158,22 +162,29 @@ export default function GoLiveScreen({ navigation }: any) {
         <View style={styles.card}>
           <Text style={styles.label}>Invite Guests</Text>
           <Text style={styles.hint}>Guests appear on screen once multi-guest streaming is live.</Text>
-          {MOCK_FRIENDS.map(f => {
-            const selected = invitedGuests.includes(f.id);
-            return (
-              <TouchableOpacity key={f.id} style={styles.friendRow} onPress={() => toggleGuest(f.id)}>
-                <View style={styles.friendAvatar}>
-                  <Text style={styles.friendInitial}>{f.name[0]}</Text>
-                </View>
-                <Text style={styles.friendName}>{f.name}</Text>
-                <Ionicons
-                  name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={20}
-                  color={selected ? COLORS.primary : COLORS.textMuted}
-                />
-              </TouchableOpacity>
-            );
-          })}
+          {loadingFriends ? (
+            <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SPACING.md }} />
+          ) : friends.length === 0 ? (
+            <Text style={styles.hint}>Add friends to invite them to your stream.</Text>
+          ) : (
+            friends.map(f => {
+              const selected = invitedGuests.includes(f.id);
+              const name = f.profile?.displayName || f.username;
+              return (
+                <TouchableOpacity key={f.id} style={styles.friendRow} onPress={() => toggleGuest(f.id)}>
+                  <View style={styles.friendAvatar}>
+                    <Text style={styles.friendInitial}>{name[0]?.toUpperCase()}</Text>
+                  </View>
+                  <Text style={styles.friendName}>{name}</Text>
+                  <Ionicons
+                    name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={20}
+                    color={selected ? COLORS.primary : COLORS.textMuted}
+                  />
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         <View style={styles.card}>
@@ -186,7 +197,7 @@ export default function GoLiveScreen({ navigation }: any) {
               <View style={[styles.toggleKnob, moderatorsOn && styles.toggleKnobOn]} />
             </TouchableOpacity>
           </View>
-          <ComingSoonNote text="Full moderator tools (mute, ban, filters) are coming soon." />
+          <Text style={styles.hint}>Lets you assign moderators once live, who can mute, kick, and ban viewers from the stream.</Text>
         </View>
 
         <TouchableOpacity activeOpacity={0.85} onPress={startStreaming} disabled={starting} style={{ marginHorizontal: SPACING.lg }}>

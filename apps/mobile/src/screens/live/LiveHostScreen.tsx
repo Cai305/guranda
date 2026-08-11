@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../../theme';
 import { getLiveCategory } from '../../config/liveCategories';
 import { formatCount } from '../../utils/format';
-import { endRoom } from '../../data/liveApi';
-import LiveVideoView from '../../components/LiveVideoView';
+import { endRoom, inviteGuest, listGuests, removeGuest, LiveGuest } from '../../data/liveApi';
+import LiveGuestGrid, { VideoTile } from '../../components/live/LiveGuestGrid';
 import * as LiveKit from '../../live/liveKit';
 import LiveCategoryHostPanel from '../../components/live/LiveCategoryHostPanel';
 import { useLiveSocket } from '../../live/useLiveSocket';
@@ -19,7 +19,7 @@ import * as modApi from '../../data/liveCategoryApi';
 // (native, or no room) it falls back to the original simulated
 // preview so the screen never breaks — just labeled honestly.
 export default function LiveHostScreen({ navigation, route }: any) {
-  const { title, categoryId, guestCount = 0, moderatorsOn, roomId, roomName, token, wsUrl } = route?.params || {};
+  const { title, categoryId, moderatorsOn, roomId, roomName, token, wsUrl } = route?.params || {};
   const category = getLiveCategory(categoryId);
   const isReal = Platform.OS === 'web' && !!roomId && !!token;
   const { user } = useAuth();
@@ -36,7 +36,19 @@ export default function LiveHostScreen({ navigation, route }: any) {
   const [connectionState, setConnectionState] = useState<'connecting' | 'live' | 'error'>(isReal ? 'connecting' : 'live');
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [localVideoTrack, setLocalVideoTrack] = useState<any>(null);
+  const [remoteVideos, setRemoteVideos] = useState<Record<string, { name: string; track: any }>>({});
   const sessionRef = useRef<any>(null);
+
+  const onRemoteVideoTrack = (identity: string, name: string, track: any) => {
+    setRemoteVideos(prev => {
+      if (!track) {
+        const next = { ...prev };
+        delete next[identity];
+        return next;
+      }
+      return { ...prev, [identity]: { name, track } };
+    });
+  };
 
   // Wall-clock elapsed timer runs in both real and simulated mode.
   useEffect(() => {
@@ -55,7 +67,7 @@ export default function LiveHostScreen({ navigation, route }: any) {
     if (!isReal) return;
     let cancelled = false;
 
-    LiveKit.connectAsHost(wsUrl, token, (n: number) => !cancelled && setViewers(n))
+    LiveKit.connectAsHost(wsUrl, token, (n: number) => !cancelled && setViewers(n), onRemoteVideoTrack)
       .then((session: any) => {
         if (cancelled) {
           session.disconnect();
@@ -127,9 +139,6 @@ export default function LiveHostScreen({ navigation, route }: any) {
     }
   };
 
-  const comingSoon = (feature: string) =>
-    Alert.alert('Coming Soon 🚧', `${feature} will be available once Guranda Live's full broadcasting infrastructure ships.`);
-
   const handleAllocateTime = (username: string) => {
     Alert.alert(`Allocate Time to ${username}`, 'How much time should this speaker get?', [
       { text: '1 Minute', onPress: () => sendAudioRoomEvent('allocate_time', { username, durationMs: 60000 }) },
@@ -159,16 +168,50 @@ export default function LiveHostScreen({ navigation, route }: any) {
 
   const runMod = (fn: () => Promise<any>) => fn().then(loadModState).catch((e: any) => Alert.alert('Error', e.message));
   const isModerator = (userId: string) => modState.moderators.some((m) => m.userId === userId);
+
+  // ── Multi-guest streaming ──────────────────────────────────────────────
+  const [guestPanelOpen, setGuestPanelOpen] = useState(false);
+  const [guests, setGuests] = useState<LiveGuest[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [friendsLoaded, setFriendsLoaded] = useState(false);
+  const [guestBusy, setGuestBusy] = useState(false);
+
+  const loadGuests = () => {
+    if (!isReal || !roomId) return;
+    listGuests(roomId).then(setGuests).catch(() => {});
+  };
+  useEffect(() => { loadGuests(); }, [isReal, roomId]);
+  useEffect(() => { if (categoryEvent?.type === 'live_guest_update') loadGuests(); }, [categoryEvent?.nonce]);
+  useEffect(() => {
+    if (!guestPanelOpen || friendsLoaded) return;
+    modApi.getFriends()
+      .then((rows: any[]) => setFriends(rows.map((r) => r.user)))
+      .catch(() => setFriends([]))
+      .finally(() => setFriendsLoaded(true));
+  }, [guestPanelOpen]);
+
+  const acceptedGuestCount = guests.filter((g) => g.status === 'ACCEPTED').length;
+  const invitedFriendIds = new Set(guests.map((g) => g.userId));
+
+  const runGuestAction = (fn: () => Promise<any>) => {
+    setGuestBusy(true);
+    fn().then(loadGuests).catch((e: any) => Alert.alert('Error', e.message)).finally(() => setGuestBusy(false));
+  };
   const isMuted = (userId: string) => modState.muted.some((m) => m.userId === userId);
   const otherParticipants = participants.filter((p) => p.userId !== user?.userId);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Absolute Full Screen Camera / Gradient Background */}
+      {/* Absolute Full Screen Camera / Gradient Background — the host's own
+          tile plus any accepted guests' tiles, laid out as a grid once
+          more than one feed is on stage. */}
       {isReal && connectionState === 'live' && cameraOn ? (
-        <View style={StyleSheet.absoluteFill}>
-          <LiveVideoView track={localVideoTrack} muted mirror />
-        </View>
+        <LiveGuestGrid
+          tiles={[
+            { identity: user?.userId || 'me', name: hostName, track: localVideoTrack, muted: true, mirror: true } as VideoTile,
+            ...Object.entries(remoteVideos).map(([identity, v]) => ({ identity, name: v.name, track: v.track } as VideoTile)),
+          ]}
+        />
       ) : (
         <LinearGradient
           colors={category?.gradient || ['#333', '#111']}
@@ -347,6 +390,65 @@ export default function LiveHostScreen({ navigation, route }: any) {
         </View>
       )}
 
+      {/* ── GUEST PANEL (invite friends on stage, real LiveKit publishers) ── */}
+      {guestPanelOpen && (
+        <View style={styles.modPanel}>
+          <View style={styles.modPanelHeader}>
+            <Text style={styles.modPanelTitle}>Invite Guests</Text>
+            <TouchableOpacity onPress={() => setGuestPanelOpen(false)}>
+              <Ionicons name="close" size={20} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+            <Text style={styles.modBoxTitle}>On stage / invited ({guests.length})</Text>
+            {guests.length === 0 ? (
+              <Text style={styles.modBoxEmpty}>No one invited yet.</Text>
+            ) : (
+              guests.map((g) => (
+                <View key={g.id} style={styles.modRow}>
+                  <View>
+                    <Text style={styles.modRowName}>{g.user.profile?.displayName || g.user.username}</Text>
+                    <Text style={styles.modRowSub}>
+                      {g.status === 'ACCEPTED' ? 'Live on stage' : g.status === 'INVITED' ? 'Invite pending' : 'Declined'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.modActionBtn, { backgroundColor: COLORS.error }]}
+                    disabled={guestBusy}
+                    onPress={() => runGuestAction(() => removeGuest(roomId, g.userId))}
+                  >
+                    <Text style={styles.modActionText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+            <Text style={[styles.modBoxTitle, { marginTop: 12 }]}>Invite a friend</Text>
+            {!friendsLoaded ? (
+              <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 8 }} />
+            ) : friends.filter((f) => !invitedFriendIds.has(f.id)).length === 0 ? (
+              <Text style={styles.modBoxEmpty}>
+                {friends.length === 0 ? 'You have no friends to invite yet.' : 'All your friends are already invited.'}
+              </Text>
+            ) : (
+              friends
+                .filter((f) => !invitedFriendIds.has(f.id))
+                .map((f) => (
+                  <View key={f.id} style={styles.modRow}>
+                    <Text style={styles.modRowName}>{f.profile?.displayName || f.username}</Text>
+                    <TouchableOpacity
+                      style={styles.modActionBtn}
+                      disabled={guestBusy}
+                      onPress={() => runGuestAction(() => inviteGuest(roomId, f.id))}
+                    >
+                      <Text style={styles.modActionText}>Invite</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+            )}
+          </ScrollView>
+        </View>
+      )}
+
       {/* ── BOTTOM FLOATING CONTROLS ── */}
       <View style={styles.bottomControls}>
         {/* Connection banner */}
@@ -375,9 +477,13 @@ export default function LiveHostScreen({ navigation, route }: any) {
             <Ionicons name={cameraOn ? 'videocam' : 'videocam-off'} size={22} color={!cameraOn ? COLORS.error : '#FFF'} />
             <Text style={styles.controlLabel}>{cameraOn ? 'Camera' : 'Off'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => comingSoon('Multi-guest streaming')}>
+          <TouchableOpacity
+            style={styles.controlBtn}
+            disabled={!isReal || !roomId}
+            onPress={() => setGuestPanelOpen(o => !o)}
+          >
             <Ionicons name="person-add-outline" size={22} color="#FFF" />
-            <Text style={styles.controlLabel}>Invite ({guestCount})</Text>
+            <Text style={styles.controlLabel}>Invite ({acceptedGuestCount})</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.controlBtn, styles.endBtnSmall]} onPress={endStream}>
             <Ionicons name="stop-circle" size={22} color="#FFF" />

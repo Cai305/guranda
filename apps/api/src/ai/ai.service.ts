@@ -153,6 +153,7 @@ export class AiService {
       pendingAction: toWirePendingAction(result.pendingAction),
       backgroundExecutionId: result.backgroundExecutionId,
       widgets: result.widgets,
+      activeAgent: result.activeAgent,
     };
   }
 
@@ -178,6 +179,7 @@ export class AiService {
       pendingAction: toWirePendingAction(result.pendingAction),
       backgroundExecutionId: result.backgroundExecutionId,
       widgets: result.widgets,
+      activeAgent: result.activeAgent,
     };
   }
 
@@ -201,6 +203,7 @@ export class AiService {
       pendingAction: toWirePendingAction(result.pendingAction),
       backgroundExecutionId: result.backgroundExecutionId,
       widgets: result.widgets,
+      activeAgent: result.activeAgent,
     };
   }
 }

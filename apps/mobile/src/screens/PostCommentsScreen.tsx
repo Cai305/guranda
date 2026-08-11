@@ -7,6 +7,8 @@ import { fetchApi } from '../utils/api';
 import { CommentDto, PostDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
 import PostMediaCarousel from '../components/PostMediaCarousel';
+import PlatformWidget from '../components/widgets/PlatformWidget';
+import { decodePlatformWidget } from '../components/widgets/platformWidget';
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -131,6 +133,7 @@ export default function PostCommentsScreen({ route, navigation }: any) {
   const renderCommentRow = (item: CommentDto, isReply: boolean) => {
     const liked = item.likes?.some(l => l.userId === user?.userId);
     const name = item.author?.displayName || item.author?.username || 'User';
+    const widget = decodePlatformWidget(item.content);
     return (
       <View key={item.id} style={[styles.commentItem, isReply && styles.replyItem]}>
         <View style={styles.commentAvatarCol}>
@@ -145,7 +148,7 @@ export default function PostCommentsScreen({ route, navigation }: any) {
             {item.author?.verified && <Ionicons name="checkmark-circle" size={13} color={COLORS.primary} style={{ marginLeft: 3 }} />}
             <Text style={styles.time}>· {timeAgo(item.createdAt as any)}</Text>
           </View>
-          <Text style={styles.text}>{item.content}</Text>
+          {widget ? <PlatformWidget widget={widget} navigation={navigation} compact /> : <Text style={styles.text}>{item.content}</Text>}
           <View style={styles.commentActions}>
             <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleLikeComment(item.id)}>
               <Ionicons name={liked ? 'heart' : 'heart-outline'} size={15} color={liked ? '#F43F5E' : COLORS.textMuted} />

@@ -10,7 +10,7 @@ export class ContextManagerService {
 
   async touch(
     userId: string,
-    update: { activeModule?: string; taskSummary?: string },
+    update: { activeModule?: string; taskSummary?: string; activeAgentId?: string | null },
   ): Promise<void> {
     await this.prisma.aiSession.upsert({
       where: { userId },

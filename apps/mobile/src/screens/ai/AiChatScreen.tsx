@@ -46,6 +46,7 @@ export default function AiChatScreen({ navigation, route }: any) {
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   // Raw Anthropic conversation — round-tripped to the server every turn
   const conversation = useRef<any[]>([]);
@@ -96,6 +97,7 @@ export default function AiChatScreen({ navigation, route }: any) {
       conversation.current = data.conversation || conversation.current;
       addBubble('assistant', data.reply, data.widgets);
       if (data.pendingAction) setPending(data.pendingAction);
+      setActiveAgent(data.activeAgent?.id || null);
     } catch (e: any) {
       addBubble('system', friendlyErrorMessage(e.message));
     } finally {
@@ -282,8 +284,8 @@ export default function AiChatScreen({ navigation, route }: any) {
             <Ionicons name="sparkles" size={16} color="#FFF" />
           </View>
           <View>
-            <Text style={styles.headerName}>{agentName}</Text>
-            <Text style={styles.headerStatus}>{thinking ? 'thinking…' : 'online'}</Text>
+            <Text style={styles.headerName}>{activeAgent ? `${activeAgent.toUpperCase()} AI` : agentName}</Text>
+            <Text style={styles.headerStatus}>{thinking ? 'thinking…' : (activeAgent ? 'specialist active' : 'online')}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('AiSetup')}>

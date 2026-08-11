@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Image, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Image, ImageBackground, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,6 +25,8 @@ import MiniAppProductPicker from '../components/MiniAppProductPicker';
 import MiniAppEventPicker from '../components/MiniAppEventPicker';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
 import EventMiniCard, { decodeEventCard } from '../components/cards/EventMiniCard';
+import ChatWallpaperPicker from '../components/chat/ChatWallpaperPicker';
+import { findPreset, isPresetId } from '../config/chatWallpapers';
 
 const isVideoUrl = (url: string) => /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(url);
 const isAudioUrl = (url: string) => /\.(m4a|mp3|wav|aac|3gp|ogg|caf)(\?|$)/i.test(url);
@@ -71,7 +74,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const { user } = useAuth();
-  const { roomId = 'global-room', roomName = 'Global Lounge', roomType = 'Public', targetUserId } = route?.params || {};
+  const { roomId = 'global-room', roomName = 'Global Lounge', roomType = 'Public', targetUserId, avatarUrl } = route?.params || {};
 
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [inputText, setInputText] = useState('');
@@ -81,6 +84,8 @@ export default function ChatScreen({ route, navigation }: any) {
   const [showVemojiPicker, setShowVemojiPicker] = useState(false);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [showEventPicker, setShowEventPicker]     = useState(false);
+  const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
+  const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
   const [emojiBurst, setEmojiBurst] = useState<{ type: VemojiType; nonce: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessageDto | null>(null);
   const [actionSheetMessage, setActionSheetMessage] = useState<ChatMessageDto | null>(null);
@@ -155,6 +160,13 @@ export default function ChatScreen({ route, navigation }: any) {
     socket.on('forward_ack', onForwardAck);
     return () => { socket.off('forward_ack', onForwardAck); };
   }, [socket]);
+
+  useEffect(() => {
+    fetchApi(`/chats/${roomId}/wallpaper`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setWallpaperUrl(d?.wallpaperUrl ?? null))
+      .catch(() => {});
+  }, [roomId]);
 
   const pendingCallVideo = React.useRef(false);
 
@@ -900,37 +912,69 @@ export default function ChatScreen({ route, navigation }: any) {
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text} />
             </TouchableOpacity>
-            <Image
-              source={{ uri: targetProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${roomName}` }}
-              style={styles.headerAvatar}
-            />
-            <View style={styles.roomHeaderContent}>
-              <Text style={styles.headerName} numberOfLines={1}>{roomName}</Text>
-              <View style={styles.statusRow}>
-                {isOnline && <View style={styles.statusDot} />}
-                <Text style={styles.statusText} numberOfLines={1}>
-                  {targetProfile?.effectiveStatus || statusText}
-                </Text>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+              onPress={() => {
+                if (targetUserId) {
+                  navigation.navigate('UserProfile', {
+                    userId: targetUserId,
+                    username: roomName,
+                    avatarUrl: targetProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${roomName}`
+                  });
+                }
+              }}
+              disabled={!targetUserId}
+            >
+              <Image
+                source={{ uri: targetProfile?.avatarUrl || avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${roomName}` }}
+                style={styles.headerAvatar}
+              />
+              <View style={styles.roomHeaderContent}>
+                <Text style={styles.headerName} numberOfLines={1}>{roomName}</Text>
+                <View style={styles.statusRow}>
+                  {isOnline && <View style={styles.statusDot} />}
+                  <Text style={styles.statusText} numberOfLines={1}>
+                    {targetProfile?.effectiveStatus || statusText}
+                  </Text>
+                </View>
               </View>
+            </TouchableOpacity>
+            <View style={styles.callButtons}>
+              <TouchableOpacity onPress={() => setShowWallpaperPicker(true)} style={styles.headerIconBtn}>
+                <Ionicons name="image-outline" size={20} color={COLORS.text} />
+              </TouchableOpacity>
+              {!!targetUserId && (
+                <>
+                  <TouchableOpacity onPress={() => startCall(false)} style={styles.headerIconBtn}>
+                    <Ionicons name="call" size={20} color={COLORS.text} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => startCall(true)} style={styles.headerIconBtn}>
+                    <Ionicons name="videocam" size={22} color={COLORS.text} />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
-            {!!targetUserId && (
-              <View style={styles.callButtons}>
-                <TouchableOpacity onPress={() => startCall(false)} style={styles.headerIconBtn}>
-                  <Ionicons name="call" size={20} color={COLORS.text} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => startCall(true)} style={styles.headerIconBtn}>
-                  <Ionicons name="videocam" size={22} color={COLORS.text} />
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
-          <FlatList
-            data={messages}
-            keyExtractor={(item, index) => item.id || index.toString()}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messageList}
-          />
+          {(() => {
+            const preset = findPreset(wallpaperUrl);
+            const list = (
+              <FlatList
+                data={messages}
+                keyExtractor={(item, index) => item.id || index.toString()}
+                renderItem={renderMessage}
+                contentContainerStyle={styles.messageList}
+                style={{ flex: 1 }}
+              />
+            );
+            if (preset) {
+              return <LinearGradient colors={preset.colors} style={{ flex: 1 }}>{list}</LinearGradient>;
+            }
+            if (wallpaperUrl && !isPresetId(wallpaperUrl)) {
+              return <ImageBackground source={{ uri: wallpaperUrl }} style={{ flex: 1 }}>{list}</ImageBackground>;
+            }
+            return list;
+          })()}
 
           {replyingTo && (
             <View style={styles.replyBar}>
@@ -1048,6 +1092,14 @@ export default function ChatScreen({ route, navigation }: any) {
             visible={showEventPicker}
             onClose={() => setShowEventPicker(false)}
             onSendEvent={sendEventCard}
+          />
+          <ChatWallpaperPicker
+            visible={showWallpaperPicker}
+            onClose={() => setShowWallpaperPicker(false)}
+            scope="chat"
+            chatId={roomId}
+            currentValue={wallpaperUrl}
+            onSaved={setWallpaperUrl}
           />
         </KeyboardAvoidingView>
       </View>

@@ -130,6 +130,15 @@ export class VideoController {
     return this.video.recordView(id, req.user.userId, progress ?? 0);
   }
 
+  @Patch(':id/progress')
+  updateWatchProgress(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body('progress') progress: number,
+  ) {
+    return this.video.updateWatchProgress(id, req.user.userId, progress ?? 0);
+  }
+
   @Post(':id/like')
   likeVideo(@Param('id') id: string, @Request() req: any) {
     return this.video.likeVideo(id, req.user.userId);
@@ -203,8 +212,8 @@ export class VideoController {
   }
 
   @Get('playlists/:id')
-  getPlaylist(@Param('id') id: string) {
-    return this.video.getPlaylist(id);
+  getPlaylist(@Param('id') id: string, @Request() req: any) {
+    return this.video.getPlaylist(id, req.user?.userId);
   }
 
   @Delete('playlists/:id')

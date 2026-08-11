@@ -275,15 +275,29 @@ export default function ChatListScreen({ navigation }: any) {
           roomName: item.name,
           roomType: item.type,
           targetUserId: item.targetUserId,
+          avatarUrl: item.avatarUrl,
         });
       }}
     >
       <View style={styles.avatarContainer}>
         {item.type === 'Private' || item.type === 'AI' || item.type === 'DIRECT' ? (
-          <Image
-            source={{ uri: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
-            style={styles.avatar}
-          />
+          <TouchableOpacity
+            onPress={() => {
+              if (item.targetUserId) {
+                navigation.navigate('UserProfile', {
+                  userId: item.targetUserId,
+                  username: item.name,
+                  avatarUrl: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}`
+                });
+              }
+            }}
+            disabled={!item.targetUserId}
+          >
+            <Image
+              source={{ uri: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
         ) : (
           <View style={styles.groupAvatar}>
             <Ionicons
@@ -301,7 +315,13 @@ export default function ChatListScreen({ navigation }: any) {
       <View style={styles.chatInfo}>
         <Text style={styles.chatName}>{item.name}</Text>
         <Text style={styles.chatType} numberOfLines={1}>
-          {item.type === 'COMMUNITY' ? `${item.memberCount} members` : (item.effectiveStatus || item.type)}
+          {item.type === 'COMMUNITY'
+            ? `${item.memberCount} members`
+            : item.effectiveStatus ||
+              (item.targetUserId
+                ? onlineUsers[item.targetUserId] || 'offline'
+                : item.status) ||
+              item.type}
         </Text>
       </View>
 
@@ -349,7 +369,7 @@ export default function ChatListScreen({ navigation }: any) {
             style={styles.storyRing}
           >
             <Image
-              source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'me'}` }}
+              source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'me'}` }}
               style={styles.storyAvatar}
             />
           </LinearGradient>

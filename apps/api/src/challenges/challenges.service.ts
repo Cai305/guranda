@@ -88,10 +88,54 @@ export class ChallengesService {
     if (!entry) throw new NotFoundException('Entry not found');
     const comments = await this.prisma.challengeEntryComment.findMany({
       where: { entryId },
-      orderBy: { createdAt: 'asc' },
+      // Paid (boosted) comments first, then newest free comments
+      orderBy: [{ boostAmount: 'desc' }, { createdAt: 'desc' }],
       include: { author: { select: AUTHOR_SELECT } },
     });
     return comments.map((c) => ({ ...c, author: toFlatAuthor(c.author) }));
+  }
+
+  async boostComment(
+    userId: string,
+    commentId: string,
+    mshAmount: number,
+  ) {
+    if (!(mshAmount > 0)) throw new BadRequestException('Boost amount must be positive');
+
+    const comment = await this.prisma.challengeEntryComment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.authorId !== userId) throw new ForbiddenException('You can only boost your own comments');
+
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) throw new BadRequestException('Wallet not found');
+    if (Number(wallet.balanceMasheleni) < mshAmount) {
+      throw new BadRequestException(`Not enough MSH — balance is ${wallet.balanceMasheleni}`);
+    }
+
+    const [, , updatedComment] = await this.prisma.$transaction([
+      this.prisma.wallet.update({
+        where: { userId },
+        data: { balanceMasheleni: { decrement: mshAmount } },
+      }),
+      this.prisma.transaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: -mshAmount,
+          type: 'PAYMENT',
+          status: 'SUCCESS',
+        },
+      }),
+      this.prisma.challengeEntryComment.update({
+        where: { id: commentId },
+        data: {
+          boostAmount: { increment: mshAmount },
+          boostedAt: new Date(),
+        },
+        include: { author: { select: AUTHOR_SELECT } },
+      }),
+    ]);
+
+    return { ...updatedComment, author: toFlatAuthor(updatedComment.author) };
   }
 
   // ── Entries ───────────────────────────────────────────────────────────────
@@ -175,6 +219,161 @@ export class ChallengesService {
   }
 
   // ── Entry interactions ───────────────────────────────────────────────────
+
+  /**
+   * Cross-challenge "For You" feed — cursor-paginated, supports search by
+   * challenge title / username, and filters by category and scope.
+   * Each entry carries a globalRank computed by (likeCount * 2 + voteAverage * 10).
+   */
+  async getEntriesFeed(
+    viewerId: string,
+    take = 15,
+    cursor?: string,
+    search?: string,
+    category?: string,
+    scope?: string,
+  ) {
+    const entries = await this.prisma.challengeEntry.findMany({
+      where: {
+        status: 'PUBLISHED',
+        challenge: {
+          status: 'ACTIVE',
+          ...(category ? { category: category as any } : {}),
+          ...(scope ? { scope } : {}),
+          ...(search ? { title: { contains: search, mode: 'insensitive' as any } } : {}),
+        },
+        ...(search ? {
+          user: {
+            OR: [
+              { username: { contains: search, mode: 'insensitive' as any } },
+              { profile: { displayName: { contains: search, mode: 'insensitive' as any } } },
+            ],
+          },
+        } : {}),
+        ...(cursor ? { id: { lt: cursor } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        challenge: {
+          select: {
+            id: true, title: true, category: true, type: true,
+            endAt: true, xpReward: true, scope: true, location: true,
+          },
+        },
+        user: { select: AUTHOR_SELECT },
+        likes: { select: { userId: true } },
+        votes: { select: { userId: true, value: true } },
+        _count: { select: { comments: true } },
+      },
+    });
+
+    // Total entry count for global rank denominator
+    const totalEntries = await this.prisma.challengeEntry.count({
+      where: { status: 'PUBLISHED', challenge: { status: 'ACTIVE' } },
+    });
+
+    return entries.map((e, idx) => {
+      const { user, likes, votes, _count, ...rest } = e;
+      const voteAvg = votes.length
+        ? votes.reduce((s, v) => s + v.value, 0) / votes.length : 0;
+      const score = likes.length * 2 + voteAvg * 10;
+      return {
+        ...rest,
+        user: toFlatAuthor(user),
+        likeCount: likes.length,
+        isLikedByMe: likes.some((l) => l.userId === viewerId),
+        voteCount: votes.length,
+        voteAverage: voteAvg,
+        myVote: votes.find((v) => v.userId === viewerId)?.value ?? null,
+        commentCount: _count.comments,
+        score: Math.round(score),
+        totalEntries,
+      };
+    });
+  }
+
+  /**
+   * Entry stats: global rank, category rank, overall score, leaderboard.
+   */
+  async getEntryStats(entryId: string) {
+    const entry = await this.prisma.challengeEntry.findUnique({
+      where: { id: entryId },
+      include: {
+        challenge: { select: { id: true, title: true, category: true } },
+        likes: { select: { userId: true } },
+        votes: { select: { value: true } },
+        _count: { select: { comments: true } },
+      },
+    });
+    if (!entry) throw new NotFoundException('Entry not found');
+
+    const likeCount = entry.likes.length;
+    const voteAvg = entry.votes.length
+      ? entry.votes.reduce((s, v) => s + v.value, 0) / entry.votes.length : 0;
+    const score = likeCount * 2 + voteAvg * 10;
+
+    // Global rank: count published entries with a higher score
+    const allGlobal = await this.prisma.challengeEntry.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        likes: { select: { userId: true } },
+        votes: { select: { value: true } },
+      },
+    });
+    const scores = allGlobal.map((e) => {
+      const avg = e.votes.length ? e.votes.reduce((s, v) => s + v.value, 0) / e.votes.length : 0;
+      return { id: e.id, score: e.likes.length * 2 + avg * 10 };
+    });
+    scores.sort((a, b) => b.score - a.score);
+    const globalRank = scores.findIndex((s) => s.id === entryId) + 1;
+
+    // Category rank
+    const sameCat = await this.prisma.challengeEntry.findMany({
+      where: { status: 'PUBLISHED', challenge: { category: entry.challenge.category } },
+      include: {
+        likes: { select: { userId: true } },
+        votes: { select: { value: true } },
+      },
+    });
+    const catScores = sameCat.map((e) => {
+      const avg = e.votes.length ? e.votes.reduce((s, v) => s + v.value, 0) / e.votes.length : 0;
+      return { id: e.id, score: e.likes.length * 2 + avg * 10 };
+    });
+    catScores.sort((a, b) => b.score - a.score);
+    const categoryRank = catScores.findIndex((s) => s.id === entryId) + 1;
+
+    // Top 5 in same challenge
+    const challengeTop = await this.prisma.challengeEntry.findMany({
+      where: { challengeId: entry.challengeId, status: 'PUBLISHED' },
+      include: {
+        user: { select: AUTHOR_SELECT },
+        likes: { select: { userId: true } },
+        votes: { select: { value: true } },
+      },
+    });
+    const challengeRanked = challengeTop
+      .map((e) => {
+        const avg = e.votes.length ? e.votes.reduce((s, v) => s + v.value, 0) / e.votes.length : 0;
+        return { id: e.id, user: toFlatAuthor(e.user), score: Math.round(e.likes.length * 2 + avg * 10), likeCount: e.likes.length, voteAverage: avg };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    return {
+      entryId,
+      challenge: entry.challenge,
+      likeCount,
+      voteAverage: Math.round(voteAvg * 10) / 10,
+      commentCount: entry._count.comments,
+      score: Math.round(score),
+      globalRank,
+      globalTotal: allGlobal.length,
+      categoryRank,
+      categoryTotal: sameCat.length,
+      challengeLeaderboard: challengeRanked,
+    };
+  }
 
   async likeEntry(userId: string, entryId: string) {
     const entry = await this.prisma.challengeEntry.findUnique({ where: { id: entryId } });

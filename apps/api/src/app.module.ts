@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -56,6 +57,7 @@ import { RankingModule } from './ranking/ranking.module';
 import { AdsModule } from './ads/ads.module';
 import { GifModule } from './gif/gif.module';
 import { CarwashModule } from './carwash/carwash.module';
+import { LiveReportsModule } from './live-reports/live-reports.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { RelationshipsModule } from './relationships/relationships.module';
 import { CouplesModule } from './couples/couples.module';
@@ -69,6 +71,14 @@ import { AssistantModule } from './assistant/assistant.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    // Global in-memory cache with a 60-second default TTL and a maximum of 500
+    // entries. Swap the store option for 'ioredis' to move to Redis with zero
+    // other code changes. TTLs on individual endpoints override this default.
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 60_000,  // 60 s in milliseconds (cache-manager v5+)
+      max: 500,      // maximum items in the LRU cache
+    }),
     // Global default: 60 requests/min per IP across the whole API. Login and
     // register carry their own tighter @Throttle() override (see
     // users.controller.ts) since credential-stuffing/brute-force is the
@@ -109,6 +119,7 @@ import { AssistantModule } from './assistant/assistant.module';
     MarketplaceModule,
     GiftsModule,
     ActivityModule,
+    LiveReportsModule,
     ShoppingModule,
     TravelModule,
     WorkModule,

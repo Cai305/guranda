@@ -160,7 +160,7 @@ export default function AISection() {
                   {/* Connection line */}
                   <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', left: '50%', top: '50%' }}>
                     <motion.line
-                      x1="0" y1="0" x2={-x * 0.75} y2={-y * 0.75}
+                      x1="0" y1="0" x2={Math.round(-x * 0.75 * 100) / 100} y2={Math.round(-y * 0.75 * 100) / 100}
                       stroke="rgba(124,58,237,0.2)" strokeWidth="1" strokeDasharray="3 3"
                       initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }}
                       transition={{ delay: i * 0.08 + 0.3, duration: 0.5 }}

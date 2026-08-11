@@ -8,10 +8,11 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadMedia } from '../utils/api';
+import { generateVideoThumbnail } from '../utils/videoThumbnail';
 
 const MAX_ITEMS = 10;
 
-type MediaItem = { uri: string; kind: 'image' | 'video' };
+type MediaItem = { uri: string; kind: 'image' | 'video'; thumbnailUrl?: string | null };
 
 export default function CreatePostScreen({ navigation, route }: any) {
   const { theme } = useTheme();
@@ -177,7 +178,17 @@ export default function CreatePostScreen({ navigation, route }: any) {
         kind: a.type === 'video' ? 'video' : 'image',
       }));
       setMediaItems((prev) => [...prev, ...picked].slice(0, MAX_ITEMS));
+      picked.filter((p) => p.kind === 'video').forEach((p) => generateThumbnailFor(p.uri));
     }
+  };
+
+  // Fills in a picked video's poster frame once generated — matched back
+  // to its item by uri since the list may have been reordered/trimmed by
+  // the time this resolves.
+  const generateThumbnailFor = async (uri: string) => {
+    const thumbnailUrl = await generateVideoThumbnail(uri);
+    if (!thumbnailUrl) return;
+    setMediaItems((prev) => prev.map((m) => (m.uri === uri ? { ...m, thumbnailUrl } : m)));
   };
 
   const removeMediaAt = (index: number) => {
@@ -189,12 +200,16 @@ export default function CreatePostScreen({ navigation, route }: any) {
 
     try {
       setLoading(true);
-      let media: { url: string; type: string }[] | undefined;
+      let media: { url: string; type: string; thumbnailUrl?: string }[] | undefined;
       if (mediaItems.length) {
         const uploaded = await Promise.all(
           mediaItems.map((m) => uploadMedia(m.uri, m.kind)),
         );
-        media = uploaded.map((u) => ({ url: u.url, type: u.mediaType }));
+        media = uploaded.map((u, i) => ({
+          url: u.url,
+          type: u.mediaType,
+          ...(mediaItems[i].thumbnailUrl ? { thumbnailUrl: mediaItems[i].thumbnailUrl! } : {}),
+        }));
       }
 
       const res = await fetchApi('/posts', {

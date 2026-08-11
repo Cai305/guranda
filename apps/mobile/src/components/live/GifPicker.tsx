@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, FlatList, Image, TouchableOpacity,
-  Modal, ActivityIndicator, StyleSheet, Dimensions,
+  Modal, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -211,8 +211,8 @@ export default function GifPicker({ visible, onClose, onSelect }: GifPickerProps
               data={gifs}
               keyExtractor={item => item.id}
               numColumns={NUM_COLS}
-              contentContainerStyle={{ padding: SPACING.sm, gap: SPACING.sm }}
-              columnWrapperStyle={{ gap: SPACING.sm }}
+              contentContainerStyle={{ padding: theme.SPACING.sm, gap: theme.SPACING.sm }}
+              columnWrapperStyle={{ gap: theme.SPACING.sm }}
               onEndReached={loadMore}
               onEndReachedThreshold={0.4}
               ListFooterComponent={

@@ -121,3 +121,7 @@ export const banUser = (roomId: string, userId: string) =>
   fetchApi(`/live/rooms/${roomId}/ban`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
 export const unbanUser = (roomId: string, userId: string) =>
   fetchApi(`/live/rooms/${roomId}/unban`, { method: 'POST', body: JSON.stringify({ userId }) }).then(unwrap);
+
+// Live stream reporting
+export const reportLiveStream = (roomId: string, reportedUserId: string, reason: string, details?: string) =>
+  fetchApi(`/live/reports/rooms/${roomId}`, { method: 'POST', body: JSON.stringify({ reportedUserId, reason, details }) }).then(unwrap);

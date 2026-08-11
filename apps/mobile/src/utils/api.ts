@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { startUpload, updateUploadProgress, finishUpload, failUpload } from './uploadStatusStore';
 
-const LOCAL_API_BASE_URL = 'http://localhost:3000';
+const LOCAL_API_BASE_URL = 'http://localhost:3001';
 const NGROK_API_BASE_URL = 'https://oppressed-vertical-semicolon.ngrok-free.dev';
 
 /**

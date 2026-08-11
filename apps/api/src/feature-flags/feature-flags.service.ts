@@ -50,6 +50,7 @@ export const CRUD_FLAG_KEYS = [
   'crud:learning',
   'crud:username-market',
   'crud:carwash',
+  'crud:hair',
 ] as const;
 
 @Injectable()

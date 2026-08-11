@@ -11,10 +11,15 @@ import { resolveFontFamily } from './fonts';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
 
-export default function PosterCreatorScreen({ navigation }: any) {
+export default function PosterCreatorScreen({ navigation, route }: any) {
   const { theme } = useTheme();
+  const {
+    returnScreen,
+    returnParamKey,
+    initialCategory,
+  } = route?.params ?? {};
   const [aspectId, setAspectId] = useState<AspectRatioId>('portrait');
-  const [category, setCategory] = useState<TemplateCategory | 'all'>('all');
+  const [category, setCategory] = useState<TemplateCategory | 'all'>(initialCategory ?? 'all');
 
   const aspect = ASPECT_RATIOS.find((a) => a.id === aspectId) ?? ASPECT_RATIOS[2];
   const cardHeight = CARD_WIDTH / aspect.ratio;
@@ -33,6 +38,7 @@ export default function PosterCreatorScreen({ navigation }: any) {
       initialGradient: null,
       initialLayers: [],
       templateCategory: 'poster',
+      ...(returnScreen ? { returnScreen, returnParamKey } : {}),
     });
   };
 
@@ -78,6 +84,7 @@ export default function PosterCreatorScreen({ navigation }: any) {
       initialGradient: template.gradient,
       initialLayers: [...shapeLayers, ...textLayers],
       templateCategory: template.category,
+      ...(returnScreen ? { returnScreen, returnParamKey } : {}),
     });
   };
 

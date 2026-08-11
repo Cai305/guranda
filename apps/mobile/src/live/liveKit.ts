@@ -20,6 +20,7 @@ export async function connectAsHost(
   _wsUrl: string,
   _token: string,
   _onParticipantCountChange: (n: number) => void,
+  _onRemoteVideoTrack: (identity: string, name: string, track: any) => void,
 ): Promise<HostSession> {
   throw new Error('Real camera streaming is only available on web right now.');
 }
@@ -27,8 +28,16 @@ export async function connectAsHost(
 export async function connectAsViewer(
   _wsUrl: string,
   _token: string,
-  _onRemoteVideoTrack: (track: any) => void,
+  _onRemoteVideoTrack: (identity: string, name: string, track: any) => void,
   _onParticipantCountChange: (n: number) => void,
 ): Promise<ViewerSession> {
   throw new Error('Real live video playback is only available on web right now.');
+}
+
+export async function becomeGuestPublisher(_room: any): Promise<any> {
+  throw new Error('Real camera streaming is only available on web right now.');
+}
+
+export async function stopGuestPublishing(_room: any): Promise<void> {
+  throw new Error('Real camera streaming is only available on web right now.');
 }

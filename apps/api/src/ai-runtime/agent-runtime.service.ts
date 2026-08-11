@@ -11,6 +11,7 @@ import { LLM_ADAPTER } from './llm-adapter.token';
 import type { LlmAdapter } from './llm-adapter.interface';
 import { RuntimeMessage, RuntimeTool } from './llm-adapter.interface';
 import { MINI_APPS_CATALOG } from '../store/mini-apps-catalog';
+import { SPECIALIST_AGENTS } from './specialist-agents';
 
 const MAX_LOOPS = 14;
 
@@ -32,6 +33,7 @@ export interface RunResult {
   backgroundExecutionId?: string;
   /** Structured results from any tool calls this turn whose tool is tagged renderAs. */
   widgets: ToolWidget[];
+  activeAgent: { id: string } | null;
 }
 
 // Generalizes the old ai.service.ts's runLoop(): resolves tools from the
@@ -59,8 +61,9 @@ export class AgentRuntimeService {
     const grantedKeys = Object.entries(perms)
       .filter(([, v]) => v)
       .map(([k]) => k);
+    grantedKeys.push('core.basic'); // Implicitly granted to all for core orchestration tools
 
-    const availableTools = this.registry.listTools({
+    let availableTools = this.registry.listTools({
       permissionKeys: grantedKeys,
     });
     const profile = await this.prisma.userProfile.findUnique({
@@ -73,13 +76,41 @@ export class AgentRuntimeService {
     // (wallet.read, travel.read, etc.) — only explicit `false` turns it off.
     const internetAccessGranted = perms['internet.search'] !== false;
 
-    const system = this.buildSystemPrompt(
-      agent,
-      profile?.displayName || 'there',
-      availableTools,
-      session,
-      recentHistory,
-    );
+    let system = '';
+    const activeAgentId = session?.activeAgentId || null;
+
+    if (activeAgentId) {
+      const specialist = SPECIALIST_AGENTS.find((a) => a.id === activeAgentId);
+      if (specialist) {
+        availableTools = availableTools.filter(
+          (t) => specialist.allowedModules.includes(t.module) || t.name === 'specialist.yield'
+        );
+        const capabilitiesList = availableTools
+          .map((t) => `- ${t.name}: ${t.description}`)
+          .join('\n');
+        system = `${specialist.systemPrompt}\n\nCapabilities you currently have access to:\n${capabilitiesList}\n\nRECENT CONVERSATION HISTORY:\n${recentHistory || ''}`;
+      } else {
+        // Fallback if specialist ID is invalid
+        availableTools = availableTools.filter((t) => t.name !== 'specialist.yield');
+        system = this.buildSystemPrompt(
+          agent,
+          profile?.displayName || 'there',
+          availableTools,
+          session,
+          recentHistory,
+        );
+      }
+    } else {
+      // The Orb
+      availableTools = availableTools.filter((t) => t.name !== 'specialist.yield');
+      system = this.buildSystemPrompt(
+        agent,
+        profile?.displayName || 'there',
+        availableTools,
+        session,
+        recentHistory,
+      );
+    }
     const runtimeTools: RuntimeTool[] = availableTools.map((t) => ({
       name: t.name,
       description: t.description,
@@ -131,6 +162,7 @@ export class AgentRuntimeService {
           pendingAction: null,
           backgroundExecutionId,
           widgets,
+          activeAgent: activeAgentId ? { id: activeAgentId } : null,
         };
       }
 
@@ -161,6 +193,7 @@ export class AgentRuntimeService {
             ...execResult.pendingAction,
           },
           widgets,
+          activeAgent: activeAgentId ? { id: activeAgentId } : null,
         };
       }
 
@@ -202,6 +235,7 @@ export class AgentRuntimeService {
       pendingAction: null,
       widgets,
       backgroundExecutionId,
+      activeAgent: activeAgentId ? { id: activeAgentId } : null,
     };
   }
 

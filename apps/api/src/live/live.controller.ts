@@ -595,4 +595,54 @@ export class LiveController {
   ) {
     return this.liveService.unbanUser(req.user.userId, id, userId);
   }
+
+  // ── Multi-guest streaming ────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Get('rooms/:id/guests')
+  async listGuests(@Request() req: any, @Param('id') id: string) {
+    return this.liveService.listGuests(req.user.userId, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('rooms/:id/guests/mine')
+  async getMyGuestInvite(@Request() req: any, @Param('id') id: string) {
+    return this.liveService.getMyGuestInvite(req.user.userId, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/guests/invite')
+  async inviteGuest(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const guest = await this.liveService.inviteGuest(req.user.userId, id, userId);
+    this.liveGateway.broadcastToRoom(guest.roomName, 'live_guest_update', {});
+    return guest;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/guests/respond')
+  async respondGuestInvite(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('accept') accept: boolean,
+  ) {
+    const guest = await this.liveService.respondGuestInvite(req.user.userId, id, !!accept);
+    this.liveGateway.broadcastToRoom(guest.roomName, 'live_guest_update', {});
+    return guest;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rooms/:id/guests/remove')
+  async removeGuest(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+  ) {
+    const { roomName } = await this.liveService.removeGuest(req.user.userId, id, userId);
+    this.liveGateway.kickUser(roomName, userId, 'kicked');
+    this.liveGateway.broadcastToRoom(roomName, 'live_guest_update', {});
+    return { success: true };
+  }
 }

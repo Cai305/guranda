@@ -51,6 +51,27 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Heartbeat the real playback position to the server every 10s, and once
+  // more on unmount/navigation-away — this is what makes the YouTube-style
+  // "watched up to here" red bar on VideoCard reflect actual progress
+  // instead of staying frozen at the progress:0 the initial view POST sends.
+  useEffect(() => {
+    const flush = () => {
+      const seconds = Math.floor(progressRef.current);
+      if (seconds > 0) {
+        fetchApi(`/videos/${videoId}/progress`, {
+          method: 'PATCH',
+          body: JSON.stringify({ progress: seconds }),
+        }).catch(() => {});
+      }
+    };
+    const interval = setInterval(flush, 10000);
+    return () => {
+      clearInterval(interval);
+      flush();
+    };
+  }, [videoId]);
+
   const toggleLike = async () => {
     if (!video) return;
     const liked = !video.liked;

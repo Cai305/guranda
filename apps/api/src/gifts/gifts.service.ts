@@ -10,13 +10,35 @@ import { LiveGateway } from '../live/live.gateway';
 // The one gift catalog shared across every surface — Live streams and
 // every game screen. Amounts are MSH, debited from the sender's wallet
 // and credited to the recipient's, same ledger pattern as everything else.
+// Spans 1 MSH to 10,000 MSH. The original 6 keys (rose/heart/confetti/
+// trophy/diamond/rocket) keep their exact key/icon/amount — they're
+// referenced by historical Gift rows and a couple of hardcoded emoji
+// fallback maps, so renaming or reordering them would misrender old data.
 export const GIFT_CATALOG = [
+  { key: 'spark', label: 'Spark', icon: '✨', amount: 1 },
+  { key: 'wave', label: 'Wave', icon: '👋', amount: 2 },
+  { key: 'coffee', label: 'Coffee', icon: '☕', amount: 3 },
+  { key: 'clap', label: 'Clap', icon: '👏', amount: 4 },
   { key: 'rose', label: 'Rose', icon: '🌹', amount: 5 },
+  { key: 'fire', label: 'Fire', icon: '🔥', amount: 8 },
   { key: 'heart', label: 'Heart', icon: '💜', amount: 10 },
+  { key: 'balloon', label: 'Balloon', icon: '🎈', amount: 15 },
   { key: 'confetti', label: 'Confetti', icon: '🎉', amount: 20 },
+  { key: 'cake', label: 'Cake', icon: '🎂', amount: 30 },
   { key: 'trophy', label: 'Trophy', icon: '🏆', amount: 50 },
+  { key: 'crown', label: 'Crown', icon: '👑', amount: 75 },
   { key: 'diamond', label: 'Diamond', icon: '💎', amount: 100 },
+  { key: 'unicorn', label: 'Unicorn', icon: '🦄', amount: 150 },
   { key: 'rocket', label: 'Rocket', icon: '🚀', amount: 250 },
+  { key: 'medal', label: 'Gold Medal', icon: '🥇', amount: 350 },
+  { key: 'fireworks', label: 'Fireworks', icon: '🎆', amount: 500 },
+  { key: 'ring', label: 'Diamond Ring', icon: '💍', amount: 750 },
+  { key: 'sportscar', label: 'Sports Car', icon: '🏎️', amount: 1000 },
+  { key: 'yacht', label: 'Yacht', icon: '🛥️', amount: 2000 },
+  { key: 'mansion', label: 'Mansion', icon: '🏰', amount: 3500 },
+  { key: 'jet', label: 'Private Jet', icon: '🛩️', amount: 5000 },
+  { key: 'planet', label: 'Planet', icon: '🪐', amount: 7500 },
+  { key: 'galaxy', label: 'Galaxy', icon: '🌌', amount: 10000 },
 ] as const;
 
 @Injectable()

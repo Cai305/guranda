@@ -286,7 +286,9 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
 
   useEffect(() => {
     if (gameType === 'chess' && friends.length === 0) {
-      api.getFriends().then(setFriends).catch(() => {});
+      // /friends returns [{friendshipId, user: {id, username, profile}}] —
+      // flatten to the {id, username, profile} shape this picker renders.
+      api.getFriends().then((rows: any[]) => setFriends(rows.map((r) => r.user))).catch(() => {});
     }
   }, [gameType]);
 

@@ -348,6 +348,23 @@ export class AdminService {
     return rooms;
   }
 
+  async getLiveReports(status: string = 'open') {
+    return this.prisma.liveStreamReport.findMany({
+      where: { status },
+      include: {
+        room: { include: { host: { include: { profile: true } } } },
+        reporter: { include: { profile: true } },
+        reportedUser: { include: { profile: true } },
+        reviewedBy: { include: { profile: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async resolveLiveReport(id: string, status: 'reviewed' | 'actioned' | 'dismissed', reviewedById: string) {
+    return this.prisma.liveStreamReport.update({ where: { id }, data: { status, reviewedById } });
+  }
+
   /**
    * "of the Day" labeled stories — the generalized OOTD/COTD/etc. feed.
    * Trending-label counts here mirror StoryService.getTrendingLabels()'s

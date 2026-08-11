@@ -159,13 +159,19 @@ export class LiveService {
     // The host rejoining their own still-live room (app backgrounded,
     // screen navigated away and back, etc.) needs a publish-capable token
     // and a signal to the client to open the host studio, not viewer mode.
+    // An accepted guest gets the same publish rights as the host — they're
+    // a real second camera on stage, not just a viewer.
     const isHost = room.hostId === userId;
-    const token = await this.mintToken(room.roomName, userId, userName, isHost);
+    const isAcceptedGuest = !isHost && (await this.prisma.liveRoomGuest.findUnique({
+      where: { roomId_userId: { roomId: room.id, userId } },
+    }))?.status === 'ACCEPTED';
+    const token = await this.mintToken(room.roomName, userId, userName, isHost || isAcceptedGuest);
     return {
       roomName: room.roomName,
       token,
       wsUrl: this.wsUrl,
       isHost,
+      isGuest: isAcceptedGuest,
       title: room.title,
       categoryId: room.categoryId,
     };
@@ -1130,5 +1136,65 @@ export class LiveService {
       where: { roomId, userId, type: 'BANNED' },
     });
     return { success: true };
+  }
+
+  // ── Multi-guest streaming ────────────────────────────────────────────────
+  async inviteGuest(hostId: string, roomId: string, guestUserId: string) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    if (guestUserId === hostId)
+      throw new BadRequestException("You're already on stage");
+    if (!(await this.friendsService.areFriends(hostId, guestUserId)))
+      throw new ForbiddenException('You can only invite a friend to go live with you');
+    const guest = await this.prisma.liveRoomGuest.upsert({
+      where: { roomId_userId: { roomId, userId: guestUserId } },
+      create: { roomId, userId: guestUserId, status: 'INVITED' },
+      // Re-inviting someone who was removed/declined gives them a fresh invite.
+      update: { status: 'INVITED', respondedAt: null },
+      include: { user: { select: { id: true, username: true, profile: true } } },
+    });
+    return { ...guest, roomName: room.roomName };
+  }
+
+  async respondGuestInvite(userId: string, roomId: string, accept: boolean) {
+    const room = await this.getRoom(roomId);
+    const invite = await this.prisma.liveRoomGuest.findUnique({
+      where: { roomId_userId: { roomId, userId } },
+    });
+    if (!invite || invite.status !== 'INVITED')
+      throw new NotFoundException('No pending invite for you in this stream');
+    const updated = await this.prisma.liveRoomGuest.update({
+      where: { id: invite.id },
+      data: { status: accept ? 'ACCEPTED' : 'DECLINED', respondedAt: new Date() },
+    });
+    return { ...updated, roomName: room.roomName };
+  }
+
+  async removeGuest(actorId: string, roomId: string, guestUserId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, actorId);
+    await this.prisma.liveRoomGuest.updateMany({
+      where: { roomId, userId: guestUserId, status: { in: ['INVITED', 'ACCEPTED'] } },
+      data: { status: 'REMOVED', respondedAt: new Date() },
+    });
+    return { roomName: room.roomName };
+  }
+
+  async listGuests(userId: string, roomId: string) {
+    const room = await this.getRoom(roomId);
+    await this.assertCanModerate(room, userId);
+    return this.prisma.liveRoomGuest.findMany({
+      where: { roomId, status: { in: ['INVITED', 'ACCEPTED'] } },
+      include: { user: { select: { id: true, username: true, profile: true } } },
+      orderBy: { invitedAt: 'asc' },
+    });
+  }
+
+  // Lets a viewer opening a live room's screen check "am I invited to go
+  // on stage here?" so LiveViewerScreen can show an accept/decline banner.
+  async getMyGuestInvite(userId: string, roomId: string) {
+    return this.prisma.liveRoomGuest.findUnique({
+      where: { roomId_userId: { roomId, userId } },
+    });
   }
 }

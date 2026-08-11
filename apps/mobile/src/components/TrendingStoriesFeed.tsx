@@ -551,7 +551,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
   }
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <FlatList
         data={stories}
         keyExtractor={p => p.id}
@@ -657,7 +657,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           </View>
         </TouchableOpacity>
       </Modal>
-    </>
+    </View>
   );
 }
 

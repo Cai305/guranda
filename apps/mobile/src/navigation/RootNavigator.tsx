@@ -8,16 +8,17 @@ import BottomTabNavigator from './BottomTabNavigator';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import PostCommentsScreen from '../screens/PostCommentsScreen';
 import ChallengeDetailScreen from '../screens/ChallengeDetailScreen';
+import ChallengesFeedScreen from '../screens/ChallengesFeedScreen';
 import SubmitChallengeEntryScreen from '../screens/SubmitChallengeEntryScreen';
 import ChallengesLeaderboardScreen from '../screens/ChallengesLeaderboardScreen';
 import SendRelationshipRequestScreen from '../screens/SendRelationshipRequestScreen';
 import RelationshipRequestsScreen from '../screens/RelationshipRequestsScreen';
 import CouplesChallengesScreen from '../screens/CouplesChallengesScreen';
-import SponsorChallengeScreen from '../screens/SponsorChallengeScreen';
 import CouplesHubScreen from '../screens/CouplesHubScreen';
 import TruthOrDareScreen from '../screens/TruthOrDareScreen';
 import SpinTheBottleScreen from '../screens/SpinTheBottleScreen';
 import CouplesCardsScreen from '../screens/CouplesCardsScreen';
+import SponsorChallengeScreen from '../screens/SponsorChallengeScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
@@ -92,6 +93,10 @@ import AddEditWorkGigScreen from '../screens/profile/work/AddEditWorkGigScreen';
 import MyFreelanceWorkScreen from '../screens/profile/work/MyFreelanceWorkScreen';
 import MyPractitionerScreen from '../screens/profile/health/MyPractitionerScreen';
 import AddEditHealthPractitionerScreen from '../screens/profile/health/AddEditHealthPractitionerScreen';
+import MySalonScreen from '../screens/profile/hair/MySalonScreen';
+import AddEditSalonScreen from '../screens/profile/hair/AddEditSalonScreen';
+import AddEditSalonServiceScreen from '../screens/profile/hair/AddEditSalonServiceScreen';
+import AddEditSalonProductScreen from '../screens/profile/hair/AddEditSalonProductScreen';
 import MyPharmacyScreen from '../screens/profile/health/MyPharmacyScreen';
 import AddEditHealthPharmacyScreen from '../screens/profile/health/AddEditHealthPharmacyScreen';
 import AddEditHealthProductScreen from '../screens/profile/health/AddEditHealthProductScreen';
@@ -114,6 +119,7 @@ import HairHomeScreen from '../screens/hub/hair/HairHomeScreen';
 import HairdresserProfileScreen from '../screens/hub/hair/HairdresserProfileScreen';
 import HairServiceScreen from '../screens/hub/hair/HairServiceScreen';
 import HairBookingScreen from '../screens/hub/hair/HairBookingScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -138,16 +144,17 @@ export default function RootNavigator() {
           <Stack.Screen name="CreatePost" component={CreatePostScreen} />
           <Stack.Screen name="PostComments" component={PostCommentsScreen} />
           <Stack.Screen name="ChallengeDetail" component={ChallengeDetailScreen} />
+          <Stack.Screen name="ChallengesFeed" component={ChallengesFeedScreen} />
           <Stack.Screen name="SubmitChallengeEntry" component={SubmitChallengeEntryScreen} />
           <Stack.Screen name="ChallengesLeaderboard" component={ChallengesLeaderboardScreen} />
           <Stack.Screen name="SendRelationshipRequest" component={SendRelationshipRequestScreen} />
           <Stack.Screen name="RelationshipRequests" component={RelationshipRequestsScreen} />
           <Stack.Screen name="CouplesChallenges" component={CouplesChallengesScreen} />
-          <Stack.Screen name="SponsorChallenge" component={SponsorChallengeScreen} />
           <Stack.Screen name="CouplesHub" component={CouplesHubScreen} />
           <Stack.Screen name="TruthOrDare" component={TruthOrDareScreen} />
           <Stack.Screen name="SpinTheBottle" component={SpinTheBottleScreen} />
           <Stack.Screen name="CouplesCards" component={CouplesCardsScreen} />
+          <Stack.Screen name="SponsorChallenge" component={SponsorChallengeScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />
@@ -217,6 +224,10 @@ export default function RootNavigator() {
           <Stack.Screen name="MyFreelanceWork" component={MyFreelanceWorkScreen} />
           <Stack.Screen name="MyPractitioner" component={MyPractitionerScreen} />
           <Stack.Screen name="AddEditHealthPractitioner" component={AddEditHealthPractitionerScreen} />
+          <Stack.Screen name="MySalon" component={MySalonScreen} />
+          <Stack.Screen name="AddEditSalon" component={AddEditSalonScreen} />
+          <Stack.Screen name="AddEditSalonService" component={AddEditSalonServiceScreen} />
+          <Stack.Screen name="AddEditSalonProduct" component={AddEditSalonProductScreen} />
           <Stack.Screen name="MyPharmacy" component={MyPharmacyScreen} />
           <Stack.Screen name="AddEditHealthPharmacy" component={AddEditHealthPharmacyScreen} />
           <Stack.Screen name="AddEditHealthProduct" component={AddEditHealthProductScreen} />
@@ -244,6 +255,7 @@ export default function RootNavigator() {
           <Stack.Screen name="HairdresserProfile" component={HairdresserProfileScreen} />
           <Stack.Screen name="HairService" component={HairServiceScreen} />
           <Stack.Screen name="HairBooking" component={HairBookingScreen} />
+          <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         </>
       )}
     </Stack.Navigator>

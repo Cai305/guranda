@@ -1,9 +1,13 @@
-import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Request, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { LeaderboardService } from './leaderboard.service';
+import { CacheTTL } from '@nestjs/cache-manager';
+import { UserCacheInterceptor } from '../common/user-cache.interceptor';
 
 @Controller('leaderboard')
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(UserCacheInterceptor)
+@CacheTTL(120_000) // 2 minutes — fresh enough to feel live, saves heavy DB aggregation queries
 export class LeaderboardController {
   constructor(private readonly leaderboard: LeaderboardService) {}
 

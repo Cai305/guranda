@@ -8,9 +8,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, BRAND } from '../../theme';
 import { LiveStream, categoryOf } from '../../data/mockLiveStreams';
-import { RealLiveStream, joinRoom } from '../../data/liveApi';
+import { RealLiveStream, joinRoom, getMyGuestInvite, respondGuestInvite } from '../../data/liveApi';
 import { formatCount } from '../../utils/format';
-import LiveVideoView from '../../components/LiveVideoView';
+import LiveGuestGrid, { VideoTile } from '../../components/live/LiveGuestGrid';
 import * as LiveKit from '../../live/liveKit';
 import { useLiveSocket, LiveSpecialMessagePayload } from '../../live/useLiveSocket';
 import { useAuth } from '../../context/AuthContext';
@@ -24,6 +24,7 @@ import SessionHeaderActions from '../../components/SessionHeaderActions';
 import LiveCategoryViewerPanel from '../../components/live/LiveCategoryViewerPanel';
 import { GRADIENTS } from '../../theme';
 import * as modApi from '../../data/liveCategoryApi';
+import { reportLiveStream } from '../../data/liveCategoryApi';
 
 const INITIAL_CHAT = [
   { id: 'c1', senderName: 'Zanele_K', text: 'this is so good 🔥', msgType: 'text' as const },
@@ -96,6 +97,7 @@ export default function LiveViewerScreen({ navigation, route }: any) {
   };
   useEffect(() => { loadModState(); }, [isRealStream, realStream?.roomId]);
   useEffect(() => { if (categoryEvent?.type === 'live_moderation_update') loadModState(); }, [categoryEvent?.nonce]);
+  useEffect(() => { if (categoryEvent?.type === 'live_guest_update') loadMyInvite(); }, [categoryEvent?.nonce]);
   const isModerator = !!modState && (isHost || modState.moderators.some((m) => m.userId === user?.userId));
   const canModerate = isModerator;
   const runMod = (fn: () => Promise<any>) => fn().then(loadModState).catch((e: any) => Alert.alert('Error', e.message));
@@ -111,24 +113,86 @@ export default function LiveViewerScreen({ navigation, route }: any) {
     );
   }, [kicked]);
 
-  const [remoteVideoTrack, setRemoteVideoTrack] = useState<any>(null);
+  const [remoteVideos, setRemoteVideos] = useState<Record<string, { name: string; track: any }>>({});
   const [liveParticipantCount, setLiveParticipantCount] = useState<number | null>(null);
   const viewerSessionRef = useRef<any>(null);
 
+  const onRemoteVideoTrack = (identity: string, name: string, track: any) => {
+    setRemoteVideos(prev => {
+      if (!track) {
+        const next = { ...prev };
+        delete next[identity];
+        return next;
+      }
+      return { ...prev, [identity]: { name, track } };
+    });
+  };
+
+  const connectViewer = (token: string, wsUrl: string, cancelledRef: { current: boolean }) =>
+    LiveKit.connectAsViewer(
+      wsUrl, token,
+      (identity: string, name: string, track: any) => !cancelledRef.current && onRemoteVideoTrack(identity, name, track),
+      (n: number) => !cancelledRef.current && setLiveParticipantCount(n),
+    ).then((session: any) => {
+      if (cancelledRef.current) { session.disconnect(); return; }
+      viewerSessionRef.current = session;
+    });
+
   useEffect(() => {
     if (!isRealStream || Platform.OS !== 'web') return;
-    let cancelled = false;
+    const cancelledRef = { current: false };
     joinRoom(realStream.roomId)
-      .then(({ token, wsUrl }) =>
-        LiveKit.connectAsViewer(wsUrl, token, (track: any) => !cancelled && setRemoteVideoTrack(track), (n: number) => !cancelled && setLiveParticipantCount(n)))
-      .then((session: any) => {
-        if (cancelled) { session.disconnect(); return; }
-        viewerSessionRef.current = session;
-      })
+      .then(({ token, wsUrl }) => connectViewer(token, wsUrl, cancelledRef))
       .catch(() => {});
-    return () => { cancelled = true; viewerSessionRef.current?.disconnect(); };
+    return () => { cancelledRef.current = true; viewerSessionRef.current?.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRealStream, realStream?.roomId]);
+
+  // ── Multi-guest streaming: "you're invited to go on stage" ──────────────
+  const [myInviteStatus, setMyInviteStatus] = useState<'INVITED' | 'ACCEPTED' | 'DECLINED' | 'REMOVED' | null>(null);
+  const [respondingInvite, setRespondingInvite] = useState(false);
+  const [myLocalVideoTrack, setMyLocalVideoTrack] = useState<any>(null);
+
+  const loadMyInvite = () => {
+    if (!isRealStream || Platform.OS !== 'web' || !realStream?.roomId) return;
+    getMyGuestInvite(realStream.roomId).then((invite) => setMyInviteStatus(invite?.status ?? null)).catch(() => {});
+  };
+  useEffect(() => { loadMyInvite(); }, [isRealStream, realStream?.roomId]);
+
+  const acceptGuestInvite = async () => {
+    if (!realStream?.roomId) return;
+    setRespondingInvite(true);
+    try {
+      await respondGuestInvite(realStream.roomId, true);
+      // A fresh, publish-capable token is required — LiveKit grants
+      // canPublish at connection time from the JWT, so the existing
+      // subscribe-only session has to be torn down and reconnected.
+      viewerSessionRef.current?.disconnect();
+      const { token, wsUrl } = await joinRoom(realStream.roomId);
+      const cancelledRef = { current: false };
+      await connectViewer(token, wsUrl, cancelledRef);
+      const localTrack = await LiveKit.becomeGuestPublisher(viewerSessionRef.current.room);
+      setMyLocalVideoTrack(localTrack);
+      setMyInviteStatus('ACCEPTED');
+    } catch (e: any) {
+      Alert.alert('Could not join as a guest', e.message || 'Please try again.');
+    } finally {
+      setRespondingInvite(false);
+    }
+  };
+
+  const declineGuestInvite = async () => {
+    if (!realStream?.roomId) return;
+    setRespondingInvite(true);
+    try {
+      await respondGuestInvite(realStream.roomId, false);
+      setMyInviteStatus('DECLINED');
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setRespondingInvite(false);
+    }
+  };
 
   useEffect(() => {
     if (!lastReaction) return;
@@ -240,6 +304,33 @@ export default function LiveViewerScreen({ navigation, route }: any) {
     } catch (e: any) { Alert.alert('Error sharing stream', e.message); }
   };
 
+  const reportStream = () => {
+    if (!isRealStream || !realStream.roomId) return;
+    Alert.alert(
+      'Report Stream',
+      'Why are you reporting this stream?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Harassment', onPress: () => submitReport('harassment') },
+        { text: 'Inappropriate Content', onPress: () => submitReport('inappropriate_content') },
+        { text: 'Spam', onPress: () => submitReport('spam') },
+        { text: 'Violence', onPress: () => submitReport('violence') },
+        { text: 'Hate Speech', onPress: () => submitReport('hate_speech') },
+        { text: 'Other', onPress: () => submitReport('other') },
+      ]
+    );
+  };
+
+  const submitReport = async (reason: string) => {
+    if (!isRealStream || !realStream.roomId) return;
+    try {
+      await reportLiveStream(realStream.roomId, stream.creator.id, reason);
+      Alert.alert('Report submitted', 'Our team will review this stream shortly.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not submit report.');
+    }
+  };
+
   if (roomEnded) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -257,11 +348,18 @@ export default function LiveViewerScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Full-screen background */}
-      {isRealStream && remoteVideoTrack ? (
-        <View style={StyleSheet.absoluteFill}>
-          <LiveVideoView track={remoteVideoTrack} />
-        </View>
+      {/* Full-screen background — the host's feed plus any other guests on
+          stage, laid out as a grid; my own tile joins in once I've accepted
+          a guest invite and started publishing. */}
+      {isRealStream && (Object.keys(remoteVideos).length > 0 || myLocalVideoTrack) ? (
+        <LiveGuestGrid
+          tiles={[
+            ...Object.entries(remoteVideos).map(([identity, v]) => ({ identity, name: v.name, track: v.track } as VideoTile)),
+            ...(myInviteStatus === 'ACCEPTED' && myLocalVideoTrack
+              ? [{ identity: user?.userId || 'me', name: myName, track: myLocalVideoTrack, muted: true, mirror: true } as VideoTile]
+              : []),
+          ]}
+        />
       ) : (
         <LinearGradient
           colors={category?.gradient || ['#333', '#111']}
@@ -313,6 +411,9 @@ export default function LiveViewerScreen({ navigation, route }: any) {
               <Ionicons name="shield-checkmark" size={18} color="#FFF" />
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.circleBtn} onPress={reportStream}>
+            <Ionicons name="flag-outline" size={18} color="#FFF" />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.circleBtn} onPress={shareStream}>
             <Ionicons name="share-social-outline" size={18} color="#FFF" />
           </TouchableOpacity>
@@ -339,6 +440,23 @@ export default function LiveViewerScreen({ navigation, route }: any) {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {myInviteStatus === 'INVITED' && (
+          <View style={styles.guestInviteBanner}>
+            <Ionicons name="videocam" size={18} color="#FFF" />
+            <Text style={styles.guestInviteText}>{stream.creator.name} invited you to go live with them</Text>
+            <TouchableOpacity
+              style={styles.guestInviteAccept}
+              disabled={respondingInvite}
+              onPress={acceptGuestInvite}
+            >
+              <Text style={styles.guestInviteAcceptText}>{respondingInvite ? '…' : 'Join'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.guestInviteDecline} disabled={respondingInvite} onPress={declineGuestInvite}>
+              <Ionicons name="close" size={16} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {lastGift && (
           <View style={styles.giftToastWrap}>
@@ -563,6 +681,15 @@ const styles = StyleSheet.create({
   followBtnTextActive: { color: '#FFF' },
 
   giftToastWrap: { position: 'absolute', top: 100, left: 0, right: 0, alignItems: 'center' },
+  guestInviteBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(124,58,237,0.9)', borderRadius: RADIUS.md,
+    marginHorizontal: SPACING.md, marginTop: SPACING.sm, padding: SPACING.sm,
+  },
+  guestInviteText: { flex: 1, color: '#FFF', fontSize: 12, fontWeight: '600' },
+  guestInviteAccept: { backgroundColor: '#FFF', borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 6 },
+  guestInviteAcceptText: { color: '#7C3AED', fontWeight: '800', fontSize: 12 },
+  guestInviteDecline: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
 
   categoryPanelWrap: { maxHeight: 220, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
   bottomOverlayArea: { flexDirection: 'row', paddingHorizontal: SPACING.md, marginBottom: SPACING.sm, alignItems: 'flex-end', minHeight: 200 },

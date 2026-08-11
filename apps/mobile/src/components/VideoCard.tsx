@@ -18,6 +18,8 @@ export interface VideoMeta {
   _count?: { likes?: number; comments?: number };
   liked?: boolean;
   savedLater?: boolean;
+  /** Seconds this user has watched into the video — drives the YouTube-style red progress bar. */
+  watchProgress?: number;
 }
 
 interface Props {
@@ -75,6 +77,10 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
   const grad = CATEGORY_GRADIENTS[video.category] ?? ['#1e293b', '#0f172a'];
   const thumbUrl = video.thumbnailUrl ? (video.thumbnailUrl.startsWith('http') ? video.thumbnailUrl : `${API_BASE_URL}${video.thumbnailUrl}`) : null;
   const displayName = video.creator?.profile?.displayName || video.creator?.username || 'Unknown';
+  // Clamp to [0,1] — progress can exceed duration slightly from rounding/replays.
+  const watchRatio = video.duration > 0 && video.watchProgress
+    ? Math.min(1, Math.max(0, video.watchProgress / video.duration))
+    : 0;
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
     card: { marginBottom: 8 },
@@ -82,6 +88,8 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
     thumbIcon: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, justifyContent: 'center', alignItems: 'center' },
     durationBadge: { position: 'absolute', bottom: 6, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
     durationText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    watchTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
+    watchFill: { height: '100%', backgroundColor: '#ff0033' },
     infoRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
     avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7c3aed', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
     avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
@@ -103,6 +111,11 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
         <View style={styles.compactThumb}>
           {thumbUrl ? <Image source={{ uri: thumbUrl }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" /> : <LinearGradient colors={grad} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />}
           <View style={styles.durationBadge}><Text style={styles.durationText}>{fmtDuration(video.duration)}</Text></View>
+          {watchRatio > 0 && (
+            <View style={styles.watchTrack}>
+              <View style={[styles.watchFill, { width: `${watchRatio * 100}%` }]} />
+            </View>
+          )}
         </View>
         <View style={styles.compactInfo}>
           <Text style={styles.compactTitle} numberOfLines={2}>{video.title}</Text>
@@ -131,6 +144,11 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
           </LinearGradient>
         )}
         <View style={styles.durationBadge}><Text style={styles.durationText}>{fmtDuration(video.duration)}</Text></View>
+        {watchRatio > 0 && (
+          <View style={styles.watchTrack}>
+            <View style={[styles.watchFill, { width: `${watchRatio * 100}%` }]} />
+          </View>
+        )}
       </View>
 
       {/* Info row */}

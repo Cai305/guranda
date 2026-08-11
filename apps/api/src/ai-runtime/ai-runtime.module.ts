@@ -8,6 +8,8 @@ import { CompanionChatService } from './companion-chat.service';
 import { AnthropicAdapter } from './anthropic-adapter';
 import { LLM_ADAPTER } from './llm-adapter.token';
 
+import { orchestratorToolsProvider } from './orchestrator-tools.provider';
+
 @Module({
   providers: [
     PrismaService,
@@ -17,6 +19,7 @@ import { LLM_ADAPTER } from './llm-adapter.token';
     ConversationHistoryService,
     CompanionChatService,
     { provide: LLM_ADAPTER, useClass: AnthropicAdapter },
+    orchestratorToolsProvider,
   ],
   exports: [
     AgentRuntimeService,
