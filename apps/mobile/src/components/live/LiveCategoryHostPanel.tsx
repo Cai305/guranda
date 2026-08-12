@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import * as api from '../../data/liveCategoryApi';
+import { formatCurrency } from '../../utils/format';
+import { registerLiveCategoryPanel, getLiveCategoryPanel } from './liveCategoryRegistry';
+import './categories/rideLivePanel';
 
 const GAME_TYPES = [
   { id: 'pool', label: 'Pool', icon: 'radio-button-on' },
@@ -78,18 +81,13 @@ export default function LiveCategoryHostPanel({ categoryId, roomId }: { category
     }
   };
 
-  if (categoryId === 'shopping') return <ShoppingHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'food') return <FoodHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'gaming') return <GamingHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'business') return <BusinessHost />;
-  if (categoryId === 'education') return <EducationHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'entertainment') return <EntertainmentHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'sports') return <SportsHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'career') return <CareerHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'social') return <SocialHost roomId={roomId} />;
-  if (categoryId === 'conversation') return <ConversationHost roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'dating') return <DatingHost roomId={roomId} run={run} error={error} busy={busy} />;
-  return null;
+  // Every category's host controls are registered below (or, for a
+  // category like ride that lives entirely in its own file, in
+  // categories/rideLivePanel.tsx) — adding a new live-capable mini-app
+  // means registering a component here, not extending this function.
+  const Host = getLiveCategoryPanel(categoryId)?.Host;
+  if (!Host) return null;
+  return <Host roomId={roomId} run={run} error={error} busy={busy} />;
 }
 
 type RunFn = (fn: () => Promise<any>, onDone?: (r: any) => void) => void;
@@ -167,7 +165,7 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
       <Panel title={`Showcase live · ${style === 'SPOTLIGHT' ? 'Spotlight' : 'Shelf'}`}>
         {showcase.map((s, i) => (
           <Text key={s.productId} style={[styles.hint, style === 'SPOTLIGHT' && i === spotlightIndex && { color: COLORS.text, fontWeight: '700' }]}>
-            {i + 1}. {s.product?.name} · {s.product?.price} MSH
+            {i + 1}. {s.product?.name} · {formatCurrency(s.product?.price)}
           </Text>
         ))}
         {style === 'SPOTLIGHT' && (
@@ -196,7 +194,7 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
             const active = selected.some(x => x.id === p.id);
             return (
               <TouchableOpacity key={p.id} style={[styles.chip, active && styles.chipActive]} onPress={() => toggleProduct(p)} disabled={busy}>
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{p.name} · {p.price} MSH</Text>
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{p.name} · {formatCurrency(p.price)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -259,7 +257,7 @@ function FoodHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; er
               onPress={() => run(() => api.pinEatProduct(roomId, p.id), () => setPinnedId(p.id))}
               disabled={busy}
             >
-              <Text style={[styles.chipText, pinnedId === p.id && styles.chipTextActive]}>{p.name} · {p.price} MSH</Text>
+              <Text style={[styles.chipText, pinnedId === p.id && styles.chipTextActive]}>{p.name} · {formatCurrency(p.price)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -445,7 +443,7 @@ function EducationHost({ roomId, run, error, busy }: { roomId: string; run: RunF
         <TouchableOpacity onPress={() => setOptions(prev => [...prev, ''])}><Text style={styles.linkText}>+ Add option</Text></TouchableOpacity>
       )}
       <Text style={styles.hint}>Tap the dot next to the correct answer.</Text>
-      <TextInput style={styles.input} placeholder="Prize pool (MSH, optional)" placeholderTextColor={COLORS.textMuted} value={prizePool} onChangeText={setPrizePool} keyboardType="decimal-pad" />
+      <TextInput style={styles.input} placeholder="Prize pool (R, optional)" placeholderTextColor={COLORS.textMuted} value={prizePool} onChangeText={setPrizePool} keyboardType="decimal-pad" />
       <TouchableOpacity style={styles.actionBtn} disabled={busy || !question.trim() || options.filter(Boolean).length < 2} onPress={launch}>
         {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Launch Quiz</Text>}
       </TouchableOpacity>
@@ -753,3 +751,19 @@ function DatingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
   );
 }
 
+// ── Registration ─────────────────────────────────────────────────────────
+// Every existing category's host component registers itself here — this
+// is the "declare your own live config" step a new mini-app needs to do
+// too (see categories/rideLivePanel.tsx for one that registers from its
+// own file instead of living inline in this one).
+registerLiveCategoryPanel('shopping', { Host: ShoppingHost });
+registerLiveCategoryPanel('food', { Host: FoodHost });
+registerLiveCategoryPanel('gaming', { Host: GamingHost });
+registerLiveCategoryPanel('business', { Host: BusinessHost });
+registerLiveCategoryPanel('education', { Host: EducationHost });
+registerLiveCategoryPanel('entertainment', { Host: EntertainmentHost });
+registerLiveCategoryPanel('sports', { Host: SportsHost });
+registerLiveCategoryPanel('career', { Host: CareerHost });
+registerLiveCategoryPanel('social', { Host: SocialHost });
+registerLiveCategoryPanel('conversation', { Host: ConversationHost });
+registerLiveCategoryPanel('dating', { Host: DatingHost });

@@ -215,7 +215,7 @@ export default function PropertyFormScreen({ navigation }: any) {
           ))}
         </View>
 
-        <Text style={styles.label}>{listingType === 'RENT' ? 'MONTHLY RENT (MSH)' : 'PRICE (MSH)'}</Text>
+        <Text style={styles.label}>{listingType === 'RENT' ? 'MONTHLY RENT (R)' : 'PRICE (R)'}</Text>
         <TextInput style={styles.input} placeholder="e.g. 45" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} keyboardType="numeric" />
 
         <Text style={styles.label}>ADDRESS</Text>

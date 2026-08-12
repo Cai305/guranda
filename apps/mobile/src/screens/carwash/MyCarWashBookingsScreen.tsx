@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#F59E0B',
@@ -93,7 +94,7 @@ export default function MyCarWashBookingsScreen({ navigation }: any) {
         <Ionicons name="location" size={12} color={COLORS.textMuted} />
         <Text style={styles.metaText} numberOfLines={1}>{item.carWash?.address}</Text>
       </View>
-      <Text style={styles.amount}>{item.totalAmount} MSH</Text>
+      <Text style={styles.amount}>{formatCurrency(item.totalAmount)}</Text>
     </TouchableOpacity>
   );
 

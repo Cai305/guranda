@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 // Tenant dashboard: your rentals — pay rent from the Guranda wallet (auto
 // receipt), see payment history, report issues to your agent, view lease.
@@ -103,7 +104,7 @@ export default function MyRentalsScreen({ navigation }: any) {
       if (!res.ok) throw new Error(d.message || 'Payment failed');
       Alert.alert(
         'Rent paid ✅',
-        `${tenancy.rentAmount} MSH paid for ${tenancy.currentPeriod}.\n\nReceipt: ${d.receiptNo}`,
+        `${formatCurrency(tenancy.rentAmount)} paid for ${tenancy.currentPeriod}.\n\nReceipt: ${d.receiptNo}`,
       );
       load();
     } catch (e: any) {
@@ -157,7 +158,7 @@ export default function MyRentalsScreen({ navigation }: any) {
 
             <View style={styles.rentRow}>
               <View>
-                <Text style={styles.rentAmount}>{t.rentAmount} MSH / month</Text>
+                <Text style={styles.rentAmount}>{formatCurrency(t.rentAmount)} / month</Text>
                 <Text style={[styles.rentStatus, { color: t.rentPaidThisMonth ? '#2DD4BF' : '#F87171' }]}>
                   {t.rentPaidThisMonth ? `✓ Paid for ${t.currentPeriod}` : `Due for ${t.currentPeriod}`}
                 </Text>
@@ -181,7 +182,7 @@ export default function MyRentalsScreen({ navigation }: any) {
                 <Text style={styles.subLabel}>RECEIPTS</Text>
                 {t.payments.slice(0, 4).map((p: any) => (
                   <Text key={p.id} style={styles.receiptRow}>
-                    🧾 {p.receiptNo} · {p.amount} MSH · {p.period}
+                    🧾 {p.receiptNo} · {formatCurrency(p.amount)} · {p.period}
                   </Text>
                 ))}
               </View>

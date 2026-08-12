@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_LABEL: Record<string, string> = {
   OPEN: 'Open for proposals',
@@ -140,7 +141,7 @@ export default function WorkGigDetailScreen({ navigation, route }: any) {
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{STATUS_LABEL[gig.status] || gig.status}</Text>
           </View>
-          <Text style={styles.budget}>{gig.budget.toFixed(0)} MSH budget</Text>
+          <Text style={styles.budget}>{formatCurrency(gig.budget)} budget</Text>
         </View>
 
         <View style={styles.section}>
@@ -155,7 +156,7 @@ export default function WorkGigDetailScreen({ navigation, route }: any) {
         {!isClient && !isFreelancer && gig.status === 'OPEN' && !proposed && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Submit a proposal</Text>
-            <TextInput style={styles.input} placeholder="Your proposed budget (MSH)" placeholderTextColor={COLORS.textMuted} value={proposedBudget} onChangeText={setProposedBudget} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} placeholder="Your proposed budget (R)" placeholderTextColor={COLORS.textMuted} value={proposedBudget} onChangeText={setProposedBudget} keyboardType="decimal-pad" />
             <TextInput style={[styles.input, { minHeight: 80, marginTop: 8 }]} placeholder="Message (optional)" placeholderTextColor={COLORS.textMuted} value={message} onChangeText={setMessage} multiline />
             <TouchableOpacity style={styles.actionBtn} disabled={busy || !proposedBudget.trim()} onPress={submitProposal}>
               {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Send Proposal</Text>}
@@ -180,7 +181,7 @@ export default function WorkGigDetailScreen({ navigation, route }: any) {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.proposalName}>{p.freelancer?.profile?.displayName || p.freelancer?.username}</Text>
                     {p.message && <Text style={styles.hint}>{p.message}</Text>}
-                    <Text style={styles.proposalBudget}>{p.proposedBudget.toFixed(0)} MSH</Text>
+                    <Text style={styles.proposalBudget}>{formatCurrency(p.proposedBudget)}</Text>
                   </View>
                   {p.status === 'PENDING' ? (
                     <TouchableOpacity style={styles.acceptBtn} disabled={busy} onPress={() => acceptProposal(p.id)}>
@@ -208,14 +209,14 @@ export default function WorkGigDetailScreen({ navigation, route }: any) {
         {isClient && gig.status === 'SUBMITTED' && (
           <View style={styles.section}>
             <TouchableOpacity style={styles.actionBtn} disabled={busy} onPress={approveCompletion}>
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Approve & Release {gig.escrowAmount.toFixed(0)} MSH</Text>}
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Approve & Release {formatCurrency(gig.escrowAmount)}</Text>}
             </TouchableOpacity>
           </View>
         )}
 
         {gig.status === 'COMPLETED' && (
           <View style={styles.section}>
-            <Text style={styles.hint}>This gig is complete — {gig.escrowAmount.toFixed(0)} MSH was paid to the freelancer.</Text>
+            <Text style={styles.hint}>This gig is complete — {formatCurrency(gig.escrowAmount)} was paid to the freelancer.</Text>
           </View>
         )}
       </ScrollView>

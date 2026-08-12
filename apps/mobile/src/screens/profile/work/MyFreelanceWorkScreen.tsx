@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = {
   OPEN: COLORS.textMuted,
@@ -66,7 +67,7 @@ export default function MyFreelanceWorkScreen({ navigation }: any) {
                   <Text style={styles.meta}>Client: {gig.client?.profile?.displayName || gig.client?.username}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={styles.budget}>{gig.escrowAmount.toFixed(0)} MSH</Text>
+                  <Text style={styles.budget}>{formatCurrency(gig.escrowAmount)}</Text>
                   <View style={[styles.statusPill, { backgroundColor: `${STATUS_COLOR[gig.status]}22` }]}>
                     <Text style={[styles.statusText, { color: STATUS_COLOR[gig.status] }]}>{gig.status}</Text>
                   </View>
@@ -85,7 +86,7 @@ export default function MyFreelanceWorkScreen({ navigation }: any) {
                   <Text style={styles.title}>{p.gig.title}</Text>
                   <Text style={styles.meta}>Client: {p.gig.client?.profile?.displayName || p.gig.client?.username}</Text>
                 </View>
-                <Text style={styles.budget}>{p.proposedBudget.toFixed(0)} MSH</Text>
+                <Text style={styles.budget}>{formatCurrency(p.proposedBudget)}</Text>
               </TouchableOpacity>
             ))
           )}

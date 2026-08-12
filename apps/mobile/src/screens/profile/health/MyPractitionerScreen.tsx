@@ -119,7 +119,7 @@ export default function MyPractitionerScreen({ navigation }: any) {
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{practitioner.consultationFee.toFixed(0)}</Text>
-              <Text style={styles.statLabel}>Fee (MSH)</Text>
+              <Text style={styles.statLabel}>Fee (R)</Text>
             </View>
           </View>
         </LinearGradient>

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { formatCurrency } from '../../utils/format';
 
 type Tab = 'jobs' | 'gigs' | 'companies';
 
@@ -19,8 +20,8 @@ const LOCATION_FILTERS = ['All', 'Remote', 'Onsite', 'Hybrid'];
 
 const salaryLabel = (min?: number | null, max?: number | null) => {
   if (!min && !max) return null;
-  if (min && max) return `${min.toFixed(0)}–${max.toFixed(0)} MSH`;
-  return `${(min || max)!.toFixed(0)} MSH`;
+  if (min && max) return `${formatCurrency(min)}–${formatCurrency(max)}`;
+  return formatCurrency((min || max)!);
 };
 
 export default function WorkHomeScreen({ navigation }: any) {
@@ -175,7 +176,7 @@ export default function WorkHomeScreen({ navigation }: any) {
                   <Text style={styles.jobCompany} numberOfLines={2}>{gig.description}</Text>
                   <Text style={styles.jobMetaText}>{gig._count?.proposals ?? 0} proposal{gig._count?.proposals === 1 ? '' : 's'}</Text>
                 </View>
-                <Text style={styles.gigBudget}>{gig.budget.toFixed(0)} MSH</Text>
+                <Text style={styles.gigBudget}>{formatCurrency(gig.budget)}</Text>
               </TouchableOpacity>
             ))}
           </View>

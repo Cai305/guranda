@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -166,7 +167,7 @@ export default function MovieDetailScreen({ navigation, route }: any) {
                       <Text style={styles.showtimeCinema}>{s.cinema}</Text>
                       <Text style={styles.showtimeTime}>{fmt(s.startsAt)}</Text>
                     </View>
-                    <Text style={styles.showtimePrice}>{s.price.toFixed(0)} MSH</Text>
+                    <Text style={styles.showtimePrice}>{formatCurrency(s.price)}</Text>
                     <Text style={styles.showtimeSeats}>{s.seatsAvailable} left</Text>
                   </TouchableOpacity>
                 ))}
@@ -191,8 +192,8 @@ export default function MovieDetailScreen({ navigation, route }: any) {
 
           {total && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{showtime.price.toFixed(0)} MSH × {seats} seat{seats > 1 ? 's' : ''}</Text>
-              <Text style={styles.totalValue}>{total} MSH</Text>
+              <Text style={styles.totalLabel}>{formatCurrency(showtime.price)} × {seats} seat{seats > 1 ? 's' : ''}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
             </View>
           )}
 
@@ -202,7 +203,7 @@ export default function MovieDetailScreen({ navigation, route }: any) {
 
       <View style={styles.actionBar}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking || !showtimeId}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${total} MSH` : 'Select a showtime'}</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${formatCurrency(total)}` : 'Select a showtime'}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

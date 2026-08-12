@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 const STATUSES = ['PLACED', 'CONFIRMED', 'READY', 'COMPLETED', 'CANCELLED'];
 
@@ -87,7 +88,7 @@ export default function HealthPharmacyOrdersScreen({ navigation }: any) {
                   </View>
                 </View>
                 <Text style={styles.items}>{order.items?.map((i: any) => `${i.quantity}× ${i.product.name}`).join(', ')}</Text>
-                <Text style={styles.total}>{order.total.toFixed(2)} MSH</Text>
+                <Text style={styles.total}>{formatCurrency(order.total)}</Text>
                 <View style={styles.actionRow}>
                   {STATUSES.filter(s => s !== order.status).map(s => (
                     <TouchableOpacity key={s} style={styles.statusBtn} onPress={() => updateStatus(order.id, s)}>

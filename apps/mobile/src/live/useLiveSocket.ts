@@ -120,7 +120,7 @@ export function useLiveSocket(roomName: string | undefined, myName: string, myUs
       'live_pinned_product', 'live_pinned_food', 'live_linked_game', 'live_score_update',
       'live_quiz_update', 'live_poll_update', 'live_prediction_update', 'live_job_posted', 'live_question_asked',
       'live_topic_update', 'live_showcase_update', 'live_dating_update', 'live_moderation_update',
-      'live_guest_update',
+      'live_guest_update', 'live_ride_status_update',
     ];
     categoryEvents.forEach(type => {
       socket.on(type, (payload: any) => setCategoryEvent({ type, payload, nonce: Date.now() }));

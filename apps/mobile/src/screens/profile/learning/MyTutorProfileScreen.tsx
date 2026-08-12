@@ -89,7 +89,7 @@ export default function MyTutorProfileScreen({ navigation }: any) {
           <TextInput style={styles.input} placeholder="e.g. Mathematics, Physics" placeholderTextColor={COLORS.textMuted} value={subjects} onChangeText={setSubjects} />
         </View>
         <View>
-          <Text style={styles.label}>Hourly rate (MSH) *</Text>
+          <Text style={styles.label}>Hourly rate (R) *</Text>
           <TextInput style={styles.input} keyboardType="decimal-pad" placeholder="10" placeholderTextColor={COLORS.textMuted} value={hourlyRate} onChangeText={setHourlyRate} />
         </View>
         <View>

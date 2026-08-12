@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useStore } from '../context/StoreContext';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 import { MOCK_STREAMS } from '../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../data/liveApi';
 import { GAMES } from './hub/GamesScreen';
@@ -504,7 +505,7 @@ export default function HomeScreen({ navigation }: any) {
               <View>
                 <Text style={styles.walletLabel}>ONE WALLET · ONE ECONOMY</Text>
                 <Text style={styles.walletBalance}>
-                  {(wallet?.balanceMasheleni ?? 0).toFixed(2)} <Text style={styles.walletCurrency}>MSH</Text>
+                  {formatCurrency(wallet?.balanceMasheleni ?? 0)}
                 </Text>
               </View>
               <View style={styles.walletIcon}>

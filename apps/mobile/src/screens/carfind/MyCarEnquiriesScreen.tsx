@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 // Buyer dashboard: every enquiry you've sent to a seller, and the car it
 // was about.
@@ -84,7 +85,7 @@ export default function MyCarEnquiriesScreen({ navigation }: any) {
             )}
             <View style={{ flex: 1 }}>
               <Text style={styles.carTitle} numberOfLines={1}>{e.listing.title}</Text>
-              <Text style={styles.carPrice}>{e.listing.price.toLocaleString()} MSH</Text>
+              <Text style={styles.carPrice}>{formatCurrency(e.listing.price)}</Text>
               <Text style={styles.message} numberOfLines={2}>"{e.message}"</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />

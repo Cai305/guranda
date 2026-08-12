@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function HealthPractitionerDetailScreen({ navigation, route }: any) {
   const { theme } = useTheme();
@@ -125,7 +126,7 @@ export default function HealthPractitionerDetailScreen({ navigation, route }: an
 
         <View style={styles.feeRow}>
           <Text style={styles.feeLabel}>Consultation fee</Text>
-          <Text style={styles.fee}>{practitioner.consultationFee.toFixed(0)} MSH</Text>
+          <Text style={styles.fee}>{formatCurrency(practitioner.consultationFee)}</Text>
         </View>
 
         <View style={styles.section}>
@@ -149,7 +150,7 @@ export default function HealthPractitionerDetailScreen({ navigation, route }: an
 
       <View style={styles.actionBar}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>Book · {practitioner.consultationFee.toFixed(0)} MSH</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>Book · {formatCurrency(practitioner.consultationFee)}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 import { EventCardData, encodeEventCard } from './cards/EventMiniCard';
 
 interface Props {
@@ -183,7 +184,7 @@ export default function MiniAppEventPicker({ visible, onClose, onSendEvent }: Pr
                     {soldOut
                       ? <Text style={styles.soldOut}>Sold Out</Text>
                       : <Text style={styles.eventPrice}>
-                          {ev.price === 0 ? 'Free' : `${ev.price} MSH`}
+                          {ev.price === 0 ? 'Free' : formatCurrency(ev.price)}
                         </Text>
                     }
                   </View>

@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
 import GiftButton from '../../components/gifts/GiftButton';
 import { GiftCatalogItem } from '../../components/gifts/GiftSheet';
+import { formatCurrency } from '../../utils/format';
 
 let VideoPlayer: any = null;
 if (Platform.OS === 'web') {
@@ -234,7 +235,7 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
           </Text>
           {!!video.giftCount && (
             <Text style={styles.giftMeta}>
-              🎁 {video.giftCount.toLocaleString()} {video.giftCount === 1 ? 'gift' : 'gifts'} · {(video.giftTotal ?? 0).toLocaleString()} MSH
+              🎁 {video.giftCount.toLocaleString()} {video.giftCount === 1 ? 'gift' : 'gifts'} · {formatCurrency(video.giftTotal ?? 0)}
             </Text>
           )}
         </View>

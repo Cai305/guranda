@@ -155,6 +155,10 @@ model User {
   cardTournamentsCreated       CardTournament[]
   cardTournamentEntries        CardTournamentEntry[]
   achievementsUnlocked         UserAchievement[]
+  profileMetricsSnapshots      ProfileMetricsSnapshot[]
+  companion                    Companion?
+  badges                       UserBadge[]
+  businessMetricsSnapshots     BusinessMetricsSnapshot[]
   challengeProgress            UserChallengeProgress[]
   referralsMade                Referral[]                @relation("referralsMade")
   referredBy                   Referral?                 @relation("referredBy")
@@ -199,6 +203,14 @@ model UserProfile {
   // render each format). Individual chats can override it via
   // ChatMember.wallpaperUrl.
   chatWallpaperUrl  String?
+  // Manual override for the Dashboard's Personal/Creator/Merchant/Business
+  // account-mode badge. Null (the default) means "use the derived value" —
+  // computed client-side from how many mini apps the user actually owns
+  // (see mobile's config/accountType.ts) — so most accounts never need this
+  // set at all. Only present so someone whose derived type undersells them
+  // (e.g. one high-volume shop that reads as "Creator" by count alone) can
+  // explicitly choose "Business" framing instead.
+  accountTypeOverride AccountType?
 }
 
 // Outbox-pattern domain event log. A row here is written inside the SAME
@@ -2844,6 +2856,64 @@ model UserAchievement {
   @@unique([userId, achievementId])
 }
 
+// ── Profile Digital Headquarters ──────────────────────────────────────────
+// Daily cron-written snapshot so the profile pillar cards can say "up 12%
+// this week" instead of a bare number — diff the live value against the
+// row closest to 7 days ago rather than maintaining four separate history
+// tables.
+model ProfileMetricsSnapshot {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  reputation          Float
+  subscribers         Float
+  xp                  Int
+  challengesCompleted Int
+  giftsReceived       Int
+  capturedAt          DateTime @default(now())
+
+  @@index([userId, capturedAt])
+}
+
+// A visual companion that evolves with UserProfile.xp — reuses the existing
+// Challenges XP currency rather than inventing a new one, so it only grows
+// with meaningful activity (completing challenges), not idle screen time.
+model Companion {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  name          String   @default("Companion")
+  stage         Int      @default(0) // derived from xp, capped at 5
+  lastEvolvedAt DateTime @default(now())
+}
+
+// Scarce, ownable collectibles — distinct from the generic, uncapped
+// Achievement/UserAchievement unlocks above. Some badges are capped by
+// maxSupply (first-N style scarcity); others are uncapped and auto-minted
+// when a specific Achievement unlocks (see achievements.service.ts).
+model Badge {
+  id          String      @id @default(uuid())
+  code        String      @unique
+  name        String
+  description String
+  icon        String
+  maxSupply   Int?
+  mintedCount Int         @default(0)
+  createdAt   DateTime    @default(now())
+  owners      UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  mintedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
 model DailyChallenge {
   id              String                  @id @default(uuid())
   mode            CardGameMode?
@@ -3200,4 +3270,48 @@ model ChallengeSponsorship {
   budget      Float
   status      String    @default("PENDING") // PENDING | ACTIVE | REJECTED
   createdAt   DateTime  @default(now())
+}
+
+// ============================================================
+// Business/Creator Dashboard — AI-narrated insights + account-mode badge
+// (product vision §23-25). AccountType is deliberately NOT the same concept
+// as the `Business` model above (that's a verified/KYB legal entity used for
+// challenge sponsorship); this is a lightweight, mostly-derived UI framing
+// for the Dashboard command centre that any account can carry.
+// ============================================================
+
+enum AccountType {
+  PERSONAL
+  CREATOR
+  MERCHANT
+  BUSINESS
+}
+
+// Daily cron-written snapshot of the Dashboard's real, already-computed
+// business numbers (total mini-app revenue, per-app revenue, social/video/
+// story engagement) so BusinessInsightsService can diff "now" against "~7
+// days ago" and hand the AI a REAL week-over-week percentage instead of
+// letting it invent one. Mirrors ProfileMetricsSnapshot's cron shape one-row-
+// per-user-per-day, diffed against the row closest to 7 days back — kept as
+// its own table rather than reusing ProfileMetricsSnapshot because these are
+// a different set of numbers (business/dashboard, not profile pillars) with
+// a different owner (BusinessInsightsService, not ProfileService).
+model BusinessMetricsSnapshot {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  totalRevenue  Float
+  // [{ id: string, label: string, revenue: number }] — one entry per owned
+  // mini app with defined revenue at capture time, so a per-app delta can be
+  // computed later without a separate table per mini-app.
+  perAppRevenue Json
+  postCount     Int
+  videoViews    Int
+  // likesReceived + commentsReceived + ranksReceived on the user's Stories,
+  // composed into one number the same way ProfileService composes "Impact".
+  storyEngagement    Int
+  giftsReceivedTotal Float
+  capturedAt         DateTime @default(now())
+
+  @@index([userId, capturedAt])
 }

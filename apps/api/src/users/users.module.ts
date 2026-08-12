@@ -4,9 +4,10 @@ import { UsersService } from './users.service';
 import { SettingsAiToolsProvider } from './settings-ai-tools.provider';
 import { PrismaService } from '../prisma.service';
 import { AuthModule } from '../auth/auth.module';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ProfileModule],
   controllers: [UsersController],
   providers: [UsersService, PrismaService, SettingsAiToolsProvider],
   exports: [UsersService],

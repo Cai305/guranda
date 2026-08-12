@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function WorkJobDetailScreen({ navigation, route }: any) {
   const { jobId } = route.params;
@@ -42,7 +43,7 @@ export default function WorkJobDetailScreen({ navigation, route }: any) {
   if (!job) return <View style={styles.center}><Text style={{ color: COLORS.textMuted }}>Job not found</Text></View>;
 
   const salary = job.salaryMin || job.salaryMax
-    ? job.salaryMin && job.salaryMax ? `${job.salaryMin.toFixed(0)}–${job.salaryMax.toFixed(0)} MSH` : `${(job.salaryMin || job.salaryMax).toFixed(0)} MSH`
+    ? job.salaryMin && job.salaryMax ? `${formatCurrency(job.salaryMin)}–${formatCurrency(job.salaryMax)}` : formatCurrency(job.salaryMin || job.salaryMax)
     : null;
 
   if (applied) {

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
   const { theme } = useTheme();
@@ -110,7 +111,7 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
         <View style={styles.successWrap}>
           <View style={styles.successIcon}><Ionicons name="checkmark" size={40} color="#fff" /></View>
           <Text style={styles.successTitle}>Order placed!</Text>
-          <Text style={styles.successSub}>{pharmacy.name} · {total.toFixed(2)} MSH</Text>
+          <Text style={styles.successSub}>{pharmacy.name} · {formatCurrency(total)}</Text>
           <TouchableOpacity style={styles.successBtn} onPress={() => navigation.navigate('HealthOrders')}>
             <Text style={styles.successBtnText}>View My Orders</Text>
           </TouchableOpacity>
@@ -148,7 +149,7 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.productName}>{product.name}</Text>
                     {product.requiresPrescription && <Text style={styles.rxNote}>Requires prescription</Text>}
-                    <Text style={styles.productPrice}>{product.price.toFixed(2)} MSH</Text>
+                    <Text style={styles.productPrice}>{formatCurrency(product.price)}</Text>
                   </View>
                   {qty === 0 ? (
                     <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(product.id)}>
@@ -177,7 +178,7 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
           <TextInput style={styles.input} placeholder="Delivery address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <TouchableOpacity style={styles.checkoutBtn} onPress={checkout} disabled={placing}>
-            {placing ? <ActivityIndicator color="#fff" /> : <Text style={styles.checkoutBtnText}>Checkout · {total.toFixed(2)} MSH</Text>}
+            {placing ? <ActivityIndicator color="#fff" /> : <Text style={styles.checkoutBtnText}>Checkout · {formatCurrency(total)}</Text>}
           </TouchableOpacity>
         </View>
       )}

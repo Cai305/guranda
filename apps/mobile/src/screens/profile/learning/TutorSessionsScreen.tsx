@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 const STATUSES = ['CONFIRMED', 'COMPLETED', 'CANCELLED'];
 const STATUS_COLOR: Record<string, string> = { CONFIRMED: '#0EA5E9', COMPLETED: '#22c55e', CANCELLED: '#ef4444' };
@@ -67,7 +68,7 @@ export default function TutorSessionsScreen({ navigation }: any) {
                   </View>
                 </View>
                 {s.topic && <Text style={styles.cardSub}>{s.topic}</Text>}
-                <Text style={styles.cardMeta}>{new Date(s.scheduledAt).toLocaleString()} · {s.fee} MSH</Text>
+                <Text style={styles.cardMeta}>{new Date(s.scheduledAt).toLocaleString()} · {formatCurrency(s.fee)}</Text>
                 <View style={styles.actionRow}>
                   {STATUSES.filter(st => st !== s.status).map(st => (
                     <TouchableOpacity key={st} style={styles.statusBtn} onPress={() => updateStatus(s.id, st)}>

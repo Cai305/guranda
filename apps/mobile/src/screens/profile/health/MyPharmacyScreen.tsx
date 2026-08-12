@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 export default function MyPharmacyScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -162,7 +163,7 @@ export default function MyPharmacyScreen({ navigation }: any) {
             <View key={p.id} style={styles.productRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.productName}>{p.name}</Text>
-                <Text style={styles.productPrice}>{p.price.toFixed(2)} MSH</Text>
+                <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
               </View>
               <View style={styles.productActions}>
                 <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('AddEditHealthProduct', { pharmacyId: pharmacy.id, product: p })}>

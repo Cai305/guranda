@@ -5,8 +5,10 @@ import { GRADIENTS } from '../theme';
 // Live is a complete broadcasting platform, not a single feed.
 // Each category has its own purpose, feature set and (mostly
 // future) integration into the rest of the Guranda ecosystem.
-// Only Ride Live is still "future use" end-to-end — every other
-// category is browsable today with real UI and mock content.
+// Every category is browsable today with real, category-specific
+// host/viewer UI — see LiveCategoryHostPanel.tsx /
+// LiveCategoryViewerPanel.tsx and components/live/liveCategoryRegistry.ts
+// for how a category registers its own live panels.
 // ============================================================
 
 export type LiveCategoryStatus = 'live' | 'construction';
@@ -130,10 +132,11 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     icon: 'car',
     gradient: GRADIENTS.midnight,
     tagline: 'The road, shared',
-    description: 'Drivers will be able to broadcast road conditions, community updates and ride events — connected straight into Ride.',
-    features: ['Road conditions', 'Community updates', 'Ride events'],
+    description: 'Drivers go live and broadcast their real online/offline status straight from the Ride mini-app — viewers can see whether they\'re currently reachable for a ride and message them directly.',
+    features: ['Broadcast online/offline status', 'Real driver rating & ride count', 'Active-ride indicator', 'Message the driver'],
+    futureFeatures: ['Road conditions', 'Community updates', 'Ride events', 'Live location tracking for viewers'],
     futureIntegration: 'Ride',
-    status: 'construction',
+    status: 'live',
   },
   {
     id: 'career',
@@ -170,9 +173,8 @@ export const DISCOVER_TAGS = [
 export const getLiveCategory = (id: string): LiveCategory | undefined =>
   LIVE_CATEGORIES.find(c => c.id === id);
 
-// Live categories that are still fully "future use" (Ride Live)
-// open the shared Under Construction screen instead of the rich
-// category detail page.
+// Live categories still marked 'construction' open the shared Under
+// Construction screen instead of the rich category detail page.
 export function openLiveCategory(navigation: any, category: LiveCategory) {
   if (category.status === 'construction') {
     navigation.navigate('UnderConstruction', {

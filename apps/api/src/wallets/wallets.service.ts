@@ -7,6 +7,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 import { EventBusService } from '../events/event-bus.service';
+import { BadgeService } from '../profile/badge.service';
 
 // Content Contribution Remuneration pays out once a month, on the 14th, at
 // midnight — this must stay in sync with the @Cron expression on
@@ -37,6 +38,7 @@ export class WalletsService {
     private prisma: PrismaService,
     private verificationService: VerificationService,
     private eventBus: EventBusService,
+    private badgeService: BadgeService,
   ) {}
 
   async getMyWallet(userId: string) {
@@ -341,6 +343,8 @@ export class WalletsService {
       where: { pendingCreatorFunds: { gt: 0 } },
     });
     for (const wallet of wallets) {
+      // Best-effort — an uncapped mint should never block a real payout.
+      this.badgeService.mintUncapped(wallet.userId, 'CCR_CREATOR').catch(() => {});
       await this.prisma.$transaction([
         this.prisma.wallet.update({
           where: { id: wallet.id },

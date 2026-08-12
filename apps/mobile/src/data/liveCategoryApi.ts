@@ -103,6 +103,11 @@ export const passDatingPair = (roomId: string) =>
 export const declareDatingMatch = (roomId: string) =>
   fetchApi(`/live/rooms/${roomId}/dating/match`, { method: 'POST' }).then(unwrap);
 
+// Ride Live — flips the same DriverProfile.isOnline the standalone
+// Ride screens (DriverView) use, so it's a real reachability toggle.
+export const setRideOnlineStatus = (roomId: string, isOnline: boolean) =>
+  fetchApi(`/live/rooms/${roomId}/ride/online`, { method: 'PATCH', body: JSON.stringify({ isOnline }) }).then(unwrap);
+
 // Live moderation — host or any current moderator can call mute/unmute/kick/ban;
 // assign/revoke moderator and unban are host-only (enforced server-side).
 export const getModerationState = (roomId: string) =>

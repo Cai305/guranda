@@ -6,6 +6,7 @@ import TripCard, { Trip } from './TripCard';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import PlatformWidget from '../widgets/PlatformWidget';
 import { PlatformWidgetData } from '../widgets/platformWidget';
+import { formatCurrency } from '../../utils/format';
 
 export interface ToolWidget {
   toolCallId: string;
@@ -35,7 +36,7 @@ function navigateToLife(navigation: any, screen: string, params: any) {
 }
 
 function money(n: number | undefined | null): string {
-  return `${Number(n ?? 0).toFixed(2)} MSH`;
+  return formatCurrency(Number(n ?? 0));
 }
 
 function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCardProps | null {

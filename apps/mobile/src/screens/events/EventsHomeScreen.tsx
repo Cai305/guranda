@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const CATEGORIES = ['All', 'Festival', 'Comedy', 'Theatre', 'Sports'];
 
@@ -317,7 +318,7 @@ export default function EventsHomeScreen({ navigation }: any) {
                     {/* Price badge */}
                     <View style={styles.pricePill}>
                       <Text style={styles.pricePillText}>
-                        {event.price === 0 ? 'FREE' : `${event.price} MSH`}
+                        {event.price === 0 ? 'FREE' : formatCurrency(event.price)}
                       </Text>
                     </View>
                   </View>

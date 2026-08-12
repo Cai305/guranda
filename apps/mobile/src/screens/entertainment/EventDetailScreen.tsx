@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -152,8 +153,8 @@ export default function EventDetailScreen({ navigation, route }: any) {
 
           {total && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{event.price.toFixed(0)} MSH × {tickets} ticket{tickets > 1 ? 's' : ''}</Text>
-              <Text style={styles.totalValue}>{total} MSH</Text>
+              <Text style={styles.totalLabel}>{formatCurrency(event.price)} × {tickets} ticket{tickets > 1 ? 's' : ''}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
             </View>
           )}
 
@@ -163,7 +164,7 @@ export default function EventDetailScreen({ navigation, route }: any) {
 
       <View style={styles.actionBar}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${total} MSH` : 'Book Tickets'}</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${formatCurrency(total)}` : 'Book Tickets'}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

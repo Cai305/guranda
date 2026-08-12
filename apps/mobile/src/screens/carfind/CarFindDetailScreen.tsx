@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const BODY_EMOJI: Record<string, string> = {
   HATCHBACK: '🚗', SEDAN: '🚘', SUV: '🚙', BAKKIE: '🛻', COUPE: '🏎️', VAN: '🚐',
@@ -180,7 +181,7 @@ export default function CarFindDetailScreen({ navigation, route }: any) {
 
         <View style={styles.body}>
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{car.price.toLocaleString()} MSH</Text>
+            <Text style={styles.price}>{formatCurrency(car.price)}</Text>
             {car.condition === 'NEW' && (
               <View style={styles.newPill}><Text style={styles.newPillText}>NEW</Text></View>
             )}

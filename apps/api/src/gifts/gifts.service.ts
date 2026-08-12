@@ -41,6 +41,16 @@ export const GIFT_CATALOG = [
   { key: 'galaxy', label: 'Galaxy', icon: '🌌', amount: 10000 },
 ] as const;
 
+// Badge utility (vision §12: badges unlock real access, not just display).
+// The three supply-capped, genuinely scarce badges — not the uncapped
+// achievement-linked ones — earn their holder a standing discount on the
+// MSH cost of SENDING a gift. The recipient still receives the full
+// catalog amount; the platform absorbs the difference, same pattern as
+// the registration welcome bonus and CCR payouts (both already credit MSH
+// with no matching debit elsewhere in the ledger).
+export const GIFT_DISCOUNT_BADGE_CODES = ['FOUNDER', 'OG_CREATOR', 'EARLY_LIVE_HOST'] as const;
+export const GIFT_DISCOUNT_RATE = 0.1;
+
 @Injectable()
 export class GiftsService {
   constructor(
@@ -51,6 +61,28 @@ export class GiftsService {
 
   catalog() {
     return GIFT_CATALOG;
+  }
+
+  /**
+   * Whether this user currently gets the scarce-badge gift discount, and
+   * which badge earned it — surfaced separately from catalog() (which is
+   * a static list, not user-specific) so GiftSheet can show "Unlocked by
+   * your Founder badge" before the sender even picks a gift.
+   */
+  async myGiftDiscount(userId: string) {
+    const owned = await this.prisma.userBadge.findFirst({
+      where: { userId, badge: { code: { in: [...GIFT_DISCOUNT_BADGE_CODES] } } },
+      include: { badge: true },
+      // FOUNDER > OG_CREATOR > EARLY_LIVE_HOST — if a user holds more than
+      // one, show the earliest/most prestigious one earned.
+      orderBy: { mintedAt: 'asc' },
+    });
+    return {
+      active: !!owned,
+      rate: GIFT_DISCOUNT_RATE,
+      badgeCode: owned?.badge.code ?? null,
+      badgeName: owned?.badge.name ?? null,
+    };
   }
 
   async sendGift(
@@ -117,7 +149,17 @@ export class GiftsService {
       where: { userId: senderId },
     });
     if (!senderWallet) throw new BadRequestException('Wallet not found');
-    if (Number(senderWallet.balanceMasheleni) < item.amount) {
+
+    // Badge-holder discount — real backend enforcement, not a client-side
+    // display flag. The sender pays a scarce-badge-discounted price; the
+    // recipient still receives the full catalog amount (see myGiftDiscount
+    // above for why that's not a ledger integrity problem here).
+    const discount = await this.myGiftDiscount(senderId);
+    const cost = discount.active
+      ? Math.round(item.amount * (1 - discount.rate) * 100) / 100
+      : item.amount;
+
+    if (Number(senderWallet.balanceMasheleni) < cost) {
       throw new BadRequestException(
         `Not enough MSH — balance is ${senderWallet.balanceMasheleni}`,
       );
@@ -136,7 +178,7 @@ export class GiftsService {
     const [, , , , gift] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { id: senderWallet.id },
-        data: { balanceMasheleni: { decrement: item.amount } },
+        data: { balanceMasheleni: { decrement: cost } },
       }),
       this.prisma.wallet.update({
         where: { id: recipientWallet.id },
@@ -145,7 +187,7 @@ export class GiftsService {
       this.prisma.transaction.create({
         data: {
           walletId: senderWallet.id,
-          amount: -item.amount,
+          amount: -cost,
           type: 'GIFT_SENT',
           status: 'SUCCESS',
         },

@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { formatCurrency } from '../../utils/format';
 
 type Tab = 'fitness' | 'doctors' | 'pharmacy' | 'wellness';
 
@@ -296,7 +297,7 @@ export default function HealthHomeScreen({ navigation }: any) {
                   <Text style={styles.cardTitle}>{p.name}</Text>
                   <Text style={styles.cardSub}>{p.specialty}</Text>
                 </View>
-                <Text style={styles.cardPrice}>{p.consultationFee.toFixed(0)} MSH</Text>
+                <Text style={styles.cardPrice}>{formatCurrency(p.consultationFee)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -311,7 +312,7 @@ export default function HealthHomeScreen({ navigation }: any) {
                   <Text style={styles.cardTitle}>{prod.name}</Text>
                   <Text style={styles.cardSub}>{prod.pharmacy?.name}</Text>
                 </View>
-                <Text style={styles.cardPrice}>{prod.price.toFixed(0)} MSH</Text>
+                <Text style={styles.cardPrice}>{formatCurrency(prod.price)}</Text>
               </TouchableOpacity>
             ))}
           </View>

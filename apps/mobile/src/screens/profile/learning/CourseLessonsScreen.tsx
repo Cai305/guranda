@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
 import { fetchApi } from '../../../utils/api';
 import { ACCENT } from '../../learning/LearningHomeScreen';
+import { formatCurrency } from '../../../utils/format';
 
 export default function CourseLessonsScreen({ route, navigation }: any) {
   const { courseId } = route.params;
@@ -45,7 +46,7 @@ export default function CourseLessonsScreen({ route, navigation }: any) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: SPACING.lg, gap: 10, paddingBottom: 40 }}>
         <View style={styles.statsRow}>
           <View style={styles.statCard}><Text style={styles.statValue}>{course?.lessons?.length ?? 0}</Text><Text style={styles.statLabel}>Lessons</Text></View>
-          <View style={styles.statCard}><Text style={styles.statValue}>{course?.price > 0 ? `${course.price} MSH` : 'Free'}</Text><Text style={styles.statLabel}>Price</Text></View>
+          <View style={styles.statCard}><Text style={styles.statValue}>{course?.price > 0 ? formatCurrency(course.price) : 'Free'}</Text><Text style={styles.statLabel}>Price</Text></View>
         </View>
 
         <Text style={styles.sectionLabel}>LESSONS</Text>

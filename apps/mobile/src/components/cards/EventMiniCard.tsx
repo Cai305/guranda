@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/format';
 
 // ── Shape returned by GET /entertainment/events/:id/share-card ──────────────
 export interface EventCardData {
@@ -248,7 +249,7 @@ export default function EventMiniCard({
     if (!user?.userId) return;
     Alert.alert(
       `Book ticket`,
-      `Book 1 ticket for "${event.title}" for ${isFree ? 'FREE' : `${event.price} MSH`}?`,
+      `Book 1 ticket for "${event.title}" for ${isFree ? 'FREE' : formatCurrency(event.price)}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -283,7 +284,7 @@ export default function EventMiniCard({
     const name = chatTargetName || 'them';
     Alert.alert(
       `Gift ticket to ${name}`,
-      `Buy 1 ticket for "${event.title}" (${isFree ? 'FREE' : `${event.price} MSH`}) and gift it to ${name}?`,
+      `Buy 1 ticket for "${event.title}" (${isFree ? 'FREE' : formatCurrency(event.price)}) and gift it to ${name}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -332,7 +333,7 @@ export default function EventMiniCard({
           <Text style={styles.categoryText}>{event.category}</Text>
         </View>
         <View style={styles.pricePill}>
-          <Text style={styles.priceText}>{isFree ? 'Free' : `${event.price} MSH`}</Text>
+          <Text style={styles.priceText}>{isFree ? 'Free' : formatCurrency(event.price)}</Text>
         </View>
       </View>
 

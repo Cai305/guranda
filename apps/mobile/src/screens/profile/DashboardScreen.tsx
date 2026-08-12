@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Rect } from 'react-native-svg';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, GRADIENTS, SHADOW } from '../../theme';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
 import { useFeatureFlags } from '../../context/FeatureFlagsContext';
 import { MINI_APP_MANAGE_REGISTRY, MiniAppManageSummary } from '../../config/miniAppManage';
+import { AccountType, ACCOUNT_TYPE_LABEL, deriveAccountType } from '../../config/accountType';
+import BusinessInsightsCard from '../../components/profile/BusinessInsightsCard';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHART_DAYS = 7;
@@ -131,7 +134,7 @@ function ManageAppCard({
         {locked ? 'Locked by admin' : loading ? '—' : summary ? `${summary.count} ${summary.countLabel}` : '—'}
       </Text>
       {hasRevenue && !locked && (
-        <Text style={dash.earningsLabel} numberOfLines={1}>{summary!.revenue!.toFixed(0)} MSH earned</Text>
+        <Text style={dash.earningsLabel} numberOfLines={1}>{formatCurrency(summary!.revenue!)} earned</Text>
       )}
       {hasChart && !locked && (
         <View style={{ marginTop: 10 }}>
@@ -187,6 +190,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [storyStats, setStoryStats] = useState<{ storyCount: number; likesReceived: number; commentsReceived: number; ranksReceived: number; giftsReceived: number; giftCount: number } | null>(null);
   const [creatorFunds, setCreatorFunds] = useState<{ accumulatedThisMonth: number; nextPayoutDate: string } | null>(null);
   const [myCommunities, setMyCommunities] = useState<any[]>([]);
+  const [accountTypeOverride, setAccountTypeOverride] = useState<AccountType | null>(null);
 
   useEffect(() => {
     fetchApi('/wallets/me')
@@ -238,10 +242,37 @@ export default function DashboardScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => d && setCreatorFunds(d))
       .catch(() => {});
+
+    fetchApi('/business-insights/account-type')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setAccountTypeOverride(d.override))
+      .catch(() => {});
   }, []);
 
   const installedManageApps = MINI_APP_MANAGE_REGISTRY.filter(e => isInstalled(e.id));
   const installedIdsKey = installedManageApps.map(e => e.id).join(',');
+  const accountType = accountTypeOverride ?? deriveAccountType(installedManageApps.length);
+
+  const pickAccountType = () => {
+    const options: (AccountType | null)[] = ['PERSONAL', 'CREATOR', 'MERCHANT', 'BUSINESS', null];
+    Alert.alert(
+      'Account type',
+      'Choose how your Dashboard is framed, or use the automatic one based on how many mini apps you run.',
+      [
+        ...options.map(opt => ({
+          text: opt === null ? `Automatic (${ACCOUNT_TYPE_LABEL[deriveAccountType(installedManageApps.length)]})` : ACCOUNT_TYPE_LABEL[opt],
+          onPress: () => {
+            setAccountTypeOverride(opt);
+            fetchApi('/business-insights/account-type', {
+              method: 'PATCH',
+              body: JSON.stringify(opt ? { accountType: opt } : {}),
+            }).catch(() => {});
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ],
+    );
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -256,6 +287,10 @@ export default function DashboardScreen({ navigation }: any) {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installedIdsKey]);
+
+  const insightsApps = installedManageApps
+    .filter(e => manageSummaries[e.id]?.revenue !== undefined)
+    .map(e => ({ id: e.id, label: e.label, revenue: manageSummaries[e.id].revenue as number }));
 
   const feedItems = [
     ...recentGifts.map(g => ({
@@ -273,7 +308,9 @@ export default function DashboardScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Dashboard</Text>
-        <View style={{ width: 30 }} />
+        <TouchableOpacity onPress={pickAccountType} style={dash.accountTypeBadge}>
+          <Text style={dash.accountTypeBadgeText}>{ACCOUNT_TYPE_LABEL[accountType]}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: SPACING.lg, gap: 16, paddingBottom: 40 }}>
@@ -310,7 +347,7 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
 
             <Text style={dash.heroBalance}>
-              {(wallet?.balanceMasheleni ?? 0).toFixed(2)} <Text style={dash.heroCurrency}>MSH</Text>
+              {formatCurrency(wallet?.balanceMasheleni ?? 0)}
             </Text>
 
             <View style={dash.heroActions}>
@@ -374,6 +411,26 @@ export default function DashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
 
+        {/* Business Insights — AI-narrated read of the real numbers already
+            fetched above (installed mini-app revenue + social/video/story
+            stats), with a real week-over-week delta computed server-side.
+            Only renders once mini-app summaries have actually loaded, so it
+            never narrates a placeholder zero. */}
+        {!loadingManage && (
+          <>
+            <Text style={styles.sectionLabel}>BUSINESS INSIGHTS</Text>
+            <BusinessInsightsCard
+              input={{
+                apps: insightsApps,
+                social: socialStats ?? undefined,
+                video: videoStats ?? undefined,
+                story: storyStats ?? undefined,
+                gifts: giftStats ? { totalReceived: giftStats.totalReceived, totalSent: giftStats.totalSent } : undefined,
+              }}
+            />
+          </>
+        )}
+
         {/* My Analytics — platform-wide engagement, separate from mini-app
             inventory above: your posts/likes, communities you run, and your
             Discovery video reach. */}
@@ -406,7 +463,7 @@ export default function DashboardScreen({ navigation }: any) {
             { value: videoStats?.totalViews ?? '—', label: 'Total views' },
             { value: videoStats?.totalLikes ?? '—', label: 'Total likes' },
             { value: videoStats?.totalComments ?? '—', label: 'Comments' },
-            { value: videoStats ? `${videoStats.giftsReceived.toFixed(0)} MSH` : '—', label: 'Gifts' },
+            { value: videoStats ? formatCurrency(videoStats.giftsReceived) : '—', label: 'Gifts' },
           ]}
         />
         <AnalyticsCard
@@ -418,7 +475,7 @@ export default function DashboardScreen({ navigation }: any) {
             { value: storyStats?.likesReceived ?? '—', label: 'Likes' },
             { value: storyStats?.commentsReceived ?? '—', label: 'Comments' },
             { value: storyStats?.ranksReceived ?? '—', label: 'Ranks' },
-            { value: storyStats ? `${storyStats.giftsReceived.toFixed(0)} MSH` : '—', label: 'Gifts' },
+            { value: storyStats ? formatCurrency(storyStats.giftsReceived) : '—', label: 'Gifts' },
           ]}
         />
         <View style={dash.ccrCard}>
@@ -431,7 +488,7 @@ export default function DashboardScreen({ navigation }: any) {
           </Text>
           <View style={dash.ccrRow}>
             <View>
-              <Text style={dash.bigNumber}>{creatorFunds ? creatorFunds.accumulatedThisMonth.toFixed(2) : '—'} MSH</Text>
+              <Text style={dash.bigNumber}>{creatorFunds ? formatCurrency(creatorFunds.accumulatedThisMonth) : '—'}</Text>
               <Text style={dash.bigNumberLabel}>Accumulated this month</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
@@ -453,8 +510,8 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
           <View style={dash.statCard}>
             <Ionicons name="gift" size={18} color="#FBBF24" />
-            <Text style={dash.statValue}>{giftStats ? `${giftStats.totalReceived}` : '—'}</Text>
-            <Text style={dash.statLabel}>MSH from gifts</Text>
+            <Text style={dash.statValue}>{giftStats ? formatCurrency(giftStats.totalReceived) : '—'}</Text>
+            <Text style={dash.statLabel}>from gifts</Text>
           </View>
           <View style={dash.statCard}>
             <Ionicons name="heart" size={18} color="#F472B6" />
@@ -538,6 +595,11 @@ const styles = StyleSheet.create({
 });
 
 const dash = StyleSheet.create({
+  accountTypeBadge: {
+    borderWidth: 1, borderColor: COLORS.glassBorder, backgroundColor: COLORS.glass,
+    borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 5,
+  },
+  accountTypeBadgeText: { color: COLORS.primary, fontSize: 11, fontWeight: '700' },
   // Hero wallet card
   heroCard: { borderRadius: RADIUS.lg, overflow: 'hidden' },
   heroGradient: { padding: SPACING.lg },

@@ -75,7 +75,7 @@ export default function AddEditWorkGigScreen({ navigation }: any) {
           <TextInput style={styles.input} placeholder="e.g. Design" placeholderTextColor={COLORS.textMuted} value={category} onChangeText={setCategory} />
         </View>
         <View>
-          <Text style={styles.label}>Budget (MSH) *</Text>
+          <Text style={styles.label}>Budget (R) *</Text>
           <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={budget} onChangeText={setBudget} keyboardType="decimal-pad" />
         </View>
         <View>

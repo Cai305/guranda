@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = {
   CONFIRMED: '#0EA5E9',
@@ -82,7 +83,7 @@ export default function HealthAppointmentsScreen({ navigation }: any) {
                   {appt.reason && <Text style={styles.reason}>{appt.reason}</Text>}
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={styles.fee}>{appt.fee.toFixed(0)} MSH</Text>
+                  <Text style={styles.fee}>{formatCurrency(appt.fee)}</Text>
                   <View style={[styles.statusPill, { backgroundColor: `${STATUS_COLOR[appt.status]}22` }]}>
                     <Text style={[styles.statusText, { color: STATUS_COLOR[appt.status] }]}>{appt.status}</Text>
                   </View>

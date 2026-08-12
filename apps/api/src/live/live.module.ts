@@ -10,11 +10,13 @@ import { RankingModule } from '../ranking/ranking.module';
 import { LiveAiToolsProvider } from './live-ai-tools.provider';
 import { ChessModule } from '../chess/chess.module';
 import { FriendsModule } from '../friends/friends.module';
+import { ProfileModule } from '../profile/profile.module';
+import { RideModule } from '../ride/ride.module';
 
 @Module({
-  imports: [ShoppingModule, EatModule, ChatModule, RankingModule, ChessModule, FriendsModule],
+  imports: [ShoppingModule, EatModule, ChatModule, RankingModule, ChessModule, FriendsModule, ProfileModule, RideModule],
   controllers: [LiveController],
   providers: [LiveService, LiveGateway, PrismaService, LiveAiToolsProvider],
-  exports: [LiveGateway],
+  exports: [LiveGateway, LiveService],
 })
 export class LiveModule {}

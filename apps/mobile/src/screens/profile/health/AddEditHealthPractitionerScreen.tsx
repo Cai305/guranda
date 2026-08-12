@@ -76,7 +76,7 @@ export default function AddEditHealthPractitionerScreen({ navigation, route }: a
           <TextInput style={styles.input} placeholder="e.g. General Practice" placeholderTextColor={COLORS.textMuted} value={specialty} onChangeText={setSpecialty} />
         </View>
         <View>
-          <Text style={styles.label}>Consultation Fee (MSH) *</Text>
+          <Text style={styles.label}>Consultation Fee (R) *</Text>
           <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={consultationFee} onChangeText={setConsultationFee} keyboardType="decimal-pad" />
         </View>
         <View>

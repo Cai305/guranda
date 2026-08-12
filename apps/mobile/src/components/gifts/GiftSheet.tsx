@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export interface GiftCatalogItem {
   key: string;
@@ -29,6 +30,7 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [sendingKey, setSendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [discount, setDiscount] = useState<{ active: boolean; rate: number; badgeName: string | null } | null>(null);
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
     backdrop: {
       flex: 1,
@@ -90,6 +92,7 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
     cardIcon: { fontSize: 28 },
     cardLabel: { color: COLORS.text, fontSize: 12, fontWeight: '700', marginTop: 4 },
     cardAmount: { color: COLORS.gold, fontSize: 11, fontWeight: '600', marginTop: 2 },
+    cardAmountStrike: { color: COLORS.textMuted, fontSize: 9, fontWeight: '500', marginTop: 2, textDecorationLine: 'line-through' as const },
     closeBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -108,7 +111,15 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
       .then(data => Array.isArray(data) && setCatalog(data))
       .catch(() => {})
       .finally(() => setLoadingCatalog(false));
+
+    fetchApi('/gifts/my-discount')
+      .then(res => (res.ok ? res.json() : null))
+      .then(d => d && setDiscount(d))
+      .catch(() => {});
   }, [visible]);
+
+  const priceFor = (amount: number) =>
+    discount?.active ? Math.round(amount * (1 - discount.rate) * 100) / 100 : amount;
 
   const sendGift = async (item: GiftCatalogItem) => {
     setSendingKey(item.key);
@@ -141,7 +152,11 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
         <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
           <View style={styles.handle} />
           <Text style={styles.title}>Send a gift to {recipientName}</Text>
-          <Text style={styles.subtitle}>Gifts are paid instantly from your MSH wallet.</Text>
+          <Text style={styles.subtitle}>
+            {discount?.active
+              ? `Gifts are paid instantly from your wallet — 10% off, unlocked by your ${discount.badgeName} badge.`
+              : 'Gifts are paid instantly from your wallet.'}
+          </Text>
 
           {error && (
             <View style={styles.errorBanner}>
@@ -168,7 +183,14 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
                       <>
                         <Text style={styles.cardIcon}>{item.icon}</Text>
                         <Text style={styles.cardLabel}>{item.label}</Text>
-                        <Text style={styles.cardAmount}>{item.amount} MSH</Text>
+                        {discount?.active ? (
+                          <>
+                            <Text style={styles.cardAmountStrike}>{formatCurrency(item.amount)}</Text>
+                            <Text style={styles.cardAmount}>{formatCurrency(priceFor(item.amount))}</Text>
+                          </>
+                        ) : (
+                          <Text style={styles.cardAmount}>{formatCurrency(item.amount)}</Text>
+                        )}
                       </>
                     )}
                   </TouchableOpacity>

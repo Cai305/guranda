@@ -24,6 +24,10 @@ interface ApiLiveRoom {
     username: string;
     profile?: { displayName?: string | null; avatarUrl?: string | null } | null;
   };
+  // Only present on /trending's live items — a real count from LiveGateway's
+  // participant roster, not a guess. /live/rooms doesn't send this, so
+  // toLiveStream() falls back to 1 for that (unrelated) list.
+  viewerCount?: number;
 }
 
 const CATEGORY_TO_TAG: Record<string, string> = {
@@ -39,7 +43,7 @@ const CATEGORY_TO_TAG: Record<string, string> = {
   career: 'Business',
 };
 
-function toLiveStream(room: ApiLiveRoom): RealLiveStream {
+export function toLiveStream(room: ApiLiveRoom): RealLiveStream {
   const hostName = room.host?.profile?.displayName || room.host?.username || 'Guranda Creator';
   const creator: LiveCreator = {
     id: room.hostId,
@@ -60,7 +64,7 @@ function toLiveStream(room: ApiLiveRoom): RealLiveStream {
     title: room.title,
     categoryId: room.categoryId,
     tags: ['All', CATEGORY_TO_TAG[room.categoryId] || 'Trending'],
-    viewers: 1,
+    viewers: room.viewerCount ?? 1,
     creator,
     real: true,
     roomId: room.id,

@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 // Seller dashboard: every car listing you've published, with buyer
 // enquiries received on each one.
@@ -112,7 +113,7 @@ export default function MyCarListingsScreen({ navigation }: any) {
           <View key={listing.id} style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle} numberOfLines={1}>{listing.title}</Text>
-              <Text style={styles.cardPrice}>{listing.price.toLocaleString()} MSH</Text>
+              <Text style={styles.cardPrice}>{formatCurrency(listing.price)}</Text>
             </View>
             <Text style={styles.cardSpecs}>
               {listing.year} · {listing.mileage.toLocaleString()}km · {listing.location}

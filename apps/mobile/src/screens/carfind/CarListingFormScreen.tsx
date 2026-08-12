@@ -233,7 +233,7 @@ export default function CarListingFormScreen({ navigation }: any) {
           </View>
         </View>
 
-        <Text style={styles.label}>PRICE (MSH)</Text>
+        <Text style={styles.label}>PRICE (R)</Text>
         <TextInput style={styles.input} placeholder="e.g. 245000" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} keyboardType="numeric" />
 
         <Text style={styles.label}>LOCATION</Text>

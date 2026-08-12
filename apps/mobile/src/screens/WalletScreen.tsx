@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 
 // shadcn/ui-inspired palette, scoped to this screen only as a design
 // proof-of-concept — not wired into the shared theme's COLORS/GRADIENTS.
@@ -223,7 +224,7 @@ export default function WalletScreen({ navigation }: any) {
           </View>
         </View>
         <Text style={[styles.txAmount, { color: isPositive ? SC.success : SC.foreground }]}>
-          {isPositive ? '+' : ''}{Number(item.amount).toFixed(2)} MSH
+          {isPositive ? '+' : ''}{formatCurrency(Number(item.amount))}
         </Text>
       </View>
     );
@@ -234,13 +235,13 @@ export default function WalletScreen({ navigation }: any) {
   }
 
   const transactions = wallet?.transactions ?? [];
-  const balance = (wallet?.balanceMasheleni ?? 0).toFixed(2);
+  const balance = wallet?.balanceMasheleni ?? 0;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.balanceLabel}>Total Balance (Masheleni)</Text>
-        <Text style={styles.balanceValue}>{balance} <Text style={styles.balanceCurrency}>MSH</Text></Text>
+        <Text style={styles.balanceLabel}>Total Balance</Text>
+        <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
 
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Deposit')}>

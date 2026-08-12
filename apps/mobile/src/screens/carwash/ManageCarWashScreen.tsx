@@ -201,7 +201,7 @@ export default function ManageCarWashScreen({ navigation, route }: any) {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Price (MSH)"
+                placeholder="Price (R)"
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="numeric"
                 value={service.price}

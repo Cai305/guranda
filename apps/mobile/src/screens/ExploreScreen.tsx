@@ -11,9 +11,10 @@ import { fetchApi } from '../utils/api';
 import { PostDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import TrendingStoriesFeed from '../components/TrendingStoriesFeed';
 import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
 import PostMediaCarousel from '../components/PostMediaCarousel';
+import LiveStreamCard from '../components/LiveStreamCard';
+import { toLiveStream, enterLiveStream, RealLiveStream } from '../data/liveApi';
 
 const CHALLENGE_CATEGORIES = [
   'DANCE', 'COMEDY', 'FITNESS', 'GAMING', 'PHOTOGRAPHY', 'COOKING',
@@ -45,6 +46,8 @@ export default function ExploreScreen({ navigation }: any) {
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [challengeCategory, setChallengeCategory] = useState<string | null>(null);
   const [challengeSubTab, setChallengeSubTab] = useState<'feed' | 'browse'>('feed');
+  const [trending, setTrending] = useState<{ posts: PostDto[]; challenges: ChallengeSummary[]; live: RealLiveStream[] } | null>(null);
+  const [trendingLoading, setTrendingLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -65,6 +68,8 @@ export default function ExploreScreen({ navigation }: any) {
         fetchFeed();
       } else if (activeTab === 'challenges') {
         fetchChallenges();
+      } else if (activeTab === 'trending') {
+        fetchTrending();
       }
     }, [activeTab, feedMode, challengeCategory])
   );
@@ -96,6 +101,25 @@ export default function ExploreScreen({ navigation }: any) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrending = async () => {
+    try {
+      setTrendingLoading(true);
+      const res = await fetchApi('/trending');
+      if (res.ok) {
+        const data = await res.json();
+        setTrending({
+          posts: data.posts,
+          challenges: data.challenges,
+          live: (data.live as any[]).map(toLiveStream),
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTrendingLoading(false);
     }
   };
 
@@ -674,6 +698,12 @@ export default function ExploreScreen({ navigation }: any) {
           >
             <Text style={styles.tabText}>Discovery</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => navigation.navigate('Stories')}
+          >
+            <Text style={styles.tabText}>Stories</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -816,7 +846,74 @@ export default function ExploreScreen({ navigation }: any) {
           }
         />
       ) : activeTab === 'trending' ? (
-        <TrendingStoriesFeed navigation={navigation} />
+        <FlatList
+          data={trending?.posts ?? []}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPost}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshing={trendingLoading}
+          onRefresh={fetchTrending}
+          ListHeaderComponent={
+            <>
+              {!!trending?.live.length && (
+                <>
+                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 8, marginBottom: 10 }}>
+                    🔴 Live Now
+                  </Text>
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={trending.live}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                    renderItem={({ item }) => (
+                      <LiveStreamCard
+                        stream={item}
+                        size="compact"
+                        onPress={(s) => enterLiveStream(s, user?.userId, navigation)}
+                      />
+                    )}
+                  />
+                </>
+              )}
+              {!!trending?.challenges.length && (
+                <>
+                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 20, marginBottom: 10 }}>
+                    🏆 Trending Challenges
+                  </Text>
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={trending.challenges}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={{ paddingHorizontal: 20 }}
+                    renderItem={({ item }) => (
+                      <ChallengeCard
+                        challenge={item}
+                        style={{ width: 170, marginRight: 12 }}
+                        onPress={() => navigation.navigate('ChallengeDetail', { challengeId: item.id })}
+                      />
+                    )}
+                  />
+                </>
+              )}
+              {!!trending?.posts.length && (
+                <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 20, marginBottom: 4 }}>
+                  📈 Trending Posts
+                </Text>
+              )}
+            </>
+          }
+          ListEmptyComponent={
+            !trendingLoading ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="flame-outline" size={48} color={COLORS.textMuted} />
+                <Text style={styles.emptyText}>Nothing trending yet — check back soon.</Text>
+              </View>
+            ) : null
+          }
+        />
       ) : null}
 
       {activeTab === 'feed' ? (

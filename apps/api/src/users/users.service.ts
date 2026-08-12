@@ -8,14 +8,16 @@ import { RegisterUserDto } from '@mxit2/types';
 import { Wallet as XrplWallet, Client as XrplClient } from 'xrpl';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth/auth.service';
-import { levelForSubscribers } from './reputation.util';
+import { computeLiveActivity, getDisplayedReputation } from './reputation.util';
 import { assertUsernameClaimable } from '../usernames/username-validation.util';
+import { BadgeService } from '../profile/badge.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private authService: AuthService,
+    private badgeService: BadgeService,
   ) {}
 
   async registerUser(dto: RegisterUserDto) {
@@ -130,6 +132,11 @@ export class UsersService {
         },
         token: this.authService.generateToken(user.id, user.username),
       };
+    }).then(async (result) => {
+      // Best-effort, outside the transaction — a Founder-badge hiccup
+      // should never block registration itself.
+      await this.badgeService.tryMintScarce(result.user.userId, 'FOUNDER').catch(() => {});
+      return result;
     });
   }
 
@@ -248,83 +255,7 @@ export class UsersService {
    * by UsernameService.activate() (apps/api/src/usernames/username.service.ts).
    */
   async computeLiveActivity(userId: string) {
-    const seatMatch = JSON.stringify([{ userId }]);
-
-    const [
-      postsCount,
-      likesReceived,
-      storyLikesReceived,
-      videoLikes,
-      videoViewsAgg,
-      chessGames,
-      ludoRows,
-      wordBattleRows,
-      poolRows,
-      liveStreamsHosted,
-      giftsReceived,
-    ] = await Promise.all([
-      this.prisma.post.count({ where: { authorId: userId } }),
-      this.prisma.postLike.count({ where: { post: { authorId: userId } } }),
-      this.prisma.storyLike.count({ where: { story: { userId } } }),
-      this.prisma.videoLike.count({ where: { video: { creatorId: userId } } }),
-      this.prisma.video.aggregate({
-        where: { creatorId: userId },
-        _sum: { views: true },
-      }),
-      this.prisma.chessGame.count({
-        where: {
-          OR: [{ whiteId: userId }, { blackId: userId }],
-          status: { not: 'active' },
-        },
-      }),
-      this.prisma.$queryRaw<{ count: bigint }[]>`
-        SELECT COUNT(*)::int AS count FROM "LudoGame"
-        WHERE seats @> ${seatMatch}::jsonb AND status = 'finished'
-      `,
-      this.prisma.$queryRaw<{ count: bigint }[]>`
-        SELECT COUNT(*)::int AS count FROM "WordBattleGame"
-        WHERE seats @> ${seatMatch}::jsonb AND status = 'finished'
-      `,
-      this.prisma.$queryRaw<{ count: bigint }[]>`
-        SELECT COUNT(*)::int AS count FROM "PoolGame"
-        WHERE seats @> ${seatMatch}::jsonb AND status = 'finished'
-      `,
-      this.prisma.liveRoom.count({ where: { hostId: userId } }),
-      this.prisma.gift.count({ where: { recipientId: userId } }),
-    ]);
-
-    const videoViews = videoViewsAgg._sum.views ?? 0;
-    const gamesCount =
-      chessGames +
-      Number(ludoRows[0]?.count ?? 0) +
-      Number(wordBattleRows[0]?.count ?? 0) +
-      Number(poolRows[0]?.count ?? 0);
-
-    const subscribers = Math.round(
-      storyLikesReceived * 4 +
-        videoLikes * 5 +
-        videoViews * 0.2 +
-        gamesCount * 3 +
-        giftsReceived * 6 +
-        12,
-    );
-    const reputation = Math.round(
-      subscribers * 3 +
-        likesReceived * 2 +
-        videoViews * 0.1 +
-        gamesCount * 8 +
-        liveStreamsHosted * 15,
-    );
-
-    return {
-      postsCount,
-      likesReceived,
-      gamesCount,
-      liveStreamsHosted,
-      giftsReceived,
-      subscribers,
-      reputation,
-    };
+    return computeLiveActivity(this.prisma, userId);
   }
 
   /**
@@ -546,36 +477,10 @@ export class UsersService {
     });
     if (!profile) return profile;
 
-    const [live, autoStatus] = await Promise.all([
-      this.computeLiveActivity(userId),
+    const [{ live, subscribers, reputation, level }, autoStatus] = await Promise.all([
+      getDisplayedReputation(this.prisma, userId),
       this.resolveActiveStatus(userId),
     ]);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { activeUsernameId: true },
-    });
-    const active = user?.activeUsernameId
-      ? await this.prisma.username.findUnique({
-          where: { id: user.activeUsernameId },
-        })
-      : null;
-
-    // Displayed reputation/subscribers = the active username's frozen
-    // baseline + however much live activity has accrued since it was
-    // activated. Switching usernames (UsernameService.activate()) re-freezes
-    // this baseline, which is exactly what makes a purchased/established
-    // handle's reputation "transfer" with it. `active == null` only for
-    // not-yet-backfilled rows — falls back to the raw live value.
-    const subscribers = active
-      ? active.subscribersScore +
-        (live.subscribers - active.activationLiveSubscribersBaseline)
-      : live.subscribers;
-    const reputation = active
-      ? active.reputationScore +
-        (live.reputation - active.activationLiveReputationBaseline)
-      : live.reputation;
-    const level = levelForSubscribers(subscribers);
 
     return {
       ...profile,

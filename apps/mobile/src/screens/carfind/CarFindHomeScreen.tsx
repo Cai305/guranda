@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { formatCurrency } from '../../utils/format';
 
 // CarFind — a car classifieds mini app modeled on carfind.co.za. Browse
 // real listings by body type, view specs and photos, and contact sellers.
@@ -141,7 +142,7 @@ export default function CarFindHomeScreen({ navigation }: any) {
           {item.year} · {item.mileage.toLocaleString()}km · {item.transmission} · {item.fuelType}
         </Text>
         <View style={styles.cardMeta}>
-          <Text style={styles.cardPrice}>{item.price.toLocaleString()} MSH</Text>
+          <Text style={styles.cardPrice}>{formatCurrency(item.price)}</Text>
           <Text style={styles.cardLocation}>
             <Ionicons name="location-outline" size={11} color={COLORS.textMuted} /> {item.location}
           </Text>

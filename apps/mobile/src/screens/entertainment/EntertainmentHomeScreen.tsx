@@ -11,6 +11,7 @@ import { streamsForCategory, LiveStream } from '../../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream } from '../../data/liveApi';
 import LiveStreamCard from '../../components/LiveStreamCard';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { formatCurrency } from '../../utils/format';
 
 type Tab = 'movies' | 'music' | 'events' | 'streaming';
 
@@ -193,7 +194,7 @@ export default function EntertainmentHomeScreen({ navigation }: any) {
                   <Text style={styles.cardSub} numberOfLines={1}>{movie.genre} · {movie.rating}</Text>
                   {movie.showtimes?.length > 0 && (
                     <Text style={styles.cardPrice}>
-                      {Math.min(...movie.showtimes.map((s: any) => s.price)).toFixed(0)} MSH
+                      {formatCurrency(Math.min(...movie.showtimes.map((s: any) => s.price)))}
                       <Text style={styles.cardPriceUnit}> from</Text>
                     </Text>
                   )}
@@ -216,7 +217,7 @@ export default function EntertainmentHomeScreen({ navigation }: any) {
                   <Text style={styles.listTitle} numberOfLines={1}>{concert.title}</Text>
                   <Text style={styles.listSub} numberOfLines={1}>{concert.artist} · {concert.venue}</Text>
                   <Text style={styles.listMeta}>{concert.city} · {dateStr(concert.startsAt)}</Text>
-                  <Text style={styles.listPrice}>{concert.price.toFixed(0)} MSH</Text>
+                  <Text style={styles.listPrice}>{formatCurrency(concert.price)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -236,7 +237,7 @@ export default function EntertainmentHomeScreen({ navigation }: any) {
                   <Text style={styles.listTitle} numberOfLines={1}>{event.title}</Text>
                   <Text style={styles.listSub} numberOfLines={1}>{event.category} · {event.venue}</Text>
                   <Text style={styles.listMeta}>{event.city} · {dateStr(event.startsAt)}</Text>
-                  <Text style={styles.listPrice}>{event.price.toFixed(0)} MSH</Text>
+                  <Text style={styles.listPrice}>{formatCurrency(event.price)}</Text>
                 </View>
               </TouchableOpacity>
             ))}

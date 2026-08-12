@@ -106,11 +106,11 @@ export default function AddEditWorkJobScreen({ navigation, route }: any) {
 
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Min Salary (MSH)</Text>
+            <Text style={styles.label}>Min Salary (R)</Text>
             <TextInput style={styles.input} placeholder="0" placeholderTextColor={COLORS.textMuted} value={salaryMin} onChangeText={setSalaryMin} keyboardType="decimal-pad" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Max Salary (MSH)</Text>
+            <Text style={styles.label}>Max Salary (R)</Text>
             <TextInput style={styles.input} placeholder="0" placeholderTextColor={COLORS.textMuted} value={salaryMax} onChangeText={setSalaryMax} keyboardType="decimal-pad" />
           </View>
         </View>

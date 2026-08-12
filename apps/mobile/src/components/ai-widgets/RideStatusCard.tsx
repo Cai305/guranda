@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { formatCurrency } from '../../utils/format';
 
 interface RideStatusCardProps {
   status: string;
@@ -43,7 +44,7 @@ export default function RideStatusCard({ status, pickupAddress, dropoffAddress, 
       <View style={styles.headerRow}>
         <Ionicons name="car" size={16} color={color} />
         <Text style={[styles.status, { color }]}>{status.replace(/_/g, ' ')}</Text>
-        {fare !== undefined && <Text style={styles.fare}>{fare} MSH</Text>}
+        {fare !== undefined && <Text style={styles.fare}>{formatCurrency(fare)}</Text>}
       </View>
       <View style={styles.addressRow}>
         <Ionicons name="ellipse" size={8} color={COLORS.success} />

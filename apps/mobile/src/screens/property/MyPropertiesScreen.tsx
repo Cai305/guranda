@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 // Agent dashboard: every property you manage, with per-tenant rent status
 // for the current month, receipts, open issues and lease access.
@@ -126,7 +127,7 @@ export default function MyPropertiesScreen({ navigation }: any) {
           <View key={p.id} style={styles.propCard}>
             <View style={styles.propHeader}>
               <Text style={styles.propTitle}>{p.title}</Text>
-              <Text style={styles.propPrice}>{p.price} MSH{p.listingType === 'RENT' ? '/mo' : ''}</Text>
+              <Text style={styles.propPrice}>{formatCurrency(p.price)}{p.listingType === 'RENT' ? '/mo' : ''}</Text>
             </View>
             <Text style={styles.propAddress}>{p.address}</Text>
 
@@ -145,7 +146,7 @@ export default function MyPropertiesScreen({ navigation }: any) {
                 <View key={t.id} style={styles.tenancyCard}>
                   <View style={styles.tenancyHeader}>
                     <Text style={styles.tenantName}>
-                      @{t.tenant?.username} · {t.rentAmount} MSH/mo
+                      @{t.tenant?.username} · {formatCurrency(t.rentAmount)}/mo
                     </Text>
                     <View style={[styles.rentPill, t.rentPaidThisMonth ? styles.rentPaid : styles.rentDue]}>
                       <Text style={[styles.rentPillText, { color: t.rentPaidThisMonth ? '#04291B' : '#FFF' }]}>
@@ -160,7 +161,7 @@ export default function MyPropertiesScreen({ navigation }: any) {
                       <Text style={styles.subLabel}>RECEIPTS</Text>
                       {t.payments.slice(0, 3).map((pay: any) => (
                         <Text key={pay.id} style={styles.receiptRow}>
-                          🧾 {pay.receiptNo} — {pay.amount} MSH for {pay.period}
+                          🧾 {pay.receiptNo} — {formatCurrency(pay.amount)} for {pay.period}
                         </Text>
                       ))}
                     </View>

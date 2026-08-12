@@ -20,6 +20,11 @@ export class GiftsController {
     return this.giftsService.catalog();
   }
 
+  @Get('my-discount')
+  myDiscount(@Request() req: any) {
+    return this.giftsService.myGiftDiscount(req.user.userId);
+  }
+
   @Post('send')
   send(@Request() req: any, @Body() body: any) {
     return this.giftsService.sendGift(req.user.userId, body);

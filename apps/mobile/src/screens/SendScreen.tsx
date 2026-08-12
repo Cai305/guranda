@@ -6,6 +6,7 @@ import { COLORS, TYPOGRAPHY } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 
 export default function SendScreen({ navigation }: any) {
   const [destination, setDestination] = useState('');
@@ -31,12 +32,12 @@ export default function SendScreen({ navigation }: any) {
           <View style={styles.infoCard}>
             <Ionicons name="lock-closed-outline" size={20} color="#F59E0B" />
             <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]}>
-              Verify your account to send MSH — this keeps the wallet and creator funds safe for everyone.
+              Verify your account to send money — this keeps the wallet and creator funds safe for everyone.
             </Text>
           </View>
           <TouchableOpacity
             style={styles.sendButton}
-            onPress={() => navigation.navigate('VerifyAccount', { reason: 'Sending MSH requires a verified account' })}
+            onPress={() => navigation.navigate('VerifyAccount', { reason: 'Sending money requires a verified account' })}
           >
             <Ionicons name="shield-checkmark" size={20} color={COLORS.text} />
             <Text style={styles.sendButtonText}>Verify my account</Text>
@@ -69,7 +70,7 @@ export default function SendScreen({ navigation }: any) {
       if (data.success) {
         Alert.alert(
           'Transfer Complete! ✅',
-          `Sent ${amount} MSH to ${destination.substring(0, 12)}...\n\nTx Hash: ${data.txHash?.substring(0, 20)}...`,
+          `Sent ${formatCurrency(Number(amount))} to ${destination.substring(0, 12)}...\n\nTx Hash: ${data.txHash?.substring(0, 20)}...`,
           [{ text: 'Back to Wallet', onPress: () => navigation.goBack() }],
         );
       } else {
@@ -94,7 +95,7 @@ export default function SendScreen({ navigation }: any) {
 
       <View style={styles.form}>
         <View style={styles.amountSection}>
-          <Text style={styles.currencyLabel}>MSH</Text>
+          <Text style={styles.currencyLabel}>R</Text>
           <TextInput
             style={styles.amountInput}
             placeholder="0.00"

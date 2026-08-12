@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function HealthOrdersScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -80,7 +81,7 @@ export default function HealthOrdersScreen({ navigation }: any) {
                   <Text style={styles.sub}>{order.items?.length ?? 0} item{order.items?.length === 1 ? '' : 's'}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={styles.total}>{order.total.toFixed(2)} MSH</Text>
+                  <Text style={styles.total}>{formatCurrency(order.total)}</Text>
                   <View style={[styles.statusPill, { backgroundColor: `${STATUS_COLOR[order.status]}22` }]}>
                     <Text style={[styles.statusText, { color: STATUS_COLOR[order.status] }]}>{order.status}</Text>
                   </View>

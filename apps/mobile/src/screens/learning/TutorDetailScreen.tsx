@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { ACCENT } from './LearningHomeScreen';
+import { formatCurrency } from '../../utils/format';
 
 export default function TutorDetailScreen({ route, navigation }: any) {
   const { theme } = useTheme();
@@ -141,7 +142,7 @@ export default function TutorDetailScreen({ route, navigation }: any) {
 
         <View style={styles.feeRow}>
           <Text style={styles.feeLabel}>Hourly rate</Text>
-          <Text style={styles.feeValue}>{tutor.hourlyRate} MSH</Text>
+          <Text style={styles.feeValue}>{formatCurrency(tutor.hourlyRate)}</Text>
         </View>
 
         <Text style={styles.sectionLabel}>PICK A DATE & TIME</Text>
@@ -163,7 +164,7 @@ export default function TutorDetailScreen({ route, navigation }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <TouchableOpacity style={styles.primaryBtn} onPress={book} disabled={booking}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Book · {tutor.hourlyRate} MSH</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Book · {formatCurrency(tutor.hourlyRate)}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

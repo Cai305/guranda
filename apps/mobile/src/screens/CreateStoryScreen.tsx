@@ -706,7 +706,7 @@ export default function CreateStoryScreen({ navigation, route }: any) {
                 {item.isForSale && (
                   <TextInput
                     style={[styles.itemInput, { marginTop: 8 }]}
-                    placeholder="Price (MSH)"
+                    placeholder="Price (R)"
                     placeholderTextColor={COLORS.textMuted}
                     keyboardType="numeric"
                     value={item.price}

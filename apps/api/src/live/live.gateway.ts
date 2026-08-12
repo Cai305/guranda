@@ -41,6 +41,10 @@ export class LiveGateway implements OnGatewayDisconnect {
   // setMuted() right after it persists a mute/unmute.
   private mutedUsers = new Map<string, Set<string>>();
 
+  getParticipantCount(roomName: string): number {
+    return this.roomParticipants.get(roomName)?.size ?? 0;
+  }
+
   handleDisconnect(client: Socket) {
     const meta = this.socketMeta.get(client.id);
     if (!meta) return;

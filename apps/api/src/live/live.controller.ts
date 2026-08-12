@@ -508,6 +508,23 @@ export class LiveController {
     return result;
   }
 
+  // ── Ride Live: driver online/offline, wired into the Ride mini-app ──────
+  @UseGuards(JwtAuthGuard)
+  @Patch('rooms/:id/ride/online')
+  async setRideOnline(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('isOnline') isOnline: boolean,
+  ) {
+    const { roomName, ...status } = await this.liveService.setRideOnlineStatus(
+      req.user.userId,
+      id,
+      !!isOnline,
+    );
+    this.liveGateway.broadcastToRoom(roomName, 'live_ride_status_update', status);
+    return status;
+  }
+
   // ── Live moderation ────────────────────────────────────────────────────
   @UseGuards(JwtAuthGuard)
   @Get('rooms/:id/moderation')

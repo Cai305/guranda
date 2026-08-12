@@ -589,7 +589,7 @@ export default function EventFormScreen({ navigation, route }: any) {
 
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Price per ticket (MSH)</Text>
+            <Text style={styles.label}>Price per ticket (R)</Text>
             <TextInput style={styles.input} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} />
           </View>
           <View style={{ flex: 1 }}>

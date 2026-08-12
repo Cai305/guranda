@@ -7,14 +7,11 @@ import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatCurrency } from '../../utils/format';
 
 const LEVEL_COLOR: Record<string, string> = {
   Nano: '#6B7280', Micro: '#10B981', Midtier: '#3B82F6', Macro: '#A78BFA', 'Mega Influencer': '#F59E0B',
 };
-
-function formatMsh(n: number): string {
-  return Math.round(n).toLocaleString('en-US');
-}
 
 export default function UsernameMarketHomeScreen({ navigation }: any) {
   const [search, setSearch] = useState('');
@@ -61,7 +58,7 @@ export default function UsernameMarketHomeScreen({ navigation }: any) {
           <View style={styles.priceRow}>
             <Text style={styles.cardPriceLabel}>{isAuction ? (item.currentBid ? 'Current bid' : 'Starting at') : 'Buy now'}</Text>
             <Text style={styles.cardPriceValue} numberOfLines={1} adjustsFontSizeToFit>
-              {formatMsh(displayPrice)} <Text style={styles.cardPriceUnit}>MSH</Text>
+              {formatCurrency(displayPrice)}
             </Text>
           </View>
 

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
   movie: { icon: 'film', color: '#F97316', label: 'Movie' },
@@ -106,7 +107,7 @@ export default function MyEntertainmentBookingsScreen({ navigation }: any) {
                     <Text style={styles.sub} numberOfLines={1}>{booking.subtitle}</Text>
                     <Text style={styles.date}>{fmt(booking.dateLabel)}</Text>
                   </View>
-                  <Text style={[styles.price, { color: meta.color }]}>{booking.totalPrice.toFixed(0)} MSH</Text>
+                  <Text style={[styles.price, { color: meta.color }]}>{formatCurrency(booking.totalPrice)}</Text>
                   {isEvent && <Ionicons name="qr-code-outline" size={16} color={COLORS.textMuted} />}
                 </TouchableOpacity>
               );

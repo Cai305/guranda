@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function CarWashDetailScreen({ route, navigation }: any) {
   const { theme } = useTheme();
@@ -124,7 +125,7 @@ export default function CarWashDetailScreen({ route, navigation }: any) {
               <View style={styles.serviceInfo}>
                 <Text style={styles.serviceName}>{service.name}</Text>
                 <Text style={styles.serviceDesc}>{service.description}</Text>
-                <Text style={styles.servicePrice}>{service.price} MSH</Text>
+                <Text style={styles.servicePrice}>{formatCurrency(service.price)}</Text>
               </View>
               <TouchableOpacity
                 style={styles.bookBtn}

@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 function useCountdown(endsAt?: string | null) {
   const [remaining, setRemaining] = useState('');
@@ -67,7 +68,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
       const res = await fetchApi(`/usernames/${usernameId}/buy`, { method: 'POST' });
       const d = await res.json();
       if (!res.ok) throw new Error(d.message || 'Purchase failed');
-      Alert.alert('Purchased! 🎉', `You bought @${username.label} for ${username.price} MSH. Activate it from My Usernames whenever you're ready.`);
+      Alert.alert('Purchased! 🎉', `You bought @${username.label} for ${formatCurrency(username.price)}. Activate it from My Usernames whenever you're ready.`);
       load();
     } catch (e: any) {
       Alert.alert('Purchase failed', e.message);
@@ -79,7 +80,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
   const placeBid = async () => {
     const amount = parseFloat(bidAmount);
     if (!(amount >= minBid)) {
-      Alert.alert('Bid too low', `Your bid must be at least ${minBid.toFixed(2)} MSH.`);
+      Alert.alert('Bid too low', `Your bid must be at least ${formatCurrency(minBid)}.`);
       return;
     }
     try {
@@ -88,7 +89,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
       const d = await res.json();
       if (!res.ok) throw new Error(d.message || 'Bid failed');
       setBidAmount('');
-      Alert.alert('Bid placed!', `You're now the highest bidder at ${amount} MSH.`);
+      Alert.alert('Bid placed!', `You're now the highest bidder at ${formatCurrency(Number(amount))}.`);
       load();
     } catch (e: any) {
       Alert.alert('Bid failed', e.message);
@@ -139,7 +140,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
           {isListed && (
             <Text style={styles.price}>
               {isAuction ? (username.currentBid ? 'Current bid: ' : 'Starting bid: ') : ''}
-              {(isAuction ? (username.currentBid ?? username.price) : username.price)} MSH
+              {formatCurrency(isAuction ? (username.currentBid ?? username.price) : username.price)}
             </Text>
           )}
           <Text style={styles.meta}>Reputation score: {Math.round(username.reputationScore)} — this transfers with the username.</Text>
@@ -156,7 +157,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
               {busy ? <ActivityIndicator color="#FFF" /> : (
                 <>
                   <Ionicons name="cart" size={18} color="#FFF" />
-                  <Text style={styles.buyBtnText}>Buy Now — {username.price} MSH</Text>
+                  <Text style={styles.buyBtnText}>Buy Now — {formatCurrency(username.price)}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -164,7 +165,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
 
           {isListed && !isOwner && isAuction && (
             <View style={styles.bidCard}>
-              <Text style={styles.bidLabel}>Place a bid (min {minBid.toFixed(2)} MSH)</Text>
+              <Text style={styles.bidLabel}>Place a bid (min {formatCurrency(minBid)})</Text>
               <View style={styles.bidRow}>
                 <TextInput
                   style={styles.bidInput}
@@ -201,7 +202,7 @@ export default function UsernameDetailScreen({ navigation, route }: any) {
                 {username.bids.map((b: any) => (
                   <View key={b.id} style={styles.bidHistoryRow}>
                     <Text style={styles.bidHistoryName}>{b.bidder?.profile?.displayName || b.bidder?.username}</Text>
-                    <Text style={styles.bidHistoryAmount}>{b.amount} MSH</Text>
+                    <Text style={styles.bidHistoryAmount}>{formatCurrency(b.amount)}</Text>
                   </View>
                 ))}
               </View>

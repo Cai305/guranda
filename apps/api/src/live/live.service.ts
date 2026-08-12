@@ -12,10 +12,12 @@ import { EatService } from '../eat/eat.service';
 import { ChatService } from '../chat/chat.service';
 import { ChessService } from '../chess/chess.service';
 import { FriendsService } from '../friends/friends.service';
+import { RideService } from '../ride/ride.service';
 import {
   ContentRankingService,
   ReputationLevel,
 } from '../ranking/content-ranking.service';
+import { BadgeService } from '../profile/badge.service';
 
 @Injectable()
 export class LiveService {
@@ -31,7 +33,9 @@ export class LiveService {
     private chatService: ChatService,
     private chessService: ChessService,
     private friendsService: FriendsService,
+    private rideService: RideService,
     private ranking: ContentRankingService,
+    private badgeService: BadgeService,
   ) {
     const httpUrl = process.env.LIVEKIT_HTTP_URL || 'http://localhost:7880';
     this.roomService = new RoomServiceClient(
@@ -99,6 +103,8 @@ export class LiveService {
     });
 
     const token = await this.mintToken(roomName, hostId, hostName, true);
+    // Best-effort — a first-1,000 scarcity check should never block going live.
+    this.badgeService.tryMintScarce(hostId, 'EARLY_LIVE_HOST').catch(() => {});
     return { ...room, token, wsUrl: this.wsUrl };
   }
 
@@ -141,6 +147,26 @@ export class LiveService {
         viewerLng: viewer?.locationLng,
       }),
     );
+  }
+
+  // Candidate live rooms for the Trending feed — real viewer-count ranking
+  // happens in TrendingService, which has LiveGateway's participant roster;
+  // this just returns the currently-live candidate set.
+  async getTrendingLive(take = 10) {
+    return this.prisma.liveRoom.findMany({
+      where: { isLive: true },
+      orderBy: { startedAt: 'desc' },
+      include: {
+        host: {
+          select: {
+            id: true,
+            username: true,
+            profile: { select: { displayName: true, avatarUrl: true } },
+          },
+        },
+      },
+      take,
+    });
   }
 
   async join(roomId: string, userId: string, userName: string) {
@@ -261,6 +287,12 @@ export class LiveService {
       .map((s) => ({ ...s, product: productById.get(s.productId) }))
       .filter((s) => !!s.product);
 
+    // Ride Live's "state" isn't stream-specific denormalized fields like
+    // the other categories above — it's the host's own real DriverProfile/
+    // Ride records from the Ride mini-app, fetched live on every read.
+    const rideDriverStatus =
+      room.categoryId === 'ride' ? await this.getRideStatus(room.hostId) : null;
+
     return {
       ...room,
       pinnedShoppingProduct,
@@ -268,7 +300,39 @@ export class LiveService {
       showcaseProducts,
       featuredApplicantA: featuredA,
       featuredApplicantB: featuredB,
+      rideDriverStatus,
     };
+  }
+
+  // ── Ride Live: driver online/offline status, wired straight into the
+  // Ride mini-app ──────────────────────────────────────────────────────────
+  // The host of a Ride Live room is a real driver from the Ride mini-app.
+  // There's no separate "live-only" ride state to fabricate — this just
+  // reads/writes the same DriverProfile and Ride rows the standalone Ride
+  // screens (DriverView/RiderView) use, so going online here actually
+  // makes the streamer reachable for real ride requests.
+  private async getRideStatus(driverId: string) {
+    const [profile, activeRide] = await Promise.all([
+      this.rideService.getDriverProfile(driverId),
+      this.rideService.getActiveRidesForDriver(driverId),
+    ]);
+    return {
+      isOnline: !!profile.isOnline,
+      rating: profile.rating,
+      totalRides: profile.totalRides,
+      vehicleMake: (profile as any).vehicleMake ?? null,
+      vehicleModel: (profile as any).vehicleModel ?? null,
+      hasActiveRide: !!activeRide,
+      activeRideFare: activeRide?.fare ?? null,
+    };
+  }
+
+  async setRideOnlineStatus(hostId: string, roomId: string, isOnline: boolean) {
+    const room = await this.getRoom(roomId);
+    this.assertHost(room, hostId);
+    await this.rideService.setDriverOnlineStatus(hostId, isOnline);
+    const status = await this.getRideStatus(hostId);
+    return { ...status, roomName: room.roomName };
   }
 
   // ── Conversation Live ────────────────────────────────────────────────────

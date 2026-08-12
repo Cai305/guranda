@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import GiftButton from './gifts/GiftButton';
 import ProductMiniCard, { ProductCardData } from './cards/ProductMiniCard';
 import { useShoppingCart } from '../context/ShoppingCartContext';
+import { formatCurrency } from '../utils/format';
 
 const CCR_RATE = 0.58;
 const STORY_RING_COLORS: [string, string][] = [
@@ -424,17 +425,17 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           <View style={s.actionLeft}>
             <TouchableOpacity style={s.action} onPress={() => handleLike(story)} activeOpacity={liked ? 1 : 0.7} disabled={liked}>
               <Ionicons name={liked ? 'heart' : 'heart-outline'} size={26} color={liked ? '#EF4444' : COLORS.text} />
-              <Text style={[s.actionLabel, liked && s.actionLabelLiked]}>{liked ? `${likesCount}` : `${CCR_RATE} MSH`}</Text>
+              <Text style={[s.actionLabel, liked && s.actionLabelLiked]}>{liked ? `${likesCount}` : formatCurrency(CCR_RATE)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.action} onPress={() => openComment(story)} activeOpacity={commented ? 1 : 0.7} disabled={commented}>
               <Ionicons name={commented ? 'chatbubble' : 'chatbubble-outline'} size={24} color={commented ? COLORS.primary : COLORS.text} />
-              <Text style={[s.actionLabel, commented && s.actionLabelDone]}>{commented ? `${commentsCount}` : `${CCR_RATE} MSH`}</Text>
+              <Text style={[s.actionLabel, commented && s.actionLabelDone]}>{commented ? `${commentsCount}` : formatCurrency(CCR_RATE)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.action} onPress={() => openRank(story)} activeOpacity={rank !== null ? 1 : 0.7} disabled={rank !== null}>
               <Ionicons name="star" size={24} color={rank !== null ? COLORS.gold : COLORS.text} />
-              <Text style={[s.actionLabel, rank !== null && s.actionLabelRanked]}>{rank !== null ? `${rank}/10` : `${CCR_RATE} MSH`}</Text>
+              <Text style={[s.actionLabel, rank !== null && s.actionLabelRanked]}>{rank !== null ? `${rank}/10` : formatCurrency(CCR_RATE)}</Text>
             </TouchableOpacity>
 
             {!isOwnStory && (
@@ -460,7 +461,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           {giftCount > 0 && (
             <>
               <Text style={s.statsDot}>·</Text>
-              <Text style={s.statsText}>🎁 {giftTotal} MSH ({giftCount})</Text>
+              <Text style={s.statsText}>🎁 {formatCurrency(giftTotal)} ({giftCount})</Text>
             </>
           )}
         </View>
@@ -536,7 +537,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
         )}
 
         {(!liked || !commented || rank === null) && (
-          <Text style={s.ccrNote}>Each interaction costs {CCR_RATE} MSH · goes directly to the creator</Text>
+          <Text style={s.ccrNote}>Each interaction costs {formatCurrency(CCR_RATE)} · goes directly to the creator</Text>
         )}
       </View>
     );
@@ -582,7 +583,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
             <View style={s.sheetHandle} />
             <Text style={s.sheetTitle}>Add a Comment</Text>
             <Text style={s.sheetCost}>
-              <Ionicons name="flash" size={12} color={COLORS.gold} /> {CCR_RATE} MSH · goes to creator · one comment per post
+              <Ionicons name="flash" size={12} color={COLORS.gold} /> {formatCurrency(CCR_RATE)} · goes to creator · one comment per post
             </Text>
             <TextInput
               style={s.commentInput}
@@ -598,7 +599,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
               onPress={submitComment}
               disabled={!commentText.trim()}
             >
-              <Text style={s.sheetBtnText}>Post  ·  {CCR_RATE} MSH</Text>
+              <Text style={s.sheetBtnText}>Post  ·  {formatCurrency(CCR_RATE)}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -609,7 +610,7 @@ export default function TrendingStoriesFeed({ navigation, showStoriesAddButton =
           <View style={s.rankSheet}>
             <Text style={s.sheetTitle}>Rank This Post</Text>
             <Text style={s.sheetCost}>
-              <Ionicons name="flash" size={12} color={COLORS.gold} /> {CCR_RATE} MSH · goes to creator · one rank per post
+              <Ionicons name="flash" size={12} color={COLORS.gold} /> {formatCurrency(CCR_RATE)} · goes to creator · one rank per post
             </Text>
             <View style={s.rankGrid}>
               {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (

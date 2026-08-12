@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -64,7 +64,7 @@ export interface ChallengeSummary {
   _count?: { entries: number };
 }
 
-export default function ChallengeCard({ challenge, onPress }: { challenge: ChallengeSummary; onPress: () => void }) {
+export default function ChallengeCard({ challenge, onPress, style }: { challenge: ChallengeSummary; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const grad = CATEGORY_GRADIENT[challenge.category] ?? ['#1E293B', '#0F172A'];
@@ -101,7 +101,7 @@ export default function ChallengeCard({ challenge, onPress }: { challenge: Chall
     sponsorText: { color: COLORS.textMuted, fontSize: 10, marginTop: 4, fontStyle: 'italic' },
   }));
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.88} onPress={onPress}>
+    <TouchableOpacity style={[styles.card, style]} activeOpacity={0.88} onPress={onPress}>
       <View style={styles.cover}>
         {challenge.coverImageUrl ? (
           <Image source={{ uri: challenge.coverImageUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />

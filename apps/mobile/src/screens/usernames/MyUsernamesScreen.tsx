@@ -7,6 +7,7 @@ import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatCurrency } from '../../utils/format';
 
 const LEVEL_COLOR: Record<string, string> = {
   Nano: '#6B7280', Micro: '#10B981', Midtier: '#3B82F6', Macro: '#A78BFA', 'Mega Influencer': '#F59E0B',
@@ -56,7 +57,7 @@ export default function MyUsernamesScreen({ navigation }: any) {
       if (!res.ok) throw new Error(d.message || 'Could not mint username');
       setMintLabel('');
       setAvailability(null);
-      Alert.alert('Minted! 🎉', `@${label} is now yours (50 MSH).`);
+      Alert.alert('Minted! 🎉', `@${label} is now yours (${formatCurrency(50)}).`);
       load();
     } catch (e: any) {
       Alert.alert('Mint failed', e.message);
@@ -124,7 +125,7 @@ export default function MyUsernamesScreen({ navigation }: any) {
           </View>
           {listed && (
             <Text style={styles.listedNote}>
-              {item.saleStatus === 'AUCTION' ? 'Up for auction' : 'Listed for sale'} — {item.currentBid ?? item.price} MSH
+              {item.saleStatus === 'AUCTION' ? 'Up for auction' : 'Listed for sale'} — {formatCurrency(item.currentBid ?? item.price)}
             </Text>
           )}
           <View style={styles.actionsRow}>
@@ -163,7 +164,7 @@ export default function MyUsernamesScreen({ navigation }: any) {
       </View>
 
       <View style={styles.mintCard}>
-        <Text style={styles.mintLabel}>MINT A NEW USERNAME (50 MSH)</Text>
+        <Text style={styles.mintLabel}>MINT A NEW USERNAME ({formatCurrency(50)})</Text>
         <View style={styles.mintRow}>
           <TextInput
             style={styles.mintInput}

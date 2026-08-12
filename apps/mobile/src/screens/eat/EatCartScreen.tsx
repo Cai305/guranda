@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useCart } from '../../context/CartContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function EatCartScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -259,7 +260,7 @@ export default function EatCartScreen({ navigation }: any) {
           </View>
           <View style={[styles.feeRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>R{total.toFixed(2)} MSH</Text>
+            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
 

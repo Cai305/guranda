@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = { CONFIRMED: '#0EA5E9', COMPLETED: '#22c55e', CANCELLED: '#ef4444' };
 
@@ -73,7 +74,7 @@ export default function MySessionsScreen({ navigation }: any) {
                   <Text style={styles.cardMeta}>{new Date(s.scheduledAt).toLocaleString()}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={styles.fee}>{s.fee} MSH</Text>
+                  <Text style={styles.fee}>{formatCurrency(s.fee)}</Text>
                   <View style={[styles.statusPill, { backgroundColor: `${STATUS_COLOR[s.status]}22` }]}>
                     <Text style={[styles.statusText, { color: STATUS_COLOR[s.status] }]}>{s.status}</Text>
                   </View>

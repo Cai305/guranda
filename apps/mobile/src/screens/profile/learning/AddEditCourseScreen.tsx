@@ -89,7 +89,7 @@ export default function AddEditCourseScreen({ navigation }: any) {
         </View>
 
         <View>
-          <Text style={styles.label}>Price (MSH, 0 for free)</Text>
+          <Text style={styles.label}>Price (R, 0 for free)</Text>
           <TextInput style={styles.input} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} />
         </View>
 

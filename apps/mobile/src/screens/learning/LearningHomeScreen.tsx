@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { formatCurrency } from '../../utils/format';
 
 export const COURSE_CATEGORIES = ['Culinary', 'Technology', 'Business', 'Design', 'Music', 'Language', 'Fitness', 'Crafts', 'Academics', 'Other'];
 export const ACCENT = '#6366F1';
@@ -192,7 +193,7 @@ export default function LearningHomeScreen({ navigation }: any) {
                   <Text style={styles.cardSub} numberOfLines={1}>{course.category} · {course.level}</Text>
                   <Text style={styles.cardMetaText}>{course._count?.lessons ?? 0} lessons · {course._count?.enrollments ?? 0} enrolled</Text>
                 </View>
-                <Text style={styles.cardPrice}>{course.price > 0 ? `${course.price} MSH` : 'Free'}</Text>
+                <Text style={styles.cardPrice}>{course.price > 0 ? formatCurrency(course.price) : 'Free'}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -207,7 +208,7 @@ export default function LearningHomeScreen({ navigation }: any) {
                   <Text style={styles.cardTitle} numberOfLines={1}>{tutor.name}</Text>
                   <Text style={styles.cardSub} numberOfLines={1}>{tutor.subjects}</Text>
                 </View>
-                <Text style={styles.cardPrice}>{tutor.hourlyRate} MSH/hr</Text>
+                <Text style={styles.cardPrice}>{formatCurrency(tutor.hourlyRate)}/hr</Text>
               </TouchableOpacity>
             ))}
           </View>

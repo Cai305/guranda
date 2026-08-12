@@ -129,7 +129,7 @@ export default function SponsorChallengeScreen({ navigation }: any) {
         <Text style={styles.label}>Runs for (days)</Text>
         <TextInput style={styles.input} value={days} onChangeText={setDays} keyboardType="numeric" placeholder="7" placeholderTextColor={COLORS.textMuted} />
 
-        <Text style={styles.label}>Budget (MSH)</Text>
+        <Text style={styles.label}>Budget (R)</Text>
         <TextInput style={styles.input} value={budget} onChangeText={setBudget} keyboardType="numeric" placeholder="500" placeholderTextColor={COLORS.textMuted} />
 
         <TouchableOpacity style={styles.submitBtn} onPress={submit} disabled={submitting}>

@@ -1,6 +1,15 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
+import { BadgeService } from '../profile/badge.service';
+
+// Uncapped Badge.code counterparts for a small subset of achievements —
+// unlocking these achievements also mints the matching collectible badge.
+const ACHIEVEMENT_BADGE_MAP: Record<string, string> = {
+  CARDS_50_WINS: 'CARD_SHARK',
+  CHALLENGE_10_COMPLETED: 'CHALLENGE_CHAMPION',
+  CHALLENGE_100_COMPLETED: 'CENTURY_CLUB',
+};
 
 interface AchievementCriteria {
   type: 'wins' | 'sweeps' | 'fastestWinMs' | 'gamesPlayed' | 'challengesCompleted' | 'votesReceived' | 'challengeStreak';
@@ -28,7 +37,15 @@ const CHALLENGE_ACHIEVEMENTS: { code: string; name: string; description: string;
 
 @Injectable()
 export class AchievementsService implements OnModuleInit {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private badgeService: BadgeService,
+  ) {}
+
+  private async mintLinkedBadge(userId: string, achievementCode: string) {
+    const badgeCode = ACHIEVEMENT_BADGE_MAP[achievementCode];
+    if (badgeCode) await this.badgeService.mintUncapped(userId, badgeCode);
+  }
 
   async onModuleInit() {
     for (const a of [...DEFAULT_ACHIEVEMENTS, ...CHALLENGE_ACHIEVEMENTS]) {
@@ -85,6 +102,7 @@ export class AchievementsService implements OnModuleInit {
       if (!earned) continue;
 
       await this.prisma.userAchievement.create({ data: { userId, achievementId: achievement.id } });
+      await this.mintLinkedBadge(userId, achievement.code);
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (user?.expoPushToken) {
         await sendPushNotification(user.expoPushToken, 'Achievement unlocked!', achievement.name);
@@ -127,6 +145,7 @@ export class AchievementsService implements OnModuleInit {
       if (value === null || value < criteria.threshold) continue;
 
       await this.prisma.userAchievement.create({ data: { userId, achievementId: achievement.id } });
+      await this.mintLinkedBadge(userId, achievement.code);
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (user?.expoPushToken) {
         await sendPushNotification(user.expoPushToken, 'Achievement unlocked!', achievement.name);

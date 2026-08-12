@@ -92,7 +92,7 @@ export default function AddEditHealthProductScreen({ navigation, route }: any) {
         </View>
 
         <View>
-          <Text style={styles.label}>Price (MSH) *</Text>
+          <Text style={styles.label}>Price (R) *</Text>
           <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
         </View>
 

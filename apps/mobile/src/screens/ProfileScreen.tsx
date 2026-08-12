@@ -5,14 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS, BRAND } from '../theme';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
+import ProfilePillars, { ProfilePillarsData } from '../components/profile/ProfilePillars';
+import CompanionCard, { CompanionData } from '../components/profile/CompanionCard';
+import BadgesGrid, { BadgesData } from '../components/profile/BadgesGrid';
 
-const BADGES = [
-  { id: 'pioneer', emoji: '🏆', name: 'Pioneer' },
-  { id: 'og', emoji: '💎', name: 'OG Member' },
-  { id: 'gamer', emoji: '🎮', name: 'Gamer' },
-  { id: 'social', emoji: '🦋', name: 'Butterfly' },
-];
+interface ProfileHQ {
+  pillars: ProfilePillarsData;
+  companion: CompanionData;
+  badges: BadgesData;
+}
 
 const GAME_HISTORY = [
   { id: 'chess', name: 'Chess', detail: '12 matches · 7 wins', icon: 'extension-puzzle' },
@@ -43,6 +46,14 @@ export default function ProfileScreen({ navigation }: any) {
   const [creatorFunds, setCreatorFunds] = useState<{ pendingBalance: number; nextPayoutDate: string } | null>(null);
   const [relationship, setRelationship] = useState<any>(null);
   const [canSponsor, setCanSponsor] = useState(false);
+  const [hq, setHq] = useState<ProfileHQ | null>(null);
+
+  const loadHQ = () => {
+    fetchApi('/profile/me/hq')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setHq(d))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     fetchApi('/wallets/creator-funds/summary')
@@ -57,7 +68,22 @@ export default function ProfileScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => setCanSponsor(!!d?.eligible))
       .catch(() => {});
+    loadHQ();
   }, []);
+
+  const renameCompanion = async (name: string) => {
+    const res = await fetchApi('/profile/me/companion', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      const companion = await res.json();
+      setHq(prev => (prev ? { ...prev, companion } : prev));
+    } else {
+      Alert.alert('Error', 'Could not rename your companion');
+    }
+  };
 
   const displayName = user?.displayName || user?.username || 'Guranda Pioneer';
   const username = user?.username ? `@${user.username}` : '@pioneer';
@@ -161,40 +187,26 @@ export default function ProfileScreen({ navigation }: any) {
               </Text>
             </View>
           )}
-
-          <View style={styles.repRow}>
-            <View style={styles.repItem}>
-              <Text style={styles.repValue}>{user?.reputation ?? 0}</Text>
-              <Text style={styles.repLabel}>Reputation</Text>
-            </View>
-            <View style={styles.repDivider} />
-            <View style={styles.repItem}>
-              <Text style={styles.repValue}>{user?.subscribers ?? 0}</Text>
-              <Text style={styles.repLabel}>Subscribers</Text>
-            </View>
-            <View style={styles.repDivider} />
-            <View style={styles.repItem}>
-              <Text style={styles.repValue}>3</Text>
-              <Text style={styles.repLabel}>Communities</Text>
-            </View>
-            <View style={styles.repDivider} />
-            <View style={styles.repItem}>
-              <Text style={styles.repValue}>{BADGES.length}</Text>
-              <Text style={styles.repLabel}>Badges</Text>
-            </View>
-          </View>
         </LinearGradient>
+
+        {/* ===== Companion ===== */}
+        {hq && <CompanionCard data={hq.companion} onRename={renameCompanion} />}
+
+        {/* ===== Pillars ===== */}
+        {hq && (
+          <>
+            <Text style={styles.sectionLabel}>YOUR DIGITAL HQ</Text>
+            <ProfilePillars data={hq.pillars} />
+          </>
+        )}
 
         {/* ===== Badges ===== */}
         <Text style={styles.sectionLabel}>BADGES</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgeRow}>
-          {BADGES.map(b => (
-            <View key={b.id} style={styles.badgeCard}>
-              <Text style={styles.badgeEmoji}>{b.emoji}</Text>
-              <Text style={styles.badgeName}>{b.name}</Text>
-            </View>
-          ))}
-        </ScrollView>
+        {hq ? (
+          <BadgesGrid data={hq.badges} />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgeRow} />
+        )}
 
         {/* ===== Verification ===== */}
         <Text style={styles.sectionLabel}>ACCOUNT VERIFICATION</Text>
@@ -248,7 +260,7 @@ export default function ProfileScreen({ navigation }: any) {
               <Ionicons name="gift" size={20} color={COLORS.success} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>Invite Friends, Earn MSH</Text>
+              <Text style={styles.rowTitle}>Invite Friends, Earn Money</Text>
               <Text style={styles.rowDetail}>Share your referral code — get rewarded when they play</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
@@ -292,14 +304,14 @@ export default function ProfileScreen({ navigation }: any) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowTitle}>Content Contribution Remuneration</Text>
-                    <Text style={styles.rowDetail}>Earned when others like, comment, or rank your "of the Day" stories (0.58 MSH each) — paid out in one lump sum on your next payout date</Text>
+                    <Text style={styles.rowDetail}>Earned when others like, comment, or rank your "of the Day" stories ({formatCurrency(0.58)} each) — paid out in one lump sum on your next payout date</Text>
                   </View>
                 </View>
                 <View style={[styles.cardRow, styles.rowBorder]}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.rowDetail, { marginBottom: 2 }]}>Pending balance</Text>
                     <Text style={[styles.rowTitle, { color: COLORS.gold, fontSize: 20, fontWeight: '800' }]}>
-                      {creatorFunds ? creatorFunds.pendingBalance.toFixed(2) : '—'} MSH
+                      {creatorFunds ? formatCurrency(creatorFunds.pendingBalance) : '—'}
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
@@ -461,35 +473,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
   },
-  repRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: SPACING.lg,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.sm,
-  },
-  repItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  repDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  repValue: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  repLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 10,
-    marginTop: 2,
-  },
   sectionLabel: {
     ...TYPOGRAPHY.label,
     fontSize: 11,
@@ -500,23 +483,6 @@ const styles = StyleSheet.create({
   badgeRow: {
     paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
-  },
-  badgeCard: {
-    alignItems: 'center',
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-  },
-  badgeEmoji: {
-    fontSize: 26,
-  },
-  badgeName: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 11,
-    marginTop: 4,
   },
   card: {
     marginHorizontal: SPACING.lg,

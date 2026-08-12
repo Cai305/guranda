@@ -319,6 +319,11 @@ export class UsernameService {
         data: { usernameId, sellerId: username.ownerId, buyerId, price },
       });
 
+      // A username's reputation/subscriber score must not simply transfer
+      // with a sale — reset to a fresh baseline for the new owner, same
+      // shape as the outgoing-username freeze in activate() above.
+      const buyerLive = await this.usersService.computeLiveActivity(buyerId);
+
       return tx.username.update({
         where: { id: usernameId },
         data: {
@@ -329,6 +334,11 @@ export class UsernameService {
           currentBid: null,
           currentBidderId: null,
           acquiredVia: 'MARKETPLACE_BUY',
+          reputationScore: 0,
+          subscribersScore: 0,
+          level: levelForSubscribers(0),
+          activationLiveReputationBaseline: buyerLive.reputation,
+          activationLiveSubscribersBaseline: buyerLive.subscribers,
         },
       });
     });
@@ -458,6 +468,13 @@ export class UsernameService {
             price: Number(username.currentBid),
           },
         });
+
+        // Same reset as buyNow() — an auction win must not carry the
+        // previous owner's accumulated reputation/subscriber score.
+        const buyerLive = await this.usersService.computeLiveActivity(
+          username.currentBidderId!,
+        );
+
         await tx.username.update({
           where: { id: username.id },
           data: {
@@ -468,6 +485,11 @@ export class UsernameService {
             currentBid: null,
             currentBidderId: null,
             acquiredVia: 'AUCTION_WIN',
+            reputationScore: 0,
+            subscribersScore: 0,
+            level: levelForSubscribers(0),
+            activationLiveReputationBaseline: buyerLive.reputation,
+            activationLiveSubscribersBaseline: buyerLive.subscribers,
           },
         });
       });

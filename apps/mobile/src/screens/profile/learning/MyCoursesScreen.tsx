@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
 import { fetchApi } from '../../../utils/api';
 import { ACCENT } from '../../learning/LearningHomeScreen';
+import { formatCurrency } from '../../../utils/format';
 
 export default function MyCoursesScreen({ navigation }: any) {
   const [courses, setCourses] = useState<any[]>([]);
@@ -57,7 +58,7 @@ export default function MyCoursesScreen({ navigation }: any) {
                   <Text style={styles.cardTitle}>{course.title}</Text>
                   <Text style={styles.cardMeta}>{course._count?.lessons ?? 0} lessons · {course._count?.enrollments ?? 0} enrolled</Text>
                 </View>
-                <Text style={styles.cardPrice}>{course.price > 0 ? `${course.price} MSH` : 'Free'}</Text>
+                <Text style={styles.cardPrice}>{course.price > 0 ? formatCurrency(course.price) : 'Free'}</Text>
               </TouchableOpacity>
             ))
           )}

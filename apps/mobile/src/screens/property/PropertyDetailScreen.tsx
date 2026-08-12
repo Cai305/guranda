@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const KIND_EMOJI: Record<string, string> = { HOUSE: '🏡', APARTMENT: '🏢', COMMERCIAL: '🏬' };
 
@@ -176,7 +177,7 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
         <View style={styles.body}>
           <View style={styles.priceRow}>
             <Text style={styles.price}>
-              {property.price} MSH{property.listingType === 'RENT' ? ' / month' : ''}
+              {formatCurrency(property.price)}{property.listingType === 'RENT' ? ' / month' : ''}
             </Text>
             <View style={styles.typePill}>
               <Text style={styles.typePillText}>

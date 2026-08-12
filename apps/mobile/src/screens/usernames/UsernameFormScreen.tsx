@@ -67,7 +67,7 @@ export default function UsernameFormScreen({ navigation, route }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>{listingType === 'AUCTION' ? 'STARTING BID (MSH)' : 'PRICE (MSH)'}</Text>
+        <Text style={styles.label}>{listingType === 'AUCTION' ? 'STARTING BID (R)' : 'PRICE (R)'}</Text>
         <TextInput style={styles.input} placeholder="e.g. 500" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} keyboardType="numeric" />
 
         {listingType === 'AUCTION' && (

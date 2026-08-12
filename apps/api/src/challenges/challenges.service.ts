@@ -47,6 +47,34 @@ export class ChallengesService {
     });
   }
 
+  // Momentum = recent-entry velocity, not just total entries — a challenge
+  // that just started picking up steam should outrank an older one that's
+  // merely accumulated more entries over a longer window.
+  async getTrendingChallenges(take = 10) {
+    const active = await this.prisma.challenge.findMany({
+      where: { status: 'ACTIVE' },
+      include: { _count: { select: { entries: true } } },
+    });
+    if (!active.length) return [];
+
+    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const recentCounts = await this.prisma.challengeEntry.groupBy({
+      by: ['challengeId'],
+      where: { challengeId: { in: active.map((c) => c.id) }, createdAt: { gte: since } },
+      _count: true,
+    });
+    const recentByChallenge = new Map(recentCounts.map((r) => [r.challengeId, r._count]));
+
+    return active
+      .map((c) => ({
+        challenge: c,
+        score: (recentByChallenge.get(c.id) ?? 0) * 5 + c._count.entries,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, take)
+      .map((s) => s.challenge);
+  }
+
   async getDetail(challengeId: string, viewerId?: string, entriesTake = 30, entriesSkip = 0) {
     const challenge = await this.prisma.challenge.findUnique({ where: { id: challengeId } });
     if (!challenge) throw new NotFoundException('Challenge not found');

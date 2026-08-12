@@ -67,6 +67,9 @@ import { TrustSafetyModule } from './trust-safety/trust-safety.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
 import { EditorModule } from './editor/editor.module';
 import { AssistantModule } from './assistant/assistant.module';
+import { ProfileModule } from './profile/profile.module';
+import { TrendingModule } from './trending/trending.module';
+import { BusinessInsightsModule } from './business-insights/business-insights.module';
 
 @Module({
   imports: [
@@ -145,6 +148,9 @@ import { AssistantModule } from './assistant/assistant.module';
     TrustSafetyModule,
     IntelligenceModule,
     AssistantModule,
+    ProfileModule,
+    TrendingModule,
+    BusinessInsightsModule,
   ],
   controllers: [AppController],
   providers: [

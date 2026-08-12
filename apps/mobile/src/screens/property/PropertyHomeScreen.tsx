@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { formatCurrency } from '../../utils/format';
 
 // Guranda Property — browse homes and commercial spaces. Any user can list
 // a property and become an agent; agents manage tenants, rent and leases.
@@ -75,7 +76,7 @@ export default function PropertyHomeScreen({ navigation }: any) {
         </Text>
         <View style={styles.cardMeta}>
           <Text style={styles.cardPrice}>
-            {item.price} MSH{item.listingType === 'RENT' ? ' / month' : ''}
+            {formatCurrency(item.price)}{item.listingType === 'RENT' ? ' / month' : ''}
           </Text>
           {item.kind !== 'COMMERCIAL' && (
             <Text style={styles.cardBeds}>🛏 {item.bedrooms} · 🛁 {item.bathrooms}</Text>

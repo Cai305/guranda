@@ -3,6 +3,9 @@ import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView 
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import * as api from '../../data/liveCategoryApi';
+import { formatCurrency } from '../../utils/format';
+import { registerLiveCategoryPanel, getLiveCategoryPanel } from './liveCategoryRegistry';
+import './categories/rideLivePanel';
 
 const panelStylesFactory = ({ COLORS, TYPOGRAPHY, RADIUS, SPACING }: any) => ({
   panel: {
@@ -69,18 +72,24 @@ export default function LiveCategoryViewerPanel({
 
   if (!state) return null;
 
-  if (categoryId === 'shopping') return <ShoppingViewer roomId={roomId} state={state} run={run} error={error} success={success} setSuccess={setSuccess} busy={busy} />;
-  if (categoryId === 'food') return <FoodViewer roomId={roomId} state={state} run={run} error={error} success={success} setSuccess={setSuccess} busy={busy} />;
-  if (categoryId === 'gaming') return <GamingViewer state={state} navigation={navigation} />;
-  if (categoryId === 'business') return <BusinessViewer roomId={roomId} run={run} error={error} busy={busy} navigation={navigation} />;
-  if (categoryId === 'education') return <EducationViewer state={state} run={run} error={error} busy={busy} />;
-  if (categoryId === 'entertainment') return <EntertainmentViewer state={state} run={run} busy={busy} />;
-  if (categoryId === 'sports') return <SportsViewer state={state} run={run} error={error} busy={busy} success={success} setSuccess={setSuccess} />;
-  if (categoryId === 'career') return <CareerViewer state={state} run={run} error={error} success={success} setSuccess={setSuccess} busy={busy} />;
-  if (categoryId === 'social') return <SocialViewer roomId={roomId} run={run} error={error} busy={busy} />;
-  if (categoryId === 'conversation') return <ConversationViewer state={state} />;
-  if (categoryId === 'dating') return <DatingViewer roomId={roomId} state={state} run={run} error={error} success={success} setSuccess={setSuccess} busy={busy} />;
-  return null;
+  // Every category's viewer interaction is registered below (or, for a
+  // category like ride that lives entirely in its own file, in
+  // categories/rideLivePanel.tsx) — adding a new live-capable mini-app
+  // means registering a component here, not extending this function.
+  const Viewer = getLiveCategoryPanel(categoryId)?.Viewer;
+  if (!Viewer) return null;
+  return (
+    <Viewer
+      roomId={roomId}
+      state={state}
+      navigation={navigation}
+      run={run}
+      error={error}
+      success={success}
+      setSuccess={setSuccess}
+      busy={busy}
+    />
+  );
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
@@ -126,7 +135,7 @@ function ShoppingViewer({ roomId, state, run, error, success, setSuccess, busy }
           {showcase.map((s: any) => (
             <View key={s.productId} style={{ minWidth: 130 }}>
               <Text style={styles.itemName} numberOfLines={1}>{s.product?.name}</Text>
-              <Text style={styles.itemPrice}>{s.product?.price} MSH</Text>
+              <Text style={styles.itemPrice}>{formatCurrency(s.product?.price)}</Text>
               <TouchableOpacity style={styles.actionBtn} disabled={busy || !address.trim()} onPress={() => buy(s.productId)}>
                 <Text style={styles.actionBtnText}>Buy</Text>
               </TouchableOpacity>
@@ -144,7 +153,7 @@ function ShoppingViewer({ roomId, state, run, error, success, setSuccess, busy }
   return (
     <Panel title="Spotlight">
       <Text style={styles.itemName}>{current.product?.name}</Text>
-      <Text style={styles.itemPrice}>{current.product?.price} MSH</Text>
+      <Text style={styles.itemPrice}>{formatCurrency(current.product?.price)}</Text>
       <TextInput style={styles.input} placeholder="Shipping address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
       <TouchableOpacity style={styles.actionBtn} disabled={busy || !address.trim()} onPress={() => buy(current.productId)}>
         {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Buy Now</Text>}
@@ -180,7 +189,7 @@ function FoodViewer({ roomId, state, run, error, success, setSuccess, busy }: an
   return (
     <Panel title="Pinned menu item">
       <Text style={styles.itemName}>{product.name}</Text>
-      <Text style={styles.itemPrice}>{product.price} MSH</Text>
+      <Text style={styles.itemPrice}>{formatCurrency(product.price)}</Text>
       <TextInput style={styles.input} placeholder="Delivery address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
       <TouchableOpacity
         style={styles.actionBtn}
@@ -241,7 +250,7 @@ function EducationViewer({ state, run, error, busy }: any) {
   return (
     <Panel title={quiz.status === 'OPEN' ? 'Quiz time!' : 'Quiz resolved'}>
       <Text style={styles.itemName}>{quiz.question}</Text>
-      {quiz.prizePool > 0 && <Text style={styles.hint}>Prize pool: {quiz.prizePool} MSH</Text>}
+      {quiz.prizePool > 0 && <Text style={styles.hint}>Prize pool: {formatCurrency(quiz.prizePool)}</Text>}
       {quiz.status === 'OPEN' && !answered ? (
         quiz.options.map((opt: string, i: number) => (
           <TouchableOpacity
@@ -318,7 +327,7 @@ function SportsViewer({ state, run, error, busy, success, setSuccess }: any) {
       {prediction && prediction.status === 'OPEN' && (
         <View style={{ marginTop: 10 }}>
           <Text style={styles.itemName}>{prediction.question}</Text>
-          <TextInput style={styles.input} placeholder="Stake (MSH)" placeholderTextColor={COLORS.textMuted} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+          <TextInput style={styles.input} placeholder="Stake (R)" placeholderTextColor={COLORS.textMuted} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               style={styles.actionBtn}
@@ -458,4 +467,22 @@ function DatingViewer({ roomId, state, run, error, success, busy }: any) {
     </Panel>
   );
 }
+
+// ── Registration ─────────────────────────────────────────────────────────
+// Every existing category's viewer component registers itself here — this
+// is the "declare your own live config" step a new mini-app needs to do
+// too (see categories/rideLivePanel.tsx for one that registers from its
+// own file instead of living inline in this one).
+registerLiveCategoryPanel('shopping', { Viewer: ShoppingViewer });
+registerLiveCategoryPanel('food', { Viewer: FoodViewer });
+registerLiveCategoryPanel('gaming', { Viewer: GamingViewer });
+registerLiveCategoryPanel('business', { Viewer: BusinessViewer });
+registerLiveCategoryPanel('education', { Viewer: EducationViewer });
+registerLiveCategoryPanel('entertainment', { Viewer: EntertainmentViewer });
+registerLiveCategoryPanel('sports', { Viewer: SportsViewer });
+registerLiveCategoryPanel('career', { Viewer: CareerViewer });
+registerLiveCategoryPanel('social', { Viewer: SocialViewer });
+registerLiveCategoryPanel('conversation', { Viewer: ConversationViewer });
+registerLiveCategoryPanel('dating', { Viewer: DatingViewer });
+
 

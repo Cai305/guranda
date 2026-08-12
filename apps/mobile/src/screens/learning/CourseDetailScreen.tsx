@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { ACCENT } from './LearningHomeScreen';
+import { formatCurrency } from '../../utils/format';
 
 export default function CourseDetailScreen({ route, navigation }: any) {
   const { theme } = useTheme();
@@ -137,7 +138,7 @@ export default function CourseDetailScreen({ route, navigation }: any) {
         <View style={styles.card}>
           <View style={styles.topRow}>
             <View style={styles.levelPill}><Text style={styles.levelPillText}>{course.level}</Text></View>
-            <Text style={styles.price}>{course.price > 0 ? `${course.price} MSH` : 'Free'}</Text>
+            <Text style={styles.price}>{course.price > 0 ? formatCurrency(course.price) : 'Free'}</Text>
           </View>
           <Text style={styles.category}>{course.category}</Text>
           {course.description ? <Text style={styles.description}>{course.description}</Text> : null}
@@ -148,7 +149,7 @@ export default function CourseDetailScreen({ route, navigation }: any) {
 
         {!enrollment ? (
           <TouchableOpacity style={styles.primaryBtn} onPress={enroll} disabled={busy}>
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{course.price > 0 ? `Enroll · ${course.price} MSH` : 'Enroll for free'}</Text>}
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{course.price > 0 ? `Enroll · ${formatCurrency(course.price)}` : 'Enroll for free'}</Text>}
           </TouchableOpacity>
         ) : (
           <View style={styles.progressCard}>

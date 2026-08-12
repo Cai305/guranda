@@ -7,6 +7,7 @@ import {
 import { EventBusService } from '../events/event-bus.service';
 import { MentionsService, MentionRef } from '../mentions/mentions.service';
 import { PostsGateway } from './posts.gateway';
+import { BadgeService } from '../profile/badge.service';
 
 export type PostMediaInput = { url: string; type: string; thumbnailUrl?: string };
 
@@ -63,6 +64,7 @@ export class PostsService {
     private eventBus: EventBusService,
     private mentions: MentionsService,
     private postsGateway: PostsGateway,
+    private badgeService: BadgeService,
   ) {}
 
   // TEMPORARY (see schema.prisma note on Post.mediaUrl/mediaType): copies
@@ -124,6 +126,8 @@ export class PostsService {
       return created;
     });
     this.postsGateway.broadcastNewPost(post);
+    // Best-effort — a first-500 scarcity check should never block posting.
+    this.badgeService.tryMintScarce(userId, 'OG_CREATOR').catch(() => {});
     return { ...post, author: toPostAuthor(post.author) };
   }
 
@@ -210,6 +214,46 @@ export class PostsService {
     );
 
     return this.hydrate(ranked, viewerId);
+  }
+
+  // Trending — engagement-scored, not personalized (no reputation/proximity
+  // weighting like getFeed's ranking). Deliberately a separate formula from
+  // ContentRankingService.scoreItem rather than an extension of it, since
+  // that service also backs the personalized feed and live-room listing and
+  // shouldn't change behavior there.
+  async getTrendingPosts(take = 15) {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const posts = await this.prisma.post.findMany({
+      where: { createdAt: { gte: since } },
+      include: {
+        author: { select: AUTHOR_SELECT },
+        media: { orderBy: { position: 'asc' } },
+        likes: true,
+        reposts: true,
+        comments: {
+          include: { author: { select: AUTHOR_SELECT } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      take: 300,
+    });
+
+    const scored = posts
+      .map((p) => {
+        const ageHours = Math.max(
+          0,
+          (Date.now() - p.createdAt.getTime()) / 3600000,
+        );
+        const recency = Math.exp(-ageHours / 48);
+        const engagement =
+          p.likes.length * 3 + p.comments.length * 4 + p.reposts.length * 5 + p.views * 0.1;
+        return { post: p, score: engagement * recency };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, take)
+      .map((s) => s.post);
+
+    return this.hydrate(scored);
   }
 
   // Following tab — plain reverse-chronological, not the "For You" ranking
