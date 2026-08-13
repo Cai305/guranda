@@ -54,7 +54,7 @@ export default function LifeScreen({ navigation }: any) {
       status: 'live',
       description: '',
       features: [],
-      route: { name: 'Live' }
+      route: { name: 'LiveCategories' }
     },
     {
       id: 'discovery_module',

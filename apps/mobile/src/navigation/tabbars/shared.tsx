@@ -1,0 +1,124 @@
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useAiOrb } from '../../context/AiOrbContext';
+import { ThemeTokens } from '../../theme/themes';
+
+// Shared across every bottom-bar style variant (see config/tabBarStyles.ts)
+// so route filtering, icon choice, and the AI trigger gesture stay
+// consistent no matter which visual treatment is picked.
+
+export const HIDDEN_ROUTES = ['Life'];
+
+export const ROUTE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Home: 'planet-outline',
+  Chat: 'chatbubbles-outline',
+  Explore: 'compass-outline',
+  Profile: 'person-circle-outline',
+};
+
+export const ROUTE_LABELS: Record<string, string> = {
+  Home: 'Home',
+  Chat: 'Chats',
+  Explore: 'Explore',
+  Profile: 'Profile',
+};
+
+export function visibleRoutes(state: BottomTabBarProps['state']) {
+  return state.routes.filter(r => !HIDDEN_ROUTES.includes(r.name));
+}
+
+export function makeOnPress(
+  route: BottomTabBarProps['state']['routes'][number],
+  isFocused: boolean,
+  navigation: BottomTabBarProps['navigation'],
+) {
+  return () => {
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
+  };
+}
+
+// A gentle breathing loop — reused by any style that wants the AI trigger to
+// read as a living presence rather than a static icon.
+export function usePulse() {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  return pulse;
+}
+
+interface AiIconButtonProps {
+  theme: ThemeTokens;
+  size: number;
+  iconSize?: number;
+}
+
+// The AI trigger for every non-"orb" style — same tap/hold gesture as the
+// orb (see AiOrbContext), just rendered inline as a normal-sized circular
+// icon instead of a raised, notched centerpiece.
+export function AiIconButton({ theme, size, iconSize }: AiIconButtonProps) {
+  const { open, pressing, progress, handlePressIn, handlePressOut } = useAiOrb();
+  const { COLORS, GRADIENTS, SHADOW } = theme;
+  const pulse = usePulse();
+
+  const holdRingScale = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] });
+  const holdRingOpacity = progress.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.9, 0] });
+  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] });
+
+  const gesture = Gesture.Pan()
+    .minDistance(0)
+    .onBegin(() => { runOnJS(handlePressIn)(); })
+    .onFinalize(() => { runOnJS(handlePressOut)(); });
+
+  return (
+    <Animated.View style={{ width: size, height: size, transform: [{ scale: open ? 1 : pulseScale }] }}>
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -5, left: -5, right: -5, bottom: -5,
+          borderRadius: (size + 10) / 2,
+          borderWidth: 2.5,
+          borderColor: COLORS.secondary,
+          opacity: pressing ? holdRingOpacity : 0,
+          transform: [{ scale: holdRingScale }],
+        }}
+      />
+      <GestureDetector gesture={gesture}>
+        <Animated.View
+          accessibilityRole="button"
+          accessibilityLabel="AI assistant — tap to chat, hold to talk"
+        >
+          <LinearGradient
+            colors={GRADIENTS.aurora}
+            start={{ x: 0.1, y: 0.1 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              justifyContent: 'center',
+              alignItems: 'center',
+              ...SHADOW.glow,
+            }}
+          >
+            <Ionicons name={open ? 'close' : 'sparkles'} size={iconSize ?? Math.round(size * 0.5)} color="#FFF" />
+          </LinearGradient>
+        </Animated.View>
+      </GestureDetector>
+    </Animated.View>
+  );
+}

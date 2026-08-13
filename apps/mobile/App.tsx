@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import RootNavigator from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { TabBarStyleProvider } from './src/context/TabBarStyleContext';
 import { SocketProvider } from './src/context/SocketContext';
 import { StoreProvider } from './src/context/StoreContext';
 import { ActiveSessionProvider } from './src/context/ActiveSessionContext';
@@ -14,7 +15,7 @@ import { ShoppingCartProvider } from './src/context/ShoppingCartContext';
 import { FeatureFlagsProvider } from './src/context/FeatureFlagsContext';
 import * as Linking from 'expo-linking';
 import { navigationRef } from './src/navigation/navigationRef';
-import AiFloatingOrb from './src/components/ai/AiFloatingOrb';
+import AiOrbProvider from './src/context/AiOrbContext';
 import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
 import UploadStatusOverlay from './src/components/UploadStatusOverlay';
 import WebAlertHost from './src/utils/webAlertPolyfill';
@@ -68,21 +69,22 @@ function AppContent() {
         <ShoppingCartProvider>
         <SocketProvider>
           <StatusBar style="light" />
-          <NavigationContainer ref={navigationRef} linking={linking} theme={{
-            ...DarkTheme,
-            colors: {
-              ...DarkTheme.colors,
-              primary: theme.COLORS.primary,
-              background: theme.COLORS.background,
-              card: theme.COLORS.surface,
-              text: theme.COLORS.text,
-              border: theme.COLORS.border,
-              notification: theme.COLORS.secondary,
-            }
-          }}>
-            <RootNavigator />
-          </NavigationContainer>
-          <AiFloatingOrb />
+          <AiOrbProvider>
+            <NavigationContainer ref={navigationRef} linking={linking} theme={{
+              ...DarkTheme,
+              colors: {
+                ...DarkTheme.colors,
+                primary: theme.COLORS.primary,
+                background: theme.COLORS.background,
+                card: theme.COLORS.surface,
+                text: theme.COLORS.text,
+                border: theme.COLORS.border,
+                notification: theme.COLORS.secondary,
+              }
+            }}>
+              <RootNavigator />
+            </NavigationContainer>
+          </AiOrbProvider>
           <IncomingCallOverlay />
           <UploadStatusOverlay />
           <WebAlertHost />
@@ -101,7 +103,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppContent />
+          <TabBarStyleProvider>
+            <AppContent />
+          </TabBarStyleProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

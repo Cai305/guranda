@@ -57,7 +57,7 @@ export const MODULES: LifeModule[] = [
     tagline: 'Broadcast to the world',
     description: 'A complete live broadcasting platform — social live, live shopping, business events, gaming streams, education, entertainment, sports, food and more, all in one place.',
     features: ['Social Live', 'Live Shopping', 'Business Live', 'Gaming Live', 'Education Live', 'Entertainment Live', 'Sports Live', 'Food Live', 'Career Live'],
-    route: { name: 'Live' },
+    route: { name: 'LiveCategories' },
   },
   {
     id: 'social',

@@ -28,15 +28,32 @@ import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 export default function HomeScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { COLORS, GRADIENTS, BRAND, SPACING } = theme;
+  const [hasRelationship, setHasRelationship] = useState(false);
 
-  // The Home dashboard mirrors the Life tab's 4 top-level doors — Games and
-  // Mini Apps deep-link straight to each store's "installed" view for quick
-  // access, since everything else now lives one tap deeper behind install.
+  // Life no longer has its own bottom-bar tab, so its full set of top-level
+  // doors now lives here on Home instead — Games and Mini Apps deep-link
+  // straight to each store's "installed" view for quick access, since
+  // everything else lives one tap deeper behind install.
   const YOUR_LIFE_ITEMS: LifeModule[] = [
-    { id: 'live_module', name: 'Live', icon: 'radio', gradient: GRADIENTS.live, status: 'live', tagline: 'Broadcast to the world', description: '', features: [], route: { name: 'Live' } },
+    { id: 'live_module', name: 'Live', icon: 'radio', gradient: GRADIENTS.live, status: 'live', tagline: 'Broadcast to the world', description: '', features: [], route: { name: 'LiveCategories' } },
     { id: 'discovery_module', name: 'Discovery', icon: 'play-circle', gradient: GRADIENTS.crimson, status: 'live', tagline: 'Videos tailored to you', description: '', features: [], route: { name: 'Discovery' } },
     { id: 'games_installed', name: 'Games', icon: 'game-controller', gradient: GRADIENTS.aurora, status: 'live', tagline: 'Your installed games', description: '', features: [], route: { name: 'Life', params: { screen: 'Games', params: { mode: 'installed-games' } } } },
     { id: 'miniapps_installed', name: 'Mini Apps', icon: 'apps', gradient: GRADIENTS.emerald, status: 'live', tagline: 'Your installed mini apps', description: '', features: [], route: { name: 'Life', params: { screen: 'Hub', params: { mode: 'installed-miniapps' } } } },
+    { id: 'store_module', name: 'Store', icon: 'storefront', gradient: GRADIENTS.primary, status: 'live', tagline: 'Get new apps & games', description: '', features: [], route: { name: 'Life', params: { screen: 'Hub', params: { mode: 'store' } } } },
+    // TEMP for testing: the 21:00 "secret unlock" gate is disabled — shown
+    // any time once linked to a partner. Re-add `&& isAfter9pm` below to
+    // restore the original after-dark-only behavior. Mirrors LifeScreen.
+    ...(hasRelationship ? [{
+      id: 'couples_challenges',
+      name: 'Couples',
+      icon: 'heart',
+      gradient: GRADIENTS.crimson,
+      status: 'live',
+      tagline: "Tonight's challenge is ready ❤️",
+      description: '',
+      features: [],
+      route: { name: 'CouplesHub' },
+    } as LifeModule] : []),
   ];
 
   const EVENTS = [
@@ -83,6 +100,10 @@ export default function HomeScreen({ navigation }: any) {
       fetchApi('/communities')
         .then(res => (res.ok ? res.json() : []))
         .then(data => Array.isArray(data) && setCommunities(data))
+        .catch(() => {});
+      fetchApi('/relationships/mine')
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => setHasRelationship(!!data))
         .catch(() => {});
     }, [])
   );

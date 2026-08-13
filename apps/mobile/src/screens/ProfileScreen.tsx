@@ -166,10 +166,17 @@ export default function ProfileScreen({ navigation }: any) {
               source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}` }}
               style={styles.avatar}
             />
-            <View style={styles.levelPill}>
-              <Ionicons name="flash" size={12} color={COLORS.gold} />
-              <Text style={styles.levelText}>{user?.level || 'Nano'}</Text>
-            </View>
+            {/* The companion pet lives right here — its stage IS your
+                reputation level, so this replaces what used to be a plain
+                "Nano" text pill sitting in a lot of empty gradient space. */}
+            {hq ? (
+              <CompanionCard data={hq.companion} onRename={renameCompanion} compact />
+            ) : (
+              <View style={styles.levelPill}>
+                <Ionicons name="flash" size={12} color={COLORS.gold} />
+                <Text style={styles.levelText}>{user?.level || 'Nano'}</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.displayName}>{displayName}</Text>
           <Text style={styles.username}>{username}</Text>
@@ -188,9 +195,6 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           )}
         </LinearGradient>
-
-        {/* ===== Companion ===== */}
-        {hq && <CompanionCard data={hq.companion} onRename={renameCompanion} />}
 
         {/* ===== Pillars ===== */}
         {hq && (

@@ -45,9 +45,11 @@ export interface AiChatDropdownHandle {
 
 interface Props {
   onClose: () => void;
+  /** Stretch to fill its container instead of the small popover's fixed 460px cap — used when hosted in the full-height tray sheet. */
+  fill?: boolean;
 }
 
-const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDropdown({ onClose }, ref) {
+const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDropdown({ onClose, fill }, ref) {
   const [agentName, setAgentName] = useState('AI');
   const [needsSetup, setNeedsSetup] = useState(false);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
@@ -62,6 +64,11 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
   const { COLORS, SPACING } = theme;
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOW }) => ({
+    // Note: `maxHeight` is intentionally only set here, not overridden in
+    // panelFill below — RN's style-array merge skips keys whose override
+    // value is `undefined` rather than clearing them, so a `maxHeight:
+    // undefined` in panelFill would silently leave this 460 cap in place
+    // and starve the flex:1 layout the tray depends on to reach its full height.
     panel: {
       width: '100%',
       maxHeight: 460,
@@ -71,6 +78,20 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
       borderColor: COLORS.glassBorder,
       overflow: 'hidden',
       ...SHADOW.glow,
+    },
+    panelFill: {
+      flex: 1,
+      // Actually overrides panel's 460 cap (unlike `undefined`, which RN's
+      // style-array merge would silently ignore) — effectively uncapped so
+      // flex:1 can size this to the tray's real height instead.
+      maxHeight: 2000,
+      // Transparent so the BlurView the tray wraps this in shows through —
+      // the frosted-glass look comes from that blur layer, not a flat fill.
+      backgroundColor: 'transparent',
+      borderRadius: 0,
+      borderWidth: 0,
+      shadowOpacity: 0,
+      elevation: 0,
     },
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -287,7 +308,7 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
   };
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, fill && styles.panelFill]}>
       <View style={styles.header}>
         <View style={styles.headerCenter}>
           <View style={styles.avatarOrb}>

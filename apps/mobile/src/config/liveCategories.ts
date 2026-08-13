@@ -3,10 +3,8 @@ import { GRADIENTS } from '../theme';
 // ============================================================
 // Guranda Live — category registry
 // Live is a complete broadcasting platform, not a single feed.
-// Each category has its own purpose, feature set and (mostly
-// future) integration into the rest of the Guranda ecosystem.
-// Every category is browsable today with real, category-specific
-// host/viewer UI — see LiveCategoryHostPanel.tsx /
+// Every category ships today with its own real, working host tool
+// (see hostSummary below) — see LiveCategoryHostPanel.tsx /
 // LiveCategoryViewerPanel.tsx and components/live/liveCategoryRegistry.ts
 // for how a category registers its own live panels.
 // ============================================================
@@ -21,8 +19,12 @@ export interface LiveCategory {
   tagline: string;
   description: string;
   features: string[];
-  futureFeatures?: string[]; // explicitly future / monetization-adjacent items
-  futureIntegration?: string; // module or system this will connect to later
+  // One line naming the host tool that makes THIS category different from
+  // the other 11 — always the real control rendered by that category's
+  // Host component (LiveCategoryHostPanel.tsx / categories/rideLivePanel.tsx),
+  // never an aspiration. This is what actually answers "why is this
+  // category different" on the category detail page.
+  hostSummary: string;
   status: LiveCategoryStatus;
 }
 
@@ -35,7 +37,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Go live with your people',
     description: 'The TikTok Live of Guranda — go live, join friends, react in real time and build your following, all from your one identity.',
     features: ['Go Live', 'Join Live', 'Follow creators', 'Live comments', 'Emoji reactions', 'Invite guests', 'Multi-guest streaming', 'Moderators', 'Live replay', 'Picture-in-picture', 'Share stream'],
-    futureFeatures: ['Viewer gifts'],
+    hostSummary: 'Host tool: a live Q&A queue — viewer questions come in and you mark each one answered in real time.',
     status: 'live',
   },
   {
@@ -46,6 +48,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Talk about anything',
     description: 'Pure conversation — banter, hot takes, politics, relationships, whatever the host wants to dig into. The topic is set by the host and can change any time, right there on screen.',
     features: ['Freely set the topic', 'Change the topic any time, live', 'Live comments', 'Emoji reactions', 'Gifting', 'Share stream'],
+    hostSummary: "Host tool: a topic field pinned to the stream — change it any time and every viewer sees the update instantly.",
     status: 'live',
   },
   {
@@ -56,8 +59,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Sell and shop, live',
     description: 'Businesses and individuals sell products live — showcase, pin and sell without viewers ever leaving the stream.',
     features: ['Showcase products', 'Pin products during stream', 'Add products to cart', 'Purchase while watching', 'Live Q&A', 'Limited-time offers', 'Order notifications'],
-    futureFeatures: ['Inventory integration', 'Marketplace checkout', 'Wallet payments', 'Delivery tracking'],
-    futureIntegration: 'Marketplace, Wallet & Ride',
+    hostSummary: 'Host tool: build a real showcase from your own shop (Spotlight or Shelf) and advance it live — viewers buy without leaving the stream.',
     status: 'live',
   },
   {
@@ -68,7 +70,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Announce it to the world',
     description: 'Built for companies and entrepreneurs — launches, announcements, recruitment and investor updates, streamed live.',
     features: ['Product launches', 'Company announcements', 'Recruitment events', 'Investor presentations', 'Customer support', 'Brand marketing'],
-    futureIntegration: 'Marketplace',
+    hostSummary: 'Host tool: viewers tap Connect to open a real chat with you directly from the stream.',
     status: 'live',
   },
   {
@@ -79,7 +81,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Play, watch, compete',
     description: 'Gaming-focused streaming connected to every game inside Guranda — from casual matches to full tournament coverage.',
     features: ['Stream gameplay', 'Watch tournaments', 'Community chat', 'Leaderboards', 'Team broadcasts', 'Tournament coverage', 'Highlights'],
-    futureIntegration: 'Games',
+    hostSummary: 'Host tool: link a real match (Pool, Ludo, Chess, Murabaraba, Word Battle) or start a live chess game viewers watch move by move.',
     status: 'live',
   },
   {
@@ -90,7 +92,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Learn from anywhere',
     description: 'For schools, universities, tutors and trainers — real classes, workshops and Q&A sessions, live.',
     features: ['Online classes', 'Workshops', 'Coding sessions', 'Tutorials', 'Language lessons', 'Q&A sessions'],
-    futureIntegration: 'Learning',
+    hostSummary: 'Host tool: launch a live quiz with an optional real prize pool, then resolve it to pay winners.',
     status: 'live',
   },
   {
@@ -101,7 +103,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Culture, live',
     description: 'Musicians, DJs, podcasts, comedy and performances — the stage moves to Guranda.',
     features: ['Musicians', 'DJs', 'Podcasts', 'Comedy', 'Performances', 'Live interviews', 'Talent shows'],
-    futureIntegration: 'Entertainment',
+    hostSummary: 'Host tool: launch live polls the audience votes on in real time.',
     status: 'live',
   },
   {
@@ -112,7 +114,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Every match, covered',
     description: 'Match analysis, local sports and amateur leagues — commentary and training sessions from your community.',
     features: ['Match analysis', 'Local sports', 'Amateur leagues', 'Commentary', 'Training sessions', 'Press conferences'],
-    futureIntegration: 'Guranda Leagues',
+    hostSummary: 'Host tool: a live scoreboard plus a prediction pool viewers back — resolve it and the pool pays out.',
     status: 'live',
   },
   {
@@ -123,7 +125,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'From the kitchen to you',
     description: 'Restaurants and chefs streaming cooking demonstrations, promotions and new menu launches.',
     features: ['Cooking demonstrations', 'Restaurant promotions', 'New menu launches', 'Live kitchen experiences'],
-    futureIntegration: 'Eat',
+    hostSummary: 'Host tool: pin a real menu item from your store — viewers order it live.',
     status: 'live',
   },
   {
@@ -134,8 +136,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'The road, shared',
     description: 'Drivers go live and broadcast their real online/offline status straight from the Ride mini-app — viewers can see whether they\'re currently reachable for a ride and message them directly.',
     features: ['Broadcast online/offline status', 'Real driver rating & ride count', 'Active-ride indicator', 'Message the driver'],
-    futureFeatures: ['Road conditions', 'Community updates', 'Ride events', 'Live location tracking for viewers'],
-    futureIntegration: 'Ride',
+    hostSummary: "Host tool: a real Go Online/Offline switch tied to your actual Ride driver status — viewers see whether you're reachable right now, not a simulation.",
     status: 'live',
   },
   {
@@ -146,7 +147,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Your next opportunity, live',
     description: 'Job fairs, interviews and networking events — build your career without leaving your digital life.',
     features: ['Job fairs', 'Interviews', 'Networking', 'Career advice', 'Company presentations'],
-    futureIntegration: 'Work',
+    hostSummary: 'Host tool: post a real job to the stream and review applicants as they come in.',
     status: 'live',
   },
   {
@@ -157,6 +158,7 @@ export const LIVE_CATEGORIES: LiveCategory[] = [
     tagline: 'Find your match, live',
     description: 'A host-run matchmaking show — viewers apply to be a contestant, the host features a pair at a time, the audience votes Match or Pass, and a declared match opens a real chat between them.',
     features: ['Apply to be a contestant', 'Host features a pair', 'Audience votes Match or Pass', 'Host declares a match', 'Instant chat on a match'],
+    hostSummary: 'Host tool: review real applicants, feature a pair, and let the audience vote Match or Pass.',
     status: 'live',
   },
 ];

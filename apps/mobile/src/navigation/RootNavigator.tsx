@@ -24,6 +24,7 @@ import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
 import ExternalAppScreen from '../screens/hub/ExternalAppScreen';
 import LiveScreen from '../screens/live/LiveScreen';
+import LiveCategoriesScreen from '../screens/live/LiveCategoriesScreen';
 import LiveCategoryScreen from '../screens/live/LiveCategoryScreen';
 import LiveViewerScreen from '../screens/live/LiveViewerScreen';
 import GoLiveScreen from '../screens/live/GoLiveScreen';
@@ -161,6 +162,7 @@ export default function RootNavigator() {
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />
           <Stack.Screen name="ExternalApp" component={ExternalAppScreen} />
           <Stack.Screen name="Live" component={LiveScreen} />
+          <Stack.Screen name="LiveCategories" component={LiveCategoriesScreen} />
           <Stack.Screen name="LiveCategory" component={LiveCategoryScreen} />
           <Stack.Screen name="LiveViewer" component={LiveViewerScreen} />
           <Stack.Screen name="GoLive" component={GoLiveScreen} />

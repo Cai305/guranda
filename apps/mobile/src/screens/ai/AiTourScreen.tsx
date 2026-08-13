@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { openAiOrb } from '../../utils/aiOrbBridge';
+import { useAiOrb } from '../../context/AiOrbContext';
 
 // Post-activation guided tour: the agent takes the user INTO the app —
 // post an OOTD, watch Discovery, play a game — advancing a step each time
@@ -69,6 +69,7 @@ export default function AiTourScreen({ navigation, route }: any) {
   const agentName = route.params?.config?.name || 'Your AI';
   const [step, setStep] = useState(0);
   const visited = useRef(false);
+  const { openTray } = useAiOrb();
 
   // When the user returns from a tour stop, advance to the next step.
   useFocusEffect(
@@ -83,18 +84,17 @@ export default function AiTourScreen({ navigation, route }: any) {
   const stop = STOPS[step];
   const isLast = step === STOPS.length - 1;
 
-  // Both exits land back on Main (tabs visible, nothing blocked) and pop the
-  // floating orb's chat dropdown open — rather than the full-screen AiChat
-  // route, which covered the tab bar and left the user stuck until they
-  // found its back button.
-  const finishToFloatingChat = () => {
+  // Both exits land back on Main (tab bar visible, nothing blocked) and pop
+  // the AI tray open — rather than a full-screen route, which would cover
+  // the tab bar and leave the user stuck until they found its back button.
+  const finishToAiTray = () => {
     navigation.navigate('Main');
-    openAiOrb();
+    openTray();
   };
 
   const onCta = () => {
     if (isLast) {
-      finishToFloatingChat();
+      finishToAiTray();
       return;
     }
     if (stop.route) {
@@ -105,7 +105,7 @@ export default function AiTourScreen({ navigation, route }: any) {
     }
   };
 
-  const skipAll = finishToFloatingChat;
+  const skipAll = finishToAiTray;
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
     root: { flex: 1, backgroundColor: COLORS.background },

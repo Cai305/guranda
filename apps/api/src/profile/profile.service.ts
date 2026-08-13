@@ -3,9 +3,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { getDisplayedReputation, nextLevelThreshold, levelLadder } from '../users/reputation.util';
 
-const COMPANION_MAX_STAGE = 5;
-const XP_PER_STAGE = 500;
-
 @Injectable()
 export class ProfileService {
   constructor(private prisma: PrismaService) {}
@@ -60,26 +57,29 @@ export class ProfileService {
     };
   }
 
+  // The companion's stage IS the reputation ladder position (Nano/Micro/
+  // Midtier/Macro/Mega Influencer), not a separate counter — growing your
+  // reputation visibly grows your pet, instead of the two being unrelated.
   async getCompanion(userId: string) {
-    const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
-    const xp = profile?.xp ?? 0;
-    const stage = Math.min(Math.floor(xp / XP_PER_STAGE), COMPANION_MAX_STAGE);
+    const { subscribers, level } = await getDisplayedReputation(this.prisma, userId);
+    const ladder = levelLadder();
+    const stage = Math.max(0, ladder.findIndex((t) => t.level === level));
+    const next = nextLevelThreshold(subscribers);
 
     const companion = await this.prisma.companion.upsert({
       where: { userId },
       create: { userId, stage },
-      // Keep stage in sync with current xp on every read — cheap since
-      // this only ever moves forward (xp doesn't decrease).
+      // Keep stage in sync with the reputation ladder on every read — cheap
+      // since this only ever moves forward (reputation doesn't decrease).
       update: stage > 0 ? { stage, lastEvolvedAt: new Date() } : {},
     });
 
-    const xpIntoStage = xp % XP_PER_STAGE;
     return {
       ...companion,
       stage,
-      xp,
-      xpIntoStage,
-      xpForNextStage: stage < COMPANION_MAX_STAGE ? XP_PER_STAGE - xpIntoStage : null,
+      level,
+      subscribersIntoStage: Math.max(0, Math.round(subscribers - ladder[stage].min)),
+      subscribersForNextStage: next ? Math.max(0, Math.round(next.subscribersNeeded)) : null,
     };
   }
 

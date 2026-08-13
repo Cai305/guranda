@@ -7,12 +7,14 @@ import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { LIVE_CATEGORIES, getLiveCategory } from '../../config/liveCategories';
 import { goLive, inviteGuest } from '../../data/liveApi';
 import { getFriends } from '../../data/liveCategoryApi';
+import { getGoLiveSetup } from '../../components/live/goLiveSetupRegistry';
+import '../../components/live/GoLiveCategorySetups';
 
 type Friend = { id: string; username: string; profile?: { displayName?: string } | null };
 
-export default function GoLiveScreen({ navigation }: any) {
+export default function GoLiveScreen({ navigation, route }: any) {
   const [title, setTitle] = useState('');
-  const [categoryId, setCategoryId] = useState('social');
+  const [categoryId, setCategoryId] = useState(route?.params?.categoryId || 'social');
   const [conversationTopic, setConversationTopic] = useState('');
   const [scheduled, setScheduled] = useState(false);
   const [scheduleWhen, setScheduleWhen] = useState('');
@@ -24,6 +26,16 @@ export default function GoLiveScreen({ navigation }: any) {
 
   const category = getLiveCategory(categoryId);
   const availableCategories = LIVE_CATEGORIES.filter(c => c.status === 'live');
+
+  // Each category can register its own pre-live setup step (see
+  // GoLiveCategorySetups.tsx) — e.g. Shopping builds its showcase,
+  // Career posts the job — so the creation flow itself feels
+  // different per category, not just a color on the preview banner.
+  const categorySetup = getGoLiveSetup(categoryId);
+  const [setupValue, setSetupValue] = useState<any>(categorySetup?.initialValue);
+  useEffect(() => {
+    setSetupValue(getGoLiveSetup(categoryId)?.initialValue);
+  }, [categoryId]);
 
   useEffect(() => {
     // /friends returns [{friendshipId, user: {id, username, profile}}] —
@@ -60,8 +72,13 @@ export default function GoLiveScreen({ navigation }: any) {
     try {
       const room = await goLive(title.trim(), categoryId, categoryId === 'conversation' ? conversationTopic.trim() : undefined);
       // Best-effort — a friend who unfriended you between selecting them
-      // and going live shouldn't block the stream from starting.
-      await Promise.allSettled(invitedGuests.map((guestId) => inviteGuest(room.id, guestId)));
+      // and going live shouldn't block the stream from starting. Same for
+      // the category setup step (e.g. Shopping's showcase, Career's job
+      // post) — it's a head start, not a requirement to go live.
+      await Promise.allSettled([
+        ...invitedGuests.map((guestId) => inviteGuest(room.id, guestId)),
+        categorySetup ? categorySetup.apply(room.id, setupValue) : Promise.resolve(),
+      ]);
       navigation.replace('LiveHost', {
         roomId: room.id,
         roomName: room.roomName,
@@ -113,7 +130,15 @@ export default function GoLiveScreen({ navigation }: any) {
               <TouchableOpacity
                 key={c.id}
                 style={[styles.categoryChip, categoryId === c.id && styles.categoryChipActive]}
-                onPress={() => setCategoryId(c.id)}
+                onPress={() => {
+                  // Reset setupValue in the SAME handler as categoryId, not
+                  // via a useEffect — otherwise the new category's Panel
+                  // briefly renders with the previous category's value
+                  // shape (e.g. Education's Panel reading Shopping's
+                  // {productIds, style} instead of {question, options}).
+                  setCategoryId(c.id);
+                  setSetupValue(getGoLiveSetup(c.id)?.initialValue);
+                }}
               >
                 <Ionicons name={c.icon as any} size={14} color={categoryId === c.id ? '#FFF' : COLORS.textMuted} />
                 <Text style={[styles.categoryChipText, categoryId === c.id && styles.categoryChipTextActive]}>
@@ -123,6 +148,20 @@ export default function GoLiveScreen({ navigation }: any) {
             ))}
           </View>
         </View>
+
+        {category && (
+          <View style={[styles.card, styles.hostSummaryCard, { borderColor: `${category.gradient[0]}55`, backgroundColor: `${category.gradient[0]}14` }]}>
+            <Ionicons name="flash" size={18} color={category.gradient[0]} />
+            <Text style={styles.hostSummaryText}>{category.hostSummary}</Text>
+          </View>
+        )}
+
+        {categorySetup && (
+          <View style={styles.card}>
+            <Text style={styles.label}>Set up {category?.name}</Text>
+            <categorySetup.Panel value={setupValue} onChange={setSetupValue} />
+          </View>
+        )}
 
         {categoryId === 'conversation' && (
           <View style={styles.card}>
@@ -251,6 +290,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     paddingHorizontal: SPACING.lg,
+  },
+  hostSummaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  hostSummaryText: {
+    color: COLORS.text,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   card: {
     marginHorizontal: SPACING.lg,

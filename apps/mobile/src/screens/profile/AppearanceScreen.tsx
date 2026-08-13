@@ -9,6 +9,69 @@ import { ThemeTokens } from '../../theme/themes';
 import { fetchApi } from '../../utils/api';
 import ChatWallpaperPicker from '../../components/chat/ChatWallpaperPicker';
 import { findPreset, isPresetId } from '../../config/chatWallpapers';
+import { useTabBarStyle } from '../../context/TabBarStyleContext';
+import { TabBarStyleMeta } from '../../config/tabBarStyles';
+
+const TAB_BAR_PREVIEW_ICON: Record<TabBarStyleMeta['id'], keyof typeof Ionicons.glyphMap> = {
+  orb: 'sparkles',
+  classic: 'apps',
+  pill: 'ellipse',
+  compact: 'remove',
+  dock: 'albums',
+};
+
+function TabBarStyleCard({
+  item, selected, onPress, theme,
+}: { item: TabBarStyleMeta; selected: boolean; onPress: () => void; theme: ThemeTokens }) {
+  const styles = useThemedStyles(t => ({
+    card: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.SPACING.md,
+      backgroundColor: theme.COLORS.surface,
+      borderWidth: selected ? 2 : 1,
+      borderColor: selected ? theme.COLORS.primary : theme.COLORS.border,
+      borderRadius: theme.RADIUS.lg,
+      padding: t.SPACING.md,
+      marginBottom: t.SPACING.md,
+    },
+    iconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.COLORS.primary + '22',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    name: { ...theme.TYPOGRAPHY.h4 },
+    description: { ...theme.TYPOGRAPHY.body2, marginTop: 2 },
+    checkCircle: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: theme.COLORS.primary,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+  }));
+
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.iconWrap}>
+        <Ionicons name={TAB_BAR_PREVIEW_ICON[item.id]} size={20} color={theme.COLORS.primary} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.description}>{item.description}</Text>
+      </View>
+      {selected ? (
+        <View style={styles.checkCircle}>
+          <Ionicons name="checkmark" size={16} color={theme.COLORS.background} />
+        </View>
+      ) : null}
+    </TouchableOpacity>
+  );
+}
 
 function ThemePreviewCard({ item, selected, onPress }: { item: ThemeTokens; selected: boolean; onPress: () => void }) {
   const styles = useThemedStyles(theme => ({
@@ -85,6 +148,7 @@ function ThemePreviewCard({ item, selected, onPress }: { item: ThemeTokens; sele
 
 export default function AppearanceScreen({ navigation }: any) {
   const { theme, themeId, setThemeId, availableThemes, isReady } = useTheme();
+  const { styleId: tabBarStyleId, setStyleId: setTabBarStyleId, availableStyles: tabBarStyles, isReady: tabBarStyleReady } = useTabBarStyle();
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
   const [wallpaperPickerOpen, setWallpaperPickerOpen] = useState(false);
 
@@ -134,7 +198,7 @@ export default function AppearanceScreen({ navigation }: any) {
     wallpaperRowSub: { ...t.TYPOGRAPHY.body2, marginTop: 2 },
   }));
 
-  if (!isReady) {
+  if (!isReady || !tabBarStyleReady) {
     return <View style={styles.container} />;
   }
 
@@ -158,6 +222,17 @@ export default function AppearanceScreen({ navigation }: any) {
             item={item}
             selected={item.id === themeId}
             onPress={() => setThemeId(item.id)}
+          />
+        ))}
+
+        <Text style={styles.sectionTitle}>Bottom bar</Text>
+        {tabBarStyles.map(item => (
+          <TabBarStyleCard
+            key={item.id}
+            item={item}
+            theme={theme}
+            selected={item.id === tabBarStyleId}
+            onPress={() => setTabBarStyleId(item.id)}
           />
         ))}
 
