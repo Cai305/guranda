@@ -16,6 +16,7 @@ import { FeatureFlagsProvider } from './src/context/FeatureFlagsContext';
 import * as Linking from 'expo-linking';
 import { navigationRef } from './src/navigation/navigationRef';
 import AiOrbProvider from './src/context/AiOrbContext';
+import { AiConversationProvider } from './src/context/AiConversationContext';
 import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
 import UploadStatusOverlay from './src/components/UploadStatusOverlay';
 import ContextualNewsOverlay from './src/context/ContextualNewsOverlay';
@@ -70,22 +71,27 @@ function AppContent() {
         <ShoppingCartProvider>
         <SocketProvider>
           <StatusBar style="light" />
-          <AiOrbProvider>
-            <NavigationContainer ref={navigationRef} linking={linking} theme={{
-              ...DarkTheme,
-              colors: {
-                ...DarkTheme.colors,
-                primary: theme.COLORS.primary,
-                background: theme.COLORS.background,
-                card: theme.COLORS.surface,
-                text: theme.COLORS.text,
-                border: theme.COLORS.border,
-                notification: theme.COLORS.secondary,
-              }
-            }}>
-              <RootNavigator />
-            </NavigationContainer>
-          </AiOrbProvider>
+          {/* Outside AiOrbProvider so both its children (AiChatDropdown,
+              HandsFreeOverlay) and AiChatScreen (inside RootNavigator below)
+              share the same conversation — see AiConversationContext.tsx. */}
+          <AiConversationProvider>
+            <AiOrbProvider>
+              <NavigationContainer ref={navigationRef} linking={linking} theme={{
+                ...DarkTheme,
+                colors: {
+                  ...DarkTheme.colors,
+                  primary: theme.COLORS.primary,
+                  background: theme.COLORS.background,
+                  card: theme.COLORS.surface,
+                  text: theme.COLORS.text,
+                  border: theme.COLORS.border,
+                  notification: theme.COLORS.secondary,
+                }
+              }}>
+                <RootNavigator />
+              </NavigationContainer>
+            </AiOrbProvider>
+          </AiConversationProvider>
           <IncomingCallOverlay />
           <UploadStatusOverlay />
           <ContextualNewsOverlay />

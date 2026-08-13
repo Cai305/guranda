@@ -13,6 +13,11 @@ export interface ToolWidget {
   toolName: string;
   renderAs: string;
   data: any;
+  /** Set when a "next" / "previous" / "the second one" message has been
+   * resolved against this widget (see WidgetActionResolverService, server —
+   * this never comes back with fresh `data`, just an updated index onto the
+   * same list already rendered). */
+  selectedIndex?: number;
 }
 
 interface AiWidgetRendererProps {
@@ -51,6 +56,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
           item.store?.name ? `Sold by ${item.store.name}` : '',
           item.store?.rating ? `★ ${item.store.rating.toFixed(1)}` : '',
         ].filter(Boolean),
+        actionLabel: 'VIEW PRODUCT',
         onPress: () => navigateToLife(navigation, 'ShoppingProduct', { productId: item.id }),
       };
     case 'stay-list':
@@ -60,6 +66,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
         title: item.title,
         priceLabel: `${money(item.pricePerNight)}/night`,
         metaLines: [item.location, item.rating ? `★ ${item.rating.toFixed(1)}` : ''].filter(Boolean),
+        actionLabel: 'BOOK STAY',
         onPress: () => navigateToLife(navigation, 'TravelStayDetail', { stayId: item.id }),
       };
     case 'flight-list':
@@ -73,6 +80,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
           `Departs ${new Date(item.departureTime).toLocaleString()}`,
           `${item.seatsAvailable} seats left`,
         ],
+        actionLabel: 'BOOK FLIGHT',
         onPress: () => navigateToLife(navigation, 'TravelFlightDetail', { flightId: item.id }),
       };
     case 'car-list':
@@ -82,6 +90,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
         title: `${item.make} ${item.model}`,
         priceLabel: `${money(item.pricePerDay)}/day`,
         metaLines: [item.category, item.location].filter(Boolean),
+        actionLabel: 'RENT CAR',
         onPress: () => navigateToLife(navigation, 'TravelCarDetail', { carId: item.id }),
       };
     case 'listing-list':
@@ -92,6 +101,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
         title: item.title,
         priceLabel: money(item.currentBid ?? item.price),
         metaLines: [item.category, item.condition].filter(Boolean),
+        actionLabel: item.listingType === 'AUCTION' ? 'PLACE BID' : 'VIEW LISTING',
         onPress: () => navigation.navigate('MarketplaceDetail', { listingId: item.id }),
       };
     case 'carfind-list':
@@ -104,6 +114,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
           `${item.mileage?.toLocaleString?.() ?? item.mileage}km · ${item.transmission}`,
           item.location,
         ].filter(Boolean),
+        actionLabel: 'VIEW CAR',
         onPress: () => navigateToLife(navigation, 'CarFindDetail', { carId: item.id }),
       };
     case 'store-list':
@@ -113,6 +124,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
         badge: item.isOpen ? 'OPEN' : 'CLOSED',
         title: item.name,
         metaLines: [item.category, item.rating ? `★ ${item.rating.toFixed(1)}` : ''].filter(Boolean),
+        actionLabel: 'VIEW MENU',
         onPress: () => navigateToLife(navigation, 'EatStore', { storeId: item.id }),
       };
     case 'property-list':
@@ -126,6 +138,7 @@ function buildCardProps(renderAs: string, item: any, navigation: any): WidgetCar
           item.address,
           item.bedrooms !== undefined ? `${item.bedrooms} bed · ${item.bathrooms} bath` : '',
         ].filter(Boolean),
+        actionLabel: 'VIEW PROPERTY',
         onPress: () => navigation.navigate('PropertyDetail', { propertyId: item.id }),
       };
     default:
@@ -174,6 +187,7 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
               pickupAddress={ride.pickupAddress}
               dropoffAddress={ride.dropoffAddress}
               fare={ride.fare}
+              onPress={() => navigateToLife(navigation, 'Ride', {})}
             />
           );
         }
@@ -181,22 +195,25 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
         const items: any[] = Array.isArray(widget.data) ? widget.data : [];
         const cards = items
           .slice(0, 10)
-          .map((item) => buildCardProps(widget.renderAs, item, navigation))
-          .filter((c): c is WidgetCardProps => c !== null);
+          .map((item) => buildCardProps(widget.renderAs, item, navigation));
+        // buildCardProps switches on widget.renderAs (not per-item), so for
+        // a homogeneous widget either every item produces props or none do —
+        // index alignment with `items` (and therefore selectedIndex) holds
+        // across this filter.
+        const validCards = cards
+          .map((card, i) => (card ? { card, i } : null))
+          .filter((c): c is { card: WidgetCardProps; i: number } => c !== null);
 
-        if (cards.length === 0) return null;
+        if (validCards.length === 0) return null;
 
+        // Full-width stack (not a horizontal rail) so each card — and its
+        // action button — reads clearly inside the AI tray/chat column.
         return (
-          <ScrollView
-            key={widget.toolCallId}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.row}
-          >
-            {cards.map((card, i) => (
-              <WidgetCard key={i} {...card} />
+          <View key={widget.toolCallId} style={styles.stack}>
+            {validCards.map(({ card, i }) => (
+              <WidgetCard key={i} {...card} selected={i === widget.selectedIndex} />
             ))}
-          </ScrollView>
+          </View>
         );
       })}
     </View>

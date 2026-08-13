@@ -12,6 +12,7 @@ import type { LlmAdapter } from './llm-adapter.interface';
 import { RuntimeMessage, RuntimeTool } from './llm-adapter.interface';
 import { MINI_APPS_CATALOG } from '../store/mini-apps-catalog';
 import { SPECIALIST_AGENTS } from './specialist-agents';
+import { WidgetActionResolverService } from './widget-action-resolver.service';
 
 const MAX_LOOPS = 14;
 
@@ -34,6 +35,11 @@ export interface RunResult {
   /** Structured results from any tool calls this turn whose tool is tagged renderAs. */
   widgets: ToolWidget[];
   activeAgent: { id: string } | null;
+  /** Set when this turn was resolved directly against the active widget
+   * (next/previous/select) without an LLM call at all — see
+   * WidgetActionResolverService. The client applies this to the widget
+   * already rendered for `toolCallId` rather than expecting new widget data. */
+  widgetSelection?: { toolCallId: string; selectedIndex: number };
 }
 
 // Generalizes the old ai.service.ts's runLoop(): resolves tools from the
@@ -49,12 +55,55 @@ export class AgentRuntimeService {
     private executor: ActionExecutorService,
     private contextManager: ContextManagerService,
     private conversationHistory: ConversationHistoryService,
+    private widgetActionResolver: WidgetActionResolverService,
   ) {}
 
   async runLoop(
     userId: string,
     messages: RuntimeMessage[],
   ): Promise<RunResult> {
+    // Orchestrator direct-dispatch: if the last message is a short command
+    // ("next", "the second one") that resolves against the widget the user
+    // is currently looking at, handle it here — no LLM call, no tool call,
+    // just a state update. Falls through to the normal loop below whenever
+    // it can't confidently resolve (see WidgetActionResolverService).
+    const lastUserMessage = messages[messages.length - 1];
+    if (lastUserMessage?.role === 'user') {
+      const resolution = await this.widgetActionResolver.tryResolve(
+        userId,
+        lastUserMessage.content,
+      );
+      if (resolution) {
+        await this.conversationHistory.record(
+          userId,
+          'user',
+          lastUserMessage.content,
+        );
+        await this.conversationHistory.record(
+          userId,
+          'assistant',
+          resolution.reply,
+        );
+        const session = await this.contextManager.get(userId);
+        return {
+          reply: resolution.reply,
+          conversation: [
+            ...messages,
+            { role: 'assistant', content: resolution.reply },
+          ],
+          pendingAction: null,
+          widgets: [],
+          widgetSelection: {
+            toolCallId: resolution.toolCallId,
+            selectedIndex: resolution.selectedIndex,
+          },
+          activeAgent: session?.activeAgentId
+            ? { id: session.activeAgentId }
+            : null,
+        };
+      }
+    }
+
     const agent = await this.prisma.aiAgent.findUnique({ where: { userId } });
     if (!agent) throw new BadRequestException('AI agent not set up yet');
     const perms = (agent.permissions || {}) as Record<string, boolean>;
@@ -219,6 +268,17 @@ export class AgentRuntimeService {
             renderAs,
             data: execResult.result,
           });
+          // Record this as the "active widget" for next-turn direct
+          // dispatch (see WidgetActionResolverService). A later widget in
+          // the same turn (rare — most turns produce at most one) wins,
+          // matching "the thing the user was just shown."
+          await this.contextManager.touchWidget(userId, {
+            toolCallId: toolCall.id,
+            renderAs,
+            itemCount: Array.isArray(execResult.result)
+              ? execResult.result.length
+              : 1,
+          });
         }
       }
 
@@ -324,7 +384,7 @@ export class AgentRuntimeService {
 WHO YOU ARE: gender ${agent.gender}, voice style "${agent.voice}", personality "${agent.personality}". You talk like a real person who's good at their job — warm, direct, a little witty when it fits, never stiff or corporate. You have opinions and you'll state them ("I'd go with the cheaper one, the reviews are basically the same"). You never pad replies with disclaimers, restate the question back, or announce what you're about to do in a robotic way ("I will now search for..."). Keep it conversational, like a text from a friend who's genuinely useful — short by default, longer only when the content actually needs it (an itinerary, a comparison, a list of options).
 
 REPLY LENGTH — this is a hard rule, not a style preference: your text reply renders as a compact card in the app, not a chat wall. 1-3 short sentences, max. Never write a paragraph, never use markdown headers or numbered essays, never restate data that a widget below your reply already shows. If you're tempted to write more than 3 sentences, that's a sign the content belongs in structured data instead:
-- Any time you have search results, listings, bookings, an itinerary, or other structured data to show, call the matching tool (or myTrips for existing bookings) so it renders as cards — describe it in at most one short sentence ("Found a few good ones — take a look" / "Here's everything for your trip"), never list prices/times/names in prose.
+- Any time you have search results, listings, bookings, an itinerary, or other structured data to show, call the matching tool (or myTrips for existing bookings) so it renders as cards — describe it in at most one short sentence, never list prices/times/names in prose. If the tool result itself hands you a total count or a breakdown (e.g. "Found 5 car(s): 2 from 2020, 3 from 2021"), relay that count/breakdown in your sentence ("Found 5 — 2 from 2020, 3 from 2021, take a look") since that's summary info, not per-item detail; otherwise keep it generic ("Found a few good ones — take a look").
 - Greetings, confirmations, and small talk get the same treatment: one warm, short, human line. No tours, no bullet list of "things I can help with" unless they explicitly ask what you can do.
 
 HOW A GOOD HUMAN ASSISTANT THINKS (this is the actual difference between you and an old-style chatbot):

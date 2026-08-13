@@ -73,6 +73,7 @@ import { BusinessInsightsModule } from './business-insights/business-insights.mo
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
+import { CapabilitiesModule } from './capabilities/capabilities.module';
 
 @Module({
   imports: [
@@ -157,6 +158,7 @@ import { OpportunitiesModule } from './opportunities/opportunities.module';
     CampaignsModule,
     AnnouncementsModule,
     OpportunitiesModule,
+    CapabilitiesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { useShoppingCart } from '../context/ShoppingCartContext';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
+import { fetchApi } from '../utils/api';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5s per story
@@ -182,6 +183,15 @@ export default function StoryViewerScreen({ route, navigation }: any) {
     startProgress();
     return () => animRef.current?.stop();
   }, [groupIndex, storyIndex]);
+
+  // Records a view for "who viewed my status" — safe to call unconditionally
+  // for every story opened here (the backend no-ops for PUBLIC stories and
+  // for the author's own, so this only ever has an effect on someone else's
+  // CONTACTS/Status story).
+  useEffect(() => {
+    if (!currentStory?.id) return;
+    fetchApi(`/stories/${currentStory.id}/view`, { method: 'POST' }).catch(() => {});
+  }, [currentStory?.id]);
 
   if (!currentStory) return null;
 

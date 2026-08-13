@@ -78,6 +78,10 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
+  // Cache-Control is only a signal to this function's own cache above — the
+  // API's CORS allowedHeaders doesn't include it, so forwarding it over the
+  // wire makes the browser's preflight silently kill the whole request.
+  delete headers['Cache-Control'];
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

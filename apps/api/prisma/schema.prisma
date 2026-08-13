@@ -79,6 +79,7 @@ model User {
   interests                    UserInterest[]
   aiAgent                      AiAgent?
   stories                      Story[]
+  storyViews                   StoryView[]
   propertiesManaged            Property[]                 @relation("propertiesManaged")
   tenancies                    Tenancy[]                  @relation("tenancies")
   carListingsSold              CarListing[]               @relation("carListingsSold")
@@ -1329,13 +1330,22 @@ model ToolExecutionLog {
 // One row per user: what the AI agent is currently focused on, persisted
 // across chat turns (the Context Manager's backing store).
 model AiSession {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  activeModule  String?
-  taskSummary   String?
-  activeAgentId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                        String   @id @default(uuid())
+  userId                    String   @unique
+  activeModule              String?
+  taskSummary               String?
+  activeAgentId             String?
+  // Interaction Engine widget state: the last widget the user was shown, so
+  // "show me the second one" / "next" can resolve locally (WidgetActionResolver)
+  // without a fresh tool call or LLM round-trip. Only itemCount is stored, not
+  // the raw items — the client already holds those from its own chat history,
+  // the session only needs to validate bounds and remember the selection.
+  activeWidgetToolCallId    String?
+  activeWidgetRenderAs      String?
+  activeWidgetItemCount     Int?
+  activeWidgetSelectedIndex Int?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }
 
 // Durable log of every real user/assistant exchange (not intermediate tool
@@ -1414,9 +1424,9 @@ model InstalledApp {
 }
 
 model Story {
-  id              String         @id @default(uuid())
+  id              String          @id @default(uuid())
   userId          String
-  user            User           @relation(fields: [userId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
   mediaUrl        String?
   textContent     String?
   backgroundColor String?
@@ -1427,14 +1437,39 @@ model Story {
   // null = general story. Non-null makes it eligible for the labeled/trending
   // feed and its paid interactions below.
   label           String?
+  // PUBLIC = today's behavior, visible to everyone (default, unchanged for
+  // every existing row/write path). CONTACTS = "Status" — visible only to
+  // accepted friends, never carries StoryItem products (enforced in
+  // createStory), and gets StoryView tracking (public stories don't).
+  visibility      StoryVisibility @default(PUBLIC)
   expiresAt       DateTime
-  createdAt       DateTime       @default(now())
+  createdAt       DateTime        @default(now())
   likes           StoryLike[]
   comments        StoryComment[]
   ranks           StoryRank[]
   items           StoryItem[]
+  views           StoryView[]
 
   @@index([label, expiresAt])
+}
+
+// Records who has opened a CONTACTS-visibility story — powers the
+// owner-only "who viewed this" list and the viewed/unviewed ring state on
+// ChatListScreen. Unlike StoryLike/StoryComment/StoryRank this is free,
+// unlimited, and idempotent (upserted), not a paid once-per-user action.
+model StoryView {
+  id       String   @id @default(uuid())
+  storyId  String
+  // Cascade, not the schema's default no-action FK — without this,
+  // deleteStory() (the "revoke my status" action) fails with a foreign-key
+  // violation the moment a status has been viewed even once.
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewerId String
+  viewer   User     @relation(fields: [viewerId], references: [id])
+  viewedAt DateTime @default(now())
+
+  @@unique([storyId, viewerId])
+  @@index([storyId])
 }
 
 // ── Property module ────────────────────────────────────────────
@@ -1612,6 +1647,11 @@ model WordBattleGame {
 enum ListingType {
   FIXED
   AUCTION
+}
+
+enum StoryVisibility {
+  PUBLIC
+  CONTACTS
 }
 
 enum ListingStatus {

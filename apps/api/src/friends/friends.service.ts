@@ -109,4 +109,13 @@ export class FriendsService {
     });
     return !!friendship;
   }
+
+  /** Batched sibling of areFriends — one query for all of userId's accepted friends, for callers (e.g. Story's feed gating) that need to check many candidates at once instead of one query per pair. */
+  async getFriendIds(userId: string): Promise<Set<string>> {
+    const rows = await this.prisma.friendship.findMany({
+      where: { status: 'accepted', OR: [{ requesterId: userId }, { addresseeId: userId }] },
+      select: { requesterId: true, addresseeId: true },
+    });
+    return new Set(rows.map((r) => (r.requesterId === userId ? r.addresseeId : r.requesterId)));
+  }
 }

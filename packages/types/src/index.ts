@@ -274,6 +274,18 @@ export interface Sticker {
   rotation: number;
 }
 
+// PUBLIC = today's default, visible to everyone. CONTACTS = "Status" —
+// visible only to accepted friends, never carries StoryItem products.
+export type StoryVisibility = 'PUBLIC' | 'CONTACTS';
+
+export interface StoryViewDto {
+  id: string;
+  storyId: string;
+  viewerId: string;
+  viewer?: UserProfile;
+  viewedAt: Date;
+}
+
 export interface StoryDto {
   id: string;
   userId: string;
@@ -286,12 +298,17 @@ export interface StoryDto {
   stickers?: Sticker[];
   // null/undefined = general ephemeral story; set = a labeled "of the Day" post (e.g. "OOTD", "COTD")
   label?: string | null;
+  visibility: StoryVisibility;
   createdAt: Date;
   expiresAt: Date;
   likes?: StoryLikeDto[];
   comments?: StoryCommentDto[];
   ranks?: StoryRankDto[];
   items?: StoryItemDto[];
+  // Owner-only population (GET /stories/:id/viewers); viewedByMe drives the
+  // chat-row ring's colored-vs-grey state for the caller specifically.
+  views?: StoryViewDto[];
+  viewedByMe?: boolean;
   giftTotal?: number;
   giftCount?: number;
 }
@@ -582,4 +599,79 @@ export interface ReactionTypeDto {
   amount: number;
   creatorSharePct: number;
 }
+
+// ============================================================
+// Widget Interaction Contract (Guranda Engine Architecture, Phase 1).
+// Shared source of truth for both sides of a `renderAs`-tagged AI widget:
+// the API's WidgetActionResolver uses it to match a raw user utterance
+// against the ACTIVE widget's declared actions and resolve next/previous/
+// select locally (no LLM round-trip); AiWidgetRenderer (mobile) uses it to
+// know which actions a given widget type supports at all. Keyed by the same
+// renderAs string ToolDefinition.renderAs already uses — no new identifier
+// introduced. See docs/19_AI_Engine_Audit_And_Design.md §10.
+//
+// Only 'next' | 'previous' | 'select' are actually dispatched without the
+// LLM today (WidgetActionResolver, apps/api/src/ai-runtime). The rest of the
+// vocabulary is declared here honestly as "a widget of this renderAs type
+// supports this action conceptually" — 'compare'/'buy'/'save'/'share' still
+// go through the normal tool-calling path via the LLM; they are not faked
+// as short-circuited just because they're listed.
+export type WidgetActionKey =
+  | 'next'
+  | 'previous'
+  | 'select'
+  | 'compare'
+  | 'buy'
+  | 'save'
+  | 'share'
+  | 'cancel'
+  | 'track';
+
+export interface WidgetActionSpec {
+  /** Which actions a widget of this renderAs type conceptually supports. */
+  actions: WidgetActionKey[];
+  /** Natural-language phrases (lowercase, substring-matched) that trigger each action. */
+  voicePhrases: Partial<Record<WidgetActionKey, string[]>>;
+}
+
+// 'select' has no phrase list — it fires only on an explicit ordinal ("the
+// second one", "number 3"), never on a bare verb like "show me"/"open",
+// which would false-positive against a genuinely new, unrelated request
+// ("show me hotels in Durban") whenever a widget happened to still be active
+// from an earlier search. Precision over recall for the LLM-bypass path.
+const LIST_VOICE_PHRASES: Partial<Record<WidgetActionKey, string[]>> = {
+  next: ['next', 'the next one', 'next one'],
+  previous: ['previous', 'go back', 'the last one', 'previous one', 'back'],
+  compare: ['compare'],
+  save: ['save'],
+  share: ['share'],
+};
+
+const LIST_ACTIONS: WidgetActionKey[] = ['next', 'previous', 'select', 'compare', 'save', 'share'];
+
+/** Every `renderAs` value currently emitted by a ToolDefinition (see
+ * apps/api/src/tool-registry) maps to a spec here. The 8 list-shaped types
+ * share one component (WidgetCard) and the same action set; trip-list and
+ * ride-status are single-purpose and get their own narrower specs. */
+export const WIDGET_ACTION_CATALOG: Record<string, WidgetActionSpec> = {
+  'product-list': { actions: [...LIST_ACTIONS, 'buy'], voicePhrases: { ...LIST_VOICE_PHRASES, buy: ['buy', 'buy it', 'buy this one', 'purchase it'] } },
+  'stay-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'flight-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'car-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'listing-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'carfind-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'store-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'property-list': { actions: LIST_ACTIONS, voicePhrases: LIST_VOICE_PHRASES },
+  'trip-list': { actions: ['next', 'previous', 'select'], voicePhrases: { next: LIST_VOICE_PHRASES.next, previous: LIST_VOICE_PHRASES.previous } },
+  'ride-status': { actions: ['cancel', 'track'], voicePhrases: { cancel: ['cancel', 'cancel the ride', 'cancel it'], track: ['track', 'where is my ride', 'track it'] } },
+};
+
+/** Ordinal words a "select the Nth item" utterance commonly uses — resolved
+ * to a zero-based index by WidgetActionResolver. Kept here (not duplicated
+ * server/client) since both a future voice-hint UI and the resolver need it. */
+export const ORDINAL_WORDS: Record<string, number> = {
+  first: 0, second: 1, third: 2, fourth: 3, fifth: 4,
+  sixth: 5, seventh: 6, eighth: 7, ninth: 8, tenth: 9,
+  last: -1, // resolved against itemCount at call time, not a fixed index
+};
 

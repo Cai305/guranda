@@ -7,126 +7,54 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { fetchApi } from '../../utils/api';
-import AiWidgetRenderer, { ToolWidget } from '../../components/ai-widgets/AiWidgetRenderer';
-
-interface Bubble {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  text: string;
-  widgets?: ToolWidget[];
-}
-
-interface PendingAction {
-  toolUseId: string;
-  name: string;
-  input: any;
-  summary: string;
-}
-
-let bubbleId = 0;
-const nextId = () => `b${++bubbleId}`;
-
-// The backend surfaces raw Anthropic API error bodies (bad key, no credits,
-// rate limits) inside "AI provider error: ..." so they're diagnosable in
-// logs — but that raw JSON is meaningless to a user, so translate it here.
-function friendlyErrorMessage(message?: string): string {
-  if (!message) return 'Something went wrong. Please try again.';
-  if (message.includes('AI provider error')) {
-    console.error('AI provider error:', message);
-    return "Aura can't reach the AI service right now. Please try again in a moment.";
-  }
-  return message;
-}
+import AiWidgetRenderer from '../../components/ai-widgets/AiWidgetRenderer';
+import { useAiConversation, AiBubble } from '../../context/AiConversationContext';
 
 export default function AiChatScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
-  const [agentName, setAgentName] = useState('AI');
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const {
+    agentName, agentExists, agentOnboarded, bubbles, thinking, pending,
+    activeAgentId, sendMessage, resolveAction, addBubble, triggerWelcome,
+  } = useAiConversation();
   const [input, setInput] = useState('');
-  const [thinking, setThinking] = useState(false);
-  const [activeAgent, setActiveAgent] = useState<string | null>(null);
-  const [pending, setPending] = useState<PendingAction | null>(null);
-  // Raw Anthropic conversation — round-tripped to the server every turn
-  const conversation = useRef<any[]>([]);
+  const welcomeChecked = useRef(false);
   const listRef = useRef<FlatList>(null);
 
+  // Route to setup once we know there's no AiAgent yet. Otherwise, decide
+  // ONCE per screen mount whether this visit should fire the onboarding
+  // welcome — bubbles.length===0 means the shared session (which may
+  // already hold history from a prior chat, voice session, or the
+  // dropdown tray) genuinely has nothing yet, not just "this screen just mounted".
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetchApi('/ai/agent');
-        const agent = res.ok ? await res.json() : null;
-        if (!agent || agent.exists === false) {
-          navigation.replace('AiSetup');
-          return;
-        }
-        setAgentName(agent.name);
-        if (route.params?.welcome || !agent.onboarded) {
-          await runRequest('/ai/welcome', {});
-        } else {
-          const historyRes = await fetchApi('/ai/history');
-          const history = historyRes.ok ? await historyRes.json() : [];
-          if (history.length > 0) {
-            setBubbles(history.map((m: any) => ({ id: nextId(), role: m.role, text: m.content })));
-            setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 80);
-          } else {
-            addBubble('assistant', `Hey, it's ${agent.name}. What do you need?`);
-          }
-        }
-      } catch {
-        addBubble('system', 'Could not reach your AI. Check that the API is running.');
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const addBubble = (role: Bubble['role'], text: string, widgets?: ToolWidget[]) => {
-    if (!text) return;
-    setBubbles(prev => [...prev, { id: nextId(), role, text, widgets }]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-  };
-
-  const runRequest = async (endpoint: string, body: any) => {
-    setThinking(true);
-    setPending(null);
-    try {
-      const res = await fetchApi(endpoint, { method: 'POST', body: JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'AI request failed');
-      conversation.current = data.conversation || conversation.current;
-      addBubble('assistant', data.reply, data.widgets);
-      if (data.pendingAction) setPending(data.pendingAction);
-      setActiveAgent(data.activeAgent?.id || null);
-    } catch (e: any) {
-      addBubble('system', friendlyErrorMessage(e.message));
-    } finally {
-      setThinking(false);
+    if (agentExists === null || welcomeChecked.current) return;
+    if (agentExists === false) {
+      navigation.replace('AiSetup');
+      return;
     }
-  };
+    welcomeChecked.current = true;
+    if (bubbles.length === 0) {
+      if (route.params?.welcome || agentOnboarded === false) {
+        triggerWelcome();
+      } else {
+        addBubble('assistant', `Hey, it's ${agentName}. What do you need?`);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentExists, agentOnboarded]);
+
+  useEffect(() => {
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+  }, [bubbles.length]);
 
   const send = async () => {
     const text = input.trim();
     if (!text || thinking) return;
     setInput('');
-    addBubble('user', text);
-    conversation.current = [...conversation.current, { role: 'user', content: text }];
-    await runRequest('/ai/chat', { messages: conversation.current });
+    await sendMessage(text);
   };
 
-  const resolve = async (approved: boolean) => {
-    if (!pending) return;
-    addBubble('system', approved ? `✅ You approved: ${pending.summary}` : `❌ You declined: ${pending.summary}`);
-    const action = pending;
-    setPending(null);
-    await runRequest('/ai/resolve', {
-      conversation: conversation.current,
-      action,
-      approved,
-    });
-  };
-
-  const renderBubble = ({ item }: { item: Bubble }) => {
+  const renderBubble = ({ item }: { item: AiBubble }) => {
     if (item.role === 'system') {
       return <Text style={styles.systemText}>{item.text}</Text>;
     }
@@ -284,8 +212,8 @@ export default function AiChatScreen({ navigation, route }: any) {
             <Ionicons name="sparkles" size={16} color="#FFF" />
           </View>
           <View>
-            <Text style={styles.headerName}>{activeAgent ? `${activeAgent.toUpperCase()} AI` : agentName}</Text>
-            <Text style={styles.headerStatus}>{thinking ? 'thinking…' : (activeAgent ? 'specialist active' : 'online')}</Text>
+            <Text style={styles.headerName}>{activeAgentId ? `${activeAgentId.toUpperCase()} AI` : agentName}</Text>
+            <Text style={styles.headerStatus}>{thinking ? 'thinking…' : (activeAgentId ? 'specialist active' : 'online')}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('AiSetup')}>
@@ -300,7 +228,7 @@ export default function AiChatScreen({ navigation, route }: any) {
         <FlatList
           ref={listRef}
           data={bubbles}
-          keyExtractor={b => b.id}
+          keyExtractor={b => String(b.id)}
           renderItem={renderBubble}
           style={{ flex: 1, minHeight: 0 }}
           contentContainerStyle={{ padding: SPACING.lg, gap: 10 }}
@@ -325,10 +253,10 @@ export default function AiChatScreen({ navigation, route }: any) {
             </View>
             <Text style={styles.approvalSummary}>{pending.summary}</Text>
             <View style={styles.approvalButtons}>
-              <TouchableOpacity style={[styles.approvalBtn, styles.declineBtn]} onPress={() => resolve(false)}>
+              <TouchableOpacity style={[styles.approvalBtn, styles.declineBtn]} onPress={() => resolveAction(false)}>
                 <Text style={styles.declineText}>Decline</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.approvalBtn, styles.approveBtn]} onPress={() => resolve(true)}>
+              <TouchableOpacity style={[styles.approvalBtn, styles.approveBtn]} onPress={() => resolveAction(true)}>
                 <Text style={styles.approveText}>Approve</Text>
               </TouchableOpacity>
             </View>

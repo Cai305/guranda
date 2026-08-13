@@ -5,6 +5,7 @@ import { AgentRuntimeService } from '../ai-runtime/agent-runtime.service';
 import { ActionExecutorService } from '../ai-runtime/action-executor.service';
 import { ConversationHistoryService } from '../ai-runtime/conversation-history.service';
 import { CompanionChatService } from '../ai-runtime/companion-chat.service';
+import { InteractionEngineService } from '../ai-runtime/interaction-engine.service';
 import { RuntimeMessage } from '../ai-runtime/llm-adapter.interface';
 
 // The mobile client's on-the-wire pendingAction shape predates the Tool
@@ -48,6 +49,7 @@ export class AiService {
     private conversationHistory: ConversationHistoryService,
     private executor: ActionExecutorService,
     private companionChatService: CompanionChatService,
+    private interactionEngine: InteractionEngineService,
   ) {}
 
   listCompanions() {
@@ -59,7 +61,13 @@ export class AiService {
   }
 
   async companionChat(userId: string, companionId: string, message: string) {
-    return this.companionChatService.chat(userId, companionId, message);
+    return this.interactionEngine.handle({
+      source: 'text',
+      persona: 'companion',
+      userId,
+      companionId,
+      message,
+    });
   }
 
   async getAgent(userId: string) {
@@ -146,29 +154,40 @@ export class AiService {
   }
 
   async chat(userId: string, messages: RuntimeMessage[]) {
-    const result = await this.runtime.runLoop(userId, messages);
+    const result = await this.interactionEngine.handle({
+      source: 'text',
+      persona: 'agent',
+      userId,
+      messages,
+    });
     return {
       reply: result.reply,
       conversation: result.conversation,
-      pendingAction: toWirePendingAction(result.pendingAction),
+      pendingAction: toWirePendingAction(result.pendingAction ?? null),
       backgroundExecutionId: result.backgroundExecutionId,
       widgets: result.widgets,
+      widgetSelection: result.widgetSelection,
       activeAgent: result.activeAgent,
     };
   }
 
   /** First conversation after setup: the agent welcomes the user and tours the app. */
   async welcome(userId: string) {
-    const result = await this.runtime.runLoop(userId, [
-      {
-        role: 'user',
-        content:
-          '(System: the user has just finished setting you up for the first time. ' +
-          'Greet them warmly by their name and introduce yourself by your own name — that\'s it. ' +
-          'One or two short sentences, like a text message, not a tour or a features list. ' +
-          'Sound like a companion, not a manual.)',
-      },
-    ]);
+    const result = await this.interactionEngine.handle({
+      source: 'text',
+      persona: 'agent',
+      userId,
+      messages: [
+        {
+          role: 'user',
+          content:
+            '(System: the user has just finished setting you up for the first time. ' +
+            'Greet them warmly by their name and introduce yourself by your own name — that\'s it. ' +
+            'One or two short sentences, like a text message, not a tour or a features list. ' +
+            'Sound like a companion, not a manual.)',
+        },
+      ],
+    });
     await this.prisma.aiAgent.update({
       where: { userId },
       data: { onboarded: true },
@@ -176,7 +195,7 @@ export class AiService {
     return {
       reply: result.reply,
       conversation: result.conversation,
-      pendingAction: toWirePendingAction(result.pendingAction),
+      pendingAction: toWirePendingAction(result.pendingAction ?? null),
       backgroundExecutionId: result.backgroundExecutionId,
       widgets: result.widgets,
       activeAgent: result.activeAgent,

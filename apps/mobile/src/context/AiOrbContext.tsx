@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useRef, useState } from 'react';
 import { View, TouchableOpacity, Animated, Easing, useWindowDimensions, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { useAuth } from './AuthContext';
+import { useAiConversation } from './AiConversationContext';
 import { AI_ENABLED } from '../config/featureFlags';
-import { fetchApi } from '../utils/api';
-import AiChatDropdown, { AiChatDropdownHandle } from '../components/ai/AiChatDropdown';
+import AiChatDropdown from '../components/ai/AiChatDropdown';
 import HandsFreeOverlay from '../components/ai/HandsFreeOverlay';
 
 // How long the AI tab-bar button must be held before it activates full
@@ -44,27 +44,16 @@ export function useAiOrb() {
 // inside the bottom tab bar (see CustomTabBar) instead of floating freely.
 export default function AiOrbProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const { agentName } = useAiConversation();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const [open, setOpen] = useState(false);
   const [pressing, setPressing] = useState(false);
   const [handsFreeOpen, setHandsFreeOpen] = useState(false);
-  const [agentName, setAgentName] = useState('AI');
 
-  const dropdownRef = useRef<AiChatDropdownHandle>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchApi('/ai/agent')
-      .then(res => (res.ok ? res.json() : null))
-      .then(agent => {
-        if (agent && agent.exists !== false) setAgentName(agent.name || 'AI');
-      })
-      .catch(() => {});
-  }, [isAuthenticated]);
 
   const resetProgress = () => {
     progress.stopAnimation();
@@ -111,10 +100,12 @@ export default function AiOrbProvider({ children }: { children: React.ReactNode 
 
   // Tray floats above wherever the active bar style put the AI trigger —
   // same anchor point the original small popover used — rather than
-  // sliding up as a full bottom sheet.
+  // sliding up as a full bottom sheet. Height is 85% of the app's own
+  // viewport height, capped so it never runs past the safe-area top or
+  // overlaps its own bottom anchor.
   const panelBottom = insets.bottom + PANEL_BOTTOM_CLEARANCE;
-  const remainingSpace = screenHeight - insets.top - panelBottom;
-  const panelHeight = Math.max(280, remainingSpace * 0.8);
+  const maxPanelHeight = screenHeight - insets.top - panelBottom;
+  const panelHeight = Math.min(screenHeight * 0.85, maxPanelHeight);
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
     backdrop: {
@@ -164,7 +155,7 @@ export default function AiOrbProvider({ children }: { children: React.ReactNode 
               <View style={styles.panel}>
                 <BlurView intensity={55} tint="dark" style={StyleSheet.absoluteFill} />
                 <View style={styles.tint} />
-                <AiChatDropdown ref={dropdownRef} onClose={closeTray} fill />
+                <AiChatDropdown onClose={closeTray} fill />
               </View>
             </>
           )}

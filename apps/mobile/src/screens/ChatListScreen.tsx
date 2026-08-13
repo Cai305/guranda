@@ -90,6 +90,16 @@ export default function ChatListScreen({ navigation }: any) {
       borderWidth: 1,
       borderColor: COLORS.border,
     },
+    // Same outer-gradient/inner-solid-avatar shape as storyRing/storyAvatar
+    // above, sized for the 50x50 row avatar instead of the 54x54 strip one.
+    chatRowStoryRing: {
+      width: 54, height: 54, borderRadius: 27,
+      justifyContent: 'center', alignItems: 'center', padding: 2,
+    },
+    chatRowStoryAvatarInner: {
+      width: 50, height: 50, borderRadius: 25,
+      borderWidth: 2, borderColor: COLORS.surface,
+    },
     statusDot: {
       position: 'absolute',
       bottom: 2,
@@ -158,7 +168,10 @@ export default function ChatListScreen({ navigation }: any) {
 
   const fetchStories = async () => {
     try {
-      const res = await fetchApi('/stories/feed');
+      // Bypasses fetchApi's 5-minute GET cache — the status ring and story
+      // strip need to reflect a contact's just-posted/expired/deleted story
+      // on this screen's own refetch (useFocusEffect below), not stale data.
+      const res = await fetchApi('/stories/feed', { headers: { 'Cache-Control': 'no-cache' } });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) setStoryGroups(data);
@@ -274,23 +287,39 @@ export default function ChatListScreen({ navigation }: any) {
     >
       <View style={styles.avatarContainer}>
         {item.type === 'Private' || item.type === 'AI' || item.type === 'DIRECT' ? (
-          <TouchableOpacity
-            onPress={() => {
-              if (item.targetUserId) {
-                navigation.navigate('UserProfile', {
-                  userId: item.targetUserId,
-                  username: item.name,
-                  avatarUrl: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}`
-                });
-              }
-            }}
-            disabled={!item.targetUserId}
-          >
-            <Image
-              source={{ uri: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
+          (() => {
+            const statusEntry = item.targetUserId ? contactStatusByUserId.get(item.targetUserId) : undefined;
+            const avatarUri = item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}`;
+            return (
+              <TouchableOpacity
+                onPress={() => {
+                  if (statusEntry) {
+                    navigation.navigate('StoryViewer', { groups: [statusEntry.group], initialGroupIndex: 0 });
+                    return;
+                  }
+                  if (item.targetUserId) {
+                    navigation.navigate('UserProfile', {
+                      userId: item.targetUserId,
+                      username: item.name,
+                      avatarUrl: avatarUri,
+                    });
+                  }
+                }}
+                disabled={!item.targetUserId}
+              >
+                {statusEntry ? (
+                  <LinearGradient
+                    colors={statusEntry.allViewed ? ['#9CA3AF', '#9CA3AF'] : ['#7C3AED', '#DB2777']}
+                    style={styles.chatRowStoryRing}
+                  >
+                    <Image source={{ uri: avatarUri }} style={styles.chatRowStoryAvatarInner} />
+                  </LinearGradient>
+                ) : (
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                )}
+              </TouchableOpacity>
+            );
+          })()
         ) : (
           <View style={styles.groupAvatar}>
             <Ionicons
@@ -347,6 +376,21 @@ export default function ChatListScreen({ navigation }: any) {
   // bubble, so this strip stays purely a signal of who has something live
   // right now, not a permanent create-story prompt.
   const otherStoryGroups = storyGroups.filter(g => g.userId !== user?.userId);
+
+  // CONTACTS-only (Status) stories from friends — PUBLIC stories never
+  // render a chat-row ring (that's what the horizontal strip above is for);
+  // this is specifically the WhatsApp-style "this contact posted a status"
+  // signal. The feed endpoint already only returns CONTACTS stories from
+  // friends or the caller, so no client-side friend check is needed here.
+  const contactStatusByUserId = new Map(
+    otherStoryGroups
+      .map((g): [string, { group: any; allViewed: boolean }] | null => {
+        const contactsStories = g.stories.filter((s: any) => s.visibility === 'CONTACTS');
+        if (contactsStories.length === 0) return null;
+        return [g.userId, { group: { ...g, stories: contactsStories }, allViewed: contactsStories.every((s: any) => s.viewedByMe) }];
+      })
+      .filter((e): e is [string, { group: any; allViewed: boolean }] => e !== null),
+  );
 
   const renderStoryStrip = () => {
     if (otherStoryGroups.length === 0) return null;

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import {
   FaStore, FaCar, FaUtensils, FaHome, FaWallet, FaBook,
   FaPlane, FaHospital, FaRobot, FaBriefcase, FaGamepad, FaBroadcastTower,
+  FaCut, FaCalendarAlt, FaChartLine, FaBolt
 } from 'react-icons/fa'
 
 const SERVICES = [
@@ -19,6 +20,10 @@ const SERVICES = [
   { icon: FaBriefcase,       label: 'Work',            desc: 'Jobs, gigs & company pages',                                   color: 'from-orange-500 to-amber-600' },
   { icon: FaGamepad,         label: 'Games Hub',       desc: 'Chess, Ludo, Pool, Morabaraba, Turbo Racing, Word Battle',     color: 'from-yellow-500 to-orange-600' },
   { icon: FaBroadcastTower,  label: 'Live & Calling',  desc: 'Go live to viewers or call a friend 1:1',                     color: 'from-fuchsia-500 to-pink-600' },
+  { icon: FaCut,             label: 'Salon & Spa',     desc: 'Book haircuts and beauty services instantly',                  color: 'from-rose-500 to-pink-600' },
+  { icon: FaCalendarAlt,     label: 'Events',          desc: 'Create and manage RSVPs for any occasion',                     color: 'from-blue-500 to-indigo-600' },
+  { icon: FaChartLine,       label: 'Creator Tools',   desc: 'Detailed post analytics and engagement metrics',               color: 'from-emerald-500 to-teal-600' },
+  { icon: FaBolt,            label: 'Instant UI',      desc: 'Zero-latency persistent offline caching architecture',         color: 'from-yellow-400 to-amber-500' },
 ]
 
 const containerVariants = {

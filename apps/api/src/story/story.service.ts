@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { FriendsService } from '../friends/friends.service';
 
 // CCR = "creator support rate" — the flat MSH cost of each paid interaction
 // (like/comment/rank) on a labeled story, paid straight to its author. Server
@@ -23,7 +24,10 @@ function toStoryAuthor(user: any) {
 
 @Injectable()
 export class StoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private friends: FriendsService,
+  ) {}
 
   async createStory(
     userId: string,
@@ -35,6 +39,7 @@ export class StoryService {
       musicTitle?: string;
       label?: string;
       stickers?: any[];
+      visibility?: 'PUBLIC' | 'CONTACTS';
       items?: {
         name: string;
         brand?: string;
@@ -43,6 +48,12 @@ export class StoryService {
       }[];
     },
   ) {
+    const visibility = dto.visibility === 'CONTACTS' ? 'CONTACTS' : 'PUBLIC';
+    if (visibility === 'CONTACTS' && dto.items && dto.items.length > 0) {
+      throw new BadRequestException(
+        'Status posts cannot include shoppable products',
+      );
+    }
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     return this.prisma.story.create({
       data: {
@@ -54,6 +65,7 @@ export class StoryService {
         musicTitle: dto.musicTitle,
         stickers: dto.stickers ?? undefined,
         label: dto.label ? dto.label.trim().toUpperCase() : null,
+        visibility,
         expiresAt,
         items: {
           create: (dto.items ?? []).map((item) => ({
@@ -71,19 +83,34 @@ export class StoryService {
 
   async getFeed(userId: string) {
     const now = new Date();
-    // Get all general/ephemeral stories that haven't expired, grouped by user.
+    const friendIds = await this.friends.getFriendIds(userId);
+    // General/ephemeral stories (labeled "of the Day" posts have their own
+    // getLabeledFeed) that haven't expired, grouped by user. CONTACTS
+    // (Status) stories from anyone but the caller and their accepted
+    // friends never leave the database — this is the server-side gate, not
+    // a client-side hide.
     const stories = await this.prisma.story.findMany({
-      where: { expiresAt: { gt: now } },
-      include: { user: { select: USER_SELECT } },
+      where: {
+        expiresAt: { gt: now },
+        OR: [
+          { visibility: 'PUBLIC' },
+          { visibility: 'CONTACTS', userId: { in: [userId, ...friendIds] } },
+        ],
+      },
+      include: {
+        user: { select: USER_SELECT },
+        views: { where: { viewerId: userId }, select: { id: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
     const grouped = new Map<string, { user: any; stories: any[] }>();
-    for (const story of stories) {
+    for (const { views, ...story } of stories) {
+      const tagged = { ...story, viewedByMe: views.length > 0 };
       if (!grouped.has(story.userId)) {
         grouped.set(story.userId, { user: story.user, stories: [] });
       }
-      grouped.get(story.userId)!.stories.push(story);
+      grouped.get(story.userId)!.stories.push(tagged);
     }
 
     const result: { userId: string; user: any; stories: any[] }[] = [];
@@ -163,6 +190,44 @@ export class StoryService {
 
   async deleteStory(storyId: string, userId: string) {
     return this.prisma.story.deleteMany({ where: { id: storyId, userId } });
+  }
+
+  /** Owner-only "who viewed my status" — most-recent-first. */
+  async getStoryViewers(storyId: string, userId: string) {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+    });
+    if (!story) throw new NotFoundException('Story not found');
+    if (story.userId !== userId)
+      throw new BadRequestException('Not your story');
+
+    const rows = await this.prisma.storyView.findMany({
+      where: { storyId },
+      include: { viewer: { select: USER_SELECT } },
+      orderBy: { viewedAt: 'desc' },
+    });
+    return rows.map(({ viewer, ...r }) => ({
+      ...r,
+      viewer: toStoryAuthor(viewer),
+    }));
+  }
+
+  /** Idempotent — reopening a story doesn't create duplicate view rows.
+   * Only CONTACTS (Status) stories are tracked: public "of the Day" stories
+   * keep using their existing like/comment/rank/gift signals instead. */
+  async recordView(storyId: string, viewerId: string) {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+    });
+    if (!story) throw new NotFoundException('Story not found');
+    if (story.userId === viewerId) return null;
+    if (story.visibility !== 'CONTACTS') return null;
+
+    return this.prisma.storyView.upsert({
+      where: { storyId_viewerId: { storyId, viewerId } },
+      create: { storyId, viewerId },
+      update: {},
+    });
   }
 
   async getMyStats(userId: string) {

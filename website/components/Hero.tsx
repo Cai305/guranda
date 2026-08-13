@@ -8,7 +8,7 @@ import {
   FaUsers, FaGamepad, FaStar, FaShieldAlt,
 } from 'react-icons/fa'
 
-const WORDS = ['Messaging', 'Gaming', 'Live Streams', 'Payments', 'Food Delivery', 'Learning', 'Work', 'Everything']
+const WORDS = ['Messaging', 'Gaming', 'Live Streams', 'Payments', 'Food Delivery', 'Bookings', 'Events', 'Analytics', 'Learning', 'Work', 'Everything']
 
 const PILLS = [
   { icon: <FaUsers />,     text: '10M+ Users',       color: 'from-violet-500 to-purple-600', delay: 0.6 },
@@ -152,12 +152,12 @@ export default function Hero() {
               whole hero keeps fitting close to one viewport at in-between
               widths too, not just phone and full desktop. */}
           <div className="relative grid grid-cols-4 gap-2 sm:gap-4 lg:gap-8 p-2 sm:p-5 lg:p-10 w-full">
-            {['💬','🎮','📡','💰','🚗','🍽️','✈️','🤖','📚','💼','🏠','🎭'].map((e, i) => (
+            {['💬','🎮','📡','💰','🚗','🍽️','✈️','🤖','📚','💼','🏠','🎭','✂️','📅','📊','⚡'].map((e, i) => (
               <motion.div
                 key={i}
                 className="flex flex-col items-center"
                 animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 3 + (i % 3) * 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+                transition={{ duration: 3 + (i % 4) * 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
               >
                 <div className="w-8 h-8 sm:w-11 sm:h-11 lg:w-14 lg:h-14 rounded-lg sm:rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-base sm:text-xl lg:text-3xl backdrop-blur-md shadow-lg">
                   {e}

@@ -11,9 +11,57 @@ export default function TopBar({ navigation }: { navigation?: any }) {
   const { COLORS, TYPOGRAPHY } = theme;
   const { user, status, updateStatus } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'bio'>('status');
+  const [activeTab, setActiveTab] = useState<'presence' | 'bio' | 'myStatus'>('presence');
   const [statusMessage, setStatusMessage] = useState('');
   const [savingBio, setSavingBio] = useState(false);
+
+  // "My Status" — the WhatsApp-style photo/video status (a CONTACTS-
+  // visibility Story), distinct from the "Status Bio" text tab above. Loaded
+  // lazily since TopBar is mounted standalone with no props threaded in
+  // (see ChatListScreen.tsx) and has no other access to storyGroups.
+  const [myStatusGroup, setMyStatusGroup] = useState<any | null>(null);
+  const [myStatusLoading, setMyStatusLoading] = useState(false);
+  const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null);
+
+  const fetchMyStatus = () => {
+    setMyStatusLoading(true);
+    // Bypasses fetchApi's 5-minute GET cache — this tab must reflect a
+    // status just posted/deleted immediately, not stale data from whenever
+    // /stories/feed last happened to be called elsewhere in the app.
+    fetchApi('/stories/feed', { headers: { 'Cache-Control': 'no-cache' } })
+      .then(r => r.ok ? r.json() : [])
+      .then(groups => {
+        const mine = Array.isArray(groups) ? groups.find((g: any) => g.userId === user?.userId) : null;
+        const activeStories = mine ? mine.stories.filter((s: any) => s.visibility === 'CONTACTS') : [];
+        setMyStatusGroup(activeStories.length > 0 ? { ...mine, stories: activeStories } : null);
+      })
+      .catch(() => setMyStatusGroup(null))
+      .finally(() => setMyStatusLoading(false));
+  };
+
+  useEffect(() => {
+    if (modalVisible && activeTab === 'myStatus') fetchMyStatus();
+  }, [modalVisible, activeTab]);
+
+  const deleteMyStatus = (storyId: string) => {
+    setDeletingStoryId(storyId);
+    fetchApi(`/stories/${storyId}`, { method: 'DELETE' })
+      .then(() => fetchMyStatus())
+      .catch(() => Alert.alert('Error', 'Could not remove your status.'))
+      .finally(() => setDeletingStoryId(null));
+  };
+
+  const openMyStatus = (storyIndex: number) => {
+    if (!navigation || !myStatusGroup) return;
+    setModalVisible(false);
+    navigation.navigate('StoryViewer', { groups: [myStatusGroup], initialGroupIndex: 0, initialStoryIndex: storyIndex });
+  };
+
+  const goPostStatus = () => {
+    if (!navigation) return;
+    setModalVisible(false);
+    navigation.navigate('CreateStory', { mode: 'status' });
+  };
 
   useEffect(() => {
     fetchApi('/users/me')
@@ -35,7 +83,7 @@ export default function TopBar({ navigation }: { navigation?: any }) {
 
   const handleStatusSelect = (newStatus: UserStatus) => {
     updateStatus(newStatus);
-    if (activeTab === 'status') setModalVisible(false);
+    if (activeTab === 'presence') setModalVisible(false);
   };
 
   const saveBioStatus = async () => {
@@ -112,6 +160,14 @@ export default function TopBar({ navigation }: { navigation?: any }) {
       paddingVertical: 14, alignItems: 'center',
     },
     saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    myStatusRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    },
+    myStatusThumbWrap: { borderRadius: 10, overflow: 'hidden' },
+    myStatusThumb: { width: 44, height: 44, borderRadius: 10 },
+    myStatusMeta: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    myStatusViewersLink: { color: COLORS.secondary, fontSize: 12, marginTop: 2, fontWeight: '600' },
   }));
 
   return (
@@ -160,10 +216,10 @@ export default function TopBar({ navigation }: { navigation?: any }) {
             {/* Tabs */}
             <View style={styles.tabs}>
               <TouchableOpacity
-                style={[styles.tab, activeTab === 'status' && styles.tabActive]}
-                onPress={() => setActiveTab('status')}
+                style={[styles.tab, activeTab === 'presence' && styles.tabActive]}
+                onPress={() => setActiveTab('presence')}
               >
-                <Text style={[styles.tabText, activeTab === 'status' && styles.tabTextActive]}>Presence</Text>
+                <Text style={[styles.tabText, activeTab === 'presence' && styles.tabTextActive]}>Presence</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, activeTab === 'bio' && styles.tabActive]}
@@ -171,9 +227,15 @@ export default function TopBar({ navigation }: { navigation?: any }) {
               >
                 <Text style={[styles.tabText, activeTab === 'bio' && styles.tabTextActive]}>Status Bio</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'myStatus' && styles.tabActive]}
+                onPress={() => setActiveTab('myStatus')}
+              >
+                <Text style={[styles.tabText, activeTab === 'myStatus' && styles.tabTextActive]}>My Status</Text>
+              </TouchableOpacity>
             </View>
 
-            {activeTab === 'status' ? (
+            {activeTab === 'presence' ? (
               <>
                 <Text style={[TYPOGRAPHY.h2, { marginBottom: 12 }]}>Set Presence</Text>
 
@@ -195,7 +257,7 @@ export default function TopBar({ navigation }: { navigation?: any }) {
                   {status === 'busy' && <Ionicons name="checkmark" size={20} color={COLORS.secondary} />}
                 </TouchableOpacity>
               </>
-            ) : (
+            ) : activeTab === 'bio' ? (
               <>
                 <Text style={[TYPOGRAPHY.h2, { marginBottom: 6 }]}>Status Bio</Text>
                 <Text style={[TYPOGRAPHY.body2, { color: COLORS.textMuted, marginBottom: 14 }]}>
@@ -218,6 +280,57 @@ export default function TopBar({ navigation }: { navigation?: any }) {
                     : <Text style={styles.saveBtnText}>Save</Text>
                   }
                 </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[TYPOGRAPHY.h2, { marginBottom: 6 }]}>My Status</Text>
+                <Text style={[TYPOGRAPHY.body2, { color: COLORS.textMuted, marginBottom: 14 }]}>
+                  A photo or video only your contacts can see, for 24 hours.
+                </Text>
+                {myStatusLoading ? (
+                  <ActivityIndicator color={COLORS.secondary} style={{ marginVertical: 20 }} />
+                ) : !myStatusGroup || myStatusGroup.stories.length === 0 ? (
+                  <>
+                    <Text style={{ color: COLORS.textMuted, fontSize: 13, marginBottom: 14 }}>
+                      You haven't posted a status.
+                    </Text>
+                    <TouchableOpacity style={styles.saveBtn} onPress={goPostStatus}>
+                      <Text style={styles.saveBtnText}>Post Status</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    {myStatusGroup.stories.map((s: any, i: number) => (
+                      <View key={s.id} style={styles.myStatusRow}>
+                        <TouchableOpacity style={styles.myStatusThumbWrap} onPress={() => openMyStatus(i)}>
+                          {s.mediaUrl ? (
+                            <Image source={{ uri: s.mediaUrl }} style={styles.myStatusThumb} />
+                          ) : (
+                            <View style={[styles.myStatusThumb, { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }]}>
+                              <Ionicons name="text" size={16} color="#fff" />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{ flex: 1 }}
+                          onPress={() => navigation?.navigate('StatusViewers', { storyId: s.id })}
+                        >
+                          <Text style={styles.myStatusMeta}>Posted {new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                          <Text style={styles.myStatusViewersLink}>Viewers</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => deleteMyStatus(s.id)} hitSlop={8} disabled={deletingStoryId === s.id}>
+                          {deletingStoryId === s.id
+                            ? <ActivityIndicator size="small" color={COLORS.error} />
+                            : <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                          }
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    <TouchableOpacity style={[styles.saveBtn, { marginTop: 4 }]} onPress={goPostStatus}>
+                      <Text style={styles.saveBtnText}>Post another</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </>
             )}
           </TouchableOpacity>

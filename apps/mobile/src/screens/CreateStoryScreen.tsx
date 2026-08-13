@@ -49,6 +49,10 @@ interface PlacedSticker {
 export default function CreateStoryScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+  // Status = a Story with visibility:'CONTACTS' — always general (never "of
+  // the Day"), never shoppable (no Link Products / Wearing sections), and
+  // only visible to accepted friends server-side.
+  const isStatusMode = route?.params?.mode === 'status';
   const [text, setText] = useState('');
   const [selectedBg, setSelectedBg] = useState(0);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
@@ -366,7 +370,8 @@ export default function CreateStoryScreen({ navigation, route }: any) {
           backgroundColor: JSON.stringify(BG_COLORS[selectedBg]),
           musicUrl: uploadedMusicUrl,
           musicTitle: musicName ?? undefined,
-          label: postType === 'ofTheDay' ? label.trim() : undefined,
+          label: !isStatusMode && postType === 'ofTheDay' ? label.trim() : undefined,
+          visibility: isStatusMode ? 'CONTACTS' : 'PUBLIC',
           stickers: stickers.map(s => ({
             emoji: s.emoji,
             // Percentage-based so the position holds up on the viewer's
@@ -376,7 +381,9 @@ export default function CreateStoryScreen({ navigation, route }: any) {
             scale: 1,
             rotation: 0,
           })),
-          items: postType === 'ofTheDay'
+          items: isStatusMode
+            ? undefined
+            : postType === 'ofTheDay'
             ? items.filter(i => i.name.trim()).map(i => ({
                 name: i.name,
                 brand: i.brand || undefined,
@@ -389,7 +396,14 @@ export default function CreateStoryScreen({ navigation, route }: any) {
         }),
       });
       if (res.ok) {
-        Alert.alert('Posted!', postType === 'ofTheDay' ? `Your #${label.trim().toUpperCase()} is live for 24 hours.` : 'Your status is live for 24 hours.');
+        Alert.alert(
+          'Posted!',
+          isStatusMode
+            ? 'Your status is visible to your contacts for 24 hours.'
+            : postType === 'ofTheDay'
+            ? `Your #${label.trim().toUpperCase()} is live for 24 hours.`
+            : 'Your status is live for 24 hours.',
+        );
         navigation.goBack();
       } else {
         Alert.alert('Error', 'Could not post. Please try again.');
@@ -409,7 +423,7 @@ export default function CreateStoryScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="close" size={26} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Story</Text>
+        <Text style={styles.headerTitle}>{isStatusMode ? 'New Status' : 'New Story'}</Text>
         <TouchableOpacity onPress={publish} style={styles.postBtn} disabled={loading}>
           {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Share</Text>}
         </TouchableOpacity>
@@ -490,26 +504,28 @@ export default function CreateStoryScreen({ navigation, route }: any) {
           </View>
         </LinearGradient>
 
-        {/* Post type toggle */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Post as</Text>
-          <View style={styles.segmentRow}>
-            <TouchableOpacity
-              style={[styles.segment, postType === 'general' && styles.segmentActive]}
-              onPress={() => setPostType('general')}
-            >
-              <Text style={[styles.segmentText, postType === 'general' && styles.segmentTextActive]}>General Story</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.segment, postType === 'ofTheDay' && styles.segmentActive]}
-              onPress={() => setPostType('ofTheDay')}
-            >
-              <Text style={[styles.segmentText, postType === 'ofTheDay' && styles.segmentTextActive]}>Of the Day</Text>
-            </TouchableOpacity>
+        {/* Post type toggle — Status is always general, never "of the Day" */}
+        {!isStatusMode && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Post as</Text>
+            <View style={styles.segmentRow}>
+              <TouchableOpacity
+                style={[styles.segment, postType === 'general' && styles.segmentActive]}
+                onPress={() => setPostType('general')}
+              >
+                <Text style={[styles.segmentText, postType === 'general' && styles.segmentTextActive]}>General Story</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.segment, postType === 'ofTheDay' && styles.segmentActive]}
+                onPress={() => setPostType('ofTheDay')}
+              >
+                <Text style={[styles.segmentText, postType === 'ofTheDay' && styles.segmentTextActive]}>Of the Day</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
-        {postType === 'ofTheDay' && (
+        {!isStatusMode && postType === 'ofTheDay' && (
           <View style={styles.section}>
             <Text style={styles.label}>Label</Text>
             <TextInput
@@ -607,7 +623,8 @@ export default function CreateStoryScreen({ navigation, route }: any) {
           {stickers.length > 0 && <Text style={styles.hint}>Drag to reposition · long-press to remove</Text>}
         </View>
 
-        {/* Link Products */}
+        {/* Link Products — never shown for Status, which can't be shoppable */}
+        {!isStatusMode && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.label}>Link Products</Text>
@@ -661,9 +678,10 @@ export default function CreateStoryScreen({ navigation, route }: any) {
             </>
           )}
         </View>
+        )}
 
-        {/* Wearing / items — only for "of the Day" posts */}
-        {postType === 'ofTheDay' && (
+        {/* Wearing / items — only for "of the Day" posts, never for Status */}
+        {!isStatusMode && postType === 'ofTheDay' && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.label}>Wearing / Featuring</Text>

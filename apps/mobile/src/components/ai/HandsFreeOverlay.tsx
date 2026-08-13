@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { fetchApi } from '../../utils/api';
+import { useAiConversation } from '../../context/AiConversationContext';
 import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 
 type Phase = 'listening' | 'thinking' | 'speaking' | 'idle';
@@ -27,13 +27,13 @@ interface Props {
 export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTextChat }: Props) {
   const { theme } = useTheme();
   const { COLORS, GRADIENTS } = theme;
+  const { sendMessage } = useAiConversation();
   const [phase, setPhase] = useState<Phase>('idle');
   const [lastUserText, setLastUserText] = useState('');
   const [lastReply, setLastReply] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const voice = useVoiceCapture();
-  const conversation = useRef<any[]>([]);
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSeenInterim = useRef('');
   const sessionActive = useRef(false);
@@ -72,17 +72,20 @@ export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTe
 
     setLastUserText(text);
     setPhase('thinking');
-    conversation.current = [...conversation.current, { role: 'user', content: text }];
 
     try {
-      const res = await fetchApi('/ai/chat', { method: 'POST', body: JSON.stringify({ messages: conversation.current }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'AI request failed');
-      conversation.current = data.conversation || conversation.current;
-      const reply = data.reply || "I didn't catch that — try again?";
-      setLastReply(reply);
+      // Goes through the same shared session as the text chat and dropdown
+      // (AiConversationContext) — a voice turn lands in the same bubbles
+      // array, so switching to text mid-conversation sees full continuity.
+      const reply = await sendMessage(text);
       if (!sessionActive.current) return;
+      if (!reply) {
+        setError('Something went wrong. Please try again.');
+        if (sessionActive.current) beginListening();
+        return;
+      }
 
+      setLastReply(reply);
       setPhase('speaking');
       Speech.speak(reply, {
         onDone: () => { if (sessionActive.current) beginListening(); },
@@ -94,7 +97,7 @@ export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTe
       if (sessionActive.current) beginListening();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [beginListening]);
+  }, [beginListening, sendMessage]);
 
   // Reset the silence timer every time new speech comes in.
   useEffect(() => {
@@ -109,7 +112,6 @@ export default function HandsFreeOverlay({ visible, agentName, onClose, onOpenTe
   useEffect(() => {
     if (!visible) return;
     sessionActive.current = true;
-    conversation.current = [];
     setLastUserText('');
     setLastReply('');
     setError(null);

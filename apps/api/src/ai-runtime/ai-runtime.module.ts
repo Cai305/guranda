@@ -7,10 +7,14 @@ import { ConversationHistoryService } from './conversation-history.service';
 import { CompanionChatService } from './companion-chat.service';
 import { AnthropicAdapter } from './anthropic-adapter';
 import { LLM_ADAPTER } from './llm-adapter.token';
+import { WidgetActionResolverService } from './widget-action-resolver.service';
+import { InteractionEngineService } from './interaction-engine.service';
+import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
 
 import { orchestratorToolsProvider } from './orchestrator-tools.provider';
 
 @Module({
+  imports: [FeatureFlagsModule],
   providers: [
     PrismaService,
     ContextManagerService,
@@ -18,6 +22,8 @@ import { orchestratorToolsProvider } from './orchestrator-tools.provider';
     AgentRuntimeService,
     ConversationHistoryService,
     CompanionChatService,
+    WidgetActionResolverService,
+    InteractionEngineService,
     { provide: LLM_ADAPTER, useClass: AnthropicAdapter },
     orchestratorToolsProvider,
   ],
@@ -27,6 +33,8 @@ import { orchestratorToolsProvider } from './orchestrator-tools.provider';
     ContextManagerService,
     ConversationHistoryService,
     CompanionChatService,
+    WidgetActionResolverService,
+    InteractionEngineService,
     LLM_ADAPTER,
   ],
 })

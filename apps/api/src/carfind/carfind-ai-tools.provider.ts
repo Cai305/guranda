@@ -46,16 +46,27 @@ export class CarFindAiToolsProvider implements OnModuleInit {
           defaultGranted: true,
           renderAs: 'carfind-list',
           handler: (_ctx, input) => this.carFind.browse(input),
-          describeResult: (_i, output: any[]) =>
-            output.length === 0
-              ? 'No cars found matching that search.'
-              : output
-                  .slice(0, 8)
-                  .map(
-                    (c) =>
-                      `${c.id}: ${c.year} ${c.make} ${c.model} — ${c.mileage}km, ${c.transmission}, ${c.fuelType}, ${c.condition} — ${c.price} MSH — ${c.location} — seller ${c.seller?.username}`,
-                  )
-                  .join('\n'),
+          // Leads with a total + year-by-year tally (cars are naturally
+          // grouped by model year, unlike most other search-result tools)
+          // so the LLM can actually relay "found N: 2 from 2020, 3 from
+          // 2021" instead of only seeing an unlabeled row dump.
+          describeResult: (_i, output: any[]) => {
+            if (output.length === 0) return 'No cars found matching that search.';
+            const byYear = new Map<number, number>();
+            for (const c of output) byYear.set(c.year, (byYear.get(c.year) ?? 0) + 1);
+            const yearTally = [...byYear.entries()]
+              .sort((a, b) => b[0] - a[0])
+              .map(([year, count]) => `${count} from ${year}`)
+              .join(', ');
+            const rows = output
+              .slice(0, 8)
+              .map(
+                (c) =>
+                  `${c.id}: ${c.year} ${c.make} ${c.model} — ${c.mileage}km, ${c.transmission}, ${c.fuelType}, ${c.condition} — ${c.price} MSH — ${c.location} — seller ${c.seller?.username}`,
+              )
+              .join('\n');
+            return `Found ${output.length} car(s): ${yearTally}.\n${rows}`;
+          },
         },
         {
           name: 'myListings',

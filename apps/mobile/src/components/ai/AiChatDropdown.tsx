@@ -1,47 +1,13 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput, FlatList, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { fetchApi } from '../../utils/api';
 import { navigate } from '../../navigation/navigationRef';
-import AiWidgetRenderer, { ToolWidget } from '../ai-widgets/AiWidgetRenderer';
-
-interface Bubble {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  text: string;
-  widgets?: ToolWidget[];
-}
-
-interface PendingAction {
-  toolUseId: string;
-  name: string;
-  input: any;
-  summary: string;
-}
-
-let bubbleId = 0;
-const nextId = () => `dropdown-b${++bubbleId}`;
-
-// Same wire-level error the AI screen has to translate — see AiChatScreen.tsx.
-function friendlyErrorMessage(message?: string): string {
-  if (!message) return 'Something went wrong. Please try again.';
-  if (message.includes('AI provider error')) {
-    console.error('AI provider error:', message);
-    return "Aura can't reach the AI service right now. Please try again in a moment.";
-  }
-  return message;
-}
-
-export interface AiChatDropdownHandle {
-  /** Send text as if the user typed it — used to feed a transcribed voice command in. */
-  sendText: (text: string) => void;
-  /** Post a local-only system bubble (no server round-trip) — used for voice-capture notices. */
-  addSystemMessage: (text: string) => void;
-}
+import AiWidgetRenderer from '../ai-widgets/AiWidgetRenderer';
+import { useAiConversation, AiBubble } from '../../context/AiConversationContext';
 
 interface Props {
   onClose: () => void;
@@ -49,16 +15,13 @@ interface Props {
   fill?: boolean;
 }
 
-const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDropdown({ onClose, fill }, ref) {
-  const [agentName, setAgentName] = useState('AI');
-  const [needsSetup, setNeedsSetup] = useState(false);
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+export default function AiChatDropdown({ onClose, fill }: Props) {
+  const {
+    agentName, agentExists, bubbles, thinking, pending,
+    sendMessage, resolveAction,
+  } = useAiConversation();
   const [input, setInput] = useState('');
-  const [thinking, setThinking] = useState(false);
-  const [pending, setPending] = useState<PendingAction | null>(null);
-  const conversation = useRef<any[]>([]);
   const listRef = useRef<FlatList>(null);
-  const initialized = useRef(false);
 
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
@@ -187,87 +150,18 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
     setupBtnText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
   }));
 
-  const addBubble = (role: Bubble['role'], text: string, widgets?: ToolWidget[]) => {
-    if (!text) return;
-    setBubbles(prev => [...prev, { id: nextId(), role, text, widgets }]);
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
-  };
-
-  const runRequest = async (endpoint: string, body: any) => {
-    setThinking(true);
-    setPending(null);
-    try {
-      const res = await fetchApi(endpoint, { method: 'POST', body: JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'AI request failed');
-      conversation.current = data.conversation || conversation.current;
-      addBubble('assistant', data.reply, data.widgets);
-      if (data.pendingAction) setPending(data.pendingAction);
-    } catch (e: any) {
-      addBubble('system', friendlyErrorMessage(e.message));
-    } finally {
-      setThinking(false);
-    }
-  };
-
-  const sendText = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || thinking) return;
-    addBubble('user', trimmed);
-    conversation.current = [...conversation.current, { role: 'user', content: trimmed }];
-    runRequest('/ai/chat', { messages: conversation.current });
-  };
-
-  useImperativeHandle(ref, () => ({
-    sendText,
-    addSystemMessage: (text: string) => addBubble('system', text),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [thinking]);
-
+  // Bootstrap/history/welcome are all handled once, centrally, by
+  // AiConversationProvider (mounted at the app root) — this component just
+  // renders whatever the shared session currently holds.
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    (async () => {
-      try {
-        const res = await fetchApi('/ai/agent');
-        const agent = res.ok ? await res.json() : null;
-        if (!agent || agent.exists === false) {
-          setNeedsSetup(true);
-          return;
-        }
-        setAgentName(agent.name);
-        if (!agent.onboarded) {
-          await runRequest('/ai/welcome', {});
-        } else {
-          const historyRes = await fetchApi('/ai/history');
-          const history = historyRes.ok ? await historyRes.json() : [];
-          if (history.length > 0) {
-            setBubbles(history.map((m: any) => ({ id: nextId(), role: m.role, text: m.content })));
-            setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 80);
-          } else {
-            addBubble('assistant', `Hey, it's ${agent.name}. What do you need?`);
-          }
-        }
-      } catch {
-        addBubble('system', 'Could not reach your AI. Check that the API is running.');
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+  }, [bubbles.length]);
 
   const send = () => {
     const text = input.trim();
     if (!text) return;
     setInput('');
-    sendText(text);
-  };
-
-  const resolve = async (approved: boolean) => {
-    if (!pending) return;
-    addBubble('system', approved ? `✅ You approved: ${pending.summary}` : `❌ You declined: ${pending.summary}`);
-    const action = pending;
-    setPending(null);
-    await runRequest('/ai/resolve', { conversation: conversation.current, action, approved });
+    sendMessage(text);
   };
 
   const goToSetup = () => {
@@ -275,7 +169,7 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
     navigate('AiSetup');
   };
 
-  const renderBubble = ({ item }: { item: Bubble }) => {
+  const renderBubble = ({ item }: { item: AiBubble }) => {
     if (item.role === 'system') {
       return <Text style={styles.systemText}>{item.text}</Text>;
     }
@@ -329,7 +223,7 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
         </View>
       </View>
 
-      {needsSetup ? (
+      {agentExists === false ? (
         <View style={styles.setupCard}>
           <Ionicons name="sparkles-outline" size={28} color={COLORS.primary} />
           <Text style={styles.setupTitle}>Set up your AI companion</Text>
@@ -343,7 +237,7 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
           <FlatList
             ref={listRef}
             data={bubbles}
-            keyExtractor={b => b.id}
+            keyExtractor={b => String(b.id)}
             renderItem={renderBubble}
             style={styles.list}
             contentContainerStyle={{ padding: SPACING.md, gap: 8 }}
@@ -371,10 +265,10 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
               </View>
               <Text style={styles.approvalSummary}>{pending.summary}</Text>
               <View style={styles.approvalButtons}>
-                <TouchableOpacity style={[styles.approvalBtn, styles.declineBtn]} onPress={() => resolve(false)}>
+                <TouchableOpacity style={[styles.approvalBtn, styles.declineBtn]} onPress={() => resolveAction(false)}>
                   <Text style={styles.declineText}>Decline</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.approvalBtn, styles.approveBtn]} onPress={() => resolve(true)}>
+                <TouchableOpacity style={[styles.approvalBtn, styles.approveBtn]} onPress={() => resolveAction(true)}>
                   <Text style={styles.approveText}>Approve</Text>
                 </TouchableOpacity>
               </View>
@@ -404,6 +298,4 @@ const AiChatDropdown = forwardRef<AiChatDropdownHandle, Props>(function AiChatDr
       )}
     </View>
   );
-});
-
-export default AiChatDropdown;
+}

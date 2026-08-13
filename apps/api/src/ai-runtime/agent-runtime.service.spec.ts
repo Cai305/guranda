@@ -6,6 +6,7 @@ import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { ToolDefinition } from '../tool-registry/tool-registry.types';
 import { FakeLlmAdapter } from './test/fake-llm-adapter';
 import { RuntimeTurnResult } from './llm-adapter.interface';
+import { WidgetActionResolverService } from './widget-action-resolver.service';
 
 function makePrismaMock(agentPermissions: Record<string, boolean>) {
   const logs = new Map<string, any>();
@@ -28,6 +29,10 @@ function makePrismaMock(agentPermissions: Record<string, boolean>) {
         userId: where.userId,
         ...create,
         ...update,
+      })),
+      update: jest.fn(async ({ where, data }: any) => ({
+        userId: where.userId,
+        ...data,
       })),
       findUnique: jest.fn().mockResolvedValue(null),
     },
@@ -61,6 +66,7 @@ function buildRuntime(
   const executor = new ActionExecutorService(prisma, registry, contextManager);
   const llm = new FakeLlmAdapter(script);
   const conversationHistory = new ConversationHistoryService(prisma);
+  const widgetActionResolver = new WidgetActionResolverService(prisma);
   const runtime = new AgentRuntimeService(
     llm,
     prisma,
@@ -68,6 +74,7 @@ function buildRuntime(
     executor,
     contextManager,
     conversationHistory,
+    widgetActionResolver,
   );
   return { runtime, llm, registry };
 }
@@ -232,5 +239,127 @@ describe('AgentRuntimeService', () => {
     ]);
     expect(llm.callHistory).toHaveLength(14);
     expect(result.reply).toContain('carried away');
+  });
+
+  it('a widget-producing tool call records itself as the active widget', async () => {
+    const listTool: ToolDefinition = {
+      ...readTool,
+      name: 'demo.list',
+      permissionKey: 'demo.list',
+      renderAs: 'product-list',
+      handler: async () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+    };
+    const prisma = makePrismaMock({ 'demo.list': true });
+    const { runtime } = buildRuntime(
+      prisma,
+      [listTool],
+      [
+        {
+          content: '',
+          toolCalls: [{ id: 'call1', name: 'demo.list', input: {} }],
+          stopReason: 'tool_use',
+        },
+        { content: 'Here are some.', toolCalls: [], stopReason: 'end_turn' },
+      ],
+    );
+    const result = await runtime.runLoop('u1', [
+      { role: 'user', content: 'find me a macbook' },
+    ]);
+    expect(result.widgets).toHaveLength(1);
+    expect(prisma.aiSession.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          activeWidgetToolCallId: 'call1',
+          activeWidgetRenderAs: 'product-list',
+          activeWidgetItemCount: 3,
+          activeWidgetSelectedIndex: 0,
+        }),
+      }),
+    );
+  });
+
+  it('"next" resolves directly against the active widget without calling the LLM', async () => {
+    const prisma = makePrismaMock({});
+    prisma.aiSession.findUnique.mockResolvedValueOnce({
+      userId: 'u1',
+      activeWidgetToolCallId: 'call1',
+      activeWidgetRenderAs: 'product-list',
+      activeWidgetItemCount: 3,
+      activeWidgetSelectedIndex: 0,
+      activeAgentId: null,
+    });
+    const { runtime, llm } = buildRuntime(prisma, [], []);
+    const result = await runtime.runLoop('u1', [
+      { role: 'user', content: 'next' },
+    ]);
+    expect(llm.callHistory).toHaveLength(0); // never called the model at all
+    expect(result.widgetSelection).toEqual({
+      toolCallId: 'call1',
+      selectedIndex: 1,
+    });
+    expect(result.widgets).toEqual([]);
+  });
+
+  it('"the second one" resolves to index 1 via ordinal matching', async () => {
+    const prisma = makePrismaMock({});
+    prisma.aiSession.findUnique.mockResolvedValueOnce({
+      userId: 'u1',
+      activeWidgetToolCallId: 'call1',
+      activeWidgetRenderAs: 'product-list',
+      activeWidgetItemCount: 5,
+      activeWidgetSelectedIndex: 0,
+      activeAgentId: null,
+    });
+    const { runtime, llm } = buildRuntime(prisma, [], []);
+    const result = await runtime.runLoop('u1', [
+      { role: 'user', content: 'the second one' },
+    ]);
+    expect(llm.callHistory).toHaveLength(0);
+    expect(result.widgetSelection).toEqual({
+      toolCallId: 'call1',
+      selectedIndex: 1,
+    });
+  });
+
+  it('a long message containing "next" is NOT hijacked as a widget action', async () => {
+    const prisma = makePrismaMock({ 'demo.read': true });
+    prisma.aiSession.findUnique.mockResolvedValueOnce({
+      userId: 'u1',
+      activeWidgetToolCallId: 'call1',
+      activeWidgetRenderAs: 'product-list',
+      activeWidgetItemCount: 3,
+      activeWidgetSelectedIndex: 0,
+      activeAgentId: null,
+    });
+    const { runtime, llm } = buildRuntime(
+      prisma,
+      [readTool],
+      [
+        {
+          content: "Here's what's happening next week.",
+          toolCalls: [],
+          stopReason: 'end_turn',
+        },
+      ],
+    );
+    const result = await runtime.runLoop('u1', [
+      { role: 'user', content: "what's happening next week in Cape Town" },
+    ]);
+    expect(llm.callHistory).toHaveLength(1); // fell through to the normal loop
+    expect(result.widgetSelection).toBeUndefined();
+  });
+
+  it('falls through to the LLM loop when there is no active widget', async () => {
+    const prisma = makePrismaMock({ 'demo.read': true }); // aiSession.findUnique returns null by default
+    const { runtime, llm } = buildRuntime(
+      prisma,
+      [readTool],
+      [{ content: 'Sure.', toolCalls: [], stopReason: 'end_turn' }],
+    );
+    const result = await runtime.runLoop('u1', [
+      { role: 'user', content: 'next' },
+    ]);
+    expect(llm.callHistory).toHaveLength(1);
+    expect(result.widgetSelection).toBeUndefined();
   });
 });

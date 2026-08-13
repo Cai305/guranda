@@ -29,6 +29,7 @@ export class StoryController {
       musicTitle?: string;
       label?: string;
       stickers?: any[];
+      visibility?: 'PUBLIC' | 'CONTACTS';
       items?: {
         name: string;
         brand?: string;
@@ -59,6 +60,16 @@ export class StoryController {
   @Get('mine/stats')
   async myStats(@Request() req: any) {
     return this.storyService.getMyStats(req.user.userId);
+  }
+
+  @Get(':id/viewers')
+  async viewers(@Param('id') id: string, @Request() req: any) {
+    return this.storyService.getStoryViewers(id, req.user.userId);
+  }
+
+  @Post(':id/view')
+  async view(@Param('id') id: string, @Request() req: any) {
+    return this.storyService.recordView(id, req.user.userId);
   }
 
   @Post(':id/like')
