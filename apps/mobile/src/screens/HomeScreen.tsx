@@ -24,6 +24,7 @@ import { MOCK_STREAMS } from '../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../data/liveApi';
 import { GAMES } from './hub/GamesScreen';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
+import OpportunitiesCarousel from '../components/opportunities/OpportunitiesCarousel';
 
 export default function HomeScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -602,6 +603,9 @@ export default function HomeScreen({ navigation }: any) {
             </TouchableOpacity>
           }
         />
+
+        {/* ===== Opportunities — campaigns + community missions, minimal/discovery-focused ===== */}
+        <OpportunitiesCarousel navigation={navigation} />
 
         {/* ===== Your Life — the 4 top-level doors, same as the Life tab ===== */}
         <SectionHeader title="Your Life" onSeeAll={() => navigation.navigate('Life')} />

@@ -143,6 +143,10 @@ export default function ProfileScreen({ navigation }: any) {
     { icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
     { icon: 'heart-outline', label: 'Relationship Requests', onPress: () => navigation.navigate('RelationshipRequests') },
     ...(canSponsor ? [{ icon: 'ribbon-outline', label: 'Sponsor a Challenge', onPress: () => navigation.navigate('SponsorChallenge') }] : []),
+    // Not gated on canSponsor — CREATOR_PROMO/REVIEWER_RECOMMENDATION campaign
+    // types are open to any user, only BUSINESS/MINI_APP_LAUNCH need a
+    // verified business (enforced server-side in campaigns.service.ts).
+    { icon: 'megaphone-outline', label: 'Business Campaigns', onPress: () => navigation.navigate('MyCampaigns') },
     { icon: 'shield-checkmark-outline', label: 'Security & Privacy', onPress: () => navigation.navigate('SecurityPrivacy') },
     { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
     { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('NotificationsSettings') },

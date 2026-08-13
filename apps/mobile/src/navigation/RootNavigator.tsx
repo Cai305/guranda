@@ -19,6 +19,10 @@ import TruthOrDareScreen from '../screens/TruthOrDareScreen';
 import SpinTheBottleScreen from '../screens/SpinTheBottleScreen';
 import CouplesCardsScreen from '../screens/CouplesCardsScreen';
 import SponsorChallengeScreen from '../screens/SponsorChallengeScreen';
+import CreateCampaignScreen from '../screens/CreateCampaignScreen';
+import MyCampaignsScreen from '../screens/MyCampaignsScreen';
+import CampaignAnalyticsScreen from '../screens/CampaignAnalyticsScreen';
+import CampaignDetailScreen from '../screens/CampaignDetailScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
@@ -39,7 +43,6 @@ import AddEditStoreScreen from '../screens/profile/eat/AddEditStoreScreen';
 import AddEditProductScreen from '../screens/profile/eat/AddEditProductScreen';
 import StoreOrdersScreen from '../screens/profile/eat/StoreOrdersScreen';
 import DiscoverScreen from '../screens/discover/DiscoverScreen';
-import StoriesScreen from '../screens/StoriesScreen';
 import VideoPlayerScreen from '../screens/discover/VideoPlayerScreen';
 import VideoUploadScreen from '../screens/discover/VideoUploadScreen';
 import WatchLaterScreen from '../screens/discover/WatchLaterScreen';
@@ -157,6 +160,10 @@ export default function RootNavigator() {
           <Stack.Screen name="SpinTheBottle" component={SpinTheBottleScreen} />
           <Stack.Screen name="CouplesCards" component={CouplesCardsScreen} />
           <Stack.Screen name="SponsorChallenge" component={SponsorChallengeScreen} />
+          <Stack.Screen name="CreateCampaign" component={CreateCampaignScreen} />
+          <Stack.Screen name="MyCampaigns" component={MyCampaignsScreen} />
+          <Stack.Screen name="CampaignAnalytics" component={CampaignAnalyticsScreen} />
+          <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />
@@ -177,7 +184,6 @@ export default function RootNavigator() {
           <Stack.Screen name="AddEditProduct" component={AddEditProductScreen} />
           <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
           <Stack.Screen name="Discovery" component={DiscoverScreen} />
-          <Stack.Screen name="Stories" component={StoriesScreen} />
           <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
           <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
           <Stack.Screen name="WatchLater" component={WatchLaterScreen} />

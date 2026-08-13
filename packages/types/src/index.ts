@@ -138,6 +138,64 @@ export interface PostDto {
   createdAt: Date;
 }
 
+// ============================================================
+// Opportunities Carousel — business Campaigns and community Challenges
+// (surfaced as "missions") aggregated into one card feed. See
+// apps/api/src/opportunities/opportunities.service.ts.
+// ============================================================
+
+export type CampaignType = 'BUSINESS' | 'MINI_APP_LAUNCH' | 'PLATFORM_UPDATE' | 'CREATOR_PROMO' | 'REVIEWER_RECOMMENDATION';
+export type CampaignStatus = 'PENDING' | 'ACTIVE' | 'REJECTED' | 'ENDED';
+
+export interface CampaignActionRoute {
+  name: string;
+  params?: Record<string, unknown>;
+}
+
+export interface CampaignDto {
+  id: string;
+  type: CampaignType;
+  status: CampaignStatus;
+  title: string;
+  description: string;
+  goal: string;
+  rewardLabel: string;
+  estimatedMinutes?: number | null;
+  actionLabel: string;
+  actionRoute: CampaignActionRoute;
+  coverImageUrl?: string | null;
+  budget: number;
+  targetMinReputationLevel?: string | null;
+  targetCategories: string[];
+  createdByUserId: string;
+  createdByBusinessId?: string | null;
+  startAt: Date;
+  endAt: Date;
+  impressions: number;
+  clicks: number;
+  completions: number;
+  createdAt: Date;
+}
+
+// Unified card shape the mobile OpportunitiesCarousel renders — one entry
+// per business Campaign OR community Challenge ("mission"). `origin` is the
+// discriminant driving mobile-side tone/badge/copy; the two never read as
+// the same thing even though they share this one DTO shape.
+export interface OpportunityCardDto {
+  id: string;
+  origin: 'campaign' | 'mission';
+  // Campaign.type for campaigns, Challenge.category for missions.
+  type: string;
+  title: string;
+  subtitle: string;
+  rewardLabel: string;
+  estimatedMinutes?: number | null;
+  actionLabel: string;
+  actionRoute: CampaignActionRoute;
+  coverImageUrl?: string | null;
+  sponsorLabel?: string | null;
+}
+
 export interface FollowStatsDto {
   followerCount: number;
   followingCount: number;

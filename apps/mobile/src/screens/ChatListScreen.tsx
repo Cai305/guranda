@@ -37,13 +37,6 @@ export default function ChatListScreen({ navigation }: any) {
       justifyContent: 'center', alignItems: 'center', padding: 3,
     },
     storyAvatar: { width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderColor: COLORS.background },
-    storyAddBadge: {
-      position: 'absolute', bottom: 0, right: 0,
-      width: 20, height: 20, borderRadius: 10,
-      backgroundColor: COLORS.primary,
-      justifyContent: 'center', alignItems: 'center',
-      borderWidth: 2, borderColor: COLORS.background,
-    },
     storyName: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
     container: {
       flex: 1,
@@ -350,44 +343,24 @@ export default function ChatListScreen({ navigation }: any) {
     </View>
   );
 
-  const myStory = storyGroups.find(g => g.userId === user?.userId);
+  // Only other people's active stories show here — no "add your own story"
+  // bubble, so this strip stays purely a signal of who has something live
+  // right now, not a permanent create-story prompt.
+  const otherStoryGroups = storyGroups.filter(g => g.userId !== user?.userId);
 
-  const renderStoryStrip = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.storyStrip}
-    >
-      {/* My story bubble */}
-      <TouchableOpacity
-        style={styles.storyBubbleWrap}
-        onPress={() => navigation.navigate('CreateStory')}
+  const renderStoryStrip = () => {
+    if (otherStoryGroups.length === 0) return null;
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storyStrip}
       >
-        <View>
-          <LinearGradient
-            colors={myStory ? ['#7C3AED', '#4F46E5'] : [COLORS.surface, COLORS.surface]}
-            style={styles.storyRing}
-          >
-            <Image
-              source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'me'}` }}
-              style={styles.storyAvatar}
-            />
-          </LinearGradient>
-          <View style={styles.storyAddBadge}>
-            <Ionicons name="add" size={10} color="#fff" />
-          </View>
-        </View>
-        <Text style={styles.storyName} numberOfLines={1}>My Status</Text>
-      </TouchableOpacity>
-
-      {/* Friends' stories */}
-      {storyGroups
-        .filter(g => g.userId !== user?.userId)
-        .map(group => (
+        {otherStoryGroups.map(group => (
           <TouchableOpacity
             key={group.userId}
             style={styles.storyBubbleWrap}
-            onPress={() => navigation.navigate('StoryViewer', { groups: storyGroups, initialGroupIndex: storyGroups.indexOf(group) })}
+            onPress={() => navigation.navigate('StoryViewer', { groups: otherStoryGroups, initialGroupIndex: otherStoryGroups.indexOf(group) })}
           >
             <LinearGradient colors={['#7C3AED', '#DB2777']} style={styles.storyRing}>
               <Image
@@ -400,8 +373,9 @@ export default function ChatListScreen({ navigation }: any) {
             </Text>
           </TouchableOpacity>
         ))}
-    </ScrollView>
-  );
+      </ScrollView>
+    );
+  };
 
   const communitySection = communities.length
     ? [{

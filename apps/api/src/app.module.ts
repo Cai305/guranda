@@ -70,6 +70,9 @@ import { AssistantModule } from './assistant/assistant.module';
 import { ProfileModule } from './profile/profile.module';
 import { TrendingModule } from './trending/trending.module';
 import { BusinessInsightsModule } from './business-insights/business-insights.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
+import { OpportunitiesModule } from './opportunities/opportunities.module';
 
 @Module({
   imports: [
@@ -151,6 +154,9 @@ import { BusinessInsightsModule } from './business-insights/business-insights.mo
     ProfileModule,
     TrendingModule,
     BusinessInsightsModule,
+    CampaignsModule,
+    AnnouncementsModule,
+    OpportunitiesModule,
   ],
   controllers: [AppController],
   providers: [

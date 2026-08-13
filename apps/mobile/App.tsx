@@ -18,6 +18,7 @@ import { navigationRef } from './src/navigation/navigationRef';
 import AiOrbProvider from './src/context/AiOrbContext';
 import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
 import UploadStatusOverlay from './src/components/UploadStatusOverlay';
+import ContextualNewsOverlay from './src/context/ContextualNewsOverlay';
 import WebAlertHost from './src/utils/webAlertPolyfill';
 
 const prefix = Linking.createURL('/');
@@ -87,6 +88,7 @@ function AppContent() {
           </AiOrbProvider>
           <IncomingCallOverlay />
           <UploadStatusOverlay />
+          <ContextualNewsOverlay />
           <WebAlertHost />
         </SocketProvider>
         </ShoppingCartProvider>

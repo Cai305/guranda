@@ -18,24 +18,24 @@ enum UserRole {
 }
 
 model User {
-  id                           String                    @id @default(uuid())
-  username                     String                    @unique
-  phoneNumber                  String?                   @unique
+  id                           String                     @id @default(uuid())
+  username                     String                     @unique
+  phoneNumber                  String?                    @unique
   passwordHash                 String
-  role                         UserRole                  @default(MEMBER)
-  isSuspended                  Boolean                   @default(false)
-  isSelfCustodial              Boolean                   @default(false)
+  role                         UserRole                   @default(MEMBER)
+  isSuspended                  Boolean                    @default(false)
+  isSelfCustodial              Boolean                    @default(false)
   expoPushToken                String?
   locationLat                  Float?
   locationLng                  Float?
   locationLabel                String?
   locationUpdatedAt            DateTime?
-  activeUsernameId             String?                   @unique
-  activeUsername               Username?                 @relation("userActiveUsername", fields: [activeUsernameId], references: [id])
-  usernamesOwned               Username[]                @relation("usernameOwner")
-  usernameBids                 UsernameBid[]             @relation("usernameBids")
+  activeUsernameId             String?                    @unique
+  activeUsername               Username?                  @relation("userActiveUsername", fields: [activeUsernameId], references: [id])
+  usernamesOwned               Username[]                 @relation("usernameOwner")
+  usernameBids                 UsernameBid[]              @relation("usernameBids")
   adCampaigns                  AdCampaign[]
-  createdAt                    DateTime                  @default(now())
+  createdAt                    DateTime                   @default(now())
   profile                      UserProfile?
   wallet                       Wallet?
   depositRequests              DepositRequest[]
@@ -47,60 +47,60 @@ model User {
   postReposts                  PostRepost[]
   postBookmarks                PostBookmark[]
   // Follow rows where I'm the follower — people I follow.
-  follows                      Follow[]                  @relation("UserFollows")
+  follows                      Follow[]                   @relation("UserFollows")
   // Follow rows where I'm being followed — my followers.
-  followedBy                   Follow[]                  @relation("UserFollowedBy")
+  followedBy                   Follow[]                   @relation("UserFollowedBy")
   comments                     Comment[]
   commentLikes                 CommentLike[]
   communityMemberships         CommunityMember[]
   storyLikes                   StoryLike[]
   storyComments                StoryComment[]
   storyRanks                   StoryRank[]
-  storyItemsSold               StoryItem[]               @relation("storyItemsSold")
-  storyItemsBought             StoryItem[]               @relation("storyItemsBought")
-  whiteGames                   ChessGame[]               @relation("whiteGames")
-  blackGames                   ChessGame[]               @relation("blackGames")
+  storyItemsSold               StoryItem[]                @relation("storyItemsSold")
+  storyItemsBought             StoryItem[]                @relation("storyItemsBought")
+  whiteGames                   ChessGame[]                @relation("whiteGames")
+  blackGames                   ChessGame[]                @relation("blackGames")
   storeApps                    StoreApp[]
   liveRooms                    LiveRoom[]
   ludoGames                    LudoGame[]
   driverProfile                DriverProfile?
-  ridesAsRider                 Ride[]                    @relation("ridesAsRider")
-  ridesAsDriver                Ride[]                    @relation("ridesAsDriver")
-  eatStores                    EatStore[]                @relation("eatStores")
-  eatOrders                    EatOrder[]                @relation("eatOrders")
-  videos                       Video[]                   @relation("videosUploaded")
+  ridesAsRider                 Ride[]                     @relation("ridesAsRider")
+  ridesAsDriver                Ride[]                     @relation("ridesAsDriver")
+  eatStores                    EatStore[]                 @relation("eatStores")
+  eatOrders                    EatOrder[]                 @relation("eatOrders")
+  videos                       Video[]                    @relation("videosUploaded")
   videoLikes                   VideoLike[]
   videoComments                VideoComment[]
-  creatorSubscriptionsMade     CreatorSubscription[]     @relation("subscriptionsMade")
-  creatorSubscriptionsReceived CreatorSubscription[]     @relation("subscriptionsReceived")
+  creatorSubscriptionsMade     CreatorSubscription[]      @relation("subscriptionsMade")
+  creatorSubscriptionsReceived CreatorSubscription[]      @relation("subscriptionsReceived")
   playlists                    Playlist[]
   watchLater                   WatchLater[]
   watchHistory                 WatchHistory[]
   interests                    UserInterest[]
   aiAgent                      AiAgent?
   stories                      Story[]
-  propertiesManaged            Property[]                @relation("propertiesManaged")
-  tenancies                    Tenancy[]                 @relation("tenancies")
-  carListingsSold              CarListing[]              @relation("carListingsSold")
-  carEnquiriesMade             CarEnquiry[]              @relation("carEnquiriesMade")
+  propertiesManaged            Property[]                 @relation("propertiesManaged")
+  tenancies                    Tenancy[]                  @relation("tenancies")
+  carListingsSold              CarListing[]               @relation("carListingsSold")
+  carEnquiriesMade             CarEnquiry[]               @relation("carEnquiriesMade")
   verification                 Verification?
   wordBattleGames              WordBattleGame[]
-  marketplaceListings          MarketplaceListing[]      @relation("marketplaceListings")
+  marketplaceListings          MarketplaceListing[]       @relation("marketplaceListings")
   marketplaceBids              MarketplaceBid[]
-  invoicesReceived             Invoice[]                 @relation("invoicesReceived")
-  invoicesIssued               Invoice[]                 @relation("invoicesIssued")
-  giftsSent                    Gift[]                    @relation("giftsSent")
-  giftsReceived                Gift[]                    @relation("giftsReceived")
+  invoicesReceived             Invoice[]                  @relation("invoicesReceived")
+  invoicesIssued               Invoice[]                  @relation("invoicesIssued")
+  giftsSent                    Gift[]                     @relation("giftsSent")
+  giftsReceived                Gift[]                     @relation("giftsReceived")
   poolGames                    PoolGame[]
   murabarabaGames              MurabarabaGame[]
   turboRaces                   TurboRacingRace[]
   turboCarUpgrades             TurboCarUpgrades?
-  shoppingStores               ShoppingStore[]           @relation("shoppingStores")
-  shoppingOrders               ShoppingOrder[]           @relation("shoppingOrders")
-  travelStaysHosted            TravelStay[]              @relation("travelStaysHosted")
-  travelStayBookings           TravelStayBooking[]       @relation("travelStayBookings")
-  travelCarsHosted             TravelCar[]               @relation("travelCarsHosted")
-  travelCarBookings            TravelCarBooking[]        @relation("travelCarBookings")
+  shoppingStores               ShoppingStore[]            @relation("shoppingStores")
+  shoppingOrders               ShoppingOrder[]            @relation("shoppingOrders")
+  travelStaysHosted            TravelStay[]               @relation("travelStaysHosted")
+  travelStayBookings           TravelStayBooking[]        @relation("travelStayBookings")
+  travelCarsHosted             TravelCar[]                @relation("travelCarsHosted")
+  travelCarBookings            TravelCarBooking[]         @relation("travelCarBookings")
   travelFlightBookings         TravelFlightBooking[]
   travelPackageBookings        TravelPackageBooking[]
   liveQuizAnswers              LiveQuizAnswer[]
@@ -112,46 +112,46 @@ model User {
   liveModerationActions        LiveRoomModerationAction[]
   liveRoomGuestInvites         LiveRoomGuest[]
   liveQuestionsAsked           LiveQuestion[]
-  workCompaniesOwned           WorkCompany[]             @relation("workCompaniesOwned")
-  workJobsPosted               WorkJob[]                 @relation("workJobsPosted")
-  workJobApplications          WorkJobApplication[]      @relation("workJobApplications")
-  workGigsPosted               WorkGig[]                 @relation("workGigsPosted")
-  workGigsAssigned             WorkGig[]                 @relation("workGigsAssigned")
-  workGigProposals             WorkGigProposal[]         @relation("workGigProposals")
+  workCompaniesOwned           WorkCompany[]              @relation("workCompaniesOwned")
+  workJobsPosted               WorkJob[]                  @relation("workJobsPosted")
+  workJobApplications          WorkJobApplication[]       @relation("workJobApplications")
+  workGigsPosted               WorkGig[]                  @relation("workGigsPosted")
+  workGigsAssigned             WorkGig[]                  @relation("workGigsAssigned")
+  workGigProposals             WorkGigProposal[]          @relation("workGigProposals")
   healthFitnessLogs            HealthFitnessLog[]
-  healthPractitionersOwned     HealthPractitioner[]      @relation("healthPractitionersOwned")
-  healthAppointmentsBooked     HealthAppointment[]       @relation("healthAppointmentsBooked")
-  healthPharmaciesOwned        HealthPharmacy[]          @relation("healthPharmaciesOwned")
-  healthPharmacyOrders         HealthPharmacyOrder[]     @relation("healthPharmacyOrders")
-  healthWellnessPosts          HealthWellnessPost[]      @relation("healthWellnessPosts")
-  healthWellnessLikes          HealthWellnessLike[]      @relation("healthWellnessLikes")
-  stokvelsCreated              Stokvel[]                 @relation("stokvelsCreated")
+  healthPractitionersOwned     HealthPractitioner[]       @relation("healthPractitionersOwned")
+  healthAppointmentsBooked     HealthAppointment[]        @relation("healthAppointmentsBooked")
+  healthPharmaciesOwned        HealthPharmacy[]           @relation("healthPharmaciesOwned")
+  healthPharmacyOrders         HealthPharmacyOrder[]      @relation("healthPharmacyOrders")
+  healthWellnessPosts          HealthWellnessPost[]       @relation("healthWellnessPosts")
+  healthWellnessLikes          HealthWellnessLike[]       @relation("healthWellnessLikes")
+  stokvelsCreated              Stokvel[]                  @relation("stokvelsCreated")
   stokvelMemberships           StokvelMember[]
-  stokvelRequestsMade          StokvelFundingRequest[]   @relation("stokvelRequestsMade")
-  learningCoursesCreated       LearningCourse[]          @relation("learningCoursesCreated")
+  stokvelRequestsMade          StokvelFundingRequest[]    @relation("stokvelRequestsMade")
+  learningCoursesCreated       LearningCourse[]           @relation("learningCoursesCreated")
   learningEnrollments          LearningEnrollment[]
-  learningTutorProfile         LearningTutor?            @relation("learningTutorProfile")
-  learningSessionsBooked       LearningTutorSession[]    @relation("learningSessionsBooked")
-  learningCommunitiesCreated   LearningCommunity[]       @relation("learningCommunitiesCreated")
+  learningTutorProfile         LearningTutor?             @relation("learningTutorProfile")
+  learningSessionsBooked       LearningTutorSession[]     @relation("learningSessionsBooked")
+  learningCommunitiesCreated   LearningCommunity[]        @relation("learningCommunitiesCreated")
   learningCommunityMemberships LearningCommunityMember[]
   learningCommunityPosts       LearningCommunityPost[]
-  hairdresserProfile           HairdresserProfile?       @relation("hairdresserProfile")
-  hairBookings                 HairBooking[]             @relation("hairBookings")
-  entertainmentMovieBookings   MovieBooking[]            @relation("entertainmentMovieBookings")
-  entertainmentConcertBookings ConcertBooking[]          @relation("entertainmentConcertBookings")
-  entertainmentEventBookings   EventBooking[]            @relation("entertainmentEventBookings")
-  eventsOrganized              EventListing[]            @relation("eventOrganizer")
-  eventManagerships            EventManager[]            @relation("eventManagerships")
-  eventScannerships            EventScanner[]            @relation("eventScannerships")
+  hairdresserProfile           HairdresserProfile?        @relation("hairdresserProfile")
+  hairBookings                 HairBooking[]              @relation("hairBookings")
+  entertainmentMovieBookings   MovieBooking[]             @relation("entertainmentMovieBookings")
+  entertainmentConcertBookings ConcertBooking[]           @relation("entertainmentConcertBookings")
+  entertainmentEventBookings   EventBooking[]             @relation("entertainmentEventBookings")
+  eventsOrganized              EventListing[]             @relation("eventOrganizer")
+  eventManagerships            EventManager[]             @relation("eventManagerships")
+  eventScannerships            EventScanner[]             @relation("eventScannerships")
   adminActionLogs              AdminActionLog[]
-  carWashes                    CarWash[]                 @relation("userCarWashes")
-  carWashBookings              CarWashBooking[]          @relation("userCarWashBookings")
-  referralCode                 String?                   @unique
-  cardGamesCreated             CardGame[]                @relation("cardGamesCreated")
+  carWashes                    CarWash[]                  @relation("userCarWashes")
+  carWashBookings              CarWashBooking[]           @relation("userCarWashBookings")
+  referralCode                 String?                    @unique
+  cardGamesCreated             CardGame[]                 @relation("cardGamesCreated")
   cardRoomsHosted              CardRoom[]
   cardGameStats                CardGameStats[]
-  friendRequestsSent           Friendship[]              @relation("friendRequestsSent")
-  friendRequestsReceived       Friendship[]              @relation("friendRequestsReceived")
+  friendRequestsSent           Friendship[]               @relation("friendRequestsSent")
+  friendRequestsReceived       Friendship[]               @relation("friendRequestsReceived")
   cardTournamentsCreated       CardTournament[]
   cardTournamentEntries        CardTournamentEntry[]
   achievementsUnlocked         UserAchievement[]
@@ -160,49 +160,50 @@ model User {
   badges                       UserBadge[]
   businessMetricsSnapshots     BusinessMetricsSnapshot[]
   challengeProgress            UserChallengeProgress[]
-  referralsMade                Referral[]                @relation("referralsMade")
-  referredBy                   Referral?                 @relation("referredBy")
-  reportsFiled                 PlayerReport[]            @relation("reportsFiled")
-  reportsReceived              PlayerReport[]            @relation("reportsReceived")
-  liveStreamReportsFiled        LiveStreamReport[]        @relation("LiveStreamReportsFiled")
-  liveStreamReportsReceived     LiveStreamReport[]        @relation("LiveStreamReportsReceived")
-  liveStreamReportsReviewed     LiveStreamReport[]        @relation("LiveStreamReportsReviewed")
+  referralsMade                Referral[]                 @relation("referralsMade")
+  referredBy                   Referral?                  @relation("referredBy")
+  reportsFiled                 PlayerReport[]             @relation("reportsFiled")
+  reportsReceived              PlayerReport[]             @relation("reportsReceived")
+  liveStreamReportsFiled       LiveStreamReport[]         @relation("LiveStreamReportsFiled")
+  liveStreamReportsReceived    LiveStreamReport[]         @relation("LiveStreamReportsReceived")
+  liveStreamReportsReviewed    LiveStreamReport[]         @relation("LiveStreamReportsReviewed")
   challengeEntries             ChallengeEntry[]
   challengeEntryLikes          ChallengeEntryLike[]
   challengeEntryVotes          ChallengeEntryVote[]
   challengeEntryComments       ChallengeEntryComment[]
   challengeCategoryStats       ChallengeCategoryStat[]
   challengeStreak              UserChallengeStreak?
-  relationshipRequestsSent     RelationshipRequest[]  @relation("relationshipRequestsSent")
-  relationshipRequestsReceived RelationshipRequest[]  @relation("relationshipRequestsReceived")
-  relationshipsAsUserA         Relationship[]          @relation("relationshipUserA")
-  relationshipsAsUserB         Relationship[]          @relation("relationshipUserB")
+  relationshipRequestsSent     RelationshipRequest[]      @relation("relationshipRequestsSent")
+  relationshipRequestsReceived RelationshipRequest[]      @relation("relationshipRequestsReceived")
+  relationshipsAsUserA         Relationship[]             @relation("relationshipUserA")
+  relationshipsAsUserB         Relationship[]             @relation("relationshipUserB")
   notifications                Notification[]
+  campaignsCreated             Campaign[]
 }
 
 model UserProfile {
-  id            String  @id @default(uuid())
-  userId        String  @unique
-  user          User    @relation(fields: [userId], references: [id])
-  displayName   String?
-  avatarUrl     String?
-  bio           String?
-  statusMessage String?
-  relationshipStatus RelationshipStatusType?
+  id                  String                  @id @default(uuid())
+  userId              String                  @unique
+  user                User                    @relation(fields: [userId], references: [id])
+  displayName         String?
+  avatarUrl           String?
+  bio                 String?
+  statusMessage       String?
+  relationshipStatus  RelationshipStatusType?
   // Total Challenges XP — a distinct concept from Username.reputationScore
   // (content-ranking/influence score). See ChallengeCategoryStat for the
   // per-category breakdown.
-  xp            Int     @default(0)
+  xp                  Int                     @default(0)
   // When true (default), the status shown to other users is derived live
   // from any mini-app booking currently in its active time window (see
   // UsersService.resolveActiveStatus), overriding statusMessage. Off = show
   // statusMessage verbatim.
-  autoStatusEnabled Boolean @default(true)
+  autoStatusEnabled   Boolean                 @default(true)
   // Default chat wallpaper applied to every conversation this user has —
   // a solid color, gradient key, or image URL (mobile decides how to
   // render each format). Individual chats can override it via
   // ChatMember.wallpaperUrl.
-  chatWallpaperUrl  String?
+  chatWallpaperUrl    String?
   // Manual override for the Dashboard's Personal/Creator/Merchant/Business
   // account-mode badge. Null (the default) means "use the derived value" —
   // computed client-side from how many mini apps the user actually owns
@@ -289,12 +290,12 @@ model ReactionType {
 // platform evolution plan; nothing consumes this yet since no third-party
 // capability exists in the product today.
 model CapabilityGrant {
-  id             String    @id @default(uuid())
-  userId         String
-  capabilityKey  String // dot-namespaced, same convention as ToolDefinition.name
-  scope          String // e.g. "identity:read:displayName,avatar"
-  grantedAt      DateTime  @default(now())
-  revokedAt      DateTime?
+  id            String    @id @default(uuid())
+  userId        String
+  capabilityKey String // dot-namespaced, same convention as ToolDefinition.name
+  scope         String // e.g. "identity:read:displayName,avatar"
+  grantedAt     DateTime  @default(now())
+  revokedAt     DateTime?
 
   @@unique([userId, capabilityKey])
 }
@@ -304,34 +305,34 @@ model CapabilityGrant {
 // a human-reviewed queue (mirrors AdminAuditLog's existing pattern); nothing
 // here auto-deletes or auto-blocks anything.
 model TrustSafetyFlag {
-  id         String    @id @default(uuid())
-  eventType  String // the Event.type that triggered this flag
+  id          String    @id @default(uuid())
+  eventType   String // the Event.type that triggered this flag
   aggregateId String
-  reason     String
-  severity   String    @default("LOW") // LOW | MEDIUM | HIGH
-  status     String    @default("OPEN") // OPEN | REVIEWED | DISMISSED
-  createdAt  DateTime  @default(now())
-  reviewedAt DateTime?
+  reason      String
+  severity    String    @default("LOW") // LOW | MEDIUM | HIGH
+  status      String    @default("OPEN") // OPEN | REVIEWED | DISMISSED
+  createdAt   DateTime  @default(now())
+  reviewedAt  DateTime?
 
   @@index([status, severity])
 }
 
 model Wallet {
-  id               String           @id @default(uuid())
-  userId           String           @unique
-  user             User             @relation(fields: [userId], references: [id])
-  balanceMasheleni Float            @default(0.0)
+  id                  String           @id @default(uuid())
+  userId              String           @unique
+  user                User             @relation(fields: [userId], references: [id])
+  balanceMasheleni    Float            @default(0.0)
   // Content Contribution Remuneration earned from likes/comments/ranks on
   // labeled stories, held here until the weekly payout batch moves it into
   // balanceMasheleni in one lump sum — see CreatorFundsService.
-  pendingCreatorFunds Float         @default(0.0)
-  xrplAddress      String?
-  encryptedSeed    String?
-  transactions     Transaction[]
-  depositRequests  DepositRequest[]
-  holds            WalletHold[]
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  pendingCreatorFunds Float            @default(0.0)
+  xrplAddress         String?
+  encryptedSeed       String?
+  transactions        Transaction[]
+  depositRequests     DepositRequest[]
+  holds               WalletHold[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 }
 
 // Escrow primitive: reserves balance without debiting it, so a multi-step
@@ -341,14 +342,14 @@ model Wallet {
 // (sendMasheleni, gifts, deposits) is untouched; this is a new, additive
 // primitive, not a replacement for them.
 model WalletHold {
-  id        String    @id @default(uuid())
-  walletId  String
-  wallet    Wallet    @relation(fields: [walletId], references: [id])
-  amount    Float
-  reason    String
-  status    String    @default("HELD") // HELD | CAPTURED | RELEASED | EXPIRED
-  expiresAt DateTime
-  createdAt DateTime  @default(now())
+  id         String    @id @default(uuid())
+  walletId   String
+  wallet     Wallet    @relation(fields: [walletId], references: [id])
+  amount     Float
+  reason     String
+  status     String    @default("HELD") // HELD | CAPTURED | RELEASED | EXPIRED
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
   resolvedAt DateTime?
 
   @@index([walletId, status])
@@ -396,14 +397,14 @@ model Chat {
 }
 
 model ChatMember {
-  id         String   @id @default(uuid())
-  chatId     String
-  chat       Chat     @relation(fields: [chatId], references: [id])
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  role       String   @default("MEMBER") // ADMIN, MOD, MEMBER
-  joinedAt   DateTime @default(now())
-  lastReadAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  chatId       String
+  chat         Chat     @relation(fields: [chatId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  role         String   @default("MEMBER") // ADMIN, MOD, MEMBER
+  joinedAt     DateTime @default(now())
+  lastReadAt   DateTime @default(now())
   // Per-chat wallpaper override, this member only — takes precedence over
   // their UserProfile.chatWallpaperUrl default for this one conversation.
   // null falls back to the global default.
@@ -675,12 +676,12 @@ model LiveRoom {
   scoreB                  Int     @default(0)
 
   // Conversation Live — freely typed, host can change any time.
-  conversationTopic String?
+  conversationTopic    String?
   // Gaming Live (chess only) — how the linked chess match was set up.
-  gameMode          String? // 'HOST_PLAYS' | 'HOST_MANAGES'
+  gameMode             String? // 'HOST_PLAYS' | 'HOST_MANAGES'
   // Live Shopping — presentation style chosen by the host per stream.
-  shopStyle         String? // 'SPOTLIGHT' | 'SHELF'
-  spotlightIndex    Int     @default(0) // SPOTLIGHT: index into the ordered showcase
+  shopStyle            String? // 'SPOTLIGHT' | 'SHELF'
+  spotlightIndex       Int     @default(0) // SPOTLIGHT: index into the ordered showcase
   // Dating Live — the pair currently on stage.
   featuredApplicantAId String?
   featuredApplicantBId String?
@@ -881,13 +882,13 @@ model LiveRoomModerationAction {
 // not just a viewer. REMOVED covers both the host revoking an invite/guest
 // and the guest being taken off stage; DECLINED is the guest's own no.
 model LiveRoomGuest {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   roomId      String
-  room        LiveRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room        LiveRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  status      String   @default("INVITED") // INVITED | ACCEPTED | DECLINED | REMOVED
-  invitedAt   DateTime @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+  status      String    @default("INVITED") // INVITED | ACCEPTED | DECLINED | REMOVED
+  invitedAt   DateTime  @default(now())
   respondedAt DateTime?
 
   @@unique([roomId, userId])
@@ -901,7 +902,7 @@ model LiveStreamReport {
   reporter       User     @relation("LiveStreamReportsFiled", fields: [reporterId], references: [id])
   reportedUserId String
   reportedUser   User     @relation("LiveStreamReportsReceived", fields: [reportedUserId], references: [id])
-  reason         String   // 'harassment' | 'inappropriate_content' | 'spam' | 'violence' | 'hate_speech' | 'other'
+  reason         String // 'harassment' | 'inappropriate_content' | 'spam' | 'violence' | 'hate_speech' | 'other'
   details        String?
   status         String   @default("open") // open | reviewed | actioned | dismissed
   reviewedById   String?
@@ -1281,18 +1282,18 @@ model UserInterest {
 }
 
 model AiAgent {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  name        String   @default("Aura")
-  gender      String   @default("neutral")
-  voice       String   @default("warm")
-  personality String   @default("companion")
-  permissions Json     @default("{}")
-  onboarded   Boolean  @default(false)
-  handsFreeMode Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  name          String   @default("Aura")
+  gender        String   @default("neutral")
+  voice         String   @default("warm")
+  personality   String   @default("companion")
+  permissions   Json     @default("{}")
+  onboarded     Boolean  @default(false)
+  handsFreeMode Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model AiReminder {
@@ -1328,13 +1329,13 @@ model ToolExecutionLog {
 // One row per user: what the AI agent is currently focused on, persisted
 // across chat turns (the Context Manager's backing store).
 model AiSession {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  activeModule String?
-  taskSummary  String?
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  activeModule  String?
+  taskSummary   String?
   activeAgentId String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // Durable log of every real user/assistant exchange (not intermediate tool
@@ -1547,7 +1548,9 @@ model Business {
   documents          String[]     @default([])
   createdAt          DateTime     @default(now())
 
-  sponsorships ChallengeSponsorship[]
+  sponsorships  ChallengeSponsorship[]
+  campaigns     Campaign[]
+  announcements Announcement[]
 }
 
 model Certificate {
@@ -3005,32 +3008,32 @@ enum ChallengeStatus {
 }
 
 model Challenge {
-  id              String            @id @default(uuid())
-  title           String
-  description     String
-  promptText      String?
-  category        ChallengeCategory
-  type            ChallengeType
-  status          ChallengeStatus   @default(DRAFT)
-  scope           String            @default("NATIONAL") // LOCAL | DISTRICT | PROVINCIAL | NATIONAL
-  location        String?           // human-readable label, e.g. "Soweto", "Gauteng"
-  startAt         DateTime
-  endAt           DateTime
-  xpReward        Int               @default(50)
-  bonusXpReward   Int               @default(100)
-  coverImageUrl   String?
+  id               String                @id @default(uuid())
+  title            String
+  description      String
+  promptText       String?
+  category         ChallengeCategory
+  type             ChallengeType
+  status           ChallengeStatus       @default(DRAFT)
+  scope            String                @default("NATIONAL") // LOCAL | DISTRICT | PROVINCIAL | NATIONAL
+  location         String? // human-readable label, e.g. "Soweto", "Gauteng"
+  startAt          DateTime
+  endAt            DateTime
+  xpReward         Int                   @default(50)
+  bonusXpReward    Int                   @default(100)
+  coverImageUrl    String?
   // Simple display label for Phase 1 ("Sponsored by X") — not a full
   // sponsor campaign/budget system, see roadmap.
-  sponsorLabel    String?
+  sponsorLabel     String?
   createdByAdminId String?
   // Set when the challenge transitions to ENDED — the entry with the
   // highest average vote (like count as tiebreaker) at close, whose author
   // is awarded bonusXpReward. No relation (plain id pointer, like
   // createdByAdminId) since it's set after the entries already exist.
-  winningEntryId  String?
-  createdAt       DateTime          @default(now())
-  entries         ChallengeEntry[]
-  sponsorship     ChallengeSponsorship?
+  winningEntryId   String?
+  createdAt        DateTime              @default(now())
+  entries          ChallengeEntry[]
+  sponsorship      ChallengeSponsorship?
 
   @@index([status, category])
   @@index([status, endAt])
@@ -3056,38 +3059,38 @@ model ChallengeEntry {
 }
 
 model ChallengeEntryLike {
-  id       String         @id @default(uuid())
-  entryId  String
-  entry    ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User           @relation(fields: [userId], references: [id])
-  createdAt DateTime      @default(now())
+  id        String         @id @default(uuid())
+  entryId   String
+  entry     ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  createdAt DateTime       @default(now())
 
   @@unique([entryId, userId])
 }
 
 model ChallengeEntryVote {
-  id       String         @id @default(uuid())
-  entryId  String
-  entry    ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User           @relation(fields: [userId], references: [id])
-  value    Int // 1-10
-  createdAt DateTime      @default(now())
+  id        String         @id @default(uuid())
+  entryId   String
+  entry     ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  value     Int // 1-10
+  createdAt DateTime       @default(now())
 
   @@unique([entryId, userId])
 }
 
 model ChallengeEntryComment {
-  id           String         @id @default(uuid())
-  entryId      String
-  entry        ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  authorId     String
-  author       User           @relation(fields: [authorId], references: [id])
-  content      String
-  boostAmount  Float          @default(0) // MSH paid to pin this comment; 0 = free
-  boostedAt    DateTime?      // set when a boost payment is made
-  createdAt    DateTime       @default(now())
+  id          String         @id @default(uuid())
+  entryId     String
+  entry       ChallengeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User           @relation(fields: [authorId], references: [id])
+  content     String
+  boostAmount Float          @default(0) // MSH paid to pin this comment; 0 = free
+  boostedAt   DateTime? // set when a boost payment is made
+  createdAt   DateTime       @default(now())
 
   @@index([entryId, boostAmount])
 }
@@ -3273,6 +3276,121 @@ model ChallengeSponsorship {
 }
 
 // ============================================================
+// Opportunities Carousel — business campaigns, mini-app launches, platform
+// updates, creator promos and reviewer recommendations. Deliberately
+// separate from Challenge/ChallengeSponsorship above: Challenges are
+// community missions (fun, XP reward, no money); Campaigns are business
+// contracts (real budget, real reward). Same card-rendering framework on
+// mobile, distinct data model and tone so the two never read as the same
+// thing. Money-on-approval flow mirrors ChallengeSponsorship exactly (see
+// campaigns.service.ts) — no escrow, full budget debited atomically only
+// when an admin approves.
+// ============================================================
+
+enum CampaignType {
+  BUSINESS
+  MINI_APP_LAUNCH
+  PLATFORM_UPDATE
+  CREATOR_PROMO
+  REVIEWER_RECOMMENDATION
+}
+
+enum CampaignStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  ENDED
+}
+
+model Campaign {
+  id                       String         @id @default(uuid())
+  type                     CampaignType
+  status                   CampaignStatus @default(PENDING)
+  title                    String
+  description              String
+  // Free string, not an enum — mirrors Challenge.scope's documented-not-enum
+  // convention. e.g. "Awareness" | "Installs" | "Visits" | "Reviews".
+  goal                     String
+  rewardLabel              String
+  estimatedMinutes         Int?
+  actionLabel              String
+  // {name, params} — the same shape LifeModule.route already uses app-wide,
+  // so the mobile action button is just navigation.navigate(name, params).
+  actionRoute              Json
+  coverImageUrl            String?
+  budget                   Float          @default(0)
+  // Audience targeting only — never gates who can CREATE a campaign. Null
+  // means visible to everyone. One of reputation.util.ts's LEVEL_THRESHOLDS
+  // level names (Nano/Micro/Midtier/Macro/Mega Influencer).
+  targetMinReputationLevel String?
+  targetCategories         String[]       @default([])
+  // Nullable: PLATFORM_UPDATE campaigns are createable via the admin
+  // shared-key path (AdminAccessGuard), which has no adminId to attribute —
+  // see AdminAccessGuard's actorLabel: 'shared-key' comment.
+  createdByUserId          String?
+  createdByUser            User?          @relation(fields: [createdByUserId], references: [id])
+  // Only set for BUSINESS / MINI_APP_LAUNCH types — the verified Business
+  // whose wallet is debited on approval.
+  createdByBusinessId      String?
+  createdByBusiness        Business?      @relation(fields: [createdByBusinessId], references: [id])
+  startAt                  DateTime
+  endAt                    DateTime
+  impressions              Int            @default(0)
+  clicks                   Int            @default(0)
+  completions              Int            @default(0)
+  createdAt                DateTime       @default(now())
+
+  metricsSnapshots CampaignMetricsSnapshot[]
+
+  @@index([status, type])
+  @@index([status, endAt])
+}
+
+// Daily snapshot for campaign analytics — identical shape/cadence to
+// BusinessMetricsSnapshot below, so CampaignAnalyticsScreen can diff "now"
+// against "~7 days ago" the same way BusinessInsightsService does.
+model CampaignMetricsSnapshot {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  impressions Int
+  clicks      Int
+  completions Int
+  spent       Float
+  capturedAt  DateTime @default(now())
+
+  @@index([campaignId, capturedAt])
+}
+
+enum AnnouncementContext {
+  MINI_APP
+  CAMPAIGN
+}
+
+// Contextual news — never a menu item. contextKey is either a MINI_APP_IDS
+// id (e.g. "travel") or a Campaign id. Rendered inline by
+// ContextualNewsBanner wherever that context is on screen.
+model Announcement {
+  id                  String              @id @default(uuid())
+  contextType         AnnouncementContext
+  contextKey          String
+  title               String
+  body                String
+  iconUrl             String?
+  // Plain id pointer, not a relation — mirrors Challenge.createdByAdminId's
+  // convention (admin actions are audited separately via AdminAuditService).
+  createdByAdminId    String?
+  // Real relation (unlike createdByAdminId above) — the service enforces a
+  // business can only post to a contextKey equal to one of its own campaigns.
+  createdByBusinessId String?
+  createdByBusiness   Business?           @relation(fields: [createdByBusinessId], references: [id])
+  createdAt           DateTime            @default(now())
+  expiresAt           DateTime?
+
+  @@index([contextType, contextKey, createdAt])
+}
+
+// ============================================================
 // Business/Creator Dashboard — AI-narrated insights + account-mode badge
 // (product vision §23-25). AccountType is deliberately NOT the same concept
 // as the `Business` model above (that's a verified/KYB legal entity used for
@@ -3297,16 +3415,16 @@ enum AccountType {
 // a different set of numbers (business/dashboard, not profile pillars) with
 // a different owner (BusinessInsightsService, not ProfileService).
 model BusinessMetricsSnapshot {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  totalRevenue  Float
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  totalRevenue       Float
   // [{ id: string, label: string, revenue: number }] — one entry per owned
   // mini app with defined revenue at capture time, so a per-app delta can be
   // computed later without a separate table per mini-app.
-  perAppRevenue Json
-  postCount     Int
-  videoViews    Int
+  perAppRevenue      Json
+  postCount          Int
+  videoViews         Int
   // likesReceived + commentsReceived + ranksReceived on the user's Stories,
   // composed into one number the same way ProfileService composes "Impact".
   storyEngagement    Int

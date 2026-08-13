@@ -698,12 +698,6 @@ export default function ExploreScreen({ navigation }: any) {
           >
             <Text style={styles.tabText}>Discovery</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tab}
-            onPress={() => navigation.navigate('Stories')}
-          >
-            <Text style={styles.tabText}>Stories</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -787,6 +781,7 @@ export default function ExploreScreen({ navigation }: any) {
         </>
       ) : activeTab === 'feed' ? (
         <FlatList
+          key="feed-flatlist"
           ref={listRef}
           data={posts}
           keyExtractor={(item) => item.id}
@@ -847,6 +842,7 @@ export default function ExploreScreen({ navigation }: any) {
         />
       ) : activeTab === 'trending' ? (
         <FlatList
+          key="trending-flatlist"
           data={trending?.posts ?? []}
           keyExtractor={(item) => item.id}
           renderItem={renderPost}
