@@ -446,8 +446,10 @@ export default function EventFormScreen({ navigation, route }: any) {
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Date *</Text>
             {Platform.OS === 'web' ? (
+              // @ts-ignore - type prop is valid in React Native Web for HTML5 inputs
               <TextInput
                 style={styles.input}
+                type="date"
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={COLORS.textMuted}
                 value={date}
@@ -520,8 +522,10 @@ export default function EventFormScreen({ navigation, route }: any) {
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Time</Text>
             {Platform.OS === 'web' ? (
+              // @ts-ignore - type prop is valid in React Native Web for HTML5 inputs
               <TextInput
                 style={styles.input}
+                type="time"
                 placeholder="HH:MM"
                 placeholderTextColor={COLORS.textMuted}
                 value={time}
