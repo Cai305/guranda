@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform, AppState } from 'react-native';
 import { API_BASE_URL, setOnUnauthorized } from '../utils/api';
+import { clearApiCache } from '../utils/apiCache';
 import { syncPushToken } from '../utils/pushNotifications';
 import { syncLocation } from '../utils/locationSync';
 
@@ -141,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setVerificationStatus(null);
     await deleteStorageItemAsync('userToken');
     await deleteStorageItemAsync('userData');
+    await clearApiCache();
   };
 
   const clearSessionExpired = () => setSessionExpired(false);
@@ -155,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setVerificationStatus(null);
     setSessionExpired(true);
+    clearApiCache();
   };
 
   // fetchApi has already cleared storage by the time this fires (see

@@ -125,6 +125,7 @@ import HairdresserProfileScreen from '../screens/hub/hair/HairdresserProfileScre
 import HairServiceScreen from '../screens/hub/hair/HairServiceScreen';
 import HairBookingScreen from '../screens/hub/hair/HairBookingScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import UserPostsScreen from '../screens/UserPostsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -266,6 +267,7 @@ export default function RootNavigator() {
           <Stack.Screen name="HairService" component={HairServiceScreen} />
           <Stack.Screen name="HairBooking" component={HairBookingScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+          <Stack.Screen name="UserPosts" component={UserPostsScreen} />
         </>
       )}
     </Stack.Navigator>

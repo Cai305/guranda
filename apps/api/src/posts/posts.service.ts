@@ -354,12 +354,60 @@ export class PostsService {
   }
 
   async getMyStats(userId: string) {
-    const [postCount, likesReceived, commentsReceived] = await Promise.all([
+    const [postCount, likesReceived, commentsReceived, viewsAgg] = await Promise.all([
       this.prisma.post.count({ where: { authorId: userId } }),
       this.prisma.postLike.count({ where: { post: { authorId: userId } } }),
       this.prisma.comment.count({ where: { post: { authorId: userId } } }),
+      this.prisma.post.aggregate({
+        where: { authorId: userId },
+        _sum: { views: true },
+      }),
     ]);
-    return { postCount, likesReceived, commentsReceived };
+    const totalViews = viewsAgg._sum.views || 0;
+    return { postCount, likesReceived, commentsReceived, totalViews };
+  }
+
+  async getUserPosts(authorId: string, viewerId?: string, take = 20, cursor?: string) {
+    const pageSize = toPositiveInt(take, 20);
+    const posts = await this.prisma.post.findMany({
+      where: {
+        authorId,
+        ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { select: AUTHOR_SELECT },
+        media: { orderBy: { position: 'asc' } },
+        likes: true,
+        reposts: true,
+        comments: {
+          include: { author: { select: AUTHOR_SELECT } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      take: pageSize + 1,
+    });
+
+    let nextCursor: string | null = null;
+    if (posts.length > pageSize) {
+      const nextItem = posts.pop();
+      nextCursor = nextItem!.createdAt.toISOString();
+    }
+
+    let bookmarks = new Set<string>();
+    if (viewerId && posts.length > 0) {
+      const bms = await this.prisma.postBookmark.findMany({
+        where: { userId: viewerId, postId: { in: posts.map(p => p.id) } },
+      });
+      bookmarks = new Set(bms.map(b => b.postId));
+    }
+
+    const mapped = posts.map((p) => ({
+      ...p,
+      isBookmarkedByMe: bookmarks.has(p.id),
+    }));
+
+    return { posts: mapped, nextCursor };
   }
 
   async likePost(userId: string, postId: string) {

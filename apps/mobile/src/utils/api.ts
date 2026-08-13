@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { startUpload, updateUploadProgress, finishUpload, failUpload } from './uploadStatusStore';
+import { getCachedResponse, setCachedResponse } from './apiCache';
 
 const LOCAL_API_BASE_URL = 'http://localhost:3001';
 const NGROK_API_BASE_URL = 'https://oppressed-vertical-semicolon.ngrok-free.dev';
@@ -41,6 +42,22 @@ export function setOnUnauthorized(callback: (() => void) | null) {
 }
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headersObj = (options.headers as Record<string, string>) || {};
+  const bypassCache = headersObj['Cache-Control'] === 'no-cache';
+
+  if (method === 'GET' && !bypassCache) {
+    const cachedData = await getCachedResponse(endpoint);
+    if (cachedData) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => cachedData,
+        text: async () => JSON.stringify(cachedData),
+      } as unknown as Response;
+    }
+  }
+
   let token = null;
   let userId = null;
   if (Platform.OS === 'web') {
@@ -73,6 +90,13 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     ...options,
     headers,
   });
+
+  if (method === 'GET' && response.ok && !bypassCache) {
+    const cloned = response.clone();
+    cloned.json().then(data => {
+      setCachedResponse(endpoint, data);
+    }).catch(() => {});
+  }
 
   // A 401 with no token attached just means this call was never
   // authenticated in the first place (e.g. a component that fires a request

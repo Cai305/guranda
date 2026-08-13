@@ -47,6 +47,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [relationship, setRelationship] = useState<any>(null);
   const [canSponsor, setCanSponsor] = useState(false);
   const [hq, setHq] = useState<ProfileHQ | null>(null);
+  const [postStats, setPostStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number; totalViews: number } | null>(null);
 
   const loadHQ = () => {
     fetchApi('/profile/me/hq')
@@ -67,6 +68,10 @@ export default function ProfileScreen({ navigation }: any) {
     fetchApi('/challenges/sponsorships/eligibility')
       .then(r => (r.ok ? r.json() : null))
       .then(d => setCanSponsor(!!d?.eligible))
+      .catch(() => {});
+    fetchApi('/posts/mine/stats')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setPostStats(d))
       .catch(() => {});
     loadHQ();
   }, []);
@@ -296,6 +301,35 @@ export default function ProfileScreen({ navigation }: any) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* ===== Post Performance ===== */}
+        <Text style={styles.sectionLabel}>POST PERFORMANCE</Text>
+        <TouchableOpacity 
+          style={styles.card} 
+          activeOpacity={0.8} 
+          onPress={() => navigation.navigate('UserPosts', { userId: user?.userId, title: 'My Posts' })}
+        >
+          <View style={[styles.cardRow, styles.rowBorder, { paddingVertical: 16 }]}>
+            <View style={{ flex: 1, alignItems: 'center', borderRightWidth: 1, borderRightColor: COLORS.glassBorder }}>
+              <Text style={[styles.rowTitle, { fontSize: 20 }]}>{postStats?.postCount || 0}</Text>
+              <Text style={styles.rowDetail}>Posts</Text>
+            </View>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={[styles.rowTitle, { fontSize: 20 }]}>{postStats?.totalViews || 0}</Text>
+              <Text style={styles.rowDetail}>Views</Text>
+            </View>
+          </View>
+          <View style={[styles.cardRow, { paddingVertical: 16 }]}>
+            <View style={{ flex: 1, alignItems: 'center', borderRightWidth: 1, borderRightColor: COLORS.glassBorder }}>
+              <Text style={[styles.rowTitle, { fontSize: 20 }]}>{postStats?.likesReceived || 0}</Text>
+              <Text style={styles.rowDetail}>Likes</Text>
+            </View>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={[styles.rowTitle, { fontSize: 20 }]}>{postStats?.commentsReceived || 0}</Text>
+              <Text style={styles.rowDetail}>Comments</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         {/* ===== Content Earnings (CCR) ===== */}
         {(() => {
