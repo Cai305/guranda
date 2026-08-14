@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { defineTools } from '../tool-registry/define-tools';
 import { RideService } from './ride.service';
+import { RideGateway } from './ride.gateway';
 import { geocodeAddress } from '../common/geocoding';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class RideAiToolsProvider implements OnModuleInit {
   constructor(
     private registry: ToolRegistryService,
     private ride: RideService,
+    private rideGateway: RideGateway,
   ) {}
 
   onModuleInit() {
@@ -36,6 +38,7 @@ export class RideAiToolsProvider implements OnModuleInit {
           legacyAliases: ['rideBook'],
           sensitive: true,
           defaultGranted: false,
+          renderAs: 'ride-status',
           handler: async (ctx, input) => {
             const [pickup, dropoff] = await Promise.all([
               geocodeAddress(input.pickupAddress),
@@ -49,20 +52,25 @@ export class RideAiToolsProvider implements OnModuleInit {
               throw new BadRequestException(
                 `Couldn't find a location matching dropoff address "${input.dropoffAddress}" — ask for a more specific address.`,
               );
-            return this.ride.requestRide(ctx.userId, {
+            // Fare is computed server-side from the coordinates — never
+            // passed in here, same rule as the REST path.
+            const { ride, matchedDriverIds } = await this.ride.requestRide(ctx.userId, {
               pickupLat: pickup.lat,
               pickupLng: pickup.lng,
               pickupAddress: input.pickupAddress,
               dropoffLat: dropoff.lat,
               dropoffLng: dropoff.lng,
               dropoffAddress: input.dropoffAddress,
-              fare: 10.0,
             });
+            // Without this, drivers would never hear about an AI-booked
+            // ride — only RideController's REST path used to broadcast.
+            this.rideGateway.notifyDrivers(matchedDriverIds, 'rideRequested', ride);
+            return ride;
           },
           describeAction: (input) =>
             `Request a ride from "${input.pickupAddress}" to "${input.dropoffAddress}"`,
           describeResult: (input, output) =>
-            `Ride requested (id ${output.id.slice(0, 8)}). Status: ${output.status} — from "${input.pickupAddress}" to "${input.dropoffAddress}". The user can track it in the Ride module.`,
+            `Ride requested (id ${output.id.slice(0, 8)}), fare ${output.fare} MSH. Status: ${output.status} — from "${input.pickupAddress}" to "${input.dropoffAddress}". The user can track it in the Ride module.`,
         },
         {
           name: 'status',

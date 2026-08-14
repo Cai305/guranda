@@ -10,6 +10,15 @@ interface RideStatusCardProps {
   pickupAddress: string;
   dropoffAddress: string;
   fare?: number;
+  distanceKm?: number;
+  // Only present once a driver has accepted — the card degrades gracefully
+  // without this section while the ride is still REQUESTED.
+  driverUsername?: string;
+  driverRating?: number;
+  driverTotalRides?: number;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehiclePlate?: string;
   onPress: () => void;
 }
 
@@ -21,7 +30,20 @@ const ACTION_LABEL: Record<string, string> = {
   CANCELLED: 'BOOK ANOTHER RIDE',
 };
 
-export default function RideStatusCard({ status, pickupAddress, dropoffAddress, fare, onPress }: RideStatusCardProps) {
+export default function RideStatusCard({
+  status,
+  pickupAddress,
+  dropoffAddress,
+  fare,
+  distanceKm,
+  driverUsername,
+  driverRating,
+  driverTotalRides,
+  vehicleMake,
+  vehicleModel,
+  vehiclePlate,
+  onPress,
+}: RideStatusCardProps) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const STATUS_COLOR: Record<string, string> = {
@@ -32,6 +54,9 @@ export default function RideStatusCard({ status, pickupAddress, dropoffAddress, 
     CANCELLED: COLORS.error,
   };
   const color = STATUS_COLOR[status] ?? COLORS.textMuted;
+  const hasDriver = !!driverUsername;
+  const vehicleLabel = [vehicleMake, vehicleModel].filter(Boolean).join(' ');
+
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
     card: {
       alignSelf: 'stretch',
@@ -47,12 +72,49 @@ export default function RideStatusCard({ status, pickupAddress, dropoffAddress, 
     fare: { color: COLORS.primary, fontWeight: '800', fontSize: 12 },
     addressRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     address: { color: COLORS.textMuted, fontSize: 11, flex: 1 },
+    driverCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.sm,
+      padding: 8,
+      gap: 10,
+      marginTop: 2,
+    },
+    vehicleTile: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.sm,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    driverAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: COLORS.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    driverInfo: { flex: 1, gap: 1 },
+    driverName: { color: COLORS.text, fontWeight: '700', fontSize: 12 },
+    driverMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    driverMeta: { color: COLORS.textMuted, fontSize: 11 },
+    plateChip: {
+      backgroundColor: COLORS.border,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    plateChipText: { color: COLORS.text, fontWeight: '700', fontSize: 10, letterSpacing: 0.3 },
     actionBtn: {
       marginTop: 2, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
       borderRadius: RADIUS.sm, paddingVertical: 9, alignItems: 'center',
     },
     actionText: { color: COLORS.primary, fontWeight: '700', fontSize: 12, letterSpacing: 0.3 },
   }));
+
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -67,7 +129,41 @@ export default function RideStatusCard({ status, pickupAddress, dropoffAddress, 
       <View style={styles.addressRow}>
         <Ionicons name="location" size={10} color={COLORS.error} />
         <Text style={styles.address} numberOfLines={1}>{dropoffAddress}</Text>
+        {distanceKm !== undefined && <Text style={styles.driverMeta}>{distanceKm.toFixed(1)} km</Text>}
       </View>
+
+      {hasDriver && (
+        <View style={styles.driverCard}>
+          <View style={styles.driverAvatar}>
+            <Ionicons name="person" size={18} color={COLORS.text} />
+          </View>
+          <View style={styles.driverInfo}>
+            <Text style={styles.driverName} numberOfLines={1}>{driverUsername}</Text>
+            <View style={styles.driverMetaRow}>
+              <Ionicons name="star" size={11} color={COLORS.gold} />
+              <Text style={styles.driverMeta}>
+                {(driverRating ?? 5).toFixed(1)} · {driverTotalRides ?? 0} trips
+              </Text>
+            </View>
+          </View>
+          {vehicleLabel ? (
+            <View style={{ alignItems: 'flex-end', gap: 3 }}>
+              <View style={styles.vehicleTile}>
+                <Ionicons name="car-sport" size={18} color={COLORS.text} />
+              </View>
+              {vehiclePlate ? (
+                <View style={styles.plateChip}>
+                  <Text style={styles.plateChipText}>{vehiclePlate}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      )}
+      {hasDriver && vehicleLabel ? (
+        <Text style={[styles.driverMeta, { marginLeft: 2 }]}>{vehicleLabel}</Text>
+      ) : null}
+
       <TouchableOpacity style={styles.actionBtn} activeOpacity={0.85} onPress={onPress}>
         <Text style={styles.actionText}>{ACTION_LABEL[status] ?? 'VIEW RIDE'}</Text>
       </TouchableOpacity>

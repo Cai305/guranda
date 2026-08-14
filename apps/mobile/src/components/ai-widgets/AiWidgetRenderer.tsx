@@ -180,6 +180,7 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
 
         if (widget.renderAs === 'ride-status') {
           const ride = widget.data;
+          if (!ride) return null;
           return (
             <RideStatusCard
               key={widget.toolCallId}
@@ -187,6 +188,13 @@ export default function AiWidgetRenderer({ widgets, navigation }: AiWidgetRender
               pickupAddress={ride.pickupAddress}
               dropoffAddress={ride.dropoffAddress}
               fare={ride.fare}
+              distanceKm={ride.distanceKm}
+              driverUsername={ride.driver?.username}
+              driverRating={ride.driverProfile?.rating}
+              driverTotalRides={ride.driverProfile?.totalRides}
+              vehicleMake={ride.driverProfile?.vehicleMake}
+              vehicleModel={ride.driverProfile?.vehicleModel}
+              vehiclePlate={ride.driverProfile?.vehiclePlate}
               onPress={() => navigateToLife(navigation, 'Ride', {})}
             />
           );

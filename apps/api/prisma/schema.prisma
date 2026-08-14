@@ -1192,6 +1192,10 @@ model Ride {
   dropoffAddress String?
   status         String // REQUESTED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED
   fare           Float?
+  distanceKm     Float? // haversine pickup->dropoff, computed at request time
+  fareHoldId     String? // WalletHold id — set on accept, cleared (captured/released) on completion/cancellation
+  cancelledBy    String? // "RIDER" | "DRIVER"
+  riderRating    Int? // 1-5, set once by rateDriver
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

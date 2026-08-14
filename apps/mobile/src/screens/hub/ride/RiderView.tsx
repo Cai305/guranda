@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOW } from '../../../theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SHADOW, SPACING } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 import { rideSocket } from '../../../services/RideSocketService';
 import { searchAddress, GeocodeSuggestion } from '../../../utils/geocoding';
+import { fetchRoute, haversineKm, RoutePoint } from '../../../utils/routing';
+import PulsingRadar from '../../../components/PulsingRadar';
+import * as Location from 'expo-location';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // react-native-maps doesn't work on web — use a conditional import
 let MapView: any = null;
 let Marker: any = null;
+let Polyline: any = null;
 if (Platform.OS !== 'web') {
   const Maps = require('react-native-maps');
   MapView = Maps.default;
   Marker = Maps.Marker;
+  Polyline = Maps.Polyline;
 }
 
 // Leaflet map for web — uses Metro's platform-specific resolution (.web.tsx)
@@ -21,7 +29,7 @@ if (Platform.OS === 'web') {
   LeafletMap = require('../../../components/LeafletMap').default;
 }
 
-// Mock Johannesburg coordinates
+// Mock Johannesburg coordinates — fallback if the device won't share a real location
 const INITIAL_REGION = {
   latitude: -26.2041,
   longitude: 28.0473,
@@ -29,16 +37,15 @@ const INITIAL_REGION = {
   longitudeDelta: 0.05,
 };
 
-type RideState = 'IDLE' | 'SELECTING' | 'REQUESTING' | 'WAITING' | 'ACCEPTED' | 'IN_PROGRESS';
-const VALID_RIDE_STATES: RideState[] = ['IDLE', 'SELECTING', 'REQUESTING', 'WAITING', 'ACCEPTED', 'IN_PROGRESS'];
+// SEARCH is a UI-only step (never comes back from the server) — it sits
+// between IDLE and SELECTING while the rider is picking pickup/dropoff.
+type RideState = 'IDLE' | 'SEARCH' | 'SELECTING' | 'REQUESTING' | 'WAITING' | 'ACCEPTED' | 'IN_PROGRESS';
+const VALID_SERVER_STATES: RideState[] = ['REQUESTING', 'WAITING', 'ACCEPTED', 'IN_PROGRESS'];
 
-// Dummy drivers always visible on the map
-const DUMMY_DRIVERS = [
-  { id: 'd1', name: 'Sipho M.', lat: -26.1980, lng: 28.0410, car: 'Toyota Corolla' },
-  { id: 'd2', name: 'Thabo K.', lat: -26.2110, lng: 28.0560, car: 'VW Polo' },
-];
+type NearbyDriver = { userId: string; lat: number; lng: number; vehicleModel?: string | null; rating?: number; isOnline?: boolean };
+type FareEstimate = { distanceKm: number; fare: number; etaMinutes: number };
 
-export default function RiderView() {
+export default function RiderView({ navigation }: { navigation?: any }) {
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
   const [pickupCoord, setPickupCoord] = useState<{ lat: number; lng: number } | null>(null);
@@ -46,13 +53,54 @@ export default function RiderView() {
   const [rideState, setRideState] = useState<RideState>('IDLE');
   const [activeRide, setActiveRide] = useState<any>(null);
   const [liveDriverCoord, setLiveDriverCoord] = useState<{ lat: number; lng: number } | null>(null);
+  const [deviceLocation, setDeviceLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[]>([]);
+  const [fareEstimate, setFareEstimate] = useState<FareEstimate | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [ratingRideId, setRatingRideId] = useState<string | null>(null);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [messaging, setMessaging] = useState(false);
+  // Real road route for the active leg (driver→pickup, then pickup→dropoff),
+  // fetched from OSRM. Empty while loading/unavailable — renderMap() falls
+  // back to a visually-distinct straight dashed line, never a fake road path.
+  const [routePoints, setRoutePoints] = useState<RoutePoint[]>([]);
+  const [routeEtaMin, setRouteEtaMin] = useState<number | null>(null);
+  const [routeUnavailable, setRouteUnavailable] = useState(false);
+  const routedFromRef = useRef<RoutePoint | null>(null);
+  const lastRouteFetchRef = useRef<number>(0);
   const mapRef = useRef<any>(null);
+  const riderLocationWatchRef = useRef<Location.LocationSubscription | null>(null);
 
   // Geocoding suggestions
   const [pickupSuggestions, setPickupSuggestions] = useState<GeocodeSuggestion[]>([]);
   const [dropoffSuggestions, setDropoffSuggestions] = useState<GeocodeSuggestion[]>([]);
   const [activeInput, setActiveInput] = useState<'pickup' | 'dropoff' | null>(null);
   const searchTimeout = useRef<any>(null);
+
+  const mapCenter = deviceLocation ?? { lat: INITIAL_REGION.latitude, lng: INITIAL_REGION.longitude };
+  // Ride is always presented inside the app's persistent bottom tab bar (not
+  // a modal), so absolutely-positioned overlays need to clear it manually.
+  let tabBarHeight = 0;
+  try { tabBarHeight = useBottomTabBarHeight(); } catch { /* not mounted under a tab navigator */ }
+  // RideScreen renders its own floating minimize/exit + Rider/Driver toggle
+  // at `insets.top + 20`, roughly 44px tall — the search sheet's own header
+  // needs to start clear of that.
+  const insets = useSafeAreaInsets();
+  const searchTopPadding = Math.max(insets.top, 20) + 60;
+
+  // ── Real device location (best-effort — falls back to the mock region) ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted' || cancelled) return;
+        const loc = await Location.getCurrentPositionAsync({});
+        if (!cancelled) setDeviceLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      } catch { /* stay on the mock region */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Socket & active ride init ────────────────────────────────────────────
   useEffect(() => {
@@ -70,7 +118,7 @@ export default function RiderView() {
           if (data && !cancelled) {
             setActiveRide(data);
             const status = data.status as string;
-            if (VALID_RIDE_STATES.includes(status as RideState)) {
+            if (VALID_SERVER_STATES.includes(status as RideState)) {
               setRideState(status as RideState);
             }
             if (data.pickupLat && data.pickupLng) {
@@ -94,8 +142,15 @@ export default function RiderView() {
         rideSocket.joinRideRoom(ride.id);
       });
 
-      socket.on('rideCompleted', () => {
+      socket.on('rideStarted', (ride: any) => {
         if (cancelled) return;
+        setActiveRide(ride);
+        setRideState('IN_PROGRESS');
+      });
+
+      socket.on('rideCompleted', (ride: any) => {
+        if (cancelled) return;
+        setRatingRideId(ride?.id ?? null);
         setRideState('IDLE');
         setActiveRide(null);
         setLiveDriverCoord(null);
@@ -103,7 +158,19 @@ export default function RiderView() {
         setDropoff('');
         setPickupCoord(null);
         setDropoffCoord(null);
-        Alert.alert('Ride Completed', 'You have arrived at your destination.');
+        setFareEstimate(null);
+      });
+
+      socket.on('rideCancelled', (ride: any) => {
+        if (cancelled) return;
+        setRideState('IDLE');
+        setActiveRide(null);
+        setLiveDriverCoord(null);
+        setFareEstimate(null);
+        Alert.alert(
+          'Ride Cancelled',
+          ride?.cancelledBy === 'DRIVER' ? 'Your driver cancelled the ride.' : 'The ride was cancelled.',
+        );
       });
 
       socket.on('driverLocationUpdated', (payload: { lat: number; lng: number }) => {
@@ -118,6 +185,21 @@ export default function RiderView() {
           }, 800);
         }
       });
+
+      socket.on('onlineDriversUpdated', (payload: NearbyDriver) => {
+        if (cancelled) return;
+        setNearbyDrivers((prev) => {
+          if (payload.isOnline === false) return prev.filter((d) => d.userId !== payload.userId);
+          const idx = prev.findIndex((d) => d.userId === payload.userId);
+          const merged = { ...(idx >= 0 ? prev[idx] : { userId: payload.userId }), ...payload };
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = merged;
+            return next;
+          }
+          return [...prev, merged];
+        });
+      });
     };
 
     init();
@@ -125,10 +207,107 @@ export default function RiderView() {
     return () => {
       cancelled = true;
       rideSocket.socket?.off('rideAccepted');
+      rideSocket.socket?.off('rideStarted');
       rideSocket.socket?.off('rideCompleted');
+      rideSocket.socket?.off('rideCancelled');
       rideSocket.socket?.off('driverLocationUpdated');
+      rideSocket.socket?.off('onlineDriversUpdated');
+      riderLocationWatchRef.current?.remove();
     };
   }, []);
+
+  // ── Lobby membership + nearby-driver seed while idle ─────────────────────
+  useEffect(() => {
+    if (rideState !== 'IDLE' && rideState !== 'SEARCH' && rideState !== 'SELECTING') return;
+    rideSocket.joinLobby();
+    fetchApi(`/ride/drivers/nearby?lat=${mapCenter.lat}&lng=${mapCenter.lng}`, {
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((drivers) => setNearbyDrivers(Array.isArray(drivers) ? drivers : []))
+      .catch(() => {});
+    return () => { rideSocket.leaveLobby(); };
+  }, [rideState, mapCenter.lat, mapCenter.lng]);
+
+  // ── Fare estimate as soon as both coords are set ─────────────────────────
+  useEffect(() => {
+    if (!pickupCoord || !dropoffCoord) { setFareEstimate(null); return; }
+    let cancelled = false;
+    fetchApi(
+      `/ride/fare-estimate?pickupLat=${pickupCoord.lat}&pickupLng=${pickupCoord.lng}&dropoffLat=${dropoffCoord.lat}&dropoffLng=${dropoffCoord.lng}`,
+      { headers: { 'Cache-Control': 'no-cache' } },
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((est) => { if (!cancelled) setFareEstimate(est); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [pickupCoord, dropoffCoord]);
+
+  // ── Rider's own live location, once a driver is on the way ───────────────
+  useEffect(() => {
+    if (!activeRide || (rideState !== 'ACCEPTED' && rideState !== 'IN_PROGRESS')) {
+      riderLocationWatchRef.current?.remove();
+      riderLocationWatchRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted' || cancelled) return;
+      riderLocationWatchRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 10, timeInterval: 3000 },
+        (loc) => rideSocket.updateRiderLocation(loc.coords.latitude, loc.coords.longitude, activeRide.id),
+      );
+    })();
+    return () => { riderLocationWatchRef.current?.remove(); riderLocationWatchRef.current = null; };
+  }, [activeRide?.id, rideState]);
+
+  // ── Real road route for the active leg ───────────────────────────────────
+  // ACCEPTED: driver's live position → pickup. IN_PROGRESS: → dropoff.
+  // Refetched when the driver has moved meaningfully (>150m) or the last
+  // fetch is stale (>20s) — not on every GPS tick, to stay a considerate
+  // client of OSRM's free public router.
+  useEffect(() => {
+    if (rideState !== 'ACCEPTED' && rideState !== 'IN_PROGRESS') {
+      setRoutePoints([]);
+      setRouteEtaMin(null);
+      setRouteUnavailable(false);
+      routedFromRef.current = null;
+      return;
+    }
+    if (!pickupCoord || !dropoffCoord) return;
+    const to = rideState === 'ACCEPTED' ? pickupCoord : dropoffCoord;
+    const from = liveDriverCoord ?? pickupCoord;
+
+    const movedFar = !routedFromRef.current || haversineKm(routedFromRef.current, from) > 0.15;
+    const stale = Date.now() - lastRouteFetchRef.current > 20000;
+    if (!movedFar && !stale && routePoints.length > 0) return;
+
+    let cancelled = false;
+    lastRouteFetchRef.current = Date.now();
+    routedFromRef.current = from;
+    fetchRoute(from, to).then((result) => {
+      if (cancelled) return;
+      if (result) {
+        setRoutePoints(result.points);
+        setRouteEtaMin(Math.ceil(result.durationMin));
+        setRouteUnavailable(false);
+      } else {
+        setRouteUnavailable(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [rideState, liveDriverCoord, pickupCoord, dropoffCoord]);
+
+  // ── Entering search: default pickup to the device's current location ────
+  // (Uber-style — the rider almost never needs to type their own pickup.)
+  useEffect(() => {
+    if (rideState !== 'SEARCH') return;
+    if (!pickupCoord && deviceLocation) {
+      setPickup('Current Location');
+      setPickupCoord(deviceLocation);
+    }
+  }, [rideState, deviceLocation]);
 
   // ── Geocoding search with debounce ───────────────────────────────────────
   const handleLocationSearch = useCallback((text: string, type: 'pickup' | 'dropoff') => {
@@ -154,37 +333,31 @@ export default function RiderView() {
       setPickup(suggestion.shortName);
       setPickupCoord({ lat: suggestion.lat, lng: suggestion.lng });
       setPickupSuggestions([]);
+      // The other side was already picked — move straight to ride options,
+      // matching Uber's "pick destination and go" fluid flow.
+      if (dropoffCoord) setRideState('SELECTING');
     } else {
       setDropoff(suggestion.shortName);
       setDropoffCoord({ lat: suggestion.lat, lng: suggestion.lng });
       setDropoffSuggestions([]);
+      if (pickupCoord) setRideState('SELECTING');
     }
     setActiveInput(null);
   };
 
   // ── Ride actions ─────────────────────────────────────────────────────────
-  const proceedToSelection = () => {
-    if (!pickup || !dropoff) {
-      Alert.alert('Please enter pickup and dropoff locations');
-      return;
-    }
-    if (!pickupCoord || !dropoffCoord) {
-      Alert.alert('Select Locations', 'Please select a location from the suggestions for both pickup and dropoff.');
-      return;
-    }
-    setRideState('SELECTING');
-  };
+  const openSearch = () => setRideState('SEARCH');
 
   const requestRide = async () => {
     if (!pickupCoord || !dropoffCoord) return;
     setRideState('REQUESTING');
     try {
+      // Fare is computed server-side from the coordinates — never sent from here.
       const res = await fetchApi('/ride/rider/request', {
         method: 'POST',
         body: JSON.stringify({
           pickupLat: pickupCoord.lat, pickupLng: pickupCoord.lng, pickupAddress: pickup,
           dropoffLat: dropoffCoord.lat, dropoffLng: dropoffCoord.lng, dropoffAddress: dropoff,
-          fare: 50.0
         })
       });
       if (res.ok) {
@@ -193,26 +366,87 @@ export default function RiderView() {
         setRideState('WAITING');
         rideSocket.joinRideRoom(ride.id);
       } else {
-        Alert.alert('Error requesting ride');
-        setRideState('IDLE');
+        const data = await res.json().catch(() => null);
+        Alert.alert('Error requesting ride', data?.message || undefined);
+        setRideState('SELECTING');
       }
     } catch {
-      setRideState('IDLE');
+      setRideState('SELECTING');
     }
   };
 
-  // ── Suggestion dropdown ──────────────────────────────────────────────────
-  const renderSuggestions = (suggestions: GeocodeSuggestion[], type: 'pickup' | 'dropoff') => {
-    if (suggestions.length === 0 || activeInput !== type) return null;
+  const cancelRide = async () => {
+    if (!activeRide) return;
+    setCancelling(true);
+    try {
+      const res = await fetchApi(`/ride/rider/cancel/${activeRide.id}`, { method: 'POST' });
+      if (res.ok) {
+        setRideState('IDLE');
+        setActiveRide(null);
+        setLiveDriverCoord(null);
+        setFareEstimate(null);
+      } else {
+        const data = await res.json().catch(() => null);
+        Alert.alert('Could not cancel', data?.message || 'Please try again.');
+      }
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const submitRating = async (rating: number) => {
+    if (!ratingRideId) return;
+    setSubmittingRating(true);
+    try {
+      await fetchApi(`/ride/rider/rate/${ratingRideId}`, {
+        method: 'POST',
+        body: JSON.stringify({ rating }),
+      });
+    } catch { /* not critical if this fails silently */ }
+    setSubmittingRating(false);
+    setRatingRideId(null);
+  };
+
+  // Opens (or creates) the real 1:1 chat thread with the assigned driver —
+  // reuses the app's existing chat system, not a stubbed "call" affordance.
+  const messageDriver = async () => {
+    if (!navigation || !activeRide?.driver?.id || messaging) return;
+    setMessaging(true);
+    try {
+      const res = await fetchApi('/chats', {
+        method: 'POST',
+        body: JSON.stringify({ targetUserId: activeRide.driver.id }),
+      });
+      if (res.ok) {
+        const chat = await res.json();
+        navigation.navigate('Chat', {
+          screen: 'ChatRoom',
+          params: {
+            roomId: chat.id,
+            roomName: activeRide.driver.username || 'Driver',
+            roomType: 'DIRECT',
+            targetUserId: activeRide.driver.id,
+          },
+        });
+      }
+    } catch { /* non-critical */ }
+    setMessaging(false);
+  };
+
+  // ── Suggestion list (full-width rows, Uber-style) ────────────────────────
+  const renderSuggestionList = (suggestions: GeocodeSuggestion[], type: 'pickup' | 'dropoff') => {
+    if (activeInput !== type || suggestions.length === 0) return null;
     return (
-      <ScrollView style={styles.suggestionBox} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+      <ScrollView style={styles.suggestionList} keyboardShouldPersistTaps="handled">
         {suggestions.map((s, i) => (
           <TouchableOpacity
             key={`${type}-${i}`}
-            style={styles.suggestionItem}
+            style={styles.suggestionRow}
             onPress={() => selectSuggestion(s, type)}
           >
-            <Ionicons name="location" size={16} color={COLORS.primary} style={{ marginRight: 8, marginTop: 2 }} />
+            <View style={styles.suggestionIconWrap}>
+              <Ionicons name="location-outline" size={18} color={COLORS.textMuted} />
+            </View>
             <Text style={styles.suggestionText} numberOfLines={2}>{s.shortName}</Text>
           </TouchableOpacity>
         ))}
@@ -220,144 +454,236 @@ export default function RiderView() {
     );
   };
 
-  // ── Bottom sheet states ──────────────────────────────────────────────────
-  const renderBottomSheet = () => {
-    switch (rideState) {
-      case 'IDLE':
-        return (
-          <View style={styles.bottomSheet}>
-            <Text style={[TYPOGRAPHY.h2, { marginBottom: 20 }]}>Where to?</Text>
-            <View style={styles.inputWrapper}>
-              <View style={styles.dotLine}>
-                <View style={styles.dot} />
-                <View style={styles.line} />
-                <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  style={[styles.input, pickupCoord && styles.inputConfirmed]}
-                  placeholder="Search pickup location..."
-                  placeholderTextColor={COLORS.textMuted}
-                  value={pickup}
-                  onChangeText={(t) => handleLocationSearch(t, 'pickup')}
-                  onFocus={() => setActiveInput('pickup')}
-                />
-                {renderSuggestions(pickupSuggestions, 'pickup')}
-                <TextInput
-                  style={[styles.input, { marginTop: 12 }, dropoffCoord && styles.inputConfirmed]}
-                  placeholder="Search dropoff location..."
-                  placeholderTextColor={COLORS.textMuted}
-                  value={dropoff}
-                  onChangeText={(t) => handleLocationSearch(t, 'dropoff')}
-                  onFocus={() => setActiveInput('dropoff')}
-                />
-                {renderSuggestions(dropoffSuggestions, 'dropoff')}
-              </View>
-            </View>
-            <TouchableOpacity
-              style={[styles.primaryBtn, (!pickupCoord || !dropoffCoord) && styles.primaryBtnDisabled]}
-              onPress={proceedToSelection}
-              disabled={!pickupCoord || !dropoffCoord}
-            >
-              <Text style={styles.primaryBtnText}>Find a Ride</Text>
-            </TouchableOpacity>
-          </View>
-        );
-
-      case 'SELECTING':
-        return (
-          <View style={styles.bottomSheet}>
-            <View style={styles.sheetHeader}>
-              <Text style={TYPOGRAPHY.h3}>Choose a ride</Text>
-              <TouchableOpacity onPress={() => setRideState('IDLE')}>
-                <Ionicons name="close-circle" size={28} color={COLORS.textMuted} />
+  // ── Rating modal ─────────────────────────────────────────────────────────
+  const renderRatingModal = () => {
+    if (!ratingRideId) return null;
+    return (
+      <View style={styles.ratingOverlay}>
+        <View style={styles.ratingCard}>
+          <Text style={[TYPOGRAPHY.h3, { marginBottom: 6 }]}>Ride completed!</Text>
+          <Text style={[TYPOGRAPHY.body2, { marginBottom: 20 }]}>How was your driver?</Text>
+          <View style={styles.starRow}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <TouchableOpacity key={n} disabled={submittingRating} onPress={() => submitRating(n)} style={{ padding: 6 }}>
+                <Ionicons name="star" size={36} color={COLORS.primary} />
               </TouchableOpacity>
-            </View>
-            
-            <View style={styles.routeSummary}>
-              <View style={styles.routeRow}>
-                <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
-                <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]} numberOfLines={1}>{pickup}</Text>
-              </View>
-              <View style={styles.routeDotLine} />
-              <View style={styles.routeRow}>
-                <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
-                <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]} numberOfLines={1}>{dropoff}</Text>
-              </View>
-            </View>
-
-            <View style={styles.rideOptionRow}>
-              <Ionicons name="car" size={40} color={COLORS.primary} style={{ marginRight: 15 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={TYPOGRAPHY.h4}>Guranda Standard</Text>
-                <Text style={TYPOGRAPHY.body2}>4 seats • 3 min</Text>
-              </View>
-              <Text style={TYPOGRAPHY.h3}>R50.00</Text>
-            </View>
-
-            <TouchableOpacity style={styles.primaryBtn} onPress={requestRide}>
-              <Text style={styles.primaryBtnText}>Confirm Ride</Text>
-            </TouchableOpacity>
+            ))}
           </View>
-        );
+          {submittingRating ? (
+            <ActivityIndicator color={COLORS.primary} style={{ marginTop: 10 }} />
+          ) : (
+            <TouchableOpacity onPress={() => setRatingRideId(null)} style={{ marginTop: 16 }}>
+              <Text style={[TYPOGRAPHY.body2, { color: COLORS.textMuted }]}>Skip</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
 
+  // ── IDLE: compact "Where to?" pill — the map does the talking ───────────
+  const renderIdleBar = () => (
+    <View style={styles.idleBarWrap}>
+      <TouchableOpacity style={styles.whereToPill} onPress={openSearch} activeOpacity={0.85}>
+        <View style={styles.whereToIconWrap}>
+          <Ionicons name="search" size={18} color={COLORS.textMuted} />
+        </View>
+        <Text style={styles.whereToText}>Where to?</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ── SEARCH: full-screen pickup/dropoff sheet ─────────────────────────────
+  const renderSearchSheet = () => (
+    <View style={[styles.searchSheet, { paddingTop: searchTopPadding }]}>
+      <View style={styles.searchHeader}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setRideState('IDLE')}>
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={[TYPOGRAPHY.h3, { marginLeft: 8 }]}>Plan your ride</Text>
+      </View>
+
+      <View style={styles.inputWrapper}>
+        <View style={styles.dotLine}>
+          <View style={styles.dot} />
+          <View style={styles.line} />
+          <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <TextInput
+            style={[styles.input, pickupCoord && styles.inputConfirmed]}
+            placeholder="Pickup location"
+            placeholderTextColor={COLORS.textMuted}
+            value={pickup}
+            onChangeText={(t) => handleLocationSearch(t, 'pickup')}
+            onFocus={() => setActiveInput('pickup')}
+          />
+          {renderSuggestionList(pickupSuggestions, 'pickup')}
+          <TextInput
+            style={[styles.input, { marginTop: 12 }, dropoffCoord && styles.inputConfirmed]}
+            placeholder="Where to?"
+            placeholderTextColor={COLORS.textMuted}
+            value={dropoff}
+            onChangeText={(t) => handleLocationSearch(t, 'dropoff')}
+            onFocus={() => setActiveInput('dropoff')}
+            autoFocus={!!pickupCoord}
+          />
+          {renderSuggestionList(dropoffSuggestions, 'dropoff')}
+        </View>
+      </View>
+
+      {activeInput === null && (
+        <Text style={[TYPOGRAPHY.caption, { marginTop: 4 }]}>
+          Select a pickup and a destination to see ride options.
+        </Text>
+      )}
+    </View>
+  );
+
+  // ── SELECTING: Uber-style ride option list ───────────────────────────────
+  const renderRideOptions = () => (
+    <View style={styles.bottomSheet}>
+      <View style={styles.sheetHeader}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setRideState('SEARCH')}>
+          <Ionicons name="arrow-back" size={20} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={TYPOGRAPHY.h3}>Choose a ride</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
+      <TouchableOpacity style={styles.routeSummary} onPress={() => setRideState('SEARCH')} activeOpacity={0.8}>
+        <View style={styles.routeRow}>
+          <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
+          <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]} numberOfLines={1}>{pickup}</Text>
+        </View>
+        <View style={styles.routeDotLine} />
+        <View style={styles.routeRow}>
+          <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
+          <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]} numberOfLines={1}>{dropoff}</Text>
+        </View>
+      </TouchableOpacity>
+
+      <View style={styles.optionList}>
+        <View style={[styles.optionRow, styles.optionRowSelected]}>
+          <View style={styles.optionIconWrap}>
+            <Ionicons name="car-sport" size={26} color={COLORS.text} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={TYPOGRAPHY.h4}>Guranda Standard</Text>
+            <Text style={TYPOGRAPHY.body2}>
+              {fareEstimate ? `${fareEstimate.distanceKm.toFixed(1)} km · ${fareEstimate.etaMinutes} min away` : 'Calculating...'}
+            </Text>
+          </View>
+          {fareEstimate ? (
+            <Text style={TYPOGRAPHY.h3}>{formatCurrency(fareEstimate.fare)}</Text>
+          ) : (
+            <ActivityIndicator color={COLORS.primary} />
+          )}
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, !fareEstimate && styles.primaryBtnDisabled]}
+        onPress={requestRide}
+        disabled={!fareEstimate}
+      >
+        <Text style={styles.primaryBtnText}>
+          {fareEstimate ? `Confirm · ${formatCurrency(fareEstimate.fare)}` : 'Confirm Ride'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ── REQUESTING / WAITING: matching animation ─────────────────────────────
+  const renderMatching = () => (
+    <View style={[styles.bottomSheet, styles.matchingSheet]}>
+      <ActivityIndicator size="small" color={COLORS.primary} style={{ marginBottom: 12 }} />
+      <Text style={TYPOGRAPHY.h4}>
+        {rideState === 'REQUESTING' ? 'Requesting your ride...' : 'Looking for nearby drivers...'}
+      </Text>
+      <Text style={[TYPOGRAPHY.body2, { marginTop: 6, textAlign: 'center' }]}>
+        We'll notify you as soon as a driver accepts.
+      </Text>
+      <TouchableOpacity onPress={cancelRide} disabled={cancelling} style={{ marginTop: 16 }}>
+        <Text style={[TYPOGRAPHY.body2, { color: COLORS.textMuted, textDecorationLine: 'underline' }]}>
+          {cancelling ? 'Cancelling...' : 'Cancel'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ── ACCEPTED / IN_PROGRESS: compact driver trip card ─────────────────────
+  const renderTripCard = () => (
+    <View style={styles.bottomSheet}>
+      <View style={styles.etaPill}>
+        <Ionicons name="time-outline" size={14} color={COLORS.primary} />
+        <Text style={styles.etaPillText}>
+          {rideState === 'ACCEPTED'
+            ? `Driver arriving${routeEtaMin ?? fareEstimate?.etaMinutes ? ` in ${routeEtaMin ?? fareEstimate?.etaMinutes} min` : ''}`
+            : 'On your way'}
+        </Text>
+      </View>
+      {routeUnavailable && (
+        <Text style={[TYPOGRAPHY.caption, { marginTop: -10, marginBottom: 10 }]}>
+          Road route unavailable right now — showing a direct line.
+        </Text>
+      )}
+
+      <View style={styles.driverInfoCard}>
+        <View style={styles.driverAvatar}>
+          <Ionicons name="person" size={26} color={COLORS.text} />
+        </View>
+        <View style={{ flex: 1, marginLeft: 14 }}>
+          <Text style={TYPOGRAPHY.h4}>{activeRide?.driver?.username || 'Driver'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+            <Ionicons name="star" size={13} color={COLORS.gold} />
+            <Text style={[TYPOGRAPHY.body2, { marginLeft: 4 }]}>
+              {(activeRide?.driverProfile?.rating ?? 5).toFixed(1)} · {activeRide?.driverProfile?.totalRides ?? 0} rides
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.messageBtn} onPress={messageDriver} disabled={messaging || !navigation}>
+          {messaging ? (
+            <ActivityIndicator size="small" color={COLORS.text} />
+          ) : (
+            <Ionicons name="chatbubble-ellipses" size={18} color={COLORS.text} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.vehiclePlateRow}>
+        <Text style={TYPOGRAPHY.body2}>{activeRide?.driverProfile?.vehicleModel || 'Vehicle'}</Text>
+        <View style={styles.plateChip}>
+          <Text style={styles.plateChipText}>{activeRide?.driverProfile?.vehiclePlate || '—'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.destinationRow}>
+        <Ionicons name="location" size={16} color={COLORS.secondary} />
+        <Text style={[TYPOGRAPHY.body1, { flex: 1, marginLeft: 8 }]} numberOfLines={1}>{activeRide?.dropoffAddress}</Text>
+        {!!activeRide?.fare && <Text style={TYPOGRAPHY.body2}>{formatCurrency(activeRide.fare)}</Text>}
+      </View>
+
+      {rideState === 'ACCEPTED' && (
+        <TouchableOpacity onPress={cancelRide} disabled={cancelling} style={{ marginTop: 14, alignItems: 'center' }}>
+          <Text style={[TYPOGRAPHY.body2, { color: COLORS.textMuted }]}>
+            {cancelling ? 'Cancelling...' : 'Cancel Ride'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const renderBottomContent = () => {
+    switch (rideState) {
+      case 'IDLE': return renderIdleBar();
+      case 'SEARCH': return renderSearchSheet();
+      case 'SELECTING': return renderRideOptions();
       case 'REQUESTING':
-      case 'WAITING':
-        return (
-          <View style={[styles.bottomSheet, { alignItems: 'center', paddingVertical: 40 }]}>
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
-            <Text style={TYPOGRAPHY.h3}>
-              {rideState === 'REQUESTING' ? 'Requesting...' : 'Finding your driver...'}
-            </Text>
-            <Text style={[TYPOGRAPHY.body2, { marginTop: 10, textAlign: 'center' }]}>
-              Please wait while we connect you with the nearest available driver.
-            </Text>
-          </View>
-        );
-
+      case 'WAITING': return renderMatching();
       case 'ACCEPTED':
-      case 'IN_PROGRESS':
-        return (
-          <View style={styles.bottomSheet}>
-            <View style={styles.sheetHeader}>
-              <Text style={TYPOGRAPHY.h3}>
-                {rideState === 'ACCEPTED' ? 'Driver is arriving' : 'On your way!'}
-              </Text>
-              <View style={styles.etaBadge}>
-                <Text style={styles.etaText}>3 MIN</Text>
-              </View>
-            </View>
-            
-            <View style={styles.driverInfoCard}>
-              <View style={styles.driverAvatar}>
-                <Ionicons name="person" size={24} color={COLORS.text} />
-              </View>
-              <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={TYPOGRAPHY.h4}>{activeRide?.driver?.username || 'Driver'}</Text>
-                <Text style={TYPOGRAPHY.body2}>4.9 ★ • 1,204 rides</Text>
-              </View>
-              <View style={styles.carPlate}>
-                <Text style={styles.plateText}>ABC 123 GP</Text>
-                <Text style={TYPOGRAPHY.caption}>Toyota Corolla</Text>
-              </View>
-            </View>
-
-            <View style={styles.rideDetails}>
-              <Text style={TYPOGRAPHY.body1}>➔ {activeRide?.dropoffAddress}</Text>
-            </View>
-          </View>
-        );
-
-      default:
-        // Fallback — show IDLE "Where to?" so the screen is never blank
-        return (
-          <View style={styles.bottomSheet}>
-            <Text style={[TYPOGRAPHY.h2, { marginBottom: 20 }]}>Where to?</Text>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => setRideState('IDLE')}>
-              <Text style={styles.primaryBtnText}>Start</Text>
-            </TouchableOpacity>
-          </View>
-        );
+      case 'IN_PROGRESS': return renderTripCard();
+      default: return renderIdleBar();
     }
   };
 
@@ -366,14 +692,36 @@ export default function RiderView() {
     const liveDriverPin = liveDriverCoord
       ? [{ id: 'live-driver', lat: liveDriverCoord.lat, lng: liveDriverCoord.lng, name: activeRide?.driver?.username || 'Driver', car: '🚗 En route' }]
       : [];
+    const idleDriverPins = nearbyDrivers.map((d) => ({
+      id: d.userId,
+      lat: d.lat,
+      lng: d.lng,
+      name: 'Driver nearby',
+      car: d.vehicleModel || undefined,
+    }));
+    const showIdlePins = rideState === 'IDLE' || rideState === 'SEARCH' || rideState === 'SELECTING';
+
+    // Real OSRM road route when available (fetched in the effect above);
+    // falls back to an honest straight dashed line while loading/unavailable
+    // — never presented as if it were the real route.
+    const straightFallback: { lat: number; lng: number }[] =
+      rideState === 'ACCEPTED' && pickupCoord && dropoffCoord
+        ? [liveDriverCoord ?? pickupCoord, pickupCoord, dropoffCoord]
+        : rideState === 'IN_PROGRESS' && dropoffCoord
+        ? [liveDriverCoord ?? dropoffCoord, dropoffCoord]
+        : [];
+    const hasRealRoute = routePoints.length > 1;
+    const displayRoute = hasRealRoute ? routePoints : straightFallback;
 
     if (Platform.OS === 'web' && LeafletMap) {
       return (
         <LeafletMap
-          center={{ lat: INITIAL_REGION.latitude, lng: INITIAL_REGION.longitude }}
+          center={{ lat: mapCenter.lat, lng: mapCenter.lng }}
           pickupCoord={pickupCoord}
           dropoffCoord={dropoffCoord}
-          driverPins={rideState === 'IDLE' ? DUMMY_DRIVERS : liveDriverPin}
+          driverPins={showIdlePins ? idleDriverPins : liveDriverPin}
+          route={displayRoute.length > 1 ? displayRoute : undefined}
+          routeIsApproximate={!hasRealRoute}
         />
       );
     }
@@ -383,7 +731,7 @@ export default function RiderView() {
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFill}
-          initialRegion={INITIAL_REGION}
+          initialRegion={deviceLocation ? { latitude: deviceLocation.lat, longitude: deviceLocation.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : INITIAL_REGION}
           customMapStyle={mapStyle}
           showsUserLocation={true}
         >
@@ -393,12 +741,12 @@ export default function RiderView() {
           {Marker && dropoffCoord && (
             <Marker coordinate={{ latitude: dropoffCoord.lat, longitude: dropoffCoord.lng }} title="Dropoff" pinColor={COLORS.secondary} />
           )}
-          {Marker && rideState === 'IDLE' && DUMMY_DRIVERS.map(driver => (
+          {Marker && showIdlePins && nearbyDrivers.map((driver) => (
             <Marker
-              key={driver.id}
+              key={driver.userId}
               coordinate={{ latitude: driver.lat, longitude: driver.lng }}
-              title={driver.name}
-              description={driver.car}
+              title="Driver nearby"
+              description={driver.vehicleModel || undefined}
               pinColor={COLORS.secondary}
             />
           ))}
@@ -408,6 +756,14 @@ export default function RiderView() {
               title={activeRide?.driver?.username || 'Driver'}
               description="On the way"
               pinColor="#f59e0b"
+            />
+          )}
+          {Polyline && displayRoute.length > 1 && (
+            <Polyline
+              coordinates={displayRoute.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+              strokeColor={COLORS.primary}
+              strokeWidth={hasRealRoute ? 4 : 3}
+              lineDashPattern={hasRealRoute ? undefined : [6, 8]}
             />
           )}
         </MapView>
@@ -426,9 +782,20 @@ export default function RiderView() {
   return (
     <View style={styles.container}>
       {renderMap()}
-      <View style={styles.bottomSheetContainer}>
-        {renderBottomSheet()}
+      {(rideState === 'REQUESTING' || rideState === 'WAITING') && (
+        <View style={styles.radarWrap}>
+          <PulsingRadar />
+        </View>
+      )}
+      <View
+        style={[
+          rideState === 'SEARCH' ? styles.searchSheetContainer : styles.bottomSheetContainer,
+          rideState === 'SEARCH' ? { paddingBottom: tabBarHeight } : { bottom: tabBarHeight },
+        ]}
+      >
+        {renderBottomContent()}
       </View>
+      {renderRatingModal()}
     </View>
   );
 }
@@ -449,23 +816,70 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(7, 7, 12, 0.5)',
   },
-  bottomSheetContainer: {
+  radarWrap: {
     position: 'absolute',
-    bottom: 0,
+    top: '28%',
     left: 0,
     right: 0,
+    alignItems: 'center',
+  },
+
+  // ── IDLE compact pill ────────────────────────────────────────────────────
+  // Not absolutely positioned — its parent (bottomSheetContainer) already is,
+  // offset above the persistent tab bar, so this just fills that naturally.
+  idleBarWrap: {
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xl,
+  },
+  whereToPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: RADIUS.pill,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     ...SHADOW.glow,
   },
-  bottomSheet: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    padding: 20,
-    paddingBottom: 40,
+  whereToIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  whereToText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // ── SEARCH full-screen sheet ─────────────────────────────────────────────
+  searchSheetContainer: {
+    ...StyleSheet.absoluteFill,
+  },
+  searchSheet: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    padding: SPACING.lg,
+    paddingTop: SPACING.xxl,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   inputWrapper: {
     flexDirection: 'row',
-    marginBottom: 20,
   },
   dotLine: {
     width: 20,
@@ -497,51 +911,58 @@ const styles = StyleSheet.create({
   inputConfirmed: {
     borderColor: COLORS.primary + '60',
   },
-  suggestionBox: {
+  suggestionList: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
-    marginTop: 4,
-    maxHeight: 150,
+    marginTop: 6,
+    maxHeight: 320,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  suggestionItem: {
+  suggestionRow: {
     flexDirection: 'row',
-    padding: 12,
+    alignItems: 'flex-start',
+    padding: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
+  },
+  suggestionIconWrap: {
+    width: 28,
+    alignItems: 'center',
+    marginTop: 1,
   },
   suggestionText: {
     color: COLORS.text,
     fontSize: 14,
     flex: 1,
   },
-  primaryBtn: {
-    backgroundColor: COLORS.primary,
-    padding: 18,
-    borderRadius: RADIUS.lg,
-    alignItems: 'center',
-    marginTop: 10,
+
+  // ── Bottom sheet (SELECTING / matching / trip card) ──────────────────────
+  bottomSheetContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    ...SHADOW.glow,
   },
-  primaryBtnDisabled: {
-    opacity: 0.5,
-  },
-  primaryBtnText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 18,
+  bottomSheet: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: 20,
+    paddingBottom: 36,
   },
   sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   routeSummary: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 14,
   },
   routeRow: {
     flexDirection: 'row',
@@ -559,55 +980,134 @@ const styles = StyleSheet.create({
     marginLeft: 3,
     marginVertical: 2,
   },
-  rideOptionRow: {
+  optionList: {
+    marginBottom: 16,
+  },
+  optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    marginBottom: 15,
+    padding: 14,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  optionRowSelected: {
+    backgroundColor: COLORS.primary + '18',
+    borderColor: COLORS.primary + '60',
+  },
+  optionIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryBtn: {
+    backgroundColor: COLORS.primary,
+    padding: 18,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+  },
+  primaryBtnDisabled: {
+    opacity: 0.5,
+  },
+  primaryBtnText: {
+    color: COLORS.text,
+    fontWeight: 'bold',
+    fontSize: 17,
+  },
+
+  // ── Matching (REQUESTING / WAITING) ───────────────────────────────────────
+  matchingSheet: {
+    alignItems: 'center',
+    paddingVertical: 28,
+  },
+
+  // ── Trip card (ACCEPTED / IN_PROGRESS) ────────────────────────────────────
+  etaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.primary + '20',
+    borderRadius: RADIUS.pill,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  etaPillText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 13,
+    marginLeft: 6,
   },
   driverInfoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: RADIUS.lg,
-    marginBottom: 15,
+    marginBottom: 12,
   },
   driverAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  carPlate: {
-    alignItems: 'flex-end',
+  messageBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  plateText: {
+  vehiclePlateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  plateChip: {
+    backgroundColor: COLORS.border,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.sm,
+  },
+  plateChipText: {
     color: COLORS.text,
     fontWeight: 'bold',
-    backgroundColor: COLORS.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginBottom: 4,
+    letterSpacing: 0.5,
   },
-  etaBadge: {
-    backgroundColor: COLORS.primary + '30',
-    paddingHorizontal: 12,
+  destinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 6,
-    borderRadius: RADIUS.pill,
   },
-  etaText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
+
+  // ── Rating modal ──────────────────────────────────────────────────────────
+  ratingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
-  rideDetails: {
-    padding: 10,
-  }
+  ratingCard: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: RADIUS.xl,
+    padding: 24,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+  },
+  starRow: {
+    flexDirection: 'row',
+  },
 });
 
 // A standard dark theme map style (native only)

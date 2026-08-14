@@ -1,4 +1,4 @@
-// components/ride/LeafletMap.web.tsx
+// components/LeafletMap.web.tsx
 // Web-only interactive map using Leaflet loaded from CDN.
 // Metro will automatically prefer this file over LeafletMap.tsx for web bundles.
 
@@ -21,6 +21,12 @@ interface Props {
   dropoffCoord?: Coord | null;
   driverPins?: DriverPin[];
   liveDriverCoord?: Coord | null;
+  /** Live rider position — for DriverView's map, no turn-by-turn routing behind this, just a live pin. */
+  riderCoord?: Coord | null;
+  /** Path points to draw — real OSRM road geometry when available, otherwise a straight-line fallback (see routeIsApproximate). */
+  route?: Coord[];
+  /** True when `route` is the straight-line fallback (OSRM unavailable), not a real road route — drawn dashed instead of solid to say so honestly. */
+  routeIsApproximate?: boolean;
   onMapTap?: (coord: Coord) => void;
   style?: any;
 }
@@ -33,6 +39,9 @@ export default function LeafletMap({
   dropoffCoord,
   driverPins = [],
   liveDriverCoord,
+  riderCoord,
+  route,
+  routeIsApproximate,
   onMapTap,
   style,
 }: Props) {
@@ -42,6 +51,8 @@ export default function LeafletMap({
   const dropoffRef = useRef<any>(null);
   const driverRefs = useRef<any[]>([]);
   const liveDriverRef = useRef<any>(null);
+  const riderRef = useRef<any>(null);
+  const routeRef = useRef<any>(null);
   const [ready, setReady] = useState(
     typeof window !== 'undefined' && !!window.L
   );
@@ -201,6 +212,37 @@ export default function LeafletMap({
       .bindPopup('<b>🚗 Driver is here</b>');
     mapRef.current.panTo([liveDriverCoord.lat, liveDriverCoord.lng], { animate: true, duration: 0.5 });
   }, [liveDriverCoord]);
+
+  // ── 7b. Live rider marker (for DriverView) ───────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !window.L) return;
+    const L = window.L;
+    if (riderRef.current) { riderRef.current.remove(); riderRef.current = null; }
+    if (!riderCoord) return;
+    const icon = L.divIcon({
+      html: `<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));">🧍</div>`,
+      iconSize: [24, 24], iconAnchor: [12, 12], className: '',
+    });
+    riderRef.current = L.marker([riderCoord.lat, riderCoord.lng], { icon })
+      .addTo(mapRef.current)
+      .bindPopup('<b>🧍 Rider</b>');
+  }, [riderCoord]);
+
+  // ── 7c. Route line — real OSRM road geometry when available, otherwise a
+  // dashed straight-line fallback (routeIsApproximate) so the difference is
+  // visible, never presented as if it were the real route ────────────────
+  useEffect(() => {
+    if (!mapRef.current || !window.L) return;
+    const L = window.L;
+    if (routeRef.current) { routeRef.current.remove(); routeRef.current = null; }
+    if (!route || route.length < 2) return;
+    routeRef.current = L.polyline(
+      route.map(p => [p.lat, p.lng]),
+      routeIsApproximate
+        ? { color: '#8B5CF6', weight: 3, opacity: 0.7, dashArray: '6, 8' }
+        : { color: '#8B5CF6', weight: 5, opacity: 0.9 },
+    ).addTo(mapRef.current);
+  }, [route, routeIsApproximate]);
 
   // ── 8. Cleanup on unmount ────────────────────────────────────────────────
   useEffect(() => {

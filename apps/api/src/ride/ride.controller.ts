@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
   Param,
+  Query,
 } from '@nestjs/common';
 import { RideService } from './ride.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
@@ -38,16 +39,49 @@ export class RideController {
       req.user.userId,
       body.isOnline,
     );
-    // Broadcast status to riders?
+    this.rideGateway.broadcastLobbyUpdate({
+      userId: req.user.userId,
+      isOnline: profile.isOnline,
+      lat: profile.currentLat,
+      lng: profile.currentLng,
+      vehicleModel: profile.vehicleModel,
+      rating: profile.rating,
+    });
     return profile;
+  }
+
+  @Get('fare-estimate')
+  async getFareEstimate(
+    @Query('pickupLat') pickupLat: string,
+    @Query('pickupLng') pickupLng: string,
+    @Query('dropoffLat') dropoffLat: string,
+    @Query('dropoffLng') dropoffLng: string,
+  ) {
+    return this.rideService.getFareEstimate(
+      parseFloat(pickupLat),
+      parseFloat(pickupLng),
+      parseFloat(dropoffLat),
+      parseFloat(dropoffLng),
+    );
+  }
+
+  @Get('drivers/nearby')
+  async getNearbyOnlineDrivers(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+  ) {
+    return this.rideService.getNearbyOnlineDrivers(parseFloat(lat), parseFloat(lng));
   }
 
   @Post('rider/request')
   async requestRide(@Request() req: any, @Body() body: any) {
-    const ride = await this.rideService.requestRide(req.user.userId, body);
+    const { ride, matchedDriverIds } = await this.rideService.requestRide(
+      req.user.userId,
+      body,
+    );
 
-    // Broadcast to online drivers
-    this.rideGateway.server.emit('rideRequested', ride);
+    // Targeted — only the matched nearby drivers hear about this request.
+    this.rideGateway.notifyDrivers(matchedDriverIds, 'rideRequested', ride);
     return ride;
   }
 
@@ -55,15 +89,22 @@ export class RideController {
   async acceptRide(@Request() req: any, @Param('rideId') rideId: string) {
     const ride = await this.rideService.acceptRide(req.user.userId, rideId);
 
-    // Notify the specific rider via their userId room
-    this.rideGateway.server.to(ride.riderId).emit('rideAccepted', ride);
-
-    // Also emit to the ride-specific room for anyone already listening
-    this.rideGateway.server.to(`ride_${rideId}`).emit('rideAccepted', ride);
-
-    // Broadcast to all drivers that this ride is no longer available
+    this.rideGateway.broadcastToUser(ride.riderId, 'rideAccepted', ride);
+    this.rideGateway.broadcastToRide(rideId, 'rideAccepted', ride);
+    // Every other driver who saw the request needs to know it's gone —
+    // still a broadcast (no per-driver targeting list retained past the
+    // original request), which is fine since it's a small "remove this from
+    // your incoming list" signal, not the fare/PII-bearing ride payload.
     this.rideGateway.server.emit('rideUnavailable', { rideId });
 
+    return ride;
+  }
+
+  @Post('driver/start/:rideId')
+  async startRide(@Request() req: any, @Param('rideId') rideId: string) {
+    const ride = await this.rideService.startRide(req.user.userId, rideId);
+    this.rideGateway.broadcastToUser(ride.riderId, 'rideStarted', ride);
+    this.rideGateway.broadcastToRide(rideId, 'rideStarted', ride);
     return ride;
   }
 
@@ -71,13 +112,36 @@ export class RideController {
   async completeRide(@Request() req: any, @Param('rideId') rideId: string) {
     const ride = await this.rideService.completeRide(req.user.userId, rideId);
 
-    // Notify rider via their userId room
-    this.rideGateway.server.to(ride.riderId).emit('rideCompleted', ride);
-
-    // Also emit to the ride-specific room
-    this.rideGateway.server.to(`ride_${rideId}`).emit('rideCompleted', ride);
+    this.rideGateway.broadcastToUser(ride.riderId, 'rideCompleted', ride);
+    this.rideGateway.broadcastToRide(rideId, 'rideCompleted', ride);
 
     return ride;
+  }
+
+  @Post('rider/cancel/:rideId')
+  async cancelRideAsRider(@Request() req: any, @Param('rideId') rideId: string) {
+    const ride = await this.rideService.cancelRide(req.user.userId, rideId, 'RIDER');
+    if (ride.driverId) this.rideGateway.broadcastToUser(ride.driverId, 'rideCancelled', ride);
+    this.rideGateway.broadcastToRide(rideId, 'rideCancelled', ride);
+    this.rideGateway.server.emit('rideUnavailable', { rideId });
+    return ride;
+  }
+
+  @Post('driver/cancel/:rideId')
+  async cancelRideAsDriver(@Request() req: any, @Param('rideId') rideId: string) {
+    const ride = await this.rideService.cancelRide(req.user.userId, rideId, 'DRIVER');
+    this.rideGateway.broadcastToUser(ride.riderId, 'rideCancelled', ride);
+    this.rideGateway.broadcastToRide(rideId, 'rideCancelled', ride);
+    return ride;
+  }
+
+  @Post('rider/rate/:rideId')
+  async rateDriver(
+    @Request() req: any,
+    @Param('rideId') rideId: string,
+    @Body() body: { rating: number },
+  ) {
+    return this.rideService.rateDriver(req.user.userId, rideId, body.rating);
   }
 
   @Get('driver/active-ride')

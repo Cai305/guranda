@@ -42,9 +42,9 @@ export default function RideScreen({ navigation }: any) {
       {/* Full Screen View for Rider or Driver */}
       <View style={StyleSheet.absoluteFill}>
         {mode === 'rider' ? (
-          <RiderView />
+          <RiderView navigation={navigation} />
         ) : (
-          <DriverView />
+          <DriverView navigation={navigation} />
         )}
       </View>
 

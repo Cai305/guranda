@@ -73,6 +73,25 @@ class RideSocketService {
     }
   }
 
+  /** Idle riders join this to receive live nearby-driver updates. */
+  joinLobby() {
+    if (this.socket) this.socket.emit('joinLobby');
+  }
+
+  leaveLobby() {
+    if (this.socket) this.socket.emit('leaveLobby');
+  }
+
+  /** Continuous driver-location relay — call with no rideId while online/idle, with rideId once a ride is active. */
+  updateDriverLocation(lat: number, lng: number, rideId?: string) {
+    if (this.socket) this.socket.emit('updateDriverLocation', { lat, lng, rideId });
+  }
+
+  /** Rider's live position mid-ride, so the driver can see it too. */
+  updateRiderLocation(lat: number, lng: number, rideId: string) {
+    if (this.socket) this.socket.emit('updateRiderLocation', { lat, lng, rideId });
+  }
+
   joinOrderRoom(orderId: string) {
     if (this.socket) {
       this.socket.emit('joinOrderRoom', orderId);
