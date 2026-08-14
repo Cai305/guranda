@@ -46,7 +46,7 @@ export default function ExploreScreen({ navigation }: any) {
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [challengeCategory, setChallengeCategory] = useState<string | null>(null);
   const [challengeSubTab, setChallengeSubTab] = useState<'feed' | 'browse'>('feed');
-  const [trending, setTrending] = useState<{ posts: PostDto[]; challenges: ChallengeSummary[]; live: RealLiveStream[] } | null>(null);
+  const [trending, setTrending] = useState<{ posts: PostDto[]; challenges: ChallengeSummary[]; live: RealLiveStream[]; trends: any[]; trendLabels: { label: string; count: number }[] } | null>(null);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -114,6 +114,8 @@ export default function ExploreScreen({ navigation }: any) {
           posts: data.posts,
           challenges: data.challenges,
           live: (data.live as any[]).map(toLiveStream),
+          trends: data.trends ?? [],
+          trendLabels: data.trendLabels ?? [],
         });
       }
     } catch (e) {
@@ -121,6 +123,20 @@ export default function ExploreScreen({ navigation }: any) {
     } finally {
       setTrendingLoading(false);
     }
+  };
+
+  // Trend stories come back with a flattened `author` (not the nested
+  // `user` shape StoryViewerScreen's groups expect) — reshape into a single
+  // one-story "group" so the existing full-screen viewer just works.
+  const openTrendStory = (story: any) => {
+    navigation.navigate('StoryViewer', {
+      groups: [{ userId: story.userId, user: story.author, stories: [story] }],
+      initialGroupIndex: 0,
+    });
+  };
+
+  const uploadTrend = (label?: string) => {
+    navigation.navigate('CreateStory', label ? { mode: 'trend', label } : { mode: 'trend' });
   };
 
   const fetchFeed = async () => {
@@ -573,6 +589,107 @@ export default function ExploreScreen({ navigation }: any) {
       shadowRadius: 4,
     },
 
+    // ── Trends (Trending tab) ────────────────────────────────
+    trendsHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      marginTop: 8,
+      marginBottom: 10,
+    },
+    uploadTrendBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: RADIUS.pill,
+    },
+    uploadTrendBtnText: {
+      color: COLORS.surface,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    trendChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+    },
+    trendChipText: {
+      color: COLORS.text,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    trendChipCount: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+    },
+    trendCard: {
+      width: 130,
+    },
+    trendCardImage: {
+      width: 130,
+      height: 170,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.surface,
+    },
+    trendCardImageFallback: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    trendCardFallbackText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      textAlign: 'center',
+    },
+    trendCardLabelChip: {
+      position: 'absolute',
+      top: 8,
+      left: 8,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: RADIUS.pill,
+    },
+    trendCardLabelText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 11,
+    },
+    trendCardAuthor: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      marginTop: 6,
+    },
+    trendEmptyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginHorizontal: 20,
+      marginBottom: 8,
+      padding: 14,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    trendEmptyText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      flex: 1,
+    },
+
     // ── Challenge sub-tabs ──────────────────────────────────
     challengeSubTabRow: {
       flexDirection: 'row',
@@ -852,6 +969,60 @@ export default function ExploreScreen({ navigation }: any) {
           onRefresh={fetchTrending}
           ListHeaderComponent={
             <>
+              <View style={styles.trendsHeaderRow}>
+                <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800' }}>✨ Trends</Text>
+                <TouchableOpacity style={styles.uploadTrendBtn} activeOpacity={0.85} onPress={() => uploadTrend()}>
+                  <Ionicons name="add" size={16} color={COLORS.surface} />
+                  <Text style={styles.uploadTrendBtnText}>Upload</Text>
+                </TouchableOpacity>
+              </View>
+              {!!trending?.trendLabels.length && (
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={trending.trendLabels}
+                  keyExtractor={(item) => item.label}
+                  contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 12 }}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.trendChip} activeOpacity={0.8} onPress={() => uploadTrend(item.label)}>
+                      <Text style={styles.trendChipText}>#{item.label}</Text>
+                      <Text style={styles.trendChipCount}>{item.count}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+              {trending?.trends.length ? (
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={trending.trends}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={{ paddingHorizontal: 20, gap: 12, marginBottom: 4 }}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.trendCard} activeOpacity={0.85} onPress={() => openTrendStory(item)}>
+                      {item.mediaUrl ? (
+                        <ExpoImage source={{ uri: item.mediaUrl }} style={styles.trendCardImage} contentFit="cover" />
+                      ) : (
+                        <View style={[styles.trendCardImage, styles.trendCardImageFallback]}>
+                          <Text numberOfLines={4} style={styles.trendCardFallbackText}>{item.textContent || '✨'}</Text>
+                        </View>
+                      )}
+                      <View style={styles.trendCardLabelChip}>
+                        <Text style={styles.trendCardLabelText}>#{item.label}</Text>
+                      </View>
+                      <Text style={styles.trendCardAuthor} numberOfLines={1}>{item.author?.displayName || item.author?.username}</Text>
+                    </TouchableOpacity>
+                  )}
+                  style={{ marginBottom: 8 }}
+                />
+              ) : (
+                !trendingLoading && (
+                  <TouchableOpacity style={styles.trendEmptyRow} activeOpacity={0.85} onPress={() => uploadTrend()}>
+                    <Ionicons name="sparkles-outline" size={18} color={COLORS.textMuted} />
+                    <Text style={styles.trendEmptyText}>No trends yet — be the first to post an OOTD, FOTD, or your own.</Text>
+                  </TouchableOpacity>
+                )
+              )}
               {!!trending?.live.length && (
                 <>
                   <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 8, marginBottom: 10 }}>
@@ -913,8 +1084,8 @@ export default function ExploreScreen({ navigation }: any) {
       ) : null}
 
       {activeTab === 'feed' ? (
-        <TouchableOpacity 
-          style={styles.fab} 
+        <TouchableOpacity
+          style={styles.fab}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('CreatePost')}
         >

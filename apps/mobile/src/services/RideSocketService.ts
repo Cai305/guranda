@@ -6,29 +6,47 @@ import { Platform } from 'react-native';
 class RideSocketService {
   public socket: Socket | null = null;
   private connectPromise: Promise<Socket | null> | null = null;
+  // The token the current socket (or in-flight connection attempt) was
+  // opened with. `connect()` compares this against the currently stored
+  // token on every call — without it, once connected this class would
+  // memoize `connectPromise` forever and just hand back the same socket
+  // regardless of who's actually signed in now, even after a logout +
+  // different-account login with no app restart in between. That socket
+  // is still joined to the OLD user's server-side room, so every per-user
+  // push meant for the new user (rideRequested, rideAccepted, ...) has
+  // nowhere to land — this is what made matched drivers never receive
+  // 'rideRequested' after an account switch.
+  private connectedToken: string | null = null;
+
+  private async readToken(): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      try { return localStorage.getItem('userToken'); } catch { return null; }
+    }
+    return SecureStore.getItemAsync('userToken');
+  }
 
   /**
    * Returns a promise that resolves once the socket is connected.
-   * Subsequent calls return the same promise (idempotent).
+   * Reuses the existing connection only while it's still for the
+   * currently-stored token; otherwise tears it down and reconnects fresh.
    */
   async connect(): Promise<Socket | null> {
-    if (this.connectPromise) return this.connectPromise;
+    const token = await this.readToken();
+    if (!token) {
+      console.warn('RideSocket: no auth token, skipping connect');
+      this.disconnect();
+      return null;
+    }
 
-    this.connectPromise = new Promise<Socket | null>(async (resolve) => {
+    if (this.connectPromise && this.connectedToken === token) {
+      return this.connectPromise;
+    }
+
+    this.disconnect();
+    this.connectedToken = token;
+
+    this.connectPromise = new Promise<Socket | null>((resolve) => {
       try {
-        let token: string | null = null;
-        if (Platform.OS === 'web') {
-          try { token = localStorage.getItem('userToken'); } catch {}
-        } else {
-          token = await SecureStore.getItemAsync('userToken');
-        }
-
-        if (!token) {
-          console.warn('RideSocket: no auth token, skipping connect');
-          resolve(null);
-          return;
-        }
-
         this.socket = io(`${API_BASE_URL}/ride`, {
           query: { userId: token },
           transports: ['websocket', 'polling'],
@@ -59,6 +77,7 @@ class RideSocketService {
       this.socket = null;
     }
     this.connectPromise = null;
+    this.connectedToken = null;
   }
 
   joinRideRoom(rideId: string) {

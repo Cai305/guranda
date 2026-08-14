@@ -5,6 +5,7 @@ import { API_BASE_URL, setOnUnauthorized } from '../utils/api';
 import { clearApiCache } from '../utils/apiCache';
 import { syncPushToken } from '../utils/pushNotifications';
 import { syncLocation } from '../utils/locationSync';
+import { rideSocket } from '../services/RideSocketService';
 
 const LOCATION_REFRESH_MS = 5 * 60 * 1000;
 
@@ -143,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await deleteStorageItemAsync('userToken');
     await deleteStorageItemAsync('userData');
     await clearApiCache();
+    rideSocket.disconnect();
   };
 
   const clearSessionExpired = () => setSessionExpired(false);
@@ -158,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setVerificationStatus(null);
     setSessionExpired(true);
     clearApiCache();
+    rideSocket.disconnect();
   };
 
   // fetchApi has already cleared storage by the time this fires (see

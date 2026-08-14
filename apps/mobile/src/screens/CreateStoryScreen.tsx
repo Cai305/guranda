@@ -53,13 +53,18 @@ export default function CreateStoryScreen({ navigation, route }: any) {
   // the Day"), never shoppable (no Link Products / Wearing sections), and
   // only visible to accepted friends server-side.
   const isStatusMode = route?.params?.mode === 'status';
+  // Trend = jumping straight into an "of the Day" post from the Trending
+  // tab's upload entry point — same post type as picking "Of the Day" from
+  // General Story, just pre-selected (and optionally pre-labeled when
+  // launched from a specific trend chip) so there's no extra tap.
+  const isTrendMode = route?.params?.mode === 'trend';
   const [text, setText] = useState('');
   const [selectedBg, setSelectedBg] = useState(0);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [postType, setPostType] = useState<'general' | 'ofTheDay'>('general');
-  const [label, setLabel] = useState('');
+  const [postType, setPostType] = useState<'general' | 'ofTheDay'>(isTrendMode ? 'ofTheDay' : 'general');
+  const [label, setLabel] = useState<string>(isTrendMode && route?.params?.label ? String(route.params.label) : '');
   const [items, setItems] = useState<WearingItem[]>([]);
 
   const [musicUri, setMusicUri] = useState<string | null>(null);
@@ -423,7 +428,7 @@ export default function CreateStoryScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="close" size={26} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isStatusMode ? 'New Status' : 'New Story'}</Text>
+        <Text style={styles.headerTitle}>{isStatusMode ? 'New Status' : isTrendMode ? 'New Trend' : 'New Story'}</Text>
         <TouchableOpacity onPress={publish} style={styles.postBtn} disabled={loading}>
           {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postBtnText}>Share</Text>}
         </TouchableOpacity>

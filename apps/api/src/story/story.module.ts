@@ -9,5 +9,6 @@ import { FriendsModule } from '../friends/friends.module';
   imports: [FriendsModule],
   controllers: [StoryController],
   providers: [StoryService, PrismaService, StoryAiToolsProvider],
+  exports: [StoryService],
 })
 export class StoryModule {}
