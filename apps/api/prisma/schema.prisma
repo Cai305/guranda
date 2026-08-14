@@ -39,6 +39,8 @@ model User {
   profile                      UserProfile?
   wallet                       Wallet?
   depositRequests              DepositRequest[]
+  paymentRequestsMade          PaymentRequest[]           @relation("paymentRequestsMade")
+  paymentRequestsReceived      PaymentRequest[]           @relation("paymentRequestsReceived")
   toolExecutionLogs            ToolExecutionLog[]
   sentMessages                 Message[]
   chatMemberships              ChatMember[]
@@ -266,6 +268,27 @@ model Notification {
   createdAt DateTime  @default(now())
 
   @@index([userId, readAt])
+}
+
+// Peer-to-peer "ask someone to pay you" primitive — the Financial Engine's
+// requestPayment(), and the real feature behind WalletScreen's previously-
+// disabled "Request" button. Distinct from DepositRequest (fiat->MSH) and
+// WalletHold (a spend reservation): this never touches balanceMasheleni
+// itself — accepting one just triggers a normal sendMasheleni transfer.
+model PaymentRequest {
+  id          String    @id @default(uuid())
+  requesterId String
+  requester   User      @relation("paymentRequestsMade", fields: [requesterId], references: [id])
+  payerId     String
+  payer       User      @relation("paymentRequestsReceived", fields: [payerId], references: [id])
+  amount      Float
+  memo        String?
+  status      String    @default("PENDING") // PENDING | PAID | DECLINED | CANCELLED
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@index([payerId, status])
+  @@index([requesterId, status])
 }
 
 // Queryable, DB-driven reaction/gift catalog — sits alongside the existing

@@ -10,11 +10,12 @@ import { LLM_ADAPTER } from './llm-adapter.token';
 import { WidgetActionResolverService } from './widget-action-resolver.service';
 import { InteractionEngineService } from './interaction-engine.service';
 import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
+import { CapabilitiesModule } from '../capabilities/capabilities.module';
 
 import { orchestratorToolsProvider } from './orchestrator-tools.provider';
 
 @Module({
-  imports: [FeatureFlagsModule],
+  imports: [FeatureFlagsModule, CapabilitiesModule],
   providers: [
     PrismaService,
     ContextManagerService,

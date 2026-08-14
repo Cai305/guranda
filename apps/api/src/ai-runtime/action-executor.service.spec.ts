@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { ActionExecutorService } from './action-executor.service';
 import { ContextManagerService } from './context-manager.service';
+import { CapabilityGrantService } from '../capabilities/capability-grant.service';
 import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { ToolDefinition } from '../tool-registry/tool-registry.types';
 
@@ -87,6 +88,7 @@ describe('ActionExecutorService', () => {
       prisma as any,
       registry,
       contextManager,
+      new CapabilityGrantService(prisma as any),
     );
   });
 

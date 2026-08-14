@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 import { LiveGateway } from '../live/live.gateway';
+import { WalletsService } from '../wallets/wallets.service';
 
 // The one gift catalog shared across every surface — Live streams and
 // every game screen. Amounts are MSH, debited from the sender's wallet
@@ -57,6 +58,7 @@ export class GiftsService {
     private prisma: PrismaService,
     private verificationService: VerificationService,
     private liveGateway: LiveGateway,
+    private wallets: WalletsService,
   ) {}
 
   catalog() {
@@ -85,7 +87,16 @@ export class GiftsService {
     };
   }
 
-  async sendGift(
+  /**
+   * Shared validation + pricing for sendGift/sendGiftViaHold — everything
+   * up to "we know it's legal and how much it costs", with no wallet
+   * mutation yet. The two callers differ only in how they move the money:
+   * sendGift debits instantly (unchanged UI-driven path — GiftButton/
+   * GiftSheet), sendGiftViaHold reserves via WalletsService.holdFunds
+   * first (the AI tool path — see docs/19 §7's "hold -> confirm -> capture
+   * instead of instant-debit-only" note).
+   */
+  private async resolveGift(
     senderId: string,
     dto: {
       recipientId: string;
@@ -175,6 +186,40 @@ export class GiftsService {
       select: { username: true, profile: true },
     });
 
+    return { item, cost, senderWallet, recipientWallet, sender };
+  }
+
+  private broadcastIfLive(
+    dto: { context: string; contextId?: string; message?: string },
+    item: (typeof GIFT_CATALOG)[number],
+    sender: { username: string; profile: { displayName: string | null } | null } | undefined,
+  ) {
+    if (dto.context === 'live' && dto.contextId) {
+      this.liveGateway.broadcastGift(dto.contextId, {
+        giftType: item.key,
+        icon: item.icon,
+        label: item.label,
+        amount: item.amount,
+        senderName:
+          sender?.profile?.displayName || sender?.username || 'Someone',
+        message: dto.message ?? null,
+      });
+    }
+  }
+
+  async sendGift(
+    senderId: string,
+    dto: {
+      recipientId: string;
+      giftType: string;
+      context: string;
+      contextId?: string;
+      message?: string;
+    },
+  ) {
+    const { item, cost, senderWallet, recipientWallet, sender } =
+      await this.resolveGift(senderId, dto);
+
     const [, , , , gift] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { id: senderWallet.id },
@@ -213,17 +258,85 @@ export class GiftsService {
       }),
     ]);
 
-    if (dto.context === 'live' && dto.contextId) {
-      this.liveGateway.broadcastGift(dto.contextId, {
-        giftType: item.key,
-        icon: item.icon,
-        label: item.label,
-        amount: item.amount,
-        senderName:
-          sender?.profile?.displayName || sender?.username || 'Someone',
-        message: dto.message ?? null,
-      });
-    }
+    this.broadcastIfLive(dto, item, sender);
+
+    return gift;
+  }
+
+  /**
+   * The AI tool path (see gifts-ai-tools.provider.ts's `send`): same
+   * validation/pricing as sendGift, but reserves the sender's cost via
+   * WalletsService.holdFunds first — checked against availableBalance
+   * (accounts for any other concurrent holds) rather than sendGift's plain
+   * balance read — then settles (debit sender, credit recipient, create
+   * the Gift row) and marks the hold CAPTURED in one atomic transaction.
+   * Gives every AI-initiated gift a real WalletHold audit row (reason +
+   * CAPTURED status) that a plain instant debit wouldn't have. The UI-
+   * driven GiftButton/GiftSheet flow is untouched — it still calls
+   * sendGift above.
+   */
+  async sendGiftViaHold(
+    senderId: string,
+    dto: {
+      recipientId: string;
+      giftType: string;
+      context: string;
+      contextId?: string;
+      message?: string;
+    },
+  ) {
+    const { item, cost, senderWallet, recipientWallet, sender } =
+      await this.resolveGift(senderId, dto);
+
+    const hold = await this.wallets.holdFunds(
+      senderWallet.id,
+      cost,
+      `gift:${item.key}`,
+    );
+
+    const [, , , , , gift] = await this.prisma.$transaction([
+      this.prisma.wallet.update({
+        where: { id: senderWallet.id },
+        data: { balanceMasheleni: { decrement: cost } },
+      }),
+      this.prisma.wallet.update({
+        where: { id: recipientWallet.id },
+        data: { balanceMasheleni: { increment: item.amount } },
+      }),
+      this.prisma.transaction.create({
+        data: {
+          walletId: senderWallet.id,
+          amount: -cost,
+          type: 'GIFT_SENT',
+          status: 'SUCCESS',
+        },
+      }),
+      this.prisma.transaction.create({
+        data: {
+          walletId: recipientWallet.id,
+          amount: item.amount,
+          type: 'GIFT_RECEIVED',
+          status: 'SUCCESS',
+        },
+      }),
+      this.prisma.walletHold.update({
+        where: { id: hold.id },
+        data: { status: 'CAPTURED', resolvedAt: new Date() },
+      }),
+      this.prisma.gift.create({
+        data: {
+          senderId,
+          recipientId: dto.recipientId,
+          giftType: item.key,
+          amount: item.amount,
+          context: dto.context,
+          contextId: dto.contextId ?? null,
+          message: dto.message ?? null,
+        },
+      }),
+    ]);
+
+    this.broadcastIfLive(dto, item, sender);
 
     return gift;
   }

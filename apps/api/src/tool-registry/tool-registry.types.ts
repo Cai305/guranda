@@ -46,6 +46,15 @@ export interface ToolDefinition {
   backgroundCapable?: boolean;
   /** If set, the client renders this tool's structured output as a widget of this type (e.g. 'product-list') instead of plain text only. Free-form string, not an enum — new widget types are added by tagging a tool, no central registry to update. */
   renderAs?: string;
+  /**
+   * Opt-in: gates execution behind CapabilityGrantService.assertGranted()
+   * (see action-executor.service.ts), keyed by this tool's `module`. Unset
+   * for every built-in tool today — first-party modules are covered by the
+   * existing AiAgent.permissions gate and don't need a grant on top of it.
+   * This exists for the first real third-party/paid capability, so the
+   * grant check has a real caller instead of being dead code.
+   */
+  requiresCapabilityGrant?: boolean;
 }
 
 export interface ToolListFilter {

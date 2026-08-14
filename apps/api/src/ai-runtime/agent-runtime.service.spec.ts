@@ -2,6 +2,7 @@ import { AgentRuntimeService } from './agent-runtime.service';
 import { ActionExecutorService } from './action-executor.service';
 import { ContextManagerService } from './context-manager.service';
 import { ConversationHistoryService } from './conversation-history.service';
+import { CapabilityGrantService } from '../capabilities/capability-grant.service';
 import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { ToolDefinition } from '../tool-registry/tool-registry.types';
 import { FakeLlmAdapter } from './test/fake-llm-adapter';
@@ -63,7 +64,7 @@ function buildRuntime(
   const registry = new ToolRegistryService();
   registry.registerMany(tools);
   const contextManager = new ContextManagerService(prisma);
-  const executor = new ActionExecutorService(prisma, registry, contextManager);
+  const executor = new ActionExecutorService(prisma, registry, contextManager, new CapabilityGrantService(prisma));
   const llm = new FakeLlmAdapter(script);
   const conversationHistory = new ConversationHistoryService(prisma);
   const widgetActionResolver = new WidgetActionResolverService(prisma);

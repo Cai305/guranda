@@ -75,7 +75,10 @@ export class GiftsAiToolsProvider implements OnModuleInit {
           permissionKey: 'gifts.send',
           sensitive: true,
           defaultGranted: false,
-          handler: (ctx, input) => this.gifts.sendGift(ctx.userId, input),
+          // hold -> capture, not the instant debit sendGift() uses for the
+          // UI-driven GiftButton/GiftSheet path — see sendGiftViaHold's doc
+          // comment in gifts.service.ts.
+          handler: (ctx, input) => this.gifts.sendGiftViaHold(ctx.userId, input),
           describeAction: (input) =>
             `Send a ${input.giftType} gift to ${input.recipientId}`,
           describeResult: () => 'Gift sent.',

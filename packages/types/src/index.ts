@@ -313,6 +313,24 @@ export interface StoryDto {
   giftCount?: number;
 }
 
+export type PaymentRequestStatus = 'PENDING' | 'PAID' | 'DECLINED' | 'CANCELLED';
+
+/** Financial Engine (Phase 2) primitive — "ask someone to pay you", the
+ * feature behind WalletScreen's Request button. Never touches the ledger
+ * itself; accepting one is a normal sendMasheleni transfer. */
+export interface PaymentRequestDto {
+  id: string;
+  requesterId: string;
+  requester?: UserProfile;
+  payerId: string;
+  payer?: UserProfile;
+  amount: number;
+  memo?: string | null;
+  status: PaymentRequestStatus;
+  createdAt: Date;
+  respondedAt?: Date | null;
+}
+
 export interface ChessGameDto {
   id: string;
   whiteId: string;
@@ -574,6 +592,10 @@ export interface CapabilityManifest {
     inputSchema: Record<string, unknown>;
     sensitive: boolean;
   }[];
+  /** Distinct `renderAs` widget types this capability's tools can produce — empty if it's text-only. */
+  widgets: string[];
+  /** Voice verbs recognized for this capability's widgets (from WIDGET_ACTION_CATALOG), for a future voice-command surface listing what's sayable. */
+  voiceInteractions: string[];
 }
 
 export interface MentionRef {

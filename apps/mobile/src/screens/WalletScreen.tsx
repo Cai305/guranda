@@ -55,6 +55,7 @@ export default function WalletScreen({ navigation }: any) {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [incomingRequestCount, setIncomingRequestCount] = useState(0);
   const { user } = useAuth();
 
   const load = useCallback(async () => {
@@ -78,6 +79,14 @@ export default function WalletScreen({ navigation }: any) {
       setLoading(false);
       setRefreshing(false);
     }
+
+    // Best-effort — a failed count fetch shouldn't block the wallet itself
+    // from loading, it just leaves the badge at its previous value. Bypasses
+    // the GET cache for the same reason as PaymentRequestsScreen.
+    fetchApi('/wallets/requests', { headers: { 'Cache-Control': 'no-cache' } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setIncomingRequestCount(data.incoming?.length ?? 0); })
+      .catch(() => {});
   }, [user?.userId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -143,6 +152,42 @@ export default function WalletScreen({ navigation }: any) {
       color: SC.mutedForeground,
       fontSize: 9,
       fontWeight: '500',
+    },
+    requestsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: SPACING.lg,
+      marginTop: SPACING.md,
+      padding: SPACING.md,
+      borderRadius: SC.radius,
+      borderWidth: 1,
+      borderColor: SC.border,
+      backgroundColor: SC.card,
+    },
+    requestsRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    requestsRowText: {
+      color: SC.foreground,
+      fontWeight: '500',
+      fontSize: TYPOGRAPHY.body2.fontSize,
+    },
+    requestBadge: {
+      backgroundColor: SC.success,
+      borderRadius: 10,
+      minWidth: 20,
+      height: 20,
+      paddingHorizontal: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    requestBadgeText: {
+      color: '#0A0A0A',
+      fontSize: 11,
+      fontWeight: '700',
     },
     feedContainer: {
       flex: 1,
@@ -252,15 +297,9 @@ export default function WalletScreen({ navigation }: any) {
             <Ionicons name="send-outline" size={20} color={SC.foreground} />
             <Text style={styles.buttonText}>Send</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.actionButtonDisabled]}
-            disabled
-            accessibilityState={{ disabled: true }}
-            accessibilityLabel="Request — coming soon"
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('RequestMoney')}>
             <Ionicons name="download-outline" size={20} color={SC.foreground} />
             <Text style={styles.buttonText}>Request</Text>
-            <Text style={styles.comingSoonCaption}>Coming Soon</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.actionButtonDisabled]}
@@ -274,6 +313,19 @@ export default function WalletScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </View>
+
+      <TouchableOpacity style={styles.requestsRow} onPress={() => navigation.navigate('PaymentRequests')}>
+        <View style={styles.requestsRowLeft}>
+          <Ionicons name="receipt-outline" size={18} color={SC.foreground} />
+          <Text style={styles.requestsRowText}>Payment Requests</Text>
+          {incomingRequestCount > 0 && (
+            <View style={styles.requestBadge}>
+              <Text style={styles.requestBadgeText}>{incomingRequestCount}</Text>
+            </View>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={SC.mutedForeground} />
+      </TouchableOpacity>
 
       <View style={styles.feedContainer}>
         <Text style={styles.sectionTitle}>Recent Activity</Text>

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { ToolDefinition } from '../tool-registry/tool-registry.types';
 import { ContextManagerService } from './context-manager.service';
+import { CapabilityGrantService } from '../capabilities/capability-grant.service';
 
 export interface PendingAction {
   toolName: string;
@@ -30,6 +31,7 @@ export class ActionExecutorService {
     private prisma: PrismaService,
     private registry: ToolRegistryService,
     private contextManager: ContextManagerService,
+    private capabilityGrants: CapabilityGrantService,
   ) {}
 
   async execute(
@@ -48,6 +50,18 @@ export class ActionExecutorService {
       return {
         status: 'denied',
         resultText: `The user hasn't granted the "${tool.permissionKey}" permission needed for this action. Suggest they enable it in AI settings.`,
+      };
+    }
+
+    // Distinct from the AiAgent.permissions check above — that's "has the
+    // user's own AI companion been allowed to call this at all", this is
+    // "has the user granted this specific third-party/paid capability" (see
+    // ToolDefinition.requiresCapabilityGrant's doc comment). No built-in
+    // tool sets this flag today, so this is a no-op for every existing tool.
+    if (tool.requiresCapabilityGrant && !(await this.capabilityGrants.check(userId, tool.module))) {
+      return {
+        status: 'denied',
+        resultText: `The "${tool.module}" capability hasn't been granted by the user.`,
       };
     }
 

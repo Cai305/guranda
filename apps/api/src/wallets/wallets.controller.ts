@@ -10,19 +10,25 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { WalletsService } from './wallets.service';
+import { FinancialEngineService } from './financial-engine.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { AdminAccessGuard } from '../admin/admin-access.guard';
 import { AdminAuditService } from '../admin/admin-audit.service';
 import { SendMashelenDto } from './dto/send-masheleni.dto';
 import { RequestDepositDto } from './dto/request-deposit.dto';
 import { DepositAdminNoteDto } from './dto/deposit-admin-note.dto';
+import { RequestPaymentDto } from './dto/request-payment.dto';
+import { RespondPaymentRequestDto } from './dto/respond-payment-request.dto';
 
 // Scoped, not global — see docs/ARCHITECTURE_RECOMMENDATIONS.md #4.
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @Controller('wallets')
 @UseGuards(JwtAuthGuard)
 export class WalletsController {
-  constructor(private readonly walletsService: WalletsService) {}
+  constructor(
+    private readonly walletsService: WalletsService,
+    private readonly financialEngine: FinancialEngineService,
+  ) {}
 
   @Get('me')
   async getMyWallet(@Request() req: any) {
@@ -51,6 +57,30 @@ export class WalletsController {
   @Get('creator-funds/summary')
   async getCreatorFundsSummary(@Request() req: any) {
     return this.walletsService.getCreatorFundsSummary(req.user.userId);
+  }
+
+  @Post('requests')
+  async requestPayment(@Request() req: any, @Body() body: RequestPaymentDto) {
+    return this.financialEngine.requestPayment(
+      req.user.userId,
+      body.destination,
+      body.amount,
+      body.memo,
+    );
+  }
+
+  @Get('requests')
+  async listPaymentRequests(@Request() req: any) {
+    return this.financialEngine.listPaymentRequests(req.user.userId);
+  }
+
+  @Post('requests/:id/respond')
+  async respondToPaymentRequest(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() body: RespondPaymentRequestDto,
+  ) {
+    return this.financialEngine.respondToPaymentRequest(id, req.user.userId, body.accept);
   }
 }
 
