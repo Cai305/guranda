@@ -38,6 +38,8 @@ export default function MyPropertiesScreen({ navigation }: any) {
       justifyContent: 'center', alignItems: 'center',
     },
     empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
+    emptyWrap: { alignItems: 'center', paddingVertical: 40, gap: 8 },
+    emptyLink: { color: '#2DD4BF', fontWeight: '700', fontSize: 13, marginTop: 4 },
     propCard: {
       backgroundColor: 'rgba(255,255,255,0.05)',
       borderRadius: RADIUS.lg,
@@ -113,14 +115,24 @@ export default function MyPropertiesScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={TYPOGRAPHY.h2}>My Properties</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('PropertyForm')}>
+          <Ionicons name="add" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: SPACING.lg, gap: 14, paddingBottom: 40 }}>
         {properties.length === 0 && (
-          <Text style={styles.empty}>
-            {loading ? 'Loading…' : "You haven't listed any properties yet. List one from the Property home to become an agent."}
-          </Text>
+          loading ? (
+            <Text style={styles.empty}>Loading…</Text>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="business-outline" size={40} color={COLORS.textMuted} />
+              <Text style={styles.empty}>You haven't listed any properties yet.</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('PropertyForm')}>
+                <Text style={styles.emptyLink}>List your first property</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
 
         {properties.map(p => (

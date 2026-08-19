@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
@@ -8,6 +8,7 @@ import { useShoppingCart } from '../../context/ShoppingCartContext';
 import { fetchApi } from '../../utils/api';
 
 export default function ShoppingCartScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { items, storeId, storeName, updateQty, clearCart, subtotal, rewardEarned, total } = useShoppingCart();
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
@@ -149,7 +150,7 @@ export default function ShoppingCartScreen({ navigation }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.orderBtn} onPress={placeOrder} disabled={placing}>
           <LinearGradient colors={['#8B5CF6', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.orderGradient}>
             {placing ? (
@@ -209,6 +210,9 @@ const styles = StyleSheet.create({
   },
   paymentText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
   errorText: { color: '#F87171', fontSize: 13, paddingHorizontal: SPACING.lg, marginBottom: 8 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+  // leaves the button flush against the home indicator / gesture bar on
+  // notched devices with no clearance from it.
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg,
     backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,

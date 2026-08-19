@@ -9,6 +9,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { WalletsService } from './wallets.service';
 import { FinancialEngineService } from './financial-engine.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
@@ -35,6 +36,8 @@ export class WalletsController {
     return this.walletsService.getMyWallet(req.user.userId);
   }
 
+  // Tighter than the global 60/min — money-movement, not a read.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('send')
   async sendMasheleni(@Request() req: any, @Body() body: SendMashelenDto) {
     return this.walletsService.sendMasheleni(
@@ -44,6 +47,7 @@ export class WalletsController {
     );
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('deposit')
   async requestDeposit(@Request() req: any, @Body() body: RequestDepositDto) {
     return this.walletsService.requestDeposit(req.user.userId, body.amountZar);
@@ -88,6 +92,11 @@ export class WalletsController {
 // on their own pending deposit and credit their wallet with real-money value
 // they never paid, with no auth of any kind required. Gated the same way as
 // the rest of the admin surface (see admin/admin-access.guard.ts).
+// Throttled tighter than the global default: the admin key is a shared
+// secret header, not a per-user credential, so a leaked/guessed key should
+// still hit a low ceiling here rather than being able to confirm/reject
+// deposits at the unthrottled 60/min global rate.
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 @UseGuards(AdminAccessGuard)
 @Controller('admin/deposits')

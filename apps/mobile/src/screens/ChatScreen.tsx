@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { ChatMessageDto, VemojiType, encodeVemojiMessage, parseVemojiMessage } from '@mxit2/types';
 import { Ionicons } from '@expo/vector-icons';
+import EmptyState from '../components/EmptyState';
 import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
 import VemojiPicker from '../components/VemojiPicker';
@@ -77,6 +78,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const { roomId = 'global-room', roomName = 'Global Lounge', roomType = 'Public', targetUserId, avatarUrl } = route?.params || {};
 
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const [inputText, setInputText] = useState('');
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -114,12 +116,14 @@ export default function ChatScreen({ route, navigation }: any) {
 
   useEffect(() => {
     // 1. Fetch historical messages
+    setMessagesLoading(true);
     fetchApi(`/chats/${roomId}/messages`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setMessages(data);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setMessagesLoading(false));
 
     if (!socket) return;
 
@@ -226,7 +230,7 @@ export default function ChatScreen({ route, navigation }: any) {
         const aiMsg: ChatMessageDto = {
           chatId: roomId,
           senderId: 'bot',
-          content: `Beep boop! I am ${roomName}. I received: "${newMsg.content}"`,
+          content: `Thanks for the message! ${roomName} will get back to you soon.`,
           isAiGenerated: true,
         };
         // Just append it locally for the illusion of an AI reply
@@ -958,13 +962,24 @@ export default function ChatScreen({ route, navigation }: any) {
 
           {(() => {
             const preset = findPreset(wallpaperUrl);
-            const list = (
+            const list = messagesLoading ? (
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+                <ActivityIndicator color={COLORS.primary} />
+              </View>
+            ) : (
               <FlatList
                 data={messages}
                 keyExtractor={(item, index) => item.id || index.toString()}
                 renderItem={renderMessage}
-                contentContainerStyle={styles.messageList}
+                contentContainerStyle={[styles.messageList, messages.length === 0 && { flex: 1 }]}
                 style={{ flex: 1 }}
+                ListEmptyComponent={
+                  <EmptyState
+                    icon="chatbubble-ellipses-outline"
+                    title="Say hi"
+                    subtitle={`This is the start of your conversation with ${roomName}.`}
+                  />
+                }
               />
             );
             if (preset) {

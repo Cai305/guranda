@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
@@ -8,6 +8,7 @@ import { fetchApi } from '../../utils/api';
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export default function TravelFlightDetailScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const { flightId } = route.params;
   const [flight, setFlight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -115,7 +116,7 @@ export default function TravelFlightDetailScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
           {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${total} MSH` : 'Book Flight'}</Text>}
         </TouchableOpacity>
@@ -146,6 +147,9 @@ const styles = StyleSheet.create({
   totalLabel: { color: COLORS.textMuted, fontSize: 13 },
   totalValue: { color: '#8B5CF6', fontWeight: '800', fontSize: 16 },
   errorText: { color: '#ef4444', fontSize: 13 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+  // leaves the button flush against the home indicator / gesture bar on
+  // notched devices with no clearance from it.
   actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
   bookBtn: { backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   bookBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

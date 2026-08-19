@@ -8,13 +8,17 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AdminAccessGuard } from './admin-access.guard';
 import { AdminAuditService } from './admin-audit.service';
 
 // Accepts either the legacy shared ADMIN_API_KEY (the website ops dashboard's
 // current auth) or a Bearer JWT for a User with role=ADMIN — see
-// admin-access.guard.ts for why both are supported.
+// admin-access.guard.ts for why both are supported. Throttled tighter than
+// the global default since the API-key path is a shared secret that could
+// otherwise be brute-forced at the unthrottled global rate.
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 @UseGuards(AdminAccessGuard)
 @Controller('admin')
 export class AdminController {

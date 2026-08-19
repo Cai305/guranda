@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
@@ -8,6 +8,7 @@ import { fetchApi } from '../../../utils/api';
 import { ACCENT } from '../../learning/LearningHomeScreen';
 
 export default function MyTutorProfileScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [tutor, setTutor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -100,7 +101,7 @@ export default function MyTutorProfileScreen({ navigation }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{tutor ? 'Save Changes' : 'Register as Tutor'}</Text>}
         </TouchableOpacity>
@@ -118,6 +119,7 @@ const styles = StyleSheet.create({
   label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
   input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 13 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg leaves the button flush against the home indicator / gesture bar on notched devices with no clearance from it.
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
   saveBtn: { backgroundColor: ACCENT, borderRadius: 14, padding: 16, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },

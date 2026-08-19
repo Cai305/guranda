@@ -27,14 +27,20 @@ export class CommunitiesService {
     return memberships.map((m) => ({ ...m.community, myRole: m.role }));
   }
 
-  async getCommunityDetails(id: string) {
-    return this.prisma.community.findUnique({
-      where: { id },
-      include: {
-        rooms: true,
-        _count: { select: { members: true } },
-      },
-    });
+  async getCommunityDetails(id: string, userId: string) {
+    const [community, membership] = await Promise.all([
+      this.prisma.community.findUnique({
+        where: { id },
+        include: {
+          rooms: true,
+          _count: { select: { members: true } },
+        },
+      }),
+      this.prisma.communityMember.findUnique({
+        where: { communityId_userId: { communityId: id, userId } },
+      }),
+    ]);
+    return community ? { ...community, isMember: !!membership } : community;
   }
 
   async joinCommunity(userId: string, communityId: string) {

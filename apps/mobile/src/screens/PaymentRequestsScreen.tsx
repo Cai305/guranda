@@ -110,7 +110,20 @@ export default function PaymentRequestsScreen({ navigation }: any) {
             <TouchableOpacity style={styles.declineBtn} onPress={() => respond(item.id, false)}>
               <Text style={styles.actionText}>Decline</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.acceptBtn} onPress={() => respond(item.id, true)}>
+            <TouchableOpacity
+              style={styles.acceptBtn}
+              onPress={() => {
+                const who = person?.profile?.displayName || person?.username || 'this request';
+                Alert.alert(
+                  'Confirm payment',
+                  `Send ${formatCurrency(item.amount)} to ${who}?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Send', onPress: () => respond(item.id, true) },
+                  ],
+                );
+              }}
+            >
               <Text style={styles.actionText}>Accept</Text>
             </TouchableOpacity>
           </View>

@@ -4,21 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { formatCurrency } from '../utils/format';
-
-// shadcn/ui-inspired palette, scoped to this screen only as a design
-// proof-of-concept — not wired into the shared theme's COLORS/GRADIENTS.
-const SC = {
-  background: '#0A0A0A',
-  card: '#18181B',
-  border: 'rgba(255,255,255,0.1)',
-  foreground: '#FAFAFA',
-  mutedForeground: '#8A8A8E',
-  success: '#4ADE80',
-  radius: 10,
-};
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   SEND: 'Sent',
@@ -52,6 +41,8 @@ type WalletData = {
 };
 
 export default function WalletScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,31 +87,31 @@ export default function WalletScreen({ navigation }: any) {
     load();
   };
 
-  const styles = useThemedStyles(({ SPACING, TYPOGRAPHY }) => ({
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
     container: {
       flex: 1,
-      backgroundColor: SC.background,
+      backgroundColor: COLORS.background,
     },
     header: {
       padding: SPACING.lg,
       alignItems: 'center',
       borderBottomWidth: 1,
-      borderBottomColor: SC.border,
+      borderBottomColor: COLORS.border,
     },
     balanceLabel: {
-      color: SC.mutedForeground,
+      color: COLORS.textMuted,
       fontSize: TYPOGRAPHY.label.fontSize,
       fontWeight: '500',
     },
     balanceValue: {
-      color: SC.foreground,
+      color: COLORS.text,
       fontSize: TYPOGRAPHY.display.fontSize,
       fontWeight: '600',
       marginTop: SPACING.sm,
       letterSpacing: -0.5,
     },
     balanceCurrency: {
-      color: SC.mutedForeground,
+      color: COLORS.textMuted,
       fontSize: TYPOGRAPHY.h4.fontSize,
       fontWeight: '500',
     },
@@ -135,21 +126,21 @@ export default function WalletScreen({ navigation }: any) {
       gap: SPACING.xs,
       width: 78,
       paddingVertical: SPACING.md,
-      borderRadius: SC.radius,
+      borderRadius: RADIUS.md,
       borderWidth: 1,
-      borderColor: SC.border,
-      backgroundColor: SC.card,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.surface,
     },
     actionButtonDisabled: {
       opacity: 0.4,
     },
     buttonText: {
-      color: SC.foreground,
+      color: COLORS.text,
       fontWeight: '500',
       fontSize: TYPOGRAPHY.caption.fontSize,
     },
     comingSoonCaption: {
-      color: SC.mutedForeground,
+      color: COLORS.textMuted,
       fontSize: 9,
       fontWeight: '500',
     },
@@ -160,10 +151,10 @@ export default function WalletScreen({ navigation }: any) {
       marginHorizontal: SPACING.lg,
       marginTop: SPACING.md,
       padding: SPACING.md,
-      borderRadius: SC.radius,
+      borderRadius: RADIUS.md,
       borderWidth: 1,
-      borderColor: SC.border,
-      backgroundColor: SC.card,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.surface,
     },
     requestsRowLeft: {
       flexDirection: 'row',
@@ -171,12 +162,12 @@ export default function WalletScreen({ navigation }: any) {
       gap: SPACING.sm,
     },
     requestsRowText: {
-      color: SC.foreground,
+      color: COLORS.text,
       fontWeight: '500',
       fontSize: TYPOGRAPHY.body2.fontSize,
     },
     requestBadge: {
-      backgroundColor: SC.success,
+      backgroundColor: COLORS.success,
       borderRadius: 10,
       minWidth: 20,
       height: 20,
@@ -185,7 +176,7 @@ export default function WalletScreen({ navigation }: any) {
       justifyContent: 'center',
     },
     requestBadgeText: {
-      color: '#0A0A0A',
+      color: COLORS.background,
       fontSize: 11,
       fontWeight: '700',
     },
@@ -194,7 +185,7 @@ export default function WalletScreen({ navigation }: any) {
       padding: SPACING.lg,
     },
     sectionTitle: {
-      color: SC.foreground,
+      color: COLORS.text,
       fontSize: TYPOGRAPHY.button.fontSize,
       fontWeight: '600',
       marginBottom: SPACING.md,
@@ -206,19 +197,19 @@ export default function WalletScreen({ navigation }: any) {
       gap: SPACING.sm,
     },
     emptyText: {
-      color: SC.mutedForeground,
+      color: COLORS.textMuted,
       fontSize: TYPOGRAPHY.body2.fontSize,
     },
     txRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: SC.card,
+      backgroundColor: COLORS.surface,
       padding: SPACING.md,
-      borderRadius: SC.radius,
+      borderRadius: RADIUS.md,
       marginBottom: SPACING.sm,
       borderWidth: 1,
-      borderColor: SC.border,
+      borderColor: COLORS.border,
     },
     txLeft: {
       flexDirection: 'row',
@@ -228,9 +219,9 @@ export default function WalletScreen({ navigation }: any) {
     txIconWrap: {
       width: 36,
       height: 36,
-      borderRadius: SC.radius,
+      borderRadius: RADIUS.md,
       borderWidth: 1,
-      borderColor: SC.border,
+      borderColor: COLORS.border,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -239,12 +230,12 @@ export default function WalletScreen({ navigation }: any) {
       gap: SPACING.xs / 2,
     },
     txType: {
-      color: SC.foreground,
+      color: COLORS.text,
       fontSize: TYPOGRAPHY.label.fontSize,
       fontWeight: '600',
     },
     txDate: {
-      color: SC.mutedForeground,
+      color: COLORS.textMuted,
       fontSize: TYPOGRAPHY.caption.fontSize,
     },
     txAmount: {
@@ -261,14 +252,14 @@ export default function WalletScreen({ navigation }: any) {
       <View style={styles.txRow}>
         <View style={styles.txLeft}>
           <View style={styles.txIconWrap}>
-            <Ionicons name={iconName} size={18} color={SC.foreground} />
+            <Ionicons name={iconName} size={18} color={COLORS.text} />
           </View>
           <View style={styles.txDetails}>
             <Text style={styles.txType}>{humanizeTransactionType(item.type)}</Text>
             <Text style={styles.txDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
           </View>
         </View>
-        <Text style={[styles.txAmount, { color: isPositive ? SC.success : SC.foreground }]}>
+        <Text style={[styles.txAmount, { color: isPositive ? COLORS.success : COLORS.text }]}>
           {isPositive ? '+' : ''}{formatCurrency(Number(item.amount))}
         </Text>
       </View>
@@ -276,7 +267,7 @@ export default function WalletScreen({ navigation }: any) {
   };
 
   if (loading) {
-    return <View style={styles.container}><ActivityIndicator size="large" color={SC.foreground} /></View>;
+    return <View style={styles.container}><ActivityIndicator size="large" color={COLORS.text} /></View>;
   }
 
   const transactions = wallet?.transactions ?? [];
@@ -290,15 +281,15 @@ export default function WalletScreen({ navigation }: any) {
 
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Deposit')}>
-            <Ionicons name="arrow-down-circle-outline" size={20} color={SC.foreground} />
+            <Ionicons name="arrow-down-circle-outline" size={20} color={COLORS.text} />
             <Text style={styles.buttonText}>Deposit</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Send')}>
-            <Ionicons name="send-outline" size={20} color={SC.foreground} />
+            <Ionicons name="send-outline" size={20} color={COLORS.text} />
             <Text style={styles.buttonText}>Send</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('RequestMoney')}>
-            <Ionicons name="download-outline" size={20} color={SC.foreground} />
+            <Ionicons name="download-outline" size={20} color={COLORS.text} />
             <Text style={styles.buttonText}>Request</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -307,7 +298,7 @@ export default function WalletScreen({ navigation }: any) {
             accessibilityState={{ disabled: true }}
             accessibilityLabel="Scan — coming soon"
           >
-            <Ionicons name="qr-code-outline" size={20} color={SC.foreground} />
+            <Ionicons name="qr-code-outline" size={20} color={COLORS.text} />
             <Text style={styles.buttonText}>Scan</Text>
             <Text style={styles.comingSoonCaption}>Coming Soon</Text>
           </TouchableOpacity>
@@ -316,7 +307,7 @@ export default function WalletScreen({ navigation }: any) {
 
       <TouchableOpacity style={styles.requestsRow} onPress={() => navigation.navigate('PaymentRequests')}>
         <View style={styles.requestsRowLeft}>
-          <Ionicons name="receipt-outline" size={18} color={SC.foreground} />
+          <Ionicons name="receipt-outline" size={18} color={COLORS.text} />
           <Text style={styles.requestsRowText}>Payment Requests</Text>
           {incomingRequestCount > 0 && (
             <View style={styles.requestBadge}>
@@ -324,7 +315,7 @@ export default function WalletScreen({ navigation }: any) {
             </View>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={18} color={SC.mutedForeground} />
+        <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
       </TouchableOpacity>
 
       <View style={styles.feedContainer}>
@@ -334,10 +325,10 @@ export default function WalletScreen({ navigation }: any) {
           keyExtractor={(item) => item.id}
           renderItem={renderTransaction}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={SC.foreground} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.text} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={40} color={SC.mutedForeground} />
+              <Ionicons name="receipt-outline" size={40} color={COLORS.textMuted} />
               <Text style={styles.emptyText}>No transactions yet</Text>
             </View>
           }

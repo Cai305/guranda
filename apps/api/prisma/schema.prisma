@@ -24,6 +24,8 @@ model User {
   passwordHash                 String
   role                         UserRole                   @default(MEMBER)
   isSuspended                  Boolean                    @default(false)
+  failedLoginAttempts          Int                        @default(0)
+  lockedUntil                  DateTime?
   isSelfCustodial              Boolean                    @default(false)
   expoPushToken                String?
   locationLat                  Float?

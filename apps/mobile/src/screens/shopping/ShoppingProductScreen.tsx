@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
@@ -8,6 +8,7 @@ import { fetchApi } from '../../utils/api';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 
 export default function ShoppingProductScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const { productId } = route.params;
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -116,7 +117,7 @@ export default function ShoppingProductScreen({ navigation, route }: any) {
         </View>
       </ScrollView>
 
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.addToCartBtn} onPress={addToCart}>
           <Ionicons name="bag-add-outline" size={18} color="#8B5CF6" />
           <Text style={styles.addToCartText}>Add to Cart</Text>
@@ -159,6 +160,9 @@ const styles = StyleSheet.create({
   qtyBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center' },
   qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 17, minWidth: 24, textAlign: 'center' },
   inCartNote: { color: COLORS.textMuted, fontSize: 12, marginTop: 8 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+  // leaves the button flush against the home indicator / gesture bar on
+  // notched devices with no clearance from it.
   actionBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg,
     flexDirection: 'row', gap: 10,

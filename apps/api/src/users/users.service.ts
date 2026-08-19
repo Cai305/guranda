@@ -210,6 +210,12 @@ export class UsersService {
     };
   }
 
+  // After this many consecutive bad passwords, the account is locked for
+  // LOCKOUT_DURATION_MS regardless of the per-IP throttle on the route —
+  // a distributed attacker rotating IPs still can't grind one account.
+  private static readonly MAX_FAILED_LOGIN_ATTEMPTS = 5;
+  private static readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
   async loginUser(username: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { username },
@@ -220,13 +226,41 @@ export class UsersService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new UnauthorizedException(
+        'Account temporarily locked due to repeated failed login attempts. Try again later.',
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid username or password');
+      const attempts = user.failedLoginAttempts + 1;
+      const lockingOut = attempts >= UsersService.MAX_FAILED_LOGIN_ATTEMPTS;
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: lockingOut
+          ? {
+              failedLoginAttempts: 0,
+              lockedUntil: new Date(Date.now() + UsersService.LOCKOUT_DURATION_MS),
+            }
+          : { failedLoginAttempts: attempts },
+      });
+      throw new UnauthorizedException(
+        lockingOut
+          ? 'Account temporarily locked due to repeated failed login attempts. Try again later.'
+          : 'Invalid username or password',
+      );
     }
 
     if (user.isSuspended) {
       throw new UnauthorizedException('This account has been suspended');
+    }
+
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
     }
 
     return {

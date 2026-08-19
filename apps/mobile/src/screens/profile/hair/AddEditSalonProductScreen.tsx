@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../../context/ThemeContext';
@@ -10,6 +10,7 @@ import { fetchApi, uploadMedia } from '../../../utils/api';
 export default function AddEditSalonProductScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const existing = route.params?.product;
   const isEdit = !!existing;
 
@@ -37,6 +38,9 @@ export default function AddEditSalonProductScreen({ navigation, route }: any) {
     imagePreview: { width: '100%', height: '100%' },
     stockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
     saveBtn: { backgroundColor: '#38BDF8', borderRadius: 14, padding: 16, alignItems: 'center' },
     saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
@@ -123,7 +127,7 @@ export default function AddEditSalonProductScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{isEdit ? 'Save Changes' : 'Add Product'}</Text>}
         </TouchableOpacity>

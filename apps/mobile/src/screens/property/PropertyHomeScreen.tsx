@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/format';
 
 // Guranda Property — browse homes and commercial spaces. Any user can list
@@ -31,6 +32,7 @@ export default function PropertyHomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
+    setLoading(true);
     const qs =
       filter === 'all' ? '' :
       filter === 'COMMERCIAL' ? '?kind=COMMERCIAL' : `?listingType=${filter}`;
@@ -130,22 +132,25 @@ export default function PropertyHomeScreen({ navigation }: any) {
         ))}
       </View>
 
-      <FlatList
-        data={properties}
-        keyExtractor={p => p.id}
-        renderItem={renderProperty}
-        contentContainerStyle={{ padding: SPACING.lg, gap: 12, paddingBottom: 100 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {loading ? 'Loading listings…' : 'No listings yet — be the first agent to list a property!'}
-          </Text>
-        }
-      />
-
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('PropertyForm')}>
-        <Ionicons name="add" size={26} color="#FFF" />
-        <Text style={styles.fabText}>List a property</Text>
-      </TouchableOpacity>
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color="#2DD4BF" />
+        </View>
+      ) : (
+        <FlatList
+          data={properties}
+          keyExtractor={p => p.id}
+          renderItem={renderProperty}
+          contentContainerStyle={[{ padding: SPACING.lg, gap: 12, paddingBottom: 100 }, properties.length === 0 && { flex: 1 }]}
+          ListEmptyComponent={
+            <EmptyState
+              icon="home-outline"
+              title="No listings yet"
+              subtitle="Be the first agent to list a property!"
+            />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -219,13 +224,5 @@ const styles = StyleSheet.create({
   cardPrice: { color: '#2DD4BF', fontWeight: '800', fontSize: 14 },
   cardBeds: { color: COLORS.textMuted, fontSize: 12 },
   cardAgent: { color: COLORS.textMuted, fontSize: 11, marginTop: 6 },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-  fab: {
-    position: 'absolute', bottom: 24, right: 20,
-    flexDirection: 'row', gap: 6, alignItems: 'center',
-    backgroundColor: '#0D9488',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 13, paddingHorizontal: 18,
-  },
-  fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

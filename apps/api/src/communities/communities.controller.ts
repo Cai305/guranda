@@ -26,8 +26,8 @@ export class CommunitiesController {
   }
 
   @Get(':id')
-  getCommunityDetails(@Param('id') id: string) {
-    return this.communitiesService.getCommunityDetails(id);
+  getCommunityDetails(@Request() req: any, @Param('id') id: string) {
+    return this.communitiesService.getCommunityDetails(id, req.user.userId);
   }
 
   @Post(':id/join')

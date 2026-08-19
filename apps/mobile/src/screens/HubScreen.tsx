@@ -16,6 +16,8 @@ export default function HubScreen({ route, navigation }: any) {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<LifeModule | null>(null);
   const [communityApps, setCommunityApps] = useState<LifeModule[]>([]);
+  const [category, setCategory] = useState<'all' | 'apps' | 'games' | 'community'>('all');
+  const [featuredIndex, setFeaturedIndex] = useState(0);
 
   const mode = route?.params?.mode || 'store';
 
@@ -64,10 +66,18 @@ export default function HubScreen({ route, navigation }: any) {
   const allStoreModules = mode === 'store' ? [...baseMiniApps, ...gamesAsModules, ...communityApps] : baseMiniApps;
   const installedModules = baseMiniApps.filter(m => isInstalled(m.id));
   
-  const filtered = allStoreModules.filter(m =>
+  const searched = allStoreModules.filter(m =>
     m.name.toLowerCase().includes(search.toLowerCase()) ||
     m.tagline.toLowerCase().includes(search.toLowerCase()),
   );
+  const filtered = search
+    ? searched
+    : searched.filter(m => {
+        if (category === 'all') return true;
+        if (category === 'apps') return baseMiniApps.some(b => b.id === m.id);
+        if (category === 'games') return gamesAsModules.some(g => g.id === m.id);
+        return communityApps.some(c => c.id === m.id);
+      });
 
   const openModule = (module: LifeModule) => {
     if (module.route) {
@@ -171,19 +181,25 @@ export default function HubScreen({ route, navigation }: any) {
 
   const renderFeatured = (apps: LifeModule[]) => {
     if (apps.length === 0) return null;
-    const cardWidth = width - SPACING.lg * 2;
-    
+    // Leaves a peek of the next card and reports scroll position via dots —
+    // full-bleed-with-no-hint made this the one carousel in the Store no one
+    // discovered was scrollable.
+    const cardWidth = width - SPACING.lg * 2 - 28;
+    const step = cardWidth + SPACING.md;
+
     return (
       <View style={styles.featuredContainer}>
         <View style={styles.groupHeader}>
           <Text style={styles.groupSubtitle}>DISCOVER</Text>
           <Text style={styles.groupTitle}>Featured Apps & Games</Text>
         </View>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          snapToInterval={cardWidth + SPACING.md} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={step}
           decelerationRate="fast"
+          onScroll={(e) => setFeaturedIndex(Math.round(e.nativeEvent.contentOffset.x / step))}
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingHorizontal: SPACING.lg, gap: SPACING.md }}
         >
           {apps.map(m => (
@@ -205,6 +221,13 @@ export default function HubScreen({ route, navigation }: any) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        {apps.length > 1 && (
+          <View style={styles.dotsRow}>
+            {apps.map((_, i) => (
+              <View key={i} style={[styles.dot, i === featuredIndex && styles.dotActive]} />
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -248,34 +271,72 @@ export default function HubScreen({ route, navigation }: any) {
 
         {mode === 'store' && !search && (
           <>
-            {renderFeatured(filtered.filter(m => m.status === 'live').slice(0, 3))}
-            <View style={styles.sectionDivider} />
-            
-            {renderHorizontalGroup(
-              "Must-Have Apps", 
-              "Essentials", 
-              filtered.filter(m => baseMiniApps.some(b => b.id === m.id) && m.status !== 'construction')
-            )}
-            <View style={styles.sectionDivider} />
-            
-            {renderHorizontalGroup(
-              "Great Games", 
-              "Play Now", 
-              filtered.filter(m => gamesAsModules.some(b => b.id === m.id) && m.status !== 'construction')
-            )}
-            <View style={styles.sectionDivider} />
+            <View style={styles.categoryRow}>
+              {([
+                ['all', 'All'],
+                ['apps', 'Apps'],
+                ['games', 'Games'],
+                ['community', 'Community'],
+              ] as const).map(([key, label]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.categoryChip, category === key && styles.categoryChipActive]}
+                  onPress={() => setCategory(key)}
+                >
+                  <Text style={[styles.categoryChipText, category === key && styles.categoryChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-            {renderHorizontalGroup(
-              "Coming Soon",
-              "Sneak Peek",
-              filtered.filter(m => m.status === 'construction')
+            {category === 'all' && (
+              <>
+                {renderFeatured(filtered.filter(m => m.status === 'live').slice(0, 3))}
+                <View style={styles.sectionDivider} />
+              </>
             )}
-            <View style={styles.sectionDivider} />
 
-            {renderHorizontalGroup(
-              "Community Apps",
-              "From Developers",
-              filtered.filter(m => communityApps.some(c => c.id === m.id))
+            {(category === 'all' || category === 'apps') && (
+              <>
+                {renderHorizontalGroup(
+                  "Must-Have Apps",
+                  "Essentials",
+                  filtered.filter(m => baseMiniApps.some(b => b.id === m.id) && m.status !== 'construction')
+                )}
+                <View style={styles.sectionDivider} />
+              </>
+            )}
+
+            {(category === 'all' || category === 'games') && (
+              <>
+                {renderHorizontalGroup(
+                  "Great Games",
+                  "Play Now",
+                  filtered.filter(m => gamesAsModules.some(b => b.id === m.id) && m.status !== 'construction')
+                )}
+                <View style={styles.sectionDivider} />
+
+                {renderHorizontalGroup(
+                  "Coming Soon",
+                  "Sneak Peek",
+                  filtered.filter(m => m.status === 'construction')
+                )}
+                <View style={styles.sectionDivider} />
+              </>
+            )}
+
+            {(category === 'all' || category === 'community') && (
+              renderHorizontalGroup(
+                "Community Apps",
+                "From Developers",
+                filtered.filter(m => communityApps.some(c => c.id === m.id))
+              )
+            )}
+
+            {filtered.length === 0 && (
+              <View style={styles.empty}>
+                <Ionicons name="apps-outline" size={40} color={COLORS.textMuted} />
+                <Text style={styles.emptyText}>Nothing in this category yet</Text>
+              </View>
             )}
           </>
         )}
@@ -400,6 +461,23 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   searchInput: { flex: 1, color: COLORS.text, fontSize: 16 },
+  categoryRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  categoryChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  categoryChipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
+  categoryChipTextActive: { color: '#fff' },
   sectionLabel: {
     ...TYPOGRAPHY.label,
     fontSize: 11,
@@ -487,6 +565,9 @@ const styles = StyleSheet.create({
   },
   featuredName: { color: '#fff', fontSize: 24, fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3, letterSpacing: -0.5 },
   featuredTagline: { color: 'rgba(255,255,255,0.9)', fontSize: 15, marginTop: 2, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
+  dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 10 },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.border },
+  dotActive: { width: 14, borderRadius: 3, backgroundColor: COLORS.primary },
   
   empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   emptyText: { color: COLORS.textMuted, fontSize: 14 },

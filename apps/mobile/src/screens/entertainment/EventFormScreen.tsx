@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Image, Alert, Modal, Platform,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -281,6 +281,7 @@ function PosterSection({ posterUrl, onPosterUrl, eventId, title, category, venue
 export default function EventFormScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const eventId = route?.params?.eventId;
   const isEdit  = !!eventId;
 
@@ -381,6 +382,9 @@ export default function EventFormScreen({ navigation, route }: any) {
     chipText:      { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
     chipTextActive:{ color: '#fff' },
     errorText:     { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     footer: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
       padding: SPACING.lg, backgroundColor: COLORS.background,
@@ -637,7 +641,7 @@ export default function EventFormScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving}>
           <LinearGradient colors={['#7c3aed', '#db2777']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveBtnGrad}>
             {saving

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
@@ -9,6 +9,7 @@ import { fetchApi } from '../../../utils/api';
 export default function AddEditSalonServiceScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const existing = route.params?.service;
   const isEdit = !!existing;
 
@@ -30,6 +31,9 @@ export default function AddEditSalonServiceScreen({ navigation, route }: any) {
     row: { flexDirection: 'row', gap: 12 },
     half: { flex: 1 },
     errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
     saveBtn: { backgroundColor: '#38BDF8', borderRadius: 14, padding: 16, alignItems: 'center' },
     saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
@@ -92,7 +96,7 @@ export default function AddEditSalonServiceScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{isEdit ? 'Save Changes' : 'Add Service'}</Text>}
         </TouchableOpacity>

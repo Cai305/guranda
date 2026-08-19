@@ -70,6 +70,7 @@ export default function HomeScreen({ navigation }: any) {
   const [chats, setChats] = useState<any[]>([]);
   const [communities, setCommunities] = useState<any[]>([]);
   const [realRooms, setRealRooms] = useState<RealLiveStream[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const aiChecked = React.useRef(false);
 
   // First-run AI onboarding: if this account has no AI companion yet,
@@ -105,6 +106,10 @@ export default function HomeScreen({ navigation }: any) {
       fetchApi('/relationships/mine')
         .then(res => (res.ok ? res.json() : null))
         .then(data => setHasRelationship(!!data))
+        .catch(() => {});
+      fetchApi('/notifications/unread-count')
+        .then(res => (res.ok ? res.json() : 0))
+        .then(n => setUnreadCount(typeof n === 'number' ? n : 0))
         .catch(() => {});
     }, [])
   );
@@ -185,6 +190,25 @@ export default function HomeScreen({ navigation }: any) {
       ...TYPOGRAPHY.h3,
       fontWeight: '700',
     },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    bellBtn: {
+      width: 38, height: 38, borderRadius: 19,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    bellBadge: {
+      position: 'absolute', top: -2, right: -2,
+      minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
+      backgroundColor: '#F87171',
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1.5, borderColor: COLORS.background,
+    },
+    bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
     brandWrap: {
       flexDirection: 'row',
     },
@@ -503,9 +527,23 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.userName}>{displayName}</Text>
             </View>
           </View>
-          <View style={styles.brandWrap}>
-            <Text style={styles.brandLife}>Gura</Text>
-            <Text style={styles.brandOS}>nda</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.bellBtn}
+              onPress={() => navigation.navigate('Notifications')}
+              accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+            >
+              <Ionicons name="notifications-outline" size={22} color={COLORS.text} />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <View style={styles.brandWrap}>
+              <Text style={styles.brandLife}>Gura</Text>
+              <Text style={styles.brandOS}>nda</Text>
+            </View>
           </View>
         </View>
 

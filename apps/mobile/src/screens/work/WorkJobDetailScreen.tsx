@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import { formatCurrency } from '../../utils/format';
 
 export default function WorkJobDetailScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const { jobId } = route.params;
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -122,7 +123,7 @@ export default function WorkJobDetailScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.applyBtn} onPress={apply} disabled={applying}>
           {applying ? <ActivityIndicator color="#fff" /> : <Text style={styles.applyBtnText}>Apply Now</Text>}
         </TouchableOpacity>
@@ -150,6 +151,9 @@ const styles = StyleSheet.create({
   desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
   input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 13 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+  // leaves the button flush against the home indicator / gesture bar on
+  // notched devices with no clearance from it.
   actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
   applyBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

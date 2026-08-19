@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, FlatList, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
@@ -7,6 +7,7 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 
 // Adds real-world money onto the MSH ledger. No live PSP is wired in yet —
 // requesting a deposit returns PayShap payment instructions against a
@@ -25,6 +26,8 @@ export default function DepositScreen({ navigation }: any) {
   useFocusEffect(useCallback(() => { refreshVerification(); }, [refreshVerification]));
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [pending, setPending] = useState<any | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -110,6 +113,48 @@ export default function DepositScreen({ navigation }: any) {
       borderWidth: 1,
       borderColor: COLORS.border,
     },
+    sheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    reviewSheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      paddingBottom: 32,
+    },
+    grabber: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: COLORS.border,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    reviewTitle: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 12,
+    },
+    reviewRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    reviewRowLast: {
+      borderBottomWidth: 0,
+      marginBottom: 6,
+    },
+    reviewKey: { color: COLORS.textMuted, fontSize: 14 },
+    reviewVal: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   }));
 
   if (!isVerified) {
@@ -142,8 +187,8 @@ export default function DepositScreen({ navigation }: any) {
   }
 
   const handleRequest = async () => {
-    const value = parseFloat(amount);
-    if (!(value > 0)) return;
+    setReviewing(false);
+    setRequestError(null);
     try {
       setSubmitting(true);
       const res = await fetchApi('/wallets/deposit', {
@@ -155,9 +200,8 @@ export default function DepositScreen({ navigation }: any) {
       setPending(data);
       setAmount('');
       loadHistory();
-    } catch {
-      // Swallow — the info card stays hidden and the form stays editable,
-      // which reads clearly enough as "that didn't go through, try again".
+    } catch (e: any) {
+      setRequestError(e.message || "Couldn't start the deposit. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -168,7 +212,7 @@ export default function DepositScreen({ navigation }: any) {
     return (
       <View style={styles.historyRow}>
         <View>
-          <Text style={TYPOGRAPHY.body1}>R{Number(item.amountZar).toFixed(2)} · {item.reference}</Text>
+          <Text style={TYPOGRAPHY.body1}>{formatCurrency(Number(item.amountZar))} · {item.reference}</Text>
           <Text style={TYPOGRAPHY.body2}>{new Date(item.createdAt).toLocaleDateString()}</Text>
         </View>
         <Text style={[TYPOGRAPHY.caption, { color }]}>{item.status}</Text>
@@ -202,7 +246,7 @@ export default function DepositScreen({ navigation }: any) {
             ) : (
               <>
                 <View style={styles.amountSection}>
-                  <Text style={styles.currencyLabel}>ZAR</Text>
+                  <Text style={styles.currencyLabel}>R</Text>
                   <TextInput
                     style={styles.amountInput}
                     placeholder="0.00"
@@ -213,6 +257,13 @@ export default function DepositScreen({ navigation }: any) {
                   />
                 </View>
 
+                {requestError && (
+                  <View style={[styles.infoCard, { borderColor: COLORS.error }]}>
+                    <Ionicons name="alert-circle-outline" size={20} color={COLORS.error} />
+                    <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10, color: COLORS.error }]}>{requestError}</Text>
+                  </View>
+                )}
+
                 <View style={styles.infoCard}>
                   <Ionicons name="information-circle-outline" size={20} color={COLORS.secondary} />
                   <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]}>
@@ -222,18 +273,12 @@ export default function DepositScreen({ navigation }: any) {
 
                 <TouchableOpacity
                   style={[styles.actionButton, submitting && styles.actionButtonDisabled]}
-                  onPress={handleRequest}
+                  onPress={() => { setRequestError(null); setReviewing(true); }}
                   disabled={submitting || !(parseFloat(amount) > 0)}
                   activeOpacity={0.7}
                 >
-                  {submitting ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="arrow-down-circle" size={20} color={COLORS.text} />
-                      <Text style={styles.actionButtonText}>Get PayShap reference</Text>
-                    </>
-                  )}
+                  <Ionicons name="arrow-down-circle" size={20} color={COLORS.text} />
+                  <Text style={styles.actionButtonText}>Review deposit</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -245,6 +290,38 @@ export default function DepositScreen({ navigation }: any) {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         ListEmptyComponent={!loadingHistory ? null : <ActivityIndicator color={COLORS.primary} style={{ marginTop: 20 }} />}
       />
+
+      <Modal visible={reviewing} transparent animationType="slide" onRequestClose={() => setReviewing(false)}>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReviewing(false)}>
+          <TouchableOpacity style={styles.reviewSheet} activeOpacity={1}>
+            <View style={styles.grabber} />
+            <Text style={styles.reviewTitle}>Review deposit</Text>
+            <View style={styles.reviewRow}>
+              <Text style={styles.reviewKey}>Amount</Text>
+              <Text style={styles.reviewVal}>{formatCurrency(Number(amount) || 0)}</Text>
+            </View>
+            <View style={[styles.reviewRow, styles.reviewRowLast]}>
+              <Text style={styles.reviewKey}>Method</Text>
+              <Text style={styles.reviewVal}>PayShap</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.actionButton, submitting && styles.actionButtonDisabled]}
+              onPress={handleRequest}
+              disabled={submitting}
+              activeOpacity={0.7}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="arrow-down-circle" size={20} color={COLORS.text} />
+                  <Text style={styles.actionButtonText}>Get PayShap reference</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -94,12 +94,6 @@ export default function EventsHomeScreen({ navigation }: any) {
     heroLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
     heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
     heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13 },
-    heroBtn: {
-      marginTop: 14, alignSelf: 'flex-start',
-      backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 20,
-      paddingHorizontal: 16, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 6,
-    },
-    heroBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
     // Search
     searchWrap: {
@@ -165,20 +159,6 @@ export default function EventsHomeScreen({ navigation }: any) {
     empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
     emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
     emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', paddingHorizontal: 32 },
-    emptyBtn: {
-      marginTop: 8, backgroundColor: '#10B981', borderRadius: 14,
-      paddingHorizontal: 24, paddingVertical: 12,
-    },
-    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-    // FAB
-    fab: {
-      position: 'absolute', bottom: 28, right: 22,
-      width: 56, height: 56, borderRadius: 28,
-      backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center',
-      shadowColor: '#10B981', shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
-    },
   }));
 
   const cardWidth = Math.min(width, 900) - SPACING.lg * 2;
@@ -216,10 +196,6 @@ export default function EventsHomeScreen({ navigation }: any) {
           <Text style={styles.heroLabel}>Live Events</Text>
           <Text style={styles.heroTitle}>Discover what's{'\n'}happening near you</Text>
           <Text style={styles.heroSub}>Book with your Guranda wallet</Text>
-          <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('EventForm')}>
-            <Ionicons name="add-circle-outline" size={15} color="#fff" />
-            <Text style={styles.heroBtnText}>Create Event</Text>
-          </TouchableOpacity>
         </LinearGradient>
 
         {/* Search */}
@@ -273,13 +249,8 @@ export default function EventsHomeScreen({ navigation }: any) {
             <Text style={styles.emptySub}>
               {search
                 ? `Try a different search term or category`
-                : `Be the first to host an event in your city`}
+                : `Check back soon, or host your own from My Events`}
             </Text>
-            {!search && (
-              <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('EventForm')}>
-                <Text style={styles.emptyBtnText}>Create an Event</Text>
-              </TouchableOpacity>
-            )}
           </View>
         ) : (
           <View style={{ paddingHorizontal: SPACING.lg }}>
@@ -373,11 +344,6 @@ export default function EventsHomeScreen({ navigation }: any) {
           </View>
         )}
       </ScrollView>
-
-      {/* FAB — create event */}
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('EventForm')} activeOpacity={0.85}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }

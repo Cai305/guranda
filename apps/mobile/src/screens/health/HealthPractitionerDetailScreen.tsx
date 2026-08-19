@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -10,6 +10,7 @@ import { formatCurrency } from '../../utils/format';
 export default function HealthPractitionerDetailScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const { practitionerId } = route.params;
   const [practitioner, setPractitioner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +69,9 @@ export default function HealthPractitionerDetailScreen({ navigation, route }: an
     dateLabel: { color: COLORS.textMuted, fontSize: 12, marginBottom: 6 },
     input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
     errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
     bookBtn: { backgroundColor: '#F87171', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
     bookBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
@@ -148,7 +152,7 @@ export default function HealthPractitionerDetailScreen({ navigation, route }: an
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
           {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>Book · {formatCurrency(practitioner.consultationFee)}</Text>}
         </TouchableOpacity>

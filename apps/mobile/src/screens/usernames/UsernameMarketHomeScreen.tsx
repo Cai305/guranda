@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
@@ -14,6 +14,7 @@ const LEVEL_COLOR: Record<string, string> = {
 };
 
 export default function UsernameMarketHomeScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [usernames, setUsernames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +130,7 @@ export default function UsernameMarketHomeScreen({ navigation }: any) {
         }
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('MyUsernames')}>
+      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 76 }]} onPress={() => navigation.navigate('MyUsernames')}>
         <Ionicons name="add" size={26} color="#FFF" />
         <Text style={styles.fabText}>Sell a username</Text>
       </TouchableOpacity>
@@ -230,6 +231,8 @@ const styles = StyleSheet.create({
   cardMeta: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
   empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
   fab: {
+    // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
+    // fab style comment for why a static value here renders under the tab bar.
     position: 'absolute', bottom: 24, right: 20,
     flexDirection: 'row', gap: 6, alignItems: 'center',
     backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,

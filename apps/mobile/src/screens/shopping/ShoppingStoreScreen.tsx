@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -14,7 +14,8 @@ export default function ShoppingStoreScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const { addItem, updateQty, items, itemCount, total } = useShoppingCart();
   const { theme } = useTheme();
-  const { COLORS, GRADIENTS } = theme;
+  const { COLORS, GRADIENTS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles(({ COLORS, GRADIENTS, SPACING, TYPOGRAPHY }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
@@ -62,6 +63,9 @@ export default function ShoppingStoreScreen({ navigation, route }: any) {
     qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 15, minWidth: 20, textAlign: 'center' },
     empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
     emptyText: { color: COLORS.textMuted, fontSize: 14 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     cartBar: {
       position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg,
       backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
@@ -205,7 +209,7 @@ export default function ShoppingStoreScreen({ navigation, route }: any) {
       </ScrollView>
 
       {itemCount > 0 && (
-        <View style={styles.cartBar}>
+        <View style={[styles.cartBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
           <TouchableOpacity style={styles.cartBarBtn} onPress={() => navigation.navigate('ShoppingCart')}>
             <View style={styles.cartBarBadge}><Text style={styles.cartBarBadgeText}>{itemCount}</Text></View>
             <Text style={styles.cartBarLabel}>View Cart</Text>

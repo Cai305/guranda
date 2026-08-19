@@ -61,6 +61,8 @@ export default function MyCarListingsScreen({ navigation }: any) {
       justifyContent: 'center', alignItems: 'center',
     },
     empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40, lineHeight: 20 },
+    emptyWrap: { alignItems: 'center', paddingVertical: 40, gap: 8 },
+    emptyLink: { color: '#A78BFA', fontWeight: '700', fontSize: 13, marginTop: 4 },
     card: {
       backgroundColor: 'rgba(255,255,255,0.05)',
       borderRadius: RADIUS.lg,
@@ -99,14 +101,24 @@ export default function MyCarListingsScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={TYPOGRAPHY.h2}>My Listings</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('CarListingForm')}>
+          <Ionicons name="add" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: SPACING.lg, gap: 14, paddingBottom: 40 }}>
         {listings.length === 0 && (
-          <Text style={styles.empty}>
-            {loading ? 'Loading…' : "You haven't listed any cars yet. List one from the CarFind home screen."}
-          </Text>
+          loading ? (
+            <Text style={styles.empty}>Loading…</Text>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="car-sport-outline" size={40} color={COLORS.textMuted} />
+              <Text style={styles.empty}>You haven't listed any cars yet.</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('CarListingForm')}>
+                <Text style={styles.emptyLink}>List your first car</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
 
         {listings.map(listing => (

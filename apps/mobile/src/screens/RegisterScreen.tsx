@@ -1,10 +1,17 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { useAuth } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 
+// Mirrors the server-side rule in apps/api/src/users/dto/register-user.dto.ts
+// so a weak password is caught here instead of round-tripping to the API.
+const PASSWORD_RULE = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+
 export default function RegisterScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -35,6 +42,14 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   const handleRegister = async () => {
+    if (username.trim().length < 3) {
+      Alert.alert('Username too short', 'Usernames need at least 3 characters.');
+      return;
+    }
+    if (password.length < 8 || !PASSWORD_RULE.test(password)) {
+      Alert.alert('Password too weak', 'Use at least 8 characters, with an uppercase letter, a lowercase letter, and a number.');
+      return;
+    }
     if (!firstName.trim() || !lastName.trim() || !occupation.trim()) {
       Alert.alert('Missing info', 'First name, last name and occupation are required to create your Guranda identity.');
       return;
@@ -69,6 +84,77 @@ export default function RegisterScreen({ navigation }: any) {
     }
   };
 
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      padding: 20,
+      justifyContent: 'center',
+    },
+    logoMark: {
+      width: 120,
+      height: 120,
+      alignSelf: 'center',
+      marginBottom: 4,
+    },
+    form: {
+      width: '100%',
+      marginTop: 20,
+      gap: 15,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 15,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    custodyCard: {
+      backgroundColor: COLORS.surface,
+      padding: 15,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    radio: {
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      marginBottom: 10,
+    },
+    radioActive: {
+      borderColor: COLORS.secondary,
+      backgroundColor: 'rgba(0, 245, 212, 0.1)',
+    },
+    radioText: {
+      color: COLORS.text,
+    },
+    button: {
+      backgroundColor: COLORS.primary,
+      padding: 15,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    buttonText: {
+      color: COLORS.text,
+      fontWeight: '600',
+      fontSize: 16,
+    },
+    linkText: {
+      color: COLORS.secondary,
+      textAlign: 'center',
+      marginTop: 10,
+    },
+    availabilityText: {
+      fontSize: 12.5,
+      fontWeight: '600',
+      marginTop: -8,
+    },
+  }));
+
   return (
     <View style={styles.container}>
       <Image
@@ -84,7 +170,7 @@ export default function RegisterScreen({ navigation }: any) {
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Choose a Nickname"
+          placeholder="Choose a username"
           placeholderTextColor={COLORS.textMuted}
           value={username}
           onChangeText={onChangeUsername}
@@ -97,7 +183,7 @@ export default function RegisterScreen({ navigation }: any) {
         )}
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder="Password (8+ characters, upper, lower, number)"
           secureTextEntry
           placeholderTextColor={COLORS.textMuted}
           value={password}
@@ -134,16 +220,16 @@ export default function RegisterScreen({ navigation }: any) {
           <Text style={[TYPOGRAPHY.body2, { marginTop: 5, marginBottom: 15 }]}>
             How would you like us to handle your Masheleni 2.0 wallet?
           </Text>
-          
-          <TouchableOpacity 
-            style={[styles.radio, !isSelfCustodial && styles.radioActive]} 
+
+          <TouchableOpacity
+            style={[styles.radio, !isSelfCustodial && styles.radioActive]}
             onPress={() => setIsSelfCustodial(false)}
           >
             <Text style={styles.radioText}>Platform Managed (Easy recovery)</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.radio, isSelfCustodial && styles.radioActive]} 
+          <TouchableOpacity
+            style={[styles.radio, isSelfCustodial && styles.radioActive]}
             onPress={() => setIsSelfCustodial(true)}
           >
             <Text style={styles.radioText}>Self-Custodial (You own the keys)</Text>
@@ -161,74 +247,3 @@ export default function RegisterScreen({ navigation }: any) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  logoMark: {
-    width: 120,
-    height: 120,
-    alignSelf: 'center',
-    marginBottom: 4,
-  },
-  form: {
-    width: '100%',
-    marginTop: 20,
-    gap: 15,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  custodyCard: {
-    backgroundColor: COLORS.surface,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  radio: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 10,
-  },
-  radioActive: {
-    borderColor: COLORS.secondary,
-    backgroundColor: 'rgba(0, 245, 212, 0.1)',
-  },
-  radioText: {
-    color: COLORS.text,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: COLORS.text,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  linkText: {
-    color: COLORS.secondary,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  availabilityText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    marginTop: -8,
-  },
-});

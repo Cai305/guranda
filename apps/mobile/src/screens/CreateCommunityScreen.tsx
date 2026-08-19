@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -83,10 +83,11 @@ export default function CreateCommunityScreen({ navigation }: any) {
         const community = await res.json();
         navigation.replace('Community', { communityId: community.id, communityName: community.name });
       } else {
-        console.error('Failed to create community');
+        const data = await res.json().catch(() => null);
+        Alert.alert('Error', data?.message || "Couldn't create the community. Please try again.");
       }
     } catch (e) {
-      console.error(e);
+      Alert.alert('Error', 'Something went wrong.');
     } finally {
       setLoading(false);
     }

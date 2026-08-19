@@ -8,6 +8,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { VerificationService } from './verification.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { AdminAccessGuard } from '../admin/admin-access.guard';
@@ -32,6 +33,7 @@ export class VerificationController {
 // Was fully unauthenticated — anyone could approve or reject any user's KYC
 // verification, which gates wallet/creator-fund access. Gated the same way
 // as the rest of the admin surface (see admin/admin-access.guard.ts).
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 @UseGuards(AdminAccessGuard)
 @Controller('admin/verifications')
 export class AdminVerificationController {

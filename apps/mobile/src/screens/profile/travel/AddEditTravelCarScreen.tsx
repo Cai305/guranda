@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
@@ -9,6 +9,7 @@ import { fetchApi, uploadImage } from '../../../utils/api';
 const CAR_CATEGORIES = ['Economy', 'SUV', 'Luxury', 'Van', 'Convertible'];
 
 export default function AddEditTravelCarScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const existing = route.params?.car;
   const isEdit = !!existing;
 
@@ -132,7 +133,7 @@ export default function AddEditTravelCarScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving || uploading}>
           {saving || uploading ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -168,6 +169,9 @@ const styles = StyleSheet.create({
   chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
   chipTextActive: { color: '#fff' },
   errorText: { color: '#ef4444', fontSize: 13 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+  // leaves the button flush against the home indicator / gesture bar on
+  // notched devices with no clearance from it.
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
   saveBtn: { backgroundColor: '#8B5CF6', borderRadius: 14, padding: 16, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },

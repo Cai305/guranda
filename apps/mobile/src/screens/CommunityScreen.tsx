@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
+import { invalidateCachedResponse } from '../utils/apiCache';
 import { CommunityDetailsDto } from '@mxit2/types';
 
 export default function CommunityScreen({ route, navigation }: any) {
@@ -13,18 +15,22 @@ export default function CommunityScreen({ route, navigation }: any) {
   const { communityId, communityName } = route.params;
   const [community, setCommunity] = useState<CommunityDetailsDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [joined, setJoined] = useState(false); // We don't have this in details yet, mock it or allow join blindly
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
 
-  useEffect(() => {
-    fetchCommunity();
-  }, [communityId]);
+  // Refetches on every focus (not just mount) so rejoining this screen after
+  // an action taken elsewhere — most importantly, this screen's own join —
+  // reflects real membership instead of the state from first mount.
+  useFocusEffect(useCallback(() => { fetchCommunity(); }, [communityId]));
 
   const fetchCommunity = async () => {
     try {
       setLoading(true);
-      const res = await fetchApi(`/communities/${communityId}`);
+      const res = await fetchApi(`/communities/${communityId}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (res.ok) {
-        setCommunity(await res.json());
+        const data = await res.json();
+        setCommunity(data);
+        setJoined(!!data.isMember);
       }
     } catch (e) {
       console.error(e);
@@ -34,13 +40,20 @@ export default function CommunityScreen({ route, navigation }: any) {
   };
 
   const handleJoin = async () => {
+    setJoining(true);
     try {
       const res = await fetchApi(`/communities/${communityId}/join`, { method: 'POST' });
-      if (res.ok) {
-        setJoined(true);
-      }
-    } catch (e) {
-      console.error(e);
+      if (!res.ok) throw new Error((await res.json())?.message || "Couldn't join this community");
+      // The community-details GET is cache-first (see utils/apiCache.ts) — without
+      // clearing it, a revisit within the 5-minute TTL would still read the
+      // pre-join "not a member" snapshot despite the join having succeeded.
+      await invalidateCachedResponse(`/communities/${communityId}`);
+      await invalidateCachedResponse('/communities');
+      setJoined(true);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -201,8 +214,8 @@ export default function CommunityScreen({ route, navigation }: any) {
             <Text style={styles.members}>{community._count?.members || 0} Members</Text>
             
             {!joined ? (
-              <TouchableOpacity style={styles.joinBtn} onPress={handleJoin}>
-                <Text style={styles.joinBtnText}>Join Community</Text>
+              <TouchableOpacity style={styles.joinBtn} onPress={handleJoin} disabled={joining}>
+                {joining ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.joinBtnText}>Join Community</Text>}
               </TouchableOpacity>
             ) : (
               <View style={styles.joinedBadge}>

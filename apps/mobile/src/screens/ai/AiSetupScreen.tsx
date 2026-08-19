@@ -38,6 +38,11 @@ export default function AiSetupScreen({ navigation }: any) {
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
     root: { flex: 1, backgroundColor: COLORS.background },
+    skipRow: {
+      flexDirection: 'row', justifyContent: 'flex-end',
+      paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm,
+    },
+    skipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
     hero: {
       margin: SPACING.lg,
       borderRadius: RADIUS.lg,
@@ -101,8 +106,21 @@ export default function AiSetupScreen({ navigation }: any) {
     continueText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
   }));
 
+  const skip = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Dashboard');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      <View style={styles.skipRow}>
+        <TouchableOpacity onPress={skip}>
+          <Text style={styles.skipText}>Skip for now</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <LinearGradient colors={['#3A0E6E', '#200840']} style={styles.hero}>
           <View style={styles.orb}>

@@ -6,6 +6,7 @@ import SendScreen from '../screens/SendScreen';
 import DepositScreen from '../screens/DepositScreen';
 import RequestMoneyScreen from '../screens/RequestMoneyScreen';
 import PaymentRequestsScreen from '../screens/PaymentRequestsScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,6 +19,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="Deposit" component={DepositScreen} />
       <Stack.Screen name="RequestMoney" component={RequestMoneyScreen} />
       <Stack.Screen name="PaymentRequests" component={PaymentRequestsScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 }

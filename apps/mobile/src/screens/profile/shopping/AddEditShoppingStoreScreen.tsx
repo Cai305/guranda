@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../../context/ThemeContext';
@@ -12,6 +12,7 @@ const CATEGORIES = ['Fashion', 'Electronics', 'Home & Garden', 'Beauty', 'Sports
 export default function AddEditShoppingStoreScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const existing = route.params?.store;
   const isEdit = !!existing;
 
@@ -109,6 +110,9 @@ export default function AddEditShoppingStoreScreen({ navigation, route }: any) {
     },
     infoText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18, flex: 1 },
     errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     footer: {
       position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg,
       backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
@@ -194,7 +198,7 @@ export default function AddEditShoppingStoreScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving || uploading}>
           {saving || uploading ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

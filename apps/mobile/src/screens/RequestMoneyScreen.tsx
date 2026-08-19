@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TYPOGRAPHY } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,13 +11,24 @@ export default function RequestMoneyScreen({ navigation }: any) {
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
   const [sending, setSending] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
-  const handleRequest = async () => {
+  const openReview = () => {
+    setFieldError(null);
     if (!destination.trim() || !amount.trim()) {
-      Alert.alert('Error', 'Please fill in both fields.');
+      setFieldError('Please fill in both fields.');
       return;
     }
+    if (!(Number(amount) > 0)) {
+      setFieldError('Enter a valid amount.');
+      return;
+    }
+    setReviewing(true);
+  };
 
+  const handleRequest = async () => {
+    setReviewing(false);
     try {
       setSending(true);
       const res = await fetchApi('/wallets/requests', {
@@ -92,6 +103,13 @@ export default function RequestMoneyScreen({ navigation }: any) {
           />
         </View>
 
+        {fieldError && (
+          <View style={[styles.infoCard, { borderColor: COLORS.error }]}>
+            <Ionicons name="alert-circle-outline" size={20} color={COLORS.error} />
+            <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10, color: COLORS.error }]}>{fieldError}</Text>
+          </View>
+        )}
+
         <View style={styles.infoCard}>
           <Ionicons name="information-circle-outline" size={20} color={COLORS.secondary} />
           <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]}>
@@ -100,21 +118,52 @@ export default function RequestMoneyScreen({ navigation }: any) {
         </View>
 
         <TouchableOpacity
-          style={[styles.sendButton, sending && styles.sendButtonDisabled]}
-          onPress={handleRequest}
-          disabled={sending}
+          style={styles.sendButton}
+          onPress={openReview}
           activeOpacity={0.7}
         >
-          {sending ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <>
-              <Ionicons name="download" size={20} color={COLORS.text} />
-              <Text style={styles.sendButtonText}>Send Request</Text>
-            </>
-          )}
+          <Ionicons name="download" size={20} color={COLORS.text} />
+          <Text style={styles.sendButtonText}>Review request</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={reviewing} transparent animationType="slide" onRequestClose={() => setReviewing(false)}>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setReviewing(false)}>
+          <TouchableOpacity style={styles.reviewSheet} activeOpacity={1}>
+            <View style={styles.grabber} />
+            <Text style={styles.reviewTitle}>Review request</Text>
+            <View style={styles.reviewRow}>
+              <Text style={styles.reviewKey}>From</Text>
+              <Text style={styles.reviewVal} numberOfLines={1}>{destination.trim()}</Text>
+            </View>
+            <View style={[styles.reviewRow, !memo.trim() && styles.reviewRowLast]}>
+              <Text style={styles.reviewKey}>Amount</Text>
+              <Text style={styles.reviewVal}>{formatCurrency(Number(amount) || 0)}</Text>
+            </View>
+            {!!memo.trim() && (
+              <View style={[styles.reviewRow, styles.reviewRowLast]}>
+                <Text style={styles.reviewKey}>Note</Text>
+                <Text style={styles.reviewVal} numberOfLines={1}>{memo.trim()}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+              onPress={handleRequest}
+              disabled={sending}
+              activeOpacity={0.7}
+            >
+              {sending ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="download" size={20} color={COLORS.text} />
+                  <Text style={styles.sendButtonText}>Send Request</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -198,4 +247,46 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  reviewSheet: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  reviewTitle: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  reviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  reviewRowLast: {
+    borderBottomWidth: 0,
+    marginBottom: 6,
+  },
+  reviewKey: { color: COLORS.textMuted, fontSize: 14 },
+  reviewVal: { color: COLORS.text, fontSize: 14, fontWeight: '700', maxWidth: '65%' },
 });

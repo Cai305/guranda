@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/format';
+import { SPACING } from '../../theme';
 
 // CarFind — a car classifieds mini app modeled on carfind.co.za. Browse
 // real listings by body type, view specs and photos, and contact sellers.
@@ -88,18 +90,11 @@ export default function CarFindHomeScreen({ navigation }: any) {
     cardPrice: { color: '#A78BFA', fontWeight: '800', fontSize: 14 },
     cardLocation: { color: COLORS.textMuted, fontSize: 12 },
     cardSeller: { color: COLORS.textMuted, fontSize: 11, marginTop: 6 },
-    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-    fab: {
-      position: 'absolute', bottom: 24, right: 20,
-      flexDirection: 'row', gap: 6, alignItems: 'center',
-      backgroundColor: '#7C3AED',
-      borderRadius: RADIUS.pill,
-      paddingVertical: 13, paddingHorizontal: 18,
-    },
-    fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+    loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   }));
 
   const load = useCallback(() => {
+    setLoading(true);
     const qs = filter === 'all' ? '' : `?bodyType=${filter}`;
     fetchApi(`/carfind/listings${qs}`)
       .then(res => (res.ok ? res.json() : []))
@@ -198,22 +193,25 @@ export default function CarFindHomeScreen({ navigation }: any) {
         )}
       />
 
-      <FlatList
-        data={cars}
-        keyExtractor={c => c.id}
-        renderItem={renderCar}
-        contentContainerStyle={{ padding: SPACING.lg, gap: 12, paddingBottom: 100 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {loading ? 'Loading listings…' : 'No cars found — try a different filter, or list your own!'}
-          </Text>
-        }
-      />
-
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CarListingForm')}>
-        <Ionicons name="add" size={26} color="#FFF" />
-        <Text style={styles.fabText}>List a car</Text>
-      </TouchableOpacity>
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color="#A78BFA" />
+        </View>
+      ) : (
+        <FlatList
+          data={cars}
+          keyExtractor={c => c.id}
+          renderItem={renderCar}
+          contentContainerStyle={[{ padding: SPACING.lg, gap: 12, paddingBottom: 100 }, cars.length === 0 && { flex: 1 }]}
+          ListEmptyComponent={
+            <EmptyState
+              icon="car-sport-outline"
+              title="No cars found"
+              subtitle="Try a different filter."
+            />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }

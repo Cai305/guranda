@@ -28,7 +28,6 @@ export default function FinanceHomeScreen({ navigation }: any) {
     headerCenter: { flex: 1 },
     headerTitle: { ...TYPOGRAPHY.h2 },
     headerSub: { color: COLORS.textMuted, fontSize: 12 },
-    iconBtn: { padding: 6 },
     hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
     heroIcon: { position: 'absolute', right: 16, top: 12 },
     heroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 4 },
@@ -60,11 +59,10 @@ export default function FinanceHomeScreen({ navigation }: any) {
     cardMetaText: { color: COLORS.textMuted, fontSize: 11 },
     rolePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: '#F59E0B22' },
     rolePillText: { color: '#F59E0B', fontSize: 10, fontWeight: '700' },
-    cardAmount: { color: '#F59E0B', fontWeight: '800', fontSize: 14 },
+    cardAmount: { color: '#F59E0B', fontWeight: '800', fontSize: 17 },
+    cardAmountUnit: { color: '#F59E0B', fontWeight: '600', fontSize: 11 },
     empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
     emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: SPACING.lg },
-    emptyBtn: { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
-    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   }));
   const [tab, setTab] = useState<Tab>('mine');
   const [category, setCategory] = useState('All');
@@ -109,9 +107,6 @@ export default function FinanceHomeScreen({ navigation }: any) {
           <Text style={styles.headerTitle}>Finance</Text>
           <Text style={styles.headerSub}>Stokvels, powered by real XRPL wallets</Text>
         </View>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('CreateStokvel')}>
-          <Ionicons name="add-circle-outline" size={22} color={COLORS.text} />
-        </TouchableOpacity>
       </View>
 
       <LinearGradient colors={GRADIENTS.golden} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.hero}>
@@ -147,12 +142,11 @@ export default function FinanceHomeScreen({ navigation }: any) {
         ) : items.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="trending-up-outline" size={48} color={COLORS.textMuted} />
-            <Text style={styles.emptyText}>{tab === 'mine' ? "You haven't joined a stokvel yet" : 'No stokvels in this category yet'}</Text>
-            {tab === 'mine' && (
-              <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('CreateStokvel')}>
-                <Text style={styles.emptyBtnText}>Create a stokvel</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.emptyText}>
+              {tab === 'mine'
+                ? "You haven't joined a stokvel yet — create or join one from My Stokvels in your profile."
+                : 'No stokvels in this category yet'}
+            </Text>
           </View>
         ) : (
           <View style={{ paddingHorizontal: SPACING.lg, gap: 10 }}>
@@ -171,7 +165,10 @@ export default function FinanceHomeScreen({ navigation }: any) {
                     )}
                   </View>
                 </View>
-                <Text style={styles.cardAmount}>{s.contributionAmount} XRP</Text>
+                <Text style={styles.cardAmount}>
+                  {Number(s.contributionAmount).toFixed(2)}
+                  <Text style={styles.cardAmountUnit}> XRP</Text>
+                </Text>
               </TouchableOpacity>
             ))}
           </View>

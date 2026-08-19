@@ -228,6 +228,7 @@ export interface CommunityDto {
 
 export interface CommunityDetailsDto extends CommunityDto {
   rooms: { id: string; name: string; type: string }[];
+  isMember: boolean;
 }
 
 export interface StoryItemDto {

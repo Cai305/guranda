@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal, Share, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -12,6 +12,7 @@ const CATEGORY_CHIPS = ['All', 'Gaming', 'Music', 'Education', 'Cooking', 'Sport
 export default function DiscoverScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { COLORS } = theme;
+  const insets = useSafeAreaInsets();
   const [videos, setVideos] = useState<VideoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,6 +58,8 @@ export default function DiscoverScreen({ navigation }: any) {
     sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
     sheetLabel: { ...TYPOGRAPHY.body1, fontSize: 15 },
     sheetHint: { color: COLORS.textMuted, fontSize: 13, paddingVertical: 8 },
+    // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
+    // fab style comment for why a static value here renders under the tab bar.
     fab: {
       position: 'absolute',
       bottom: 24,
@@ -302,7 +305,7 @@ export default function DiscoverScreen({ navigation }: any) {
 
       {/* Upload FAB */}
       {!searchOpen && (
-        <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('VideoUpload')} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 76 }]} onPress={() => navigation.navigate('VideoUpload')} activeOpacity={0.85}>
           <Ionicons name="cloud-upload" size={22} color="#fff" />
           <Text style={styles.fabText}>Upload</Text>
         </TouchableOpacity>

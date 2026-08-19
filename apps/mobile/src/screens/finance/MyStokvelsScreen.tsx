@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
@@ -10,6 +10,7 @@ import { fetchApi } from '../../utils/api';
 export default function MyStokvelsScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { COLORS } = theme;
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 4 },
@@ -32,6 +33,8 @@ export default function MyStokvelsScreen({ navigation }: any) {
     emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: SPACING.lg },
     emptyBtn: { backgroundColor: '#F59E0B', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
     emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+    // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
+    // fab style comment for why a static value here renders under the tab bar.
     fab: {
       position: 'absolute', right: SPACING.lg, bottom: SPACING.lg,
       width: 52, height: 52, borderRadius: 26,
@@ -109,7 +112,7 @@ export default function MyStokvelsScreen({ navigation }: any) {
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreateStokvel')}>
+      <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 76 }]} onPress={() => navigation.navigate('CreateStokvel')}>
         <Ionicons name="add" size={26} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>

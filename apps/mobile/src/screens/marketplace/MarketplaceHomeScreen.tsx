@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Image, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Image, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import EmptyState from '../../components/EmptyState';
 
 const CATEGORIES = ['All', 'Electronics', 'Fashion', 'Home & Garden', 'Vehicles', 'Sports', 'Books & Media', 'Toys & Games', 'Collectibles', 'Other'];
 const TYPE_FILTERS = [
@@ -26,6 +27,7 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
+    setLoading(true);
     const params = new URLSearchParams();
     if (category !== 'All') params.set('category', category);
     if (typeFilter !== 'all') params.set('listingType', typeFilter);
@@ -101,14 +103,9 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
     cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
     cardPrice: { color: '#A78BFA', fontWeight: '800', fontSize: 13, marginTop: 4 },
     cardMeta: { color: COLORS.textMuted, fontSize: 10.5, marginTop: 3 },
-    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-    fab: {
-      position: 'absolute', bottom: 24, right: 20,
-      flexDirection: 'row', gap: 6, alignItems: 'center',
-      backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
-      paddingVertical: 13, paddingHorizontal: 18,
-    },
-    fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+    loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
+    // fab style comment for why a static value here renders under the tab bar.
   }));
 
   const renderListing = ({ item }: { item: any }) => {
@@ -216,24 +213,27 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
         ))}
       </View>
 
-      <FlatList
-        data={listings}
-        keyExtractor={l => l.id}
-        renderItem={renderListing}
-        numColumns={2}
-        columnWrapperStyle={{ gap: 12 }}
-        contentContainerStyle={{ padding: SPACING.lg, gap: 12, paddingBottom: 100 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {loading ? 'Loading listings…' : 'No listings yet — be the first to sell something!'}
-          </Text>
-        }
-      />
-
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('MarketplaceForm')}>
-        <Ionicons name="add" size={26} color="#FFF" />
-        <Text style={styles.fabText}>Sell something</Text>
-      </TouchableOpacity>
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={listings}
+          keyExtractor={l => l.id}
+          renderItem={renderListing}
+          numColumns={2}
+          columnWrapperStyle={{ gap: 12 }}
+          contentContainerStyle={[{ padding: SPACING.lg, gap: 12, paddingBottom: 100 }, listings.length === 0 && { flex: 1 }]}
+          ListEmptyComponent={
+            <EmptyState
+              icon="pricetags-outline"
+              title="No listings yet"
+              subtitle="Be the first to sell something!"
+            />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }

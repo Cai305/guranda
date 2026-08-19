@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,7 +12,8 @@ const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 
 
 export default function EventDetailScreen({ navigation, route }: any) {
   const { theme } = useTheme();
-  const { COLORS, GRADIENTS } = theme;
+  const { COLORS, GRADIENTS, SPACING } = theme;
+  const insets = useSafeAreaInsets();
   const { eventId } = route.params;
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,9 @@ export default function EventDetailScreen({ navigation, route }: any) {
     totalLabel: { color: COLORS.textMuted, fontSize: 13 },
     totalValue: { color: '#10B981', fontWeight: '800', fontSize: 16 },
     errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
     bookBtn: { backgroundColor: '#10B981', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
     bookBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
@@ -162,7 +166,7 @@ export default function EventDetailScreen({ navigation, route }: any) {
         </View>
       </ScrollView>
 
-      <View style={styles.actionBar}>
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
           {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${formatCurrency(total)}` : 'Book Tickets'}</Text>}
         </TouchableOpacity>

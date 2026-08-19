@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, SectionList, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import TopBar from '../components/TopBar';
+import EmptyState from '../components/EmptyState';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -21,6 +22,11 @@ export default function ChatListScreen({ navigation }: any) {
   const { onlineUsers, socket } = useSocket();
   const [sections, setSections] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  // Distinct from `loading` (which also drives the pull-to-refresh spinner,
+  // and only renders inside the pull gesture) — this gates a real, visible
+  // loading state for the very first mount, before which the list would
+  // otherwise just render blank.
+  const [initialLoading, setInitialLoading] = React.useState(true);
   const [storyGroups, setStoryGroups] = React.useState<any[]>([]);
   const [communities, setCommunities] = React.useState<any[]>([]);
 
@@ -232,7 +238,7 @@ export default function ChatListScreen({ navigation }: any) {
 
         // Inject AI Users alongside real direct chats
         const privateContacts = [
-          { id: 'ai-assistant', name: 'Guranda AI Assistant', type: 'AI', status: 'online', hasNewMessage: true, unreadCount: 1, lastMessageAt: new Date(Date.now() + 10000).toISOString() },
+          { id: 'ai-assistant', name: 'Guranda AI Assistant', type: 'AI', status: 'online', hasNewMessage: false, unreadCount: 0, lastMessageAt: new Date(Date.now() + 10000).toISOString() },
           { id: 'ai-sipho', name: 'Sipho', type: 'AI', status: 'online', hasNewMessage: false, unreadCount: 0, lastMessageAt: new Date(Date.now() - 50000).toISOString() },
           { id: 'ai-thandi', name: 'Thandi', type: 'AI', status: 'busy', hasNewMessage: false, unreadCount: 0, lastMessageAt: new Date(Date.now() - 100000).toISOString() },
           ...chats.filter((c: any) => c.type === 'DIRECT')
@@ -250,6 +256,7 @@ export default function ChatListScreen({ navigation }: any) {
       console.error(e);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -438,16 +445,29 @@ export default function ChatListScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <TopBar navigation={navigation} />
       {renderStoryStrip()}
-      <SectionList
-        sections={allSections}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }]}
-        stickySectionHeadersEnabled={false}
-        refreshing={loading}
-        onRefresh={() => { fetchChats(); fetchCommunities(); }}
-      />
+      {initialLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <ActivityIndicator color={COLORS.primary} />
+        </View>
+      ) : (
+        <SectionList
+          sections={allSections}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }, allSections.length === 0 && { flex: 1 }]}
+          stickySectionHeadersEnabled={false}
+          refreshing={loading}
+          onRefresh={() => { fetchChats(); fetchCommunities(); }}
+          ListEmptyComponent={
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No conversations yet"
+              subtitle="Start a chat and it'll show up here."
+            />
+          }
+        />
+      )}
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 76 }]}
         activeOpacity={0.8}

@@ -35,6 +35,14 @@ export async function setCachedResponse(endpoint: string, data: any): Promise<vo
   }
 }
 
+export async function invalidateCachedResponse(endpoint: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(`${CACHE_PREFIX}${endpoint}`);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export async function clearApiCache(): Promise<void> {
   try {
     const keys = await AsyncStorage.getAllKeys();

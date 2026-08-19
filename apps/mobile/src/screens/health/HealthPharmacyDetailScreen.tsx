@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,6 +11,7 @@ import { formatCurrency } from '../../utils/format';
 export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS, GRADIENTS } = theme;
+  const insets = useSafeAreaInsets();
   const { pharmacyId } = route.params;
   const [pharmacy, setPharmacy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -85,6 +86,9 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
     qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     qtyBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
     qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 15, minWidth: 20, textAlign: 'center' },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
     checkoutBar: {
       position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, gap: 10,
       backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
@@ -174,7 +178,7 @@ export default function HealthPharmacyDetailScreen({ navigation, route }: any) {
       </ScrollView>
 
       {cartItems.length > 0 && (
-        <View style={styles.checkoutBar}>
+        <View style={[styles.checkoutBar, { paddingBottom: insets.bottom + theme.SPACING.lg }]}>
           <TextInput style={styles.input} placeholder="Delivery address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <TouchableOpacity style={styles.checkoutBtn} onPress={checkout} disabled={placing}>

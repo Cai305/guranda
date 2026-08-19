@@ -81,19 +81,34 @@ export default function FriendsListScreen({ route, navigation }: any) {
   };
 
   const respond = async (id: string, action: 'accept' | 'decline') => {
-    await fetchApi(`/friends/${id}/${action}`, { method: 'POST' });
-    load();
+    try {
+      const res = await fetchApi(`/friends/${id}/${action}`, { method: 'POST' });
+      if (!res.ok) throw new Error((await res.json())?.message || `Couldn't ${action} the request`);
+      load();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
   };
 
   const invite = (friendUserId: string) => {
     if (!pickForRoomId || !user) return;
     const sock = io(`${API_BASE_URL}/cards`);
+    const timeout = setTimeout(() => {
+      sock.disconnect();
+      Alert.alert('Error', "Couldn't reach the game — check your connection and try again.");
+    }, 5000);
     sock.on('connect', () => {
+      clearTimeout(timeout);
       sock.emit('invite_friend_to_room', { roomId: pickForRoomId, requesterId: user.userId, friendUserId });
       setTimeout(() => sock.disconnect(), 500);
+      Alert.alert('Invite sent');
+      navigation.goBack();
     });
-    Alert.alert('Invite sent');
-    navigation.goBack();
+    sock.on('connect_error', () => {
+      clearTimeout(timeout);
+      sock.disconnect();
+      Alert.alert('Error', "Couldn't reach the game — check your connection and try again.");
+    });
   };
 
   return (

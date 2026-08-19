@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
 import { fetchApi } from '../../../utils/api';
@@ -9,6 +9,7 @@ const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship'];
 const LOCATION_TYPES = ['Remote', 'Onsite', 'Hybrid'];
 
 export default function AddEditWorkJobScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const existing = route.params?.job;
   const isEdit = !!existing;
 
@@ -123,7 +124,7 @@ export default function AddEditWorkJobScreen({ navigation, route }: any) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{isEdit ? 'Save Changes' : 'Post Job'}</Text>}
         </TouchableOpacity>
@@ -146,6 +147,9 @@ const styles = StyleSheet.create({
   chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
   chipTextActive: { color: '#fff' },
   errorText: { color: '#ef4444', fontSize: 13 },
+  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+  // leaves the button flush against the home indicator / gesture bar on
+  // notched devices with no clearance from it.
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
   saveBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, padding: 16, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },

@@ -50,6 +50,8 @@ export default function MyListingsScreen({ navigation }: any) {
     statusPill: { borderWidth: 1, borderRadius: RADIUS.pill, paddingHorizontal: 9, paddingVertical: 4 },
     statusText: { fontSize: 9.5, fontWeight: '800' },
     empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
+    emptyWrap: { alignItems: 'center', paddingVertical: 40, gap: 8 },
+    emptyLink: { color: '#A78BFA', fontWeight: '700', fontSize: 13, marginTop: 4 },
   }));
 
   const renderItem = ({ item }: { item: any }) => (
@@ -84,16 +86,28 @@ export default function MyListingsScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={TYPOGRAPHY.h2}>My Listings</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('MarketplaceForm')}>
+          <Ionicons name="add" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
         data={listings}
         keyExtractor={l => l.id}
         renderItem={renderItem}
-        contentContainerStyle={{ padding: SPACING.lg, gap: 10, paddingBottom: 40 }}
+        contentContainerStyle={[{ padding: SPACING.lg, gap: 10, paddingBottom: 40 }, listings.length === 0 && { flex: 1 }]}
         ListEmptyComponent={
-          <Text style={styles.empty}>{loading ? 'Loading…' : "You haven't listed anything yet."}</Text>
+          loading ? (
+            <Text style={styles.empty}>Loading…</Text>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Ionicons name="pricetags-outline" size={40} color={COLORS.textMuted} />
+              <Text style={styles.empty}>You haven't listed anything yet.</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('MarketplaceForm')}>
+                <Text style={styles.emptyLink}>List your first item</Text>
+              </TouchableOpacity>
+            </View>
+          )
         }
       />
     </SafeAreaView>

@@ -42,8 +42,8 @@ export class CommunitiesAiToolsProvider implements OnModuleInit {
           permissionKey: 'communities.read',
           sensitive: false,
           defaultGranted: true,
-          handler: (_ctx, input) =>
-            this.communities.getCommunityDetails(input.communityId),
+          handler: (ctx, input) =>
+            this.communities.getCommunityDetails(input.communityId, ctx.userId),
         },
         {
           name: 'join',

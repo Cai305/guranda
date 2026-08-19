@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,6 +11,7 @@ import SessionHeaderActions from '../../components/SessionHeaderActions';
 export default function CarWashHomeScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } = theme;
+  const insets = useSafeAreaInsets();
   const [carWashes, setCarWashes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +85,8 @@ export default function CarWashHomeScreen({ navigation }: any) {
     cardAddress: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
     emptyContainer: { alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
     emptyText: { color: COLORS.textMuted, fontSize: 14 },
+    // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
+    // fab style comment for why a static value here renders under the tab bar.
     fab: {
       position: 'absolute', bottom: SPACING.xl, right: SPACING.lg,
       width: 56, height: 56, borderRadius: 28,
@@ -111,9 +114,6 @@ export default function CarWashHomeScreen({ navigation }: any) {
           <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('MyCarWashBookings')}>
             <Ionicons name="receipt" size={18} color={COLORS.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('ManageCarWash')}>
-            <Ionicons name="add" size={20} color={COLORS.text} />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -132,7 +132,7 @@ export default function CarWashHomeScreen({ navigation }: any) {
       />
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: insets.bottom + 76 }]}
         onPress={() => navigation.navigate('Chat', { mode: 'ai', agentId: 'carwash' })}
       >
         <Ionicons name="sparkles" size={24} color="#FFF" />

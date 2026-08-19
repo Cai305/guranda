@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -40,6 +40,7 @@ function timeAgo(iso: string): string {
 export default function ExploreScreen({ navigation }: any) {
   const { user } = useAuth();
   const { socket } = useSocket();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'trending'>('feed');
   const [feedMode, setFeedMode] = useState<'forYou' | 'following'>('forYou');
   const [posts, setPosts] = useState<PostDto[]>([]);
@@ -574,6 +575,9 @@ export default function ExploreScreen({ navigation }: any) {
     },
     fab: {
       position: 'absolute',
+      // bottom is set dynamically via insets in JSX (matches ChatListScreen's
+      // and AiFloatingOrb's insets.bottom + 76) — without that tab-bar-height
+      // offset this renders underneath the bottom tab bar.
       bottom: 20,
       right: 20,
       width: 56,
@@ -1085,7 +1089,7 @@ export default function ExploreScreen({ navigation }: any) {
 
       {activeTab === 'feed' ? (
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { bottom: insets.bottom + 76 }]}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('CreatePost')}
         >
