@@ -1042,7 +1042,7 @@ export default function ExploreScreen({ navigation }: any) {
                       <LiveStreamCard
                         stream={item}
                         size="compact"
-                        onPress={(s) => enterLiveStream(s, user?.userId, navigation)}
+                        onPress={(s) => enterLiveStream(s, user?.userId, navigation, trending.live)}
                       />
                     )}
                   />

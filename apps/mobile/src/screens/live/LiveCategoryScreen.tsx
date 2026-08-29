@@ -85,7 +85,7 @@ export default function LiveCategoryScreen({ navigation, route }: any) {
         ) : (
           <View style={styles.grid}>
             {streams.map((s: LiveStream) => (
-              <LiveStreamCard key={s.id} stream={s} onPress={stream => navigation.navigate('LiveViewer', { stream })} />
+              <LiveStreamCard key={s.id} stream={s} onPress={stream => navigation.navigate('LiveViewer', { stream, streams, initialIndex: streams.findIndex((x: LiveStream) => x.id === stream.id) })} />
             ))}
           </View>
         )}

@@ -42,7 +42,7 @@ export default function LiveScreen({ navigation }: any) {
     return base.filter(s => s.title.toLowerCase().includes(q) || s.creator.name.toLowerCase().includes(q));
   }, [activeTag, query, realRooms]);
 
-  const openStream = (stream: LiveStream) => enterLiveStream(stream, user?.userId, navigation);
+  const openStream = (stream: LiveStream) => enterLiveStream(stream, user?.userId, navigation, streams);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

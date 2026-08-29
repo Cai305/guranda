@@ -70,6 +70,7 @@ export default function HomeScreen({ navigation }: any) {
   const [chats, setChats] = useState<any[]>([]);
   const [communities, setCommunities] = useState<any[]>([]);
   const [realRooms, setRealRooms] = useState<RealLiveStream[]>([]);
+  const homeLiveStreams = React.useMemo(() => [...realRooms, ...MOCK_STREAMS].slice(0, 6), [realRooms]);
   const [unreadCount, setUnreadCount] = useState(0);
   const aiChecked = React.useRef(false);
 
@@ -627,12 +628,12 @@ export default function HomeScreen({ navigation }: any) {
         </View>
         <FlatList
           horizontal
-          data={[...realRooms, ...MOCK_STREAMS].slice(0, 6)}
+          data={homeLiveStreams}
           keyExtractor={item => item.id}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.hList}
           renderItem={({ item }) => (
-            <LiveStreamCard stream={item} size="compact" onPress={stream => enterLiveStream(stream, user?.userId, navigation)} />
+            <LiveStreamCard stream={item} size="compact" onPress={stream => enterLiveStream(stream, user?.userId, navigation, homeLiveStreams)} />
           )}
           ListFooterComponent={
             <TouchableOpacity style={styles.seeAllLiveCard} onPress={() => navigation.navigate('Live')}>

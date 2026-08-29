@@ -152,7 +152,18 @@ export async function removeGuest(roomId: string, userId: string) {
 // Shared entry point for tapping a live tile anywhere in the app (Home,
 // Live feed, etc.) — routes the host straight back into their own studio
 // instead of the read-only viewer screen when the stream is theirs.
-export async function enterLiveStream(stream: LiveStream, currentUserId: string | undefined, navigation: any) {
+//
+// `allStreams`, when the caller already has a list on screen (a grid, a
+// category rail), becomes the swipe order in LiveViewerScreen's TikTok-style
+// feed, starting at whichever tile was actually tapped. Omit it and the
+// viewer just shows this one stream, non-swipeable — still fully correct
+// for entry points that only ever have a single stream in hand.
+export async function enterLiveStream(
+  stream: LiveStream,
+  currentUserId: string | undefined,
+  navigation: any,
+  allStreams?: LiveStream[],
+) {
   const real = stream as RealLiveStream;
   if (real.real && currentUserId && stream.creator.id === currentUserId) {
     try {
@@ -174,7 +185,12 @@ export async function enterLiveStream(stream: LiveStream, currentUserId: string 
       // fall through to the viewer experience below
     }
   }
-  navigation.navigate('LiveViewer', { stream });
+  const initialIndex = allStreams ? allStreams.findIndex((s) => s.id === stream.id) : -1;
+  navigation.navigate('LiveViewer', {
+    stream,
+    streams: allStreams,
+    initialIndex: initialIndex >= 0 ? initialIndex : 0,
+  });
 }
 
 export async function endRoom(roomId: string) {

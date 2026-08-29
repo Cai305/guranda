@@ -53,7 +53,22 @@ export default function UserProfileScreen({ route, navigation }: any) {
           fetchApi(`/users/${userId}/follow-stats`),
         ]);
         if (profileRes.ok) setProfile(await profileRes.json());
-        if (statsRes.ok) setFollowStats(await statsRes.json());
+        if (statsRes.ok) {
+          // The endpoint's real response shape is {followerCount,
+          // followingCount, isFollowedByMe} — assigning it straight into
+          // FollowStats (which names them followers/following/isFollowing)
+          // silently produced undefined everywhere, since Response.json()
+          // types as `any` and TypeScript never caught the mismatch. The
+          // Follow button always rendered "Follow" (never "Following") on
+          // load as a result, and toggling it math'd `undefined - 1` into
+          // NaN follower counts from the first tap onward.
+          const raw = await statsRes.json();
+          setFollowStats({
+            followers: raw.followerCount ?? 0,
+            following: raw.followingCount ?? 0,
+            isFollowing: !!raw.isFollowedByMe,
+          });
+        }
       } catch {
         /* ignore */
       } finally {
