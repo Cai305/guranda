@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -33,9 +33,12 @@ function useHostPanelStyles() {
     linkText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
     chip: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.pill,
+      paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill,
       backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.glassBorder,
     },
+    chipThumb: { width: 26, height: 26, borderRadius: 13 },
+    chipThumbPlaceholder: { backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
+    rowThumb: { width: 32, height: 32, borderRadius: RADIUS.sm },
     chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
     chipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
     chipTextActive: { color: '#fff' },
@@ -162,12 +165,25 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
 
   if (saved) {
     return (
-      <Panel title={`Showcase live · ${style === 'SPOTLIGHT' ? 'Spotlight' : 'Shelf'}`}>
-        {showcase.map((s, i) => (
-          <Text key={s.productId} style={[styles.hint, style === 'SPOTLIGHT' && i === spotlightIndex && { color: COLORS.text, fontWeight: '700' }]}>
-            {i + 1}. {s.product?.name} · {formatCurrency(s.product?.price)}
-          </Text>
-        ))}
+      <Panel title={`Product space is live · ${style === 'SPOTLIGHT' ? 'Spotlight' : 'Shelf'}`}>
+        <Text style={styles.hint}>Viewers see this as a card above the comments — tap Buy to order, or tap it to browse the full shelf.</Text>
+        {showcase.map((s, i) => {
+          const isCurrent = style === 'SPOTLIGHT' && i === spotlightIndex;
+          return (
+            <View key={s.productId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {s.product?.imageUrl ? (
+                <Image source={{ uri: s.product.imageUrl }} style={styles.rowThumb} />
+              ) : (
+                <View style={[styles.rowThumb, styles.chipThumbPlaceholder]}>
+                  <Ionicons name="bag-handle" size={15} color={COLORS.textMuted} />
+                </View>
+              )}
+              <Text style={[styles.hint, { flex: 1 }, isCurrent && { color: COLORS.text, fontWeight: '700' }]}>
+                {i + 1}. {s.product?.name} · {formatCurrency(s.product?.price)}{isCurrent ? ' · on screen now' : ''}
+              </Text>
+            </View>
+          );
+        })}
         {style === 'SPOTLIGHT' && (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
             <TouchableOpacity style={[styles.actionBtn, { flex: 1 }]} disabled={busy || spotlightIndex === 0} onPress={() => advance(-1)}>
@@ -185,7 +201,7 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
   }
 
   return (
-    <Panel title="Build your showcase (1-10 products)">
+    <Panel title="Choose what's on screen (1-10 products)">
       {products.length === 0 ? (
         <Text style={styles.hint}>You don't have any products yet — add some in My Shop first.</Text>
       ) : (
@@ -194,6 +210,13 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
             const active = selected.some(x => x.id === p.id);
             return (
               <TouchableOpacity key={p.id} style={[styles.chip, active && styles.chipActive]} onPress={() => toggleProduct(p)} disabled={busy}>
+                {p.imageUrl ? (
+                  <Image source={{ uri: p.imageUrl }} style={styles.chipThumb} />
+                ) : (
+                  <View style={[styles.chipThumb, styles.chipThumbPlaceholder]}>
+                    <Ionicons name="bag-handle" size={13} color={COLORS.textMuted} />
+                  </View>
+                )}
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>{p.name} · {formatCurrency(p.price)}</Text>
               </TouchableOpacity>
             );

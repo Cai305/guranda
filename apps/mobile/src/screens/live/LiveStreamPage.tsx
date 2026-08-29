@@ -540,7 +540,7 @@ export default function LiveStreamPage({ stream, navigation, isActive }: Props) 
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleDoubleTap} />
 
         {isRealStream && realStream.roomId && (
-          <View style={styles.categoryPanelWrap}>
+          <View style={(category?.id || realStream.categoryId) === 'shopping' ? styles.shoppingCardWrap : styles.categoryPanelWrap}>
             <LiveCategoryViewerPanel
               categoryId={category?.id || realStream.categoryId}
               roomId={realStream.roomId}
@@ -768,6 +768,11 @@ const styles = StyleSheet.create({
   guestInviteDecline: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
 
   categoryPanelWrap: { maxHeight: 220, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
+  // Shopping gets its own docked slot instead of the generic boxed panel —
+  // a persistent card sitting just above the comment feed, clear of the
+  // right-side action rail, the way TikTok Shop keeps the pinned product
+  // visible without ever covering the video or the comments.
+  shoppingCardWrap: { position: 'absolute', left: SPACING.md, right: 76, bottom: 276 },
 
   // Right-side vertical action rail
   actionRail: {

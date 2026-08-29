@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, ScrollView, Image, Modal, Share } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import * as api from '../../data/liveCategoryApi';
@@ -38,6 +39,41 @@ const panelStylesFactory = ({ COLORS, TYPOGRAPHY, RADIUS, SPACING }: any) => ({
 } as const);
 
 const WATCHABLE_GAMES: Record<string, string> = { pool: 'PoolGame', ludo: 'LudoGame', chess: 'ChessGame' };
+
+const shoppingCardStylesFactory = ({ COLORS, RADIUS, SPACING }: any) => ({
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(18,18,26,0.88)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: RADIUS.lg, padding: 8,
+  },
+  thumb: { width: 46, height: 46, borderRadius: RADIUS.md },
+  thumbPlaceholder: { backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center' },
+  name: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  price: { color: COLORS.secondary, fontSize: 12.5, fontWeight: '700', marginTop: 1 },
+  count: { color: 'rgba(255,255,255,0.6)', fontSize: 10.5, marginTop: 2 },
+  shareBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.14)', justifyContent: 'center', alignItems: 'center' },
+  buyBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 16, paddingVertical: 9 },
+  buyBtnSmall: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  buyBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12.5 },
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: COLORS.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: SPACING.lg, paddingBottom: 32 },
+  grabber: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.glassBorder, alignSelf: 'center', marginBottom: 14 },
+  sheetTitle: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  sheetRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: RADIUS.md, padding: 8, marginBottom: 6,
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  sheetRowActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}18` },
+  sheetThumb: { width: 44, height: 44, borderRadius: RADIUS.sm },
+  addressLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 10, marginBottom: 6 },
+  input: {
+    backgroundColor: COLORS.background, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder,
+    paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text, fontSize: 13,
+  },
+  errorText: { color: COLORS.error, fontSize: 12, marginTop: 8 },
+  successText: { color: COLORS.success, fontSize: 12, fontWeight: '600', marginTop: 8 },
+} as const);
 
 // Category-specific viewer interactions for Guranda Live. Every
 // action here is a real backend call with real effects (real
@@ -111,69 +147,115 @@ function SuccessText({ text }: { text: string }) {
 }
 
 // ── Live Shopping ────────────────────────────────────────────────────────
+// Docked as its own floating card by LiveStreamPage (not the generic boxed
+// Panel every other category uses) — the persistent, always-visible product
+// slot TikTok Shop keeps above the comment feed. Tapping it opens the full
+// shelf + shipping address in a bottom sheet; SPOTLIGHT vs SHELF (host-
+// controlled style) only changes whether the card free-browses locally or
+// follows the host's current pick.
 function ShoppingViewer({ roomId, state, run, error, success, setSuccess, busy }: any) {
   const [address, setAddress] = useState('');
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const { theme } = useTheme();
   const { COLORS } = theme;
-  const styles = useThemedStyles(panelStylesFactory);
+  const styles = useThemedStyles(shoppingCardStylesFactory);
   const showcase = state.showcaseProducts || [];
 
   useEffect(() => { setPreviewIndex(state.spotlightIndex || 0); }, [state.spotlightIndex]);
 
-  if (showcase.length === 0) return <Panel title="Live Shopping"><Text style={styles.hint}>Nothing showcased yet — check back soon.</Text></Panel>;
+  // Nothing to dock when the host hasn't featured anything yet — unlike
+  // every other category's "check back soon" panel, showing an empty card
+  // here would permanently occupy the product slot for no reason.
+  if (showcase.length === 0) return null;
 
-  const buy = (productId: string) => run(
-    () => api.buyShowcaseProduct(roomId, productId, 1, address.trim()),
-    () => setSuccess('Order placed! Check My Orders.'),
-  );
+  const safeIndex = Math.min(previewIndex, showcase.length - 1);
+  const current = showcase[safeIndex];
 
-  if (state.shopStyle === 'SHELF') {
-    return (
-      <Panel title="Showcase">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 8 }}>
-          {showcase.map((s: any) => (
-            <View key={s.productId} style={{ minWidth: 130 }}>
-              <Text style={styles.itemName} numberOfLines={1}>{s.product?.name}</Text>
-              <Text style={styles.itemPrice}>{formatCurrency(s.product?.price)}</Text>
-              <TouchableOpacity style={styles.actionBtn} disabled={busy || !address.trim()} onPress={() => buy(s.productId)}>
-                <Text style={styles.actionBtnText}>Buy</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
-        <TextInput style={styles.input} placeholder="Shipping address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
-        <ErrorText error={error} />
-        <SuccessText text={success} />
-      </Panel>
+  const buy = (productId: string) => {
+    if (!address.trim()) { setExpanded(true); return; }
+    run(
+      () => api.buyShowcaseProduct(roomId, productId, 1, address.trim()),
+      () => setSuccess('Order placed! Check My Orders.'),
     );
-  }
+  };
 
-  const current = showcase[previewIndex] || showcase[0];
+  const shareProduct = async () => {
+    try {
+      await Share.share({
+        message: `Check out ${current.product?.name} — ${formatCurrency(current.product?.price)} — live now on Guranda!`,
+      });
+    } catch {
+      // User dismissed the share sheet — nothing to surface.
+    }
+  };
+
   return (
-    <Panel title="Spotlight">
-      <Text style={styles.itemName}>{current.product?.name}</Text>
-      <Text style={styles.itemPrice}>{formatCurrency(current.product?.price)}</Text>
-      <TextInput style={styles.input} placeholder="Shipping address" placeholderTextColor={COLORS.textMuted} value={address} onChangeText={setAddress} />
-      <TouchableOpacity style={styles.actionBtn} disabled={busy || !address.trim()} onPress={() => buy(current.productId)}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionBtnText}>Buy Now</Text>}
+    <>
+      <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={() => setExpanded(true)}>
+        {current.product?.imageUrl ? (
+          <Image source={{ uri: current.product.imageUrl }} style={styles.thumb} />
+        ) : (
+          <View style={[styles.thumb, styles.thumbPlaceholder]}>
+            <Ionicons name="bag-handle" size={20} color={COLORS.textMuted} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name} numberOfLines={1}>{current.product?.name}</Text>
+          <Text style={styles.price}>{formatCurrency(current.product?.price)}</Text>
+          {showcase.length > 1 && <Text style={styles.count}>{safeIndex + 1} of {showcase.length} · tap to browse</Text>}
+        </View>
+        <TouchableOpacity style={styles.shareBtn} onPress={shareProduct}>
+          <Ionicons name="arrow-redo-outline" size={15} color="#FFF" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.buyBtn} disabled={busy} onPress={() => buy(current.productId)}>
+          {busy ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.buyBtnText}>Buy</Text>}
+        </TouchableOpacity>
       </TouchableOpacity>
-      {showcase.length > 1 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 8 }}>
-          {showcase.map((s: any, i: number) => (
-            <TouchableOpacity
-              key={s.productId}
-              style={[styles.optionBtn, i === previewIndex && styles.optionBtnActive]}
-              onPress={() => setPreviewIndex(i)}
-            >
-              <Text style={styles.optionText} numberOfLines={1}>{s.product?.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
-      <ErrorText error={error} />
-      <SuccessText text={success} />
-    </Panel>
+
+      <Modal visible={expanded} transparent animationType="slide" onRequestClose={() => setExpanded(false)}>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setExpanded(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+            <View style={styles.grabber} />
+            <Text style={styles.sheetTitle}>{showcase.length > 1 ? `Shop this live · ${showcase.length} items` : 'Shop this live'}</Text>
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              {showcase.map((s: any, i: number) => (
+                <TouchableOpacity
+                  key={s.productId}
+                  style={[styles.sheetRow, i === safeIndex && styles.sheetRowActive]}
+                  onPress={() => setPreviewIndex(i)}
+                >
+                  {s.product?.imageUrl ? (
+                    <Image source={{ uri: s.product.imageUrl }} style={styles.sheetThumb} />
+                  ) : (
+                    <View style={[styles.sheetThumb, styles.thumbPlaceholder]}>
+                      <Ionicons name="bag-handle" size={18} color={COLORS.textMuted} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.name} numberOfLines={1}>{s.product?.name}</Text>
+                    <Text style={styles.price}>{formatCurrency(s.product?.price)}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.buyBtnSmall} disabled={busy || !address.trim()} onPress={() => buy(s.productId)}>
+                    <Text style={styles.buyBtnText}>Buy</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <Text style={styles.addressLabel}>Shipping address</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Where should this ship?"
+              placeholderTextColor={COLORS.textMuted}
+              value={address}
+              onChangeText={setAddress}
+            />
+            {!!error && <Text style={styles.errorText}>{error}</Text>}
+            {!!success && <Text style={styles.successText}>{success}</Text>}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
