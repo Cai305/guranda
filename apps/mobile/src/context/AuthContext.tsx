@@ -3,7 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform, AppState } from 'react-native';
 import { API_BASE_URL, setOnUnauthorized } from '../utils/api';
 import { clearApiCache } from '../utils/apiCache';
-import { syncPushToken } from '../utils/pushNotifications';
+import { syncPushToken, registerNotificationResponseHandler } from '../utils/pushNotifications';
+import { registerIntegrationsDeepLinkHandler } from '../utils/integrationsDeepLink';
 import { syncLocation } from '../utils/locationSync';
 import { rideSocket } from '../services/RideSocketService';
 
@@ -232,6 +233,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshProfile();
       refreshVerification();
       syncPushToken();
+      registerNotificationResponseHandler();
+      registerIntegrationsDeepLinkHandler();
       syncLocation();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

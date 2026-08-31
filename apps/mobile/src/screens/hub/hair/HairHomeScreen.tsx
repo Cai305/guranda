@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, GRADIENTS } from '../../../theme';
 import { fetchApi } from '../../../utils/api';
 import SessionHeaderActions from '../../../components/SessionHeaderActions';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 
 export default function HairHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const [search, setSearch] = useState('');
   const [hairdressers, setHairdressers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +48,73 @@ export default function HairHomeScreen({ navigation }: any) {
       console.error(error);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      margin: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 10,
+      ...TYPOGRAPHY.body1,
+      color: COLORS.text,
+    },
+    list: {
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    avatar: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+    },
+    cardContent: {
+      flex: 1,
+      marginLeft: 16,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 40,
+    },
+  }));
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -124,70 +194,3 @@ export default function HairHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    margin: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    ...TYPOGRAPHY.body1,
-    color: COLORS.text,
-  },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  cardContent: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-});

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, TextInput, Animated, Easing } from 'react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOW, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
+import { ThemeTokens } from '../../../theme/themes';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../../../utils/api';
 import { formatCurrency } from '../../../utils/format';
@@ -39,6 +41,9 @@ const INITIAL_REGION = {
 const REQUEST_TIMEOUT_MS = 20000;
 
 export default function DriverView({ navigation }: { navigation?: any }) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(createDriverViewStyles);
   const [isOnline, setIsOnline] = useState(false);
   const [activeRide, setActiveRide] = useState<any>(null);
   const [incomingRides, setIncomingRides] = useState<any[]>([]);
@@ -622,6 +627,9 @@ export default function DriverView({ navigation }: { navigation?: any }) {
 function IncomingRequestCard({ ride, onAccept, onDecline, onTimeout }: {
   ride: any; onAccept: () => void; onDecline: () => void; onTimeout: () => void;
 }) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(createDriverViewStyles);
   const progress = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -687,7 +695,8 @@ function IncomingRequestCard({ ride, onAccept, onDecline, onTimeout }: {
   );
 }
 
-const styles = StyleSheet.create({
+function createDriverViewStyles({ COLORS, TYPOGRAPHY, RADIUS, SHADOW, SPACING }: ThemeTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   mapFallback: {
     ...StyleSheet.absoluteFill,
@@ -955,7 +964,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 1,
   },
-});
+  });
+}
 
 // Dark theme map style
 const mapStyle = [

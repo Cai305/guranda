@@ -41,6 +41,10 @@ const OPTIONAL_FEATURES: Record<string, string> = {
   LIVEKIT_API_KEY: 'Live/calls will run on insecure self-hosted-dev LiveKit credentials',
   ROUTESTACK_API_KEY: 'AI-agent travel search will be unavailable',
   ADMIN_API_KEY: 'the admin ops dashboard will be unreachable',
+  INTEGRATIONS_ENCRYPTION_KEY: 'connecting Google Calendar/GitHub/Slack will be unavailable',
+  GOOGLE_CALENDAR_CLIENT_ID: 'connecting Google Calendar will be unavailable',
+  GITHUB_CLIENT_ID: 'connecting GitHub will be unavailable',
+  SLACK_CLIENT_ID: 'connecting Slack will be unavailable',
 };
 
 function validateEnv(): void {

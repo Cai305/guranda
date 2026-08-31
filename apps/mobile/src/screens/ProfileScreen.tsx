@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TextInput, Image, Share } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Modal, TextInput, Image, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS, BRAND } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { formatCurrency } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
@@ -29,14 +30,15 @@ const DIGITAL_LIFE_SECTIONS = [
   { routeName: 'MyProperties', label: 'Property Portfolio', icon: 'home-outline', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' },
 ];
 
-const VERIFY_BADGE: Record<string, { label: string; color: string; icon: string }> = {
-  VERIFIED: { label: 'Verified', color: '#10B981', icon: 'shield-checkmark' },
-  PENDING: { label: 'Under review', color: '#F59E0B', icon: 'time' },
-  REJECTED: { label: 'Not approved', color: '#F87171', icon: 'close-circle' },
-  UNVERIFIED: { label: 'Not verified', color: COLORS.textMuted, icon: 'shield-outline' },
-};
-
 export default function ProfileScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING, GRADIENTS, BRAND } = theme;
+  const VERIFY_BADGE: Record<string, { label: string; color: string; icon: string }> = {
+    VERIFIED: { label: 'Verified', color: '#10B981', icon: 'shield-checkmark' },
+    PENDING: { label: 'Under review', color: '#F59E0B', icon: 'time' },
+    REJECTED: { label: 'Not approved', color: '#F87171', icon: 'close-circle' },
+    UNVERIFIED: { label: 'Not verified', color: COLORS.textMuted, icon: 'shield-outline' },
+  };
   const { user, logout, verificationStatus } = useAuth();
   const vBadge = VERIFY_BADGE[verificationStatus || 'UNVERIFIED'];
   const [devModalVisible, setDevModalVisible] = useState(false);
@@ -154,11 +156,199 @@ export default function ProfileScreen({ navigation }: any) {
     { icon: 'megaphone-outline', label: 'Business Campaigns', onPress: () => navigation.navigate('MyCampaigns') },
     { icon: 'shield-checkmark-outline', label: 'Security & Privacy', onPress: () => navigation.navigate('SecurityPrivacy') },
     { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
+    { icon: 'shield-checkmark-outline', label: 'External Approvals', onPress: () => navigation.navigate('McpApprovals') },
+    { icon: 'link-outline', label: 'External Apps', onPress: () => navigation.navigate('ConnectedApps') },
     { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('NotificationsSettings') },
     { icon: 'color-palette-outline', label: 'Theme', onPress: () => navigation.navigate('Appearance') },
     { icon: 'language-outline', label: 'Language', onPress: () => navigation.navigate('Language') },
     { icon: 'help-circle-outline', label: 'Help & Support', onPress: () => navigation.navigate('HelpSupport') },
   ];
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    identityCard: {
+      margin: SPACING.lg,
+      borderRadius: RADIUS.xl,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+    },
+    identityTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    avatar: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      borderWidth: 2,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.surface,
+    },
+    levelPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(251, 191, 36, 0.15)',
+      borderWidth: 1,
+      borderColor: 'rgba(251, 191, 36, 0.4)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    levelText: {
+      color: COLORS.gold,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    displayName: {
+      ...TYPOGRAPHY.h2,
+      marginTop: SPACING.md,
+    },
+    username: {
+      ...TYPOGRAPHY.body2,
+      marginTop: 2,
+    },
+    partnerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 8,
+      backgroundColor: 'rgba(244,63,94,0.12)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    partnerAvatar: { width: 18, height: 18, borderRadius: 9 },
+    partnerText: { color: '#F43F5E', fontSize: 12, fontWeight: '700' },
+    statusLine: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      marginTop: 6,
+      textAlign: 'center',
+    },
+    sectionLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.lg,
+      marginBottom: SPACING.sm,
+    },
+    badgeRow: {
+      paddingHorizontal: SPACING.lg,
+      gap: SPACING.md,
+    },
+    card: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+    },
+    cardRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 14,
+      gap: SPACING.md,
+    },
+    rowBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.glassBorder,
+    },
+    rowIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    rowTitle: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    rowDetail: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    addressText: {
+      color: COLORS.secondary,
+      fontFamily: 'monospace',
+      fontSize: 11,
+      marginTop: 2,
+    },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: SPACING.xl,
+      marginHorizontal: SPACING.lg,
+      paddingVertical: 14,
+      backgroundColor: COLORS.glass,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: 'rgba(248, 113, 113, 0.4)',
+    },
+    footerText: {
+      ...TYPOGRAPHY.caption,
+      textAlign: 'center',
+      marginTop: SPACING.lg,
+      fontSize: 10,
+      letterSpacing: 1,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    },
+    modalContent: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 12,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    typeBtn: {
+      flex: 1,
+      padding: 12,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      alignItems: 'center',
+    },
+    typeBtnActive: {
+      borderColor: COLORS.primary,
+      backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    },
+    typeBtnText: {
+      color: COLORS.textMuted,
+      fontWeight: '600',
+    },
+    typeBtnTextActive: {
+      color: COLORS.primary,
+    },
+    submitBtn: {
+      backgroundColor: COLORS.primary,
+      padding: 15,
+      borderRadius: RADIUS.sm,
+      alignItems: 'center',
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -447,189 +637,3 @@ export default function ProfileScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  identityCard: {
-    margin: SPACING.lg,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-  },
-  identityTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
-  },
-  levelPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  levelText: {
-    color: COLORS.gold,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  displayName: {
-    ...TYPOGRAPHY.h2,
-    marginTop: SPACING.md,
-  },
-  username: {
-    ...TYPOGRAPHY.body2,
-    marginTop: 2,
-  },
-  partnerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    backgroundColor: 'rgba(244,63,94,0.12)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  partnerAvatar: { width: 18, height: 18, borderRadius: 9 },
-  partnerText: { color: '#F43F5E', fontSize: 12, fontWeight: '700' },
-  statusLine: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  sectionLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.sm,
-  },
-  badgeRow: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
-  },
-  card: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-  },
-  cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    gap: SPACING.md,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.glassBorder,
-  },
-  rowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rowTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  rowDetail: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  addressText: {
-    color: COLORS.secondary,
-    fontFamily: 'monospace',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: SPACING.xl,
-    marginHorizontal: SPACING.lg,
-    paddingVertical: 14,
-    backgroundColor: COLORS.glass,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(248, 113, 113, 0.4)',
-  },
-  footerText: {
-    ...TYPOGRAPHY.caption,
-    textAlign: 'center',
-    marginTop: SPACING.lg,
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    padding: SPACING.lg,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 12,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  typeBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-  },
-  typeBtnActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-  },
-  typeBtnText: {
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  typeBtnTextActive: {
-    color: COLORS.primary,
-  },
-  submitBtn: {
-    backgroundColor: COLORS.primary,
-    padding: 15,
-    borderRadius: RADIUS.sm,
-    alignItems: 'center',
-  },
-});

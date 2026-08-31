@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
 import { getLiveCategory } from '../../config/liveCategories';
 import { streamsForCategory, LiveStream } from '../../data/mockLiveStreams';
 import LiveStreamCard from '../../components/LiveStreamCard';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 // Rich detail page for a single Live category — what makes it
 // different (hostSummary), what it's for, its full feature set, and
@@ -14,6 +15,149 @@ import LiveStreamCard from '../../components/LiveStreamCard';
 // the shared UnderConstruction screen instead since the whole
 // category is still "future use".
 export default function LiveCategoryScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    hero: {
+      alignItems: 'center',
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.xl,
+      paddingVertical: SPACING.xl,
+      paddingHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+    },
+    heroIconWrap: {
+      width: 72,
+      height: 72,
+      borderRadius: 22,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+    },
+    heroTitle: {
+      ...TYPOGRAPHY.h2,
+      color: '#FFF',
+    },
+    heroTagline: {
+      ...TYPOGRAPHY.body2,
+      color: 'rgba(255,255,255,0.85)',
+      marginTop: 4,
+      marginBottom: SPACING.lg,
+    },
+    goLiveBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: '#FFF',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+    },
+    goLiveBtnText: {
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    card: {
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+    },
+    cardLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      marginBottom: SPACING.md,
+    },
+    description: {
+      ...TYPOGRAPHY.body1,
+      lineHeight: 22,
+      color: '#D6D6E2',
+    },
+    featureChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    featureChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    featureChipText: {
+      color: COLORS.text,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    hostSummaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+    },
+    hostSummaryText: {
+      ...TYPOGRAPHY.body2,
+      flex: 1,
+      lineHeight: 20,
+      fontWeight: '600',
+    },
+    sectionLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      rowGap: SPACING.md,
+    },
+    emptyState: {
+      marginHorizontal: SPACING.lg,
+      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingVertical: SPACING.xl,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderRadius: RADIUS.lg,
+    },
+    emptyText: {
+      ...TYPOGRAPHY.body2,
+      textAlign: 'center',
+      paddingHorizontal: SPACING.lg,
+    },
+  }));
+
   const category = getLiveCategory(route?.params?.categoryId);
   if (!category) return null;
 
@@ -93,144 +237,3 @@ export default function LiveCategoryScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  hero: {
-    alignItems: 'center',
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.xl,
-    paddingVertical: SPACING.xl,
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  heroIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  heroTitle: {
-    ...TYPOGRAPHY.h2,
-    color: '#FFF',
-  },
-  heroTagline: {
-    ...TYPOGRAPHY.body2,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
-    marginBottom: SPACING.lg,
-  },
-  goLiveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFF',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  goLiveBtnText: {
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  card: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-  },
-  cardLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    marginBottom: SPACING.md,
-  },
-  description: {
-    ...TYPOGRAPHY.body1,
-    lineHeight: 22,
-    color: '#D6D6E2',
-  },
-  featureChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  featureChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  featureChipText: {
-    color: COLORS.text,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  hostSummaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-  },
-  hostSummaryText: {
-    ...TYPOGRAPHY.body2,
-    flex: 1,
-    lineHeight: 20,
-    fontWeight: '600',
-  },
-  sectionLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    rowGap: SPACING.md,
-  },
-  emptyState: {
-    marginHorizontal: SPACING.lg,
-    alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.xl,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: RADIUS.lg,
-  },
-  emptyText: {
-    ...TYPOGRAPHY.body2,
-    textAlign: 'center',
-    paddingHorizontal: SPACING.lg,
-  },
-});

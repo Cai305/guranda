@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, FlatList, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 
 interface UserResult {
@@ -13,6 +14,8 @@ interface UserResult {
 }
 
 export default function SendRelationshipRequestScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { intendedStatus } = route.params ?? { intendedStatus: 'IN_RELATIONSHIP' };
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserResult[]>([]);
@@ -64,6 +67,47 @@ export default function SendRelationshipRequestScreen({ route, navigation }: any
       setSending(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    body: { padding: SPACING.lg, flex: 1 },
+    hint: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginBottom: SPACING.lg, lineHeight: 18 },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, paddingHorizontal: SPACING.md,
+    },
+    searchInput: { flex: 1, color: COLORS.text, paddingVertical: 12, fontSize: 15 },
+    resultsList: {
+      maxHeight: 260, marginTop: SPACING.sm,
+      backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    userRow: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      padding: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
+    },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surfaceElevated },
+    avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
+    userName: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
+    userHandle: { color: COLORS.textMuted, fontSize: 12 },
+    emptyText: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: SPACING.lg },
+    selectedCard: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: 'rgba(34,197,94,0.1)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.4)',
+      borderRadius: RADIUS.md, padding: SPACING.md, marginTop: SPACING.lg,
+    },
+    sendBtn: {
+      backgroundColor: COLORS.primary, borderRadius: RADIUS.md,
+      paddingVertical: 14, alignItems: 'center', marginTop: SPACING.xl,
+    },
+    sendBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  }));
 
   const renderUser = ({ item }: { item: UserResult }) => (
     <TouchableOpacity style={styles.userRow} activeOpacity={0.8} onPress={() => { setSelected(item); setResults([]); setQuery(item.username); }}>
@@ -152,44 +196,3 @@ export default function SendRelationshipRequestScreen({ route, navigation }: any
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  body: { padding: SPACING.lg, flex: 1 },
-  hint: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginBottom: SPACING.lg, lineHeight: 18 },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: SPACING.md,
-  },
-  searchInput: { flex: 1, color: COLORS.text, paddingVertical: 12, fontSize: 15 },
-  resultsList: {
-    maxHeight: 260, marginTop: SPACING.sm,
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  userRow: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    padding: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
-  },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surfaceElevated },
-  avatarPlaceholder: { justifyContent: 'center', alignItems: 'center' },
-  userName: { color: COLORS.text, fontWeight: '700', fontSize: 13.5 },
-  userHandle: { color: COLORS.textMuted, fontSize: 12 },
-  emptyText: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: SPACING.lg },
-  selectedCard: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: 'rgba(34,197,94,0.1)', borderWidth: 1, borderColor: 'rgba(34,197,94,0.4)',
-    borderRadius: RADIUS.md, padding: SPACING.md, marginTop: SPACING.lg,
-  },
-  sendBtn: {
-    backgroundColor: COLORS.primary, borderRadius: RADIUS.md,
-    paddingVertical: 14, alignItems: 'center', marginTop: SPACING.xl,
-  },
-  sendBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-});

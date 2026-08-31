@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 
 export default function ShoppingProductScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { COLORS, SPACING, GRADIENTS } = theme;
   const { productId } = route.params;
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +25,53 @@ export default function ShoppingProductScreen({ navigation, route }: any) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [productId]);
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    imageWrap: { position: 'relative' },
+    image: { width: '100%', height: 300, justifyContent: 'center', alignItems: 'center' },
+    backBtn: { position: 'absolute', top: 16, left: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 8, zIndex: 2 },
+    cartIconBtn: { position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 8, zIndex: 2 },
+    cartBadge: {
+      position: 'absolute', top: -2, right: -4,
+      backgroundColor: '#8B5CF6', borderRadius: 8, width: 16, height: 16,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cartBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+    body: { padding: SPACING.lg },
+    name: { ...TYPOGRAPHY.h2, marginBottom: 10 },
+    soldByRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+    soldByText: { color: '#8B5CF6', fontSize: 13, fontWeight: '600', flex: 1 },
+    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    metaText: { color: COLORS.textMuted, fontSize: 12 },
+    price: { color: COLORS.text, fontWeight: '800', fontSize: 28, marginBottom: 12 },
+    badgeRow: { gap: 8, marginBottom: 16 },
+    badge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: COLORS.border, alignSelf: 'flex-start' },
+    badgeText: { color: '#22c55e', fontSize: 12, fontWeight: '600' },
+    section: { marginBottom: 16 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 8 },
+    desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
+    qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    qtyBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center' },
+    qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 17, minWidth: 24, textAlign: 'center' },
+    inCartNote: { color: COLORS.textMuted, fontSize: 12, marginTop: 8 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
+    actionBar: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg,
+      flexDirection: 'row', gap: 10,
+      backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
+    },
+    addToCartBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderRadius: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: '#8B5CF6',
+    },
+    addToCartText: { color: '#8B5CF6', fontWeight: '700', fontSize: 14 },
+    buyNowBtn: { flex: 1, backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 14, justifyContent: 'center', alignItems: 'center' },
+    buyNowText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  }));
 
   if (loading) return (
     <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>
@@ -129,50 +179,3 @@ export default function ShoppingProductScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  imageWrap: { position: 'relative' },
-  image: { width: '100%', height: 300, justifyContent: 'center', alignItems: 'center' },
-  backBtn: { position: 'absolute', top: 16, left: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 8, zIndex: 2 },
-  cartIconBtn: { position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20, padding: 8, zIndex: 2 },
-  cartBadge: {
-    position: 'absolute', top: -2, right: -4,
-    backgroundColor: '#8B5CF6', borderRadius: 8, width: 16, height: 16,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cartBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  body: { padding: SPACING.lg },
-  name: { ...TYPOGRAPHY.h2, marginBottom: 10 },
-  soldByRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  soldByText: { color: '#8B5CF6', fontSize: 13, fontWeight: '600', flex: 1 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { color: COLORS.textMuted, fontSize: 12 },
-  price: { color: COLORS.text, fontWeight: '800', fontSize: 28, marginBottom: 12 },
-  badgeRow: { gap: 8, marginBottom: 16 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: COLORS.border, alignSelf: 'flex-start' },
-  badgeText: { color: '#22c55e', fontSize: 12, fontWeight: '600' },
-  section: { marginBottom: 16 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 8 },
-  desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
-  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  qtyBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center' },
-  qtyText: { color: COLORS.text, fontWeight: '700', fontSize: 17, minWidth: 24, textAlign: 'center' },
-  inCartNote: { color: COLORS.textMuted, fontSize: 12, marginTop: 8 },
-  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
-  // leaves the button flush against the home indicator / gesture bar on
-  // notched devices with no clearance from it.
-  actionBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg,
-    flexDirection: 'row', gap: 10,
-    backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border,
-  },
-  addToCartBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    borderRadius: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: '#8B5CF6',
-  },
-  addToCartText: { color: '#8B5CF6', fontWeight: '700', fontSize: 14 },
-  buyNowBtn: { flex: 1, backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 14, justifyContent: 'center', alignItems: 'center' },
-  buyNowText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-});

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { fetchApi } from '../../utils/api';
 
 const STORAGE_KEY = '@mxit_security_settings';
 
@@ -234,7 +235,7 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
     saveSettings({ visibility: val });
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'All fields are required');
       return;
@@ -243,21 +244,34 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
       Alert.alert('Error', 'New passwords do not match');
       return;
     }
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
       return;
     }
 
     setUpdatingPassword(true);
-    // Simulate API update
-    setTimeout(() => {
-      setUpdatingPassword(false);
+    try {
+      const res = await fetchApi('/users/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert('Error', err.message || 'Failed to update password');
+        return;
+      }
+
       setPasswordModalVisible(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       Alert.alert('Success', 'Password updated successfully!');
-    }, 1500);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update password');
+    } finally {
+      setUpdatingPassword(false);
+    }
   };
 
   const handleUnblockUser = (id: string, username: string) => {

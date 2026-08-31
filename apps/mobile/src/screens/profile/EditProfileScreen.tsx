@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi, uploadImage } from '../../utils/api';
 
@@ -15,6 +16,8 @@ const RELATIONSHIP_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export default function EditProfileScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { user, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -103,6 +106,134 @@ export default function EditProfileScreen({ navigation, route }: any) {
       setLoading(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: {
+      padding: SPACING.lg,
+    },
+    avatarContainer: {
+      alignSelf: 'center',
+      marginBottom: SPACING.xl,
+      position: 'relative',
+    },
+    avatar: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      borderWidth: 2,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.surface,
+    },
+    editAvatarBtn: {
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+      backgroundColor: COLORS.primary,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: COLORS.background,
+    },
+    editAvatarWandBtn: {
+      position: 'absolute',
+      left: 0,
+      bottom: 0,
+      backgroundColor: COLORS.secondary,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: COLORS.background,
+    },
+    formGroup: {
+      marginBottom: SPACING.lg,
+    },
+    label: {
+      ...TYPOGRAPHY.label,
+      marginBottom: SPACING.xs,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    textArea: {
+      minHeight: 100,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    chipActive: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+    },
+    chipText: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    chipTextActive: {
+      color: '#fff',
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: SPACING.md,
+      marginBottom: SPACING.lg,
+    },
+    toggleHint: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      marginTop: 4,
+      lineHeight: 16,
+    },
+    saveBtn: {
+      backgroundColor: COLORS.primary,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      marginTop: SPACING.lg,
+    },
+    saveBtnText: {
+      ...TYPOGRAPHY.button,
+      color: '#FFF',
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -208,131 +339,3 @@ export default function EditProfileScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: {
-    padding: SPACING.lg,
-  },
-  avatarContainer: {
-    alignSelf: 'center',
-    marginBottom: SPACING.xl,
-    position: 'relative',
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
-  },
-  editAvatarBtn: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    backgroundColor: COLORS.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.background,
-  },
-  editAvatarWandBtn: {
-    position: 'absolute',
-    left: 0,
-    bottom: 0,
-    backgroundColor: COLORS.secondary,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.background,
-  },
-  formGroup: {
-    marginBottom: SPACING.lg,
-  },
-  label: {
-    ...TYPOGRAPHY.label,
-    marginBottom: SPACING.xs,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  textArea: {
-    minHeight: 100,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  chipTextActive: {
-    color: '#fff',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
-  },
-  toggleHint: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  saveBtn: {
-    backgroundColor: COLORS.primary,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    marginTop: SPACING.lg,
-  },
-  saveBtnText: {
-    ...TYPOGRAPHY.button,
-    color: '#FFF',
-  },
-});

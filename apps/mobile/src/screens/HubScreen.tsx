@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { MODULES, LifeModule, MINI_APP_IDS } from '../config/modules';
 import { useStore } from '../context/StoreContext';
 import { fetchApi } from '../utils/api';
@@ -12,6 +13,8 @@ import { GAMES } from './hub/GamesScreen';
 
 export default function HubScreen({ route, navigation }: any) {
   const { width } = useWindowDimensions();
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { installApp, uninstallApp, isInstalled } = useStore();
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<LifeModule | null>(null);
@@ -20,6 +23,196 @@ export default function HubScreen({ route, navigation }: any) {
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
   const mode = route?.params?.mode || 'store';
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    mainHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.md,
+      paddingBottom: SPACING.sm,
+    },
+    mainTitle: {
+      fontSize: 34,
+      fontWeight: 'bold',
+      color: COLORS.text,
+      letterSpacing: -0.5,
+    },
+    profileAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: COLORS.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: COLORS.surfaceElevated,
+      marginHorizontal: SPACING.lg,
+      marginVertical: SPACING.sm,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 16 },
+    categoryRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: SPACING.md,
+    },
+    categoryChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    categoryChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    categoryChipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
+    categoryChipTextActive: { color: '#fff' },
+    sectionLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl,
+      marginBottom: SPACING.md,
+    },
+
+    // App Rows
+    appRowContainer: { paddingVertical: 4 },
+    appRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    appIcon: {
+      width: 62,
+      height: 62,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+    },
+    appInfo: { flex: 1, justifyContent: 'center' },
+    appName: { color: COLORS.text, fontSize: 16, fontWeight: '500', marginBottom: 2 },
+    appTagline: { color: COLORS.textMuted, fontSize: 13 },
+    btnGet: {
+      backgroundColor: COLORS.surfaceElevated,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 16,
+      minWidth: 70,
+      alignItems: 'center',
+    },
+    btnGetText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
+    btnOpen: {
+      backgroundColor: COLORS.surfaceElevated,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 16,
+      minWidth: 70,
+      alignItems: 'center',
+    },
+    btnOpenText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: COLORS.border,
+      marginLeft: 74,
+      marginTop: 10,
+      marginBottom: 4,
+    },
+
+    // Horizontal Groups
+    groupContainer: { paddingTop: SPACING.sm },
+    groupHeader: { paddingHorizontal: SPACING.lg, marginBottom: 12 },
+    groupSubtitle: { color: COLORS.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 2 },
+    groupTitle: { color: COLORS.text, fontSize: 22, fontWeight: 'bold', letterSpacing: -0.3 },
+    sectionDivider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.border, marginHorizontal: SPACING.lg, marginVertical: SPACING.xl },
+
+    // Featured
+    featuredContainer: { paddingTop: SPACING.sm },
+    featuredCard: {
+      height: 240,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    featuredGradient: {
+      ...StyleSheet.absoluteFill,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    featuredOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: SPACING.lg,
+      paddingTop: 40,
+    },
+    featuredName: { color: '#fff', fontSize: 24, fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3, letterSpacing: -0.5 },
+    featuredTagline: { color: 'rgba(255,255,255,0.9)', fontSize: 15, marginTop: 2, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
+    dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 10 },
+    dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.border },
+    dotActive: { width: 14, borderRadius: 3, backgroundColor: COLORS.primary },
+
+    empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+    emptyText: { color: COLORS.textMuted, fontSize: 14 },
+
+    // Modal
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      padding: 28,
+      alignItems: 'center',
+    },
+    sheetIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sheetTitle: { ...TYPOGRAPHY.h2, marginBottom: 4 },
+    sheetTagline: { color: COLORS.textMuted, fontSize: 14, marginBottom: 12, textAlign: 'center' },
+    sheetDesc: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
+    featureList: { alignSelf: 'stretch', gap: 8, marginBottom: 24 },
+    featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    featureText: { color: COLORS.text, fontSize: 13 },
+    sheetButtons: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
+    cancelBtn: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: COLORS.surfaceElevated,
+      alignItems: 'center',
+    },
+    cancelText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 15 },
+    installBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
+    installGradient: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+    },
+    installText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  }));
 
   // Third-party apps published via Profile > Developer Hub — the built-in
   // catalog above (MODULES/GAMES) already covers every native module, so
@@ -424,193 +617,3 @@ export default function HubScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  mainHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
-  mainTitle: {
-    fontSize: 34,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    letterSpacing: -0.5,
-  },
-  profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.surfaceElevated,
-    marginHorizontal: SPACING.lg,
-    marginVertical: SPACING.sm,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 16 },
-  categoryRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  categoryChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  categoryChipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
-  categoryChipTextActive: { color: '#fff' },
-  sectionLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.md,
-  },
-  
-  // App Rows
-  appRowContainer: { paddingVertical: 4 },
-  appRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  appIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  appInfo: { flex: 1, justifyContent: 'center' },
-  appName: { color: COLORS.text, fontSize: 16, fontWeight: '500', marginBottom: 2 },
-  appTagline: { color: COLORS.textMuted, fontSize: 13 },
-  btnGet: {
-    backgroundColor: COLORS.surfaceElevated,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  btnGetText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
-  btnOpen: {
-    backgroundColor: COLORS.surfaceElevated,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  btnOpenText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.border,
-    marginLeft: 74,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  
-  // Horizontal Groups
-  groupContainer: { paddingTop: SPACING.sm },
-  groupHeader: { paddingHorizontal: SPACING.lg, marginBottom: 12 },
-  groupSubtitle: { color: COLORS.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 2 },
-  groupTitle: { color: COLORS.text, fontSize: 22, fontWeight: 'bold', letterSpacing: -0.3 },
-  sectionDivider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.border, marginHorizontal: SPACING.lg, marginVertical: SPACING.xl },
-  
-  // Featured
-  featuredContainer: { paddingTop: SPACING.sm },
-  featuredCard: {
-    height: 240,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  featuredGradient: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featuredOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: SPACING.lg,
-    paddingTop: 40,
-  },
-  featuredName: { color: '#fff', fontSize: 24, fontWeight: 'bold', textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3, letterSpacing: -0.5 },
-  featuredTagline: { color: 'rgba(255,255,255,0.9)', fontSize: 15, marginTop: 2, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
-  dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 10 },
-  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.border },
-  dotActive: { width: 14, borderRadius: 3, backgroundColor: COLORS.primary },
-  
-  empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyText: { color: COLORS.textMuted, fontSize: 14 },
-  
-  // Modal
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 28,
-    alignItems: 'center',
-  },
-  sheetIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sheetTitle: { ...TYPOGRAPHY.h2, marginBottom: 4 },
-  sheetTagline: { color: COLORS.textMuted, fontSize: 14, marginBottom: 12, textAlign: 'center' },
-  sheetDesc: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
-  featureList: { alignSelf: 'stretch', gap: 8, marginBottom: 24 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureText: { color: COLORS.text, fontSize: 13 },
-  sheetButtons: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceElevated,
-    alignItems: 'center',
-  },
-  cancelText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 15 },
-  installBtn: { flex: 2, borderRadius: 14, overflow: 'hidden' },
-  installGradient: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-  },
-  installText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});

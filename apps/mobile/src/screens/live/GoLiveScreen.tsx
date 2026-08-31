@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { LIVE_CATEGORIES, getLiveCategory } from '../../config/liveCategories';
 import { goLive, inviteGuest } from '../../data/liveApi';
 import { getFriends } from '../../data/liveCategoryApi';
@@ -13,6 +14,8 @@ import '../../components/live/GoLiveCategorySetups';
 type Friend = { id: string; username: string; profile?: { displayName?: string } | null };
 
 export default function GoLiveScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, TYPOGRAPHY, SPACING } = theme;
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState(route?.params?.categoryId || 'social');
   const [conversationTopic, setConversationTopic] = useState('');
@@ -23,6 +26,176 @@ export default function GoLiveScreen({ navigation, route }: any) {
   const [invitedGuests, setInvitedGuests] = useState<string[]>([]);
   const [moderatorsOn, setModeratorsOn] = useState(false);
   const [starting, setStarting] = useState(false);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    preview: {
+      marginHorizontal: SPACING.lg,
+      height: 160,
+      borderRadius: RADIUS.lg,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginBottom: SPACING.lg,
+    },
+    previewTitle: {
+      color: '#FFF',
+      fontSize: 16,
+      fontWeight: '700',
+      textAlign: 'center',
+      paddingHorizontal: SPACING.lg,
+    },
+    hostSummaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    hostSummaryText: {
+      color: COLORS.text,
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    card: {
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+    },
+    label: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: SPACING.sm,
+    },
+    hint: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 12,
+      marginBottom: SPACING.md,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 12,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    categoryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: SPACING.sm,
+    },
+    categoryChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    categoryChipActive: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+    },
+    categoryChipText: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    categoryChipTextActive: {
+      color: '#FFF',
+    },
+    rowBetween: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    toggle: {
+      width: 44,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      justifyContent: 'center',
+      padding: 2,
+    },
+    toggleOn: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+    },
+    toggleKnob: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: COLORS.textMuted,
+    },
+    toggleKnobOn: {
+      backgroundColor: '#FFF',
+      alignSelf: 'flex-end',
+    },
+    friendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      paddingVertical: SPACING.sm,
+    },
+    friendAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: COLORS.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    friendInitial: {
+      color: COLORS.text,
+      fontWeight: '700',
+    },
+    friendName: {
+      color: COLORS.text,
+      flex: 1,
+      fontSize: 14,
+    },
+    startBtn: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 16,
+      borderRadius: RADIUS.md,
+    },
+    startBtnText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 16,
+    },
+  }));
 
   const category = getLiveCategory(categoryId);
   const availableCategories = LIVE_CATEGORIES.filter(c => c.status === 'live');
@@ -256,172 +429,3 @@ export default function GoLiveScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  preview: {
-    marginHorizontal: SPACING.lg,
-    height: 160,
-    borderRadius: RADIUS.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.lg,
-  },
-  previewTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: SPACING.lg,
-  },
-  hostSummaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  hostSummaryText: {
-    color: COLORS.text,
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  card: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: SPACING.sm,
-  },
-  hint: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 12,
-    marginBottom: SPACING.md,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 12,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  categoryChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryChipText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  categoryChipTextActive: {
-    color: '#FFF',
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  toggle: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    padding: 2,
-  },
-  toggleOn: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  toggleKnob: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.textMuted,
-  },
-  toggleKnobOn: {
-    backgroundColor: '#FFF',
-    alignSelf: 'flex-end',
-  },
-  friendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    paddingVertical: SPACING.sm,
-  },
-  friendAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  friendInitial: {
-    color: COLORS.text,
-    fontWeight: '700',
-  },
-  friendName: {
-    color: COLORS.text,
-    flex: 1,
-    fontSize: 14,
-  },
-  startBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: RADIUS.md,
-  },
-  startBtnText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-});

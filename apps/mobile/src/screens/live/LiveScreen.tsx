@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { LIVE_CATEGORIES, openLiveCategory } from '../../config/liveCategories';
 import { streamsForTag, LiveStream } from '../../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../../data/liveApi';
@@ -13,6 +12,8 @@ import LiveCategoryCard from '../../components/LiveCategoryCard';
 import SectionHeader from '../../components/SectionHeader';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 // Discover Live: the entry point into the whole Live module.
 // Quick tag filters cut across categories (Trending, Nearby...);
@@ -20,6 +21,107 @@ import { useAuth } from '../../context/AuthContext';
 // Real rooms currently being broadcast (fetched from the backend)
 // are merged in ahead of the illustrative mock catalog.
 export default function LiveScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    goLiveBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: RADIUS.pill,
+    },
+    goLiveText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    searchWrap: {
+      paddingHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+    },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+    },
+    searchInput: {
+      flex: 1,
+      color: COLORS.text,
+      fontSize: 15,
+    },
+    chipRow: {
+      paddingHorizontal: SPACING.lg,
+      gap: SPACING.sm,
+      paddingBottom: SPACING.md,
+    },
+    chip: {
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    chipActive: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+    },
+    chipText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    chipTextActive: {
+      color: '#FFF',
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      rowGap: SPACING.md,
+    },
+    emptyState: {
+      width: '100%',
+      alignItems: 'center',
+      paddingVertical: SPACING.xxl,
+      gap: SPACING.sm,
+    },
+    emptyText: {
+      ...TYPOGRAPHY.body2,
+      textAlign: 'center',
+    },
+  }));
+
   const { user } = useAuth();
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState('');
@@ -127,102 +229,3 @@ export default function LiveScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  goLiveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: RADIUS.pill,
-  },
-  goLiveText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  searchWrap: {
-    paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-  },
-  searchInput: {
-    flex: 1,
-    color: COLORS.text,
-    fontSize: 15,
-  },
-  chipRow: {
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
-    paddingBottom: SPACING.md,
-  },
-  chip: {
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  chipTextActive: {
-    color: '#FFF',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    rowGap: SPACING.md,
-  },
-  emptyState: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: SPACING.xxl,
-    gap: SPACING.sm,
-  },
-  emptyText: {
-    ...TYPOGRAPHY.body2,
-    textAlign: 'center',
-  },
-});

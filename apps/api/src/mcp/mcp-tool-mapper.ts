@@ -2,16 +2,17 @@ import { ToolDefinition } from '../tool-registry/tool-registry.types';
 
 // MCP's tools/call is a single synchronous RPC — there's no native two-phase
 // confirmation primitive a generic MCP host can be relied on to implement.
-// Rather than fake one (untested against real MCP hosts), sensitive/action
-// tools are excluded from the MCP surface entirely this pass: they stay
-// chat-only, gated by the app's own approve/decline UI. Known limitation,
-// not silently papered over.
+// Sensitive/write tools are still exposed (description is annotated so the
+// calling LLM knows to expect a 'pending' result instead of an immediate
+// one), but McpController parks the actual call in PendingMcpAction and
+// requires the same real in-app approve/decline the chat surface uses
+// before it runs — see mcp-pending-actions.service.ts.
 export function toMcpTools(tools: ToolDefinition[]) {
-  return tools
-    .filter((t) => !t.sensitive)
-    .map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: t.inputSchema,
-    }));
+  return tools.map((t) => ({
+    name: t.name,
+    description: t.sensitive
+      ? `${t.description} Requires the user's in-app approval — calling this returns a pending action id; poll it with check_pending_action.`
+      : t.description,
+    inputSchema: t.inputSchema,
+  }));
 }

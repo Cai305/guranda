@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 import { rideSocket } from '../../../services/RideSocketService';
 import * as Location from 'expo-location';
@@ -26,12 +27,71 @@ const NEXT_STATUS: Record<string, string> = {
 };
 
 export default function StoreOrdersScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
   const [updating, setUpdating] = useState<string | null>(null);
   const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null);
   const locationWatchRef = useRef<Location.LocationSubscription | null>(null);
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4, marginRight: 8 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    filterScroll: { maxHeight: 48 },
+    filterContent: { paddingHorizontal: SPACING.lg, gap: 8, alignItems: 'center' },
+    filterChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    filterText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    orderCard: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 14,
+      padding: 14,
+      gap: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    customerName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    orderTime: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    statusText: { fontSize: 11, fontWeight: '700' },
+    itemList: { gap: 2 },
+    itemText: { color: COLORS.textMuted, fontSize: 13 },
+    notesBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: COLORS.surfaceElevated, borderRadius: 8, padding: 8 },
+    notesText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
+    orderFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    addrText: { color: COLORS.textMuted, fontSize: 11 },
+    totalText: { color: '#ef4444', fontWeight: '800', fontSize: 14, marginTop: 2 },
+    orderActions: { flexDirection: 'row', gap: 8 },
+    cancelBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: '#ef444415', borderWidth: 1, borderColor: '#ef444430' },
+    cancelBtnText: { color: '#ef4444', fontWeight: '600', fontSize: 12 },
+    advanceBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: '#22c55e', minWidth: 80, alignItems: 'center' },
+    advanceBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
+    emptyText: { color: COLORS.textMuted, fontSize: 14 },
+    trackingBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: '#10b98115',
+      borderRadius: 10,
+      padding: 10,
+      borderWidth: 1,
+      borderColor: '#10b98130',
+    },
+    trackingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
+    trackingText: { color: '#10b981', fontSize: 12, fontWeight: '600', flex: 1 },
+  }));
 
   const load = useCallback(async () => {
     try {
@@ -208,60 +268,3 @@ export default function StoreOrdersScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4, marginRight: 8 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  filterScroll: { maxHeight: 48 },
-  filterContent: { paddingHorizontal: SPACING.lg, gap: 8, alignItems: 'center' },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  filterText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  orderCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  customerName: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  orderTime: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  itemList: { gap: 2 },
-  itemText: { color: COLORS.textMuted, fontSize: 13 },
-  notesBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: COLORS.surfaceElevated, borderRadius: 8, padding: 8 },
-  notesText: { color: COLORS.textMuted, fontSize: 12, flex: 1 },
-  orderFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  addrText: { color: COLORS.textMuted, fontSize: 11 },
-  totalText: { color: '#ef4444', fontWeight: '800', fontSize: 14, marginTop: 2 },
-  orderActions: { flexDirection: 'row', gap: 8 },
-  cancelBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: '#ef444415', borderWidth: 1, borderColor: '#ef444430' },
-  cancelBtnText: { color: '#ef4444', fontWeight: '600', fontSize: 12 },
-  advanceBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: '#22c55e', minWidth: 80, alignItems: 'center' },
-  advanceBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
-  emptyText: { color: COLORS.textMuted, fontSize: 14 },
-  trackingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#10b98115',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#10b98130',
-  },
-  trackingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
-  trackingText: { color: '#10b981', fontSize: 12, fontWeight: '600', flex: 1 },
-});

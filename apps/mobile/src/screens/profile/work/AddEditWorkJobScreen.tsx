@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 const EMPLOYMENT_TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship'];
@@ -10,6 +11,8 @@ const LOCATION_TYPES = ['Remote', 'Onsite', 'Hybrid'];
 
 export default function AddEditWorkJobScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const existing = route.params?.job;
   const isEdit = !!existing;
 
@@ -23,6 +26,28 @@ export default function AddEditWorkJobScreen({ navigation, route }: any) {
   const [salaryMax, setSalaryMax] = useState(existing?.salaryMax?.toString() || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    optional: { color: COLORS.textMuted, fontWeight: '400' },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+    chipActive: { backgroundColor: '#0EA5E9', borderColor: '#0EA5E9' },
+    chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    chipTextActive: { color: '#fff' },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
+    saveBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, padding: 16, alignItems: 'center' },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  }));
 
   const save = async () => {
     if (!title.trim() || !description.trim()) { setError('Title and description are required'); return; }
@@ -132,25 +157,3 @@ export default function AddEditWorkJobScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  optional: { color: COLORS.textMuted, fontWeight: '400' },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, color: COLORS.text, fontSize: 14 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  chipActive: { backgroundColor: '#0EA5E9', borderColor: '#0EA5E9' },
-  chipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
-  // leaves the button flush against the home indicator / gesture bar on
-  // notched devices with no clearance from it.
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
-  saveBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, padding: 16, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-});

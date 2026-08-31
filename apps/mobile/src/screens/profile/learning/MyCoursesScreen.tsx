@@ -1,14 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 import { ACCENT } from '../../learning/LearningHomeScreen';
 import { formatCurrency } from '../../../utils/format';
 
 export default function MyCoursesScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +25,22 @@ export default function MyCoursesScreen({ navigation }: any) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    iconBtn: { padding: 6 },
+    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10 },
+    cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    cardMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 4 },
+    cardPrice: { color: ACCENT, fontWeight: '800', fontSize: 14 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
+    emptyBtn: { backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
+    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -67,19 +86,3 @@ export default function MyCoursesScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  iconBtn: { padding: 6 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10 },
-  cardTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  cardMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 4 },
-  cardPrice: { color: ACCENT, fontWeight: '800', fontSize: 14 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 10 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
-  emptyBtn: { backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
-  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-});

@@ -1,17 +1,56 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
 
 export default function InvoiceScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { invoiceId } = route.params || {};
   const { user } = useAuth();
   const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#150A2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
+    card: {
+      backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.lg,
+    },
+    paidPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+      backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.4)',
+      borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 4,
+    },
+    paidText: { color: '#10B981', fontSize: 10.5, fontWeight: '800' },
+    invoiceNumber: { color: COLORS.text, fontWeight: '800', fontSize: 18, marginTop: 12 },
+    date: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
+    itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
+    itemThumb: { width: 56, height: 56, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
+    itemTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    itemMeta: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 3 },
+    divider: { height: 1, backgroundColor: COLORS.glassBorder, marginVertical: 16 },
+    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    rowLabel: { color: COLORS.textMuted, fontSize: 12.5 },
+    rowValue: { color: COLORS.text, fontSize: 12.5, fontWeight: '600' },
+    totalLabel: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+    totalValue: { color: '#A78BFA', fontSize: 18, fontWeight: '800' },
+  }));
 
   useEffect(() => {
     fetchApi(`/marketplace/invoices/${invoiceId}`)
@@ -116,39 +155,3 @@ export default function InvoiceScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#150A2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.lg,
-  },
-  paidPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.4)',
-    borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  paidText: { color: '#10B981', fontSize: 10.5, fontWeight: '800' },
-  invoiceNumber: { color: COLORS.text, fontWeight: '800', fontSize: 18, marginTop: 12 },
-  date: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
-  itemThumb: { width: 56, height: 56, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center' },
-  itemTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  itemMeta: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 3 },
-  divider: { height: 1, backgroundColor: COLORS.glassBorder, marginVertical: 16 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  rowLabel: { color: COLORS.textMuted, fontSize: 12.5 },
-  rowValue: { color: COLORS.text, fontSize: 12.5, fontWeight: '600' },
-  totalLabel: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
-  totalValue: { color: '#A78BFA', fontSize: 18, fontWeight: '800' },
-});

@@ -1,15 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS, BRAND } from '../theme';
+import { BRAND } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { getModule, LifeModule } from '../config/modules';
 
 // Beautiful placeholder page for every Guranda module that is
 // still being built. Explains what the feature will become —
 // never a blank page.
 export default function UnderConstructionScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const params = route?.params || {};
   const module: LifeModule | undefined = getModule(params.moduleId);
 
@@ -27,6 +31,135 @@ export default function UnderConstructionScreen({ navigation, route }: any) {
       `We'll notify you the moment ${name} goes live on ${BRAND.name}.`
     );
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      ...TYPOGRAPHY.h3,
+      fontWeight: '600',
+    },
+    hero: {
+      alignItems: 'center',
+      paddingVertical: SPACING.xl,
+      paddingHorizontal: SPACING.lg,
+    },
+    heroIcon: {
+      width: 96,
+      height: 96,
+      borderRadius: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: SPACING.lg,
+    },
+    constructionPill: {
+      backgroundColor: 'rgba(251, 191, 36, 0.15)',
+      borderWidth: 1,
+      borderColor: 'rgba(251, 191, 36, 0.4)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      marginBottom: SPACING.lg,
+    },
+    constructionText: {
+      color: COLORS.warning,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    heroTitle: {
+      ...TYPOGRAPHY.h1,
+      textAlign: 'center',
+    },
+    heroTagline: {
+      ...TYPOGRAPHY.body2,
+      fontSize: 15,
+      marginTop: 6,
+      textAlign: 'center',
+    },
+    card: {
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+    },
+    cardLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      marginBottom: SPACING.md,
+    },
+    description: {
+      ...TYPOGRAPHY.body1,
+      lineHeight: 24,
+      color: '#D6D6E2',
+    },
+    featureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+    },
+    featureDot: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: SPACING.md,
+    },
+    featureText: {
+      ...TYPOGRAPHY.body1,
+      fontSize: 15,
+    },
+    economyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.md,
+      borderColor: 'rgba(34, 211, 238, 0.25)',
+    },
+    economyText: {
+      ...TYPOGRAPHY.body2,
+      flex: 1,
+      lineHeight: 20,
+    },
+    ctaWrapper: {
+      marginHorizontal: SPACING.lg,
+      marginTop: SPACING.sm,
+    },
+    cta: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 16,
+      borderRadius: RADIUS.md,
+    },
+    ctaText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 16,
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -105,132 +238,3 @@ export default function UnderConstructionScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    ...TYPOGRAPHY.h3,
-    fontWeight: '600',
-  },
-  hero: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xl,
-    paddingHorizontal: SPACING.lg,
-  },
-  heroIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  constructionPill: {
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.4)',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginBottom: SPACING.lg,
-  },
-  constructionText: {
-    color: COLORS.warning,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  heroTitle: {
-    ...TYPOGRAPHY.h1,
-    textAlign: 'center',
-  },
-  heroTagline: {
-    ...TYPOGRAPHY.body2,
-    fontSize: 15,
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  card: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-  },
-  cardLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    marginBottom: SPACING.md,
-  },
-  description: {
-    ...TYPOGRAPHY.body1,
-    lineHeight: 24,
-    color: '#D6D6E2',
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  featureDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  featureText: {
-    ...TYPOGRAPHY.body1,
-    fontSize: 15,
-  },
-  economyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-    borderColor: 'rgba(34, 211, 238, 0.25)',
-  },
-  economyText: {
-    ...TYPOGRAPHY.body2,
-    flex: 1,
-    lineHeight: 20,
-  },
-  ctaWrapper: {
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
-  },
-  cta: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: RADIUS.md,
-  },
-  ctaText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-});

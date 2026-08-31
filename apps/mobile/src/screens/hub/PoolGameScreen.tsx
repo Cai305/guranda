@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, useWindowDimensions,
+  View, Text, TouchableOpacity, useWindowDimensions,
   PanResponder, Alert, ActivityIndicator, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import PoolTable from '../../games/pool/PoolTable';
@@ -26,11 +27,109 @@ type Mode = 'ai' | 'local' | 'online';
 const AI_PLAYER: PoolPlayer = 1;
 
 export default function PoolGameScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const mode: Mode = route.params?.mode ?? 'ai';
   const difficulty: PoolDifficulty = route.params?.difficulty ?? 'medium';
   const wager: number = route.params?.wager ?? 0;
   const gameId: string | undefined = route.params?.gameId;
   const { user } = useAuth();
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS }) => ({
+    root: { flex: 1, backgroundColor: '#0A1F12' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    topRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: SPACING.md, gap: 8,
+      marginBottom: 4,
+    },
+    avatarCol: { alignItems: 'center', width: 64 },
+    avatarWrap: { width: 44, height: 44 },
+    avatarCircle: {
+      width: 44, height: 44, borderRadius: 22,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderWidth: 1.5, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    avatarCircleActive: { borderColor: '#F472B6' },
+    avatarPulseRing: {
+      position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
+      borderRadius: 26, borderWidth: 2, borderColor: '#F472B6',
+    },
+    avatarName: { color: COLORS.text, fontWeight: '700', fontSize: 10.5, marginTop: 4, maxWidth: 64, textAlign: 'center' },
+    avatarGroup: { color: COLORS.textMuted, fontSize: 9, maxWidth: 64, textAlign: 'center' },
+    messageWrap: {
+      flex: 1, position: 'relative',
+      paddingVertical: 8, paddingHorizontal: 12,
+      borderRadius: RADIUS.md,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    messagePulseBorder: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      borderRadius: RADIUS.md, borderWidth: 2, borderColor: '#F472B6',
+    },
+    statusText: { color: COLORS.text, fontWeight: '600', fontSize: 12.5, textAlign: 'center' },
+    wagerText: { color: COLORS.gold, fontSize: 10.5, marginTop: 2, textAlign: 'center' },
+    playRow: { flex: 1, flexDirection: 'row' },
+    tableArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    sideControls: {
+      width: 78, alignItems: 'center',
+      paddingVertical: SPACING.lg, paddingRight: SPACING.sm,
+      gap: 10,
+    },
+    vPowerTrack: {
+      flex: 1, width: 40,
+      borderRadius: RADIUS.pill,
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      overflow: 'hidden',
+      justifyContent: 'flex-end',
+    },
+    vPowerFill: {
+      width: '100%',
+      backgroundColor: 'rgba(239,68,68,0.65)',
+    },
+    vPowerPct: { color: COLORS.text, fontWeight: '800', fontSize: 12 },
+    shootIconBtn: {
+      width: 60, height: 60, borderRadius: 30,
+      backgroundColor: '#E53935',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    overlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    overlayCard: {
+      width: '80%',
+      borderRadius: RADIUS.lg,
+      padding: 24,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    overlayEmoji: { fontSize: 44 },
+    overlayTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 8 },
+    overlaySub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 6, textAlign: 'center' },
+    overlayWager: { color: COLORS.gold, fontSize: 14, fontWeight: '700', marginTop: 10 },
+    overlayBtn: {
+      marginTop: 18,
+      backgroundColor: '#E53935',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 12, paddingHorizontal: 36,
+    },
+    overlayBtnText: { color: '#FFF', fontWeight: '800' },
+    overlayGhost: { marginTop: 10, paddingVertical: 8 },
+    overlayGhostText: { color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  }));
 
   const isOnline = mode === 'online';
   const { width, height: screenHeight } = useWindowDimensions();
@@ -466,99 +565,3 @@ export default function PoolGameScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A1F12' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  topRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: SPACING.md, gap: 8,
-    marginBottom: 4,
-  },
-  avatarCol: { alignItems: 'center', width: 64 },
-  avatarWrap: { width: 44, height: 44 },
-  avatarCircle: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1.5, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  avatarCircleActive: { borderColor: '#F472B6' },
-  avatarPulseRing: {
-    position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
-    borderRadius: 26, borderWidth: 2, borderColor: '#F472B6',
-  },
-  avatarName: { color: COLORS.text, fontWeight: '700', fontSize: 10.5, marginTop: 4, maxWidth: 64, textAlign: 'center' },
-  avatarGroup: { color: COLORS.textMuted, fontSize: 9, maxWidth: 64, textAlign: 'center' },
-  messageWrap: {
-    flex: 1, position: 'relative',
-    paddingVertical: 8, paddingHorizontal: 12,
-    borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  messagePulseBorder: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    borderRadius: RADIUS.md, borderWidth: 2, borderColor: '#F472B6',
-  },
-  statusText: { color: COLORS.text, fontWeight: '600', fontSize: 12.5, textAlign: 'center' },
-  wagerText: { color: COLORS.gold, fontSize: 10.5, marginTop: 2, textAlign: 'center' },
-  playRow: { flex: 1, flexDirection: 'row' },
-  tableArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  sideControls: {
-    width: 78, alignItems: 'center',
-    paddingVertical: SPACING.lg, paddingRight: SPACING.sm,
-    gap: 10,
-  },
-  vPowerTrack: {
-    flex: 1, width: 40,
-    borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  vPowerFill: {
-    width: '100%',
-    backgroundColor: 'rgba(239,68,68,0.65)',
-  },
-  vPowerPct: { color: COLORS.text, fontWeight: '800', fontSize: 12 },
-  shootIconBtn: {
-    width: 60, height: 60, borderRadius: 30,
-    backgroundColor: '#E53935',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  overlayCard: {
-    width: '80%',
-    borderRadius: RADIUS.lg,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  overlayEmoji: { fontSize: 44 },
-  overlayTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 8 },
-  overlaySub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 6, textAlign: 'center' },
-  overlayWager: { color: COLORS.gold, fontSize: 14, fontWeight: '700', marginTop: 10 },
-  overlayBtn: {
-    marginTop: 18,
-    backgroundColor: '#E53935',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 12, paddingHorizontal: 36,
-  },
-  overlayBtnText: { color: '#FFF', fontWeight: '800' },
-  overlayGhost: { marginTop: 10, paddingVertical: 8 },
-  overlayGhostText: { color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-});

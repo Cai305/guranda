@@ -1,14 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 import { ACCENT } from '../../learning/LearningHomeScreen';
 import { formatCurrency } from '../../../utils/format';
 
 export default function CourseLessonsScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { courseId } = route.params;
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +25,28 @@ export default function CourseLessonsScreen({ route, navigation }: any) {
   }, [courseId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    iconBtn: { padding: 6 },
+    statsRow: { flexDirection: 'row', gap: 10 },
+    statCard: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
+    statValue: { color: ACCENT, fontSize: 16, fontWeight: '800' },
+    statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 4 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: 4 },
+    lessonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
+    lessonIndex: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
+    lessonIndexText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
+    lessonTitle: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+    lessonMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+    empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+    emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+    emptyBtn: { backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
+    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  }));
 
   if (loading) {
     return (
@@ -73,25 +98,3 @@ export default function CourseLessonsScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  iconBtn: { padding: 6 },
-  statsRow: { flexDirection: 'row', gap: 10 },
-  statCard: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
-  statValue: { color: ACCENT, fontSize: 16, fontWeight: '800' },
-  statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 4 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginTop: 4 },
-  lessonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
-  lessonIndex: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
-  lessonIndexText: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
-  lessonTitle: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  lessonMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
-  emptyBtn: { backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
-  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-});

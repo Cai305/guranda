@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, FlatList, Image, Share, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, Image, Share, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
+import { ThemeTokens } from '../theme/themes';
 import { fetchApi } from '../utils/api';
 import { CommentDto, PostDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +25,9 @@ function timeAgo(iso: string): string {
 }
 
 export default function PostCommentsScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(createStyles);
   const { postId } = route.params;
   const { user } = useAuth();
   const [post, setPost] = useState<PostDto | null>(null);
@@ -314,7 +319,8 @@ export default function PostCommentsScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles({ COLORS, TYPOGRAPHY, RADIUS }: ThemeTokens) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -528,4 +534,5 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body1,
     color: COLORS.textMuted,
   },
-});
+  });
+}

@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +15,8 @@ const LEVEL_COLOR: Record<string, string> = {
 };
 
 export default function UsernameMarketHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } = theme;
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [usernames, setUsernames] = useState<any[]>([]);
@@ -29,6 +32,109 @@ export default function UsernameMarketHomeScreen({ navigation }: any) {
   }, [search]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#150A2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    dashRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    dashBtn: {
+      flex: 1, flexDirection: 'row', gap: 8,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: 'rgba(167,139,250,0.1)',
+      borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)',
+      borderRadius: RADIUS.lg, paddingVertical: 12,
+    },
+    dashText: { color: '#A78BFA', fontWeight: '800', fontSize: 12.5 },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: SPACING.lg, marginTop: SPACING.md,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingHorizontal: 14, paddingVertical: 9,
+    },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 13.5 },
+    cardWrapper: {
+      width: '100%',
+      borderRadius: RADIUS.xl,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.14)',
+    },
+    card: {
+      padding: 18,
+    },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardLabel: {
+      color: '#FFF',
+      fontWeight: '900',
+      fontSize: 18,
+      flex: 1,
+      letterSpacing: 0.3,
+    },
+    auctionBadge: {
+      flexDirection: 'row', gap: 4, alignItems: 'center',
+      backgroundColor: '#F59E0B', borderRadius: RADIUS.pill,
+      paddingHorizontal: 8, paddingVertical: 4,
+    },
+    auctionBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+    priceRow: {
+      marginTop: 14,
+      marginBottom: 12,
+    },
+    cardPriceLabel: {
+      color: 'rgba(255,255,255,0.55)',
+      fontSize: 10.5,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 4,
+    },
+    cardPriceValue: {
+      color: '#C4B5FD',
+      fontWeight: '900',
+      fontSize: 24,
+    },
+    cardPriceUnit: {
+      color: 'rgba(196,181,253,0.7)',
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 4,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.08)',
+    },
+    levelPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      flexShrink: 0,
+      borderWidth: 1,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    levelText: { fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase' },
+    cardMeta: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+    empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
+    fab: {
+      // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
+      // fab style comment for why a static value here renders under the tab bar.
+      position: 'absolute', bottom: 24, right: 20,
+      flexDirection: 'row', gap: 6, alignItems: 'center',
+      backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
+      paddingVertical: 13, paddingHorizontal: 18,
+    },
+    fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  }));
 
   const renderItem = ({ item }: { item: any }) => {
     const isAuction = item.saleStatus === 'AUCTION';
@@ -137,106 +243,3 @@ export default function UsernameMarketHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#150A2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  dashRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  dashBtn: {
-    flex: 1, flexDirection: 'row', gap: 8,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(167,139,250,0.1)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)',
-    borderRadius: RADIUS.lg, paddingVertical: 12,
-  },
-  dashText: { color: '#A78BFA', fontWeight: '800', fontSize: 12.5 },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: SPACING.lg, marginTop: SPACING.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingHorizontal: 14, paddingVertical: 9,
-  },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 13.5 },
-  cardWrapper: {
-    width: '100%',
-    borderRadius: RADIUS.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-  },
-  card: {
-    padding: 18,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardLabel: {
-    color: '#FFF',
-    fontWeight: '900',
-    fontSize: 18,
-    flex: 1,
-    letterSpacing: 0.3,
-  },
-  auctionBadge: {
-    flexDirection: 'row', gap: 4, alignItems: 'center',
-    backgroundColor: '#F59E0B', borderRadius: RADIUS.pill,
-    paddingHorizontal: 8, paddingVertical: 4,
-  },
-  auctionBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  priceRow: {
-    marginTop: 14,
-    marginBottom: 12,
-  },
-  cardPriceLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 10.5,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  cardPriceValue: {
-    color: '#C4B5FD',
-    fontWeight: '900',
-    fontSize: 24,
-  },
-  cardPriceUnit: {
-    color: 'rgba(196,181,253,0.7)',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  levelPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flexShrink: 0,
-    borderWidth: 1,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  levelText: { fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase' },
-  cardMeta: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  empty: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 40 },
-  fab: {
-    // bottom set dynamically via insets in JSX — see ExploreScreen.tsx's
-    // fab style comment for why a static value here renders under the tab bar.
-    position: 'absolute', bottom: 24, right: 20,
-    flexDirection: 'row', gap: 6, alignItems: 'center',
-    backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
-    paddingVertical: 13, paddingHorizontal: 18,
-  },
-  fabText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
-});

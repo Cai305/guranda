@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
 
 export default function MyCompanyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const [company, setCompany] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +23,46 @@ export default function MyCompanyScreen({ navigation }: any) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingHorizontal: SPACING.lg },
+    emptyTitle: { ...TYPOGRAPHY.h2 },
+    emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
+    createBtn: { backgroundColor: '#0EA5E9', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, marginTop: 8 },
+    createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    freelanceLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingBottom: 30 },
+    freelanceLinkText: { color: '#8B5CF6', fontSize: 13, fontWeight: '600' },
+    companyCard: { margin: SPACING.lg, borderRadius: 16, padding: 18, gap: 12 },
+    companyName: { color: '#fff', fontSize: 20, fontWeight: '800' },
+    companyIndustry: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+    statsRow: { flexDirection: 'row', gap: 24, marginTop: 4 },
+    stat: { alignItems: 'center' },
+    statNum: { color: '#fff', fontSize: 22, fontWeight: '800' },
+    statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
+    actions: { flexDirection: 'row', gap: 12, paddingHorizontal: SPACING.lg, marginBottom: 16 },
+    actionBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: COLORS.surface, borderRadius: 12, padding: 14,
+      justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border,
+    },
+    actionText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginBottom: 10 },
+    emptyJobs: { alignItems: 'center', paddingVertical: 30, gap: 8 },
+    emptyJobsText: { color: COLORS.textMuted, fontSize: 13 },
+    jobRow: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
+      padding: 14, marginHorizontal: SPACING.lg, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 10,
+    },
+    jobTitle: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
+    jobMeta: { color: COLORS.textMuted, fontSize: 12 },
+    applicantBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#0EA5E915', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+    applicantBadgeText: { color: '#0EA5E9', fontWeight: '700', fontSize: 12 },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>;
 
@@ -116,43 +159,3 @@ export default function MyCompanyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12, gap: 8 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingHorizontal: SPACING.lg },
-  emptyTitle: { ...TYPOGRAPHY.h2 },
-  emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
-  createBtn: { backgroundColor: '#0EA5E9', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24, marginTop: 8 },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  freelanceLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingBottom: 30 },
-  freelanceLinkText: { color: '#8B5CF6', fontSize: 13, fontWeight: '600' },
-  companyCard: { margin: SPACING.lg, borderRadius: 16, padding: 18, gap: 12 },
-  companyName: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  companyIndustry: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 24, marginTop: 4 },
-  stat: { alignItems: 'center' },
-  statNum: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
-  actions: { flexDirection: 'row', gap: 12, paddingHorizontal: SPACING.lg, marginBottom: 16 },
-  actionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.surface, borderRadius: 12, padding: 14,
-    justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border,
-  },
-  actionText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginBottom: 10 },
-  emptyJobs: { alignItems: 'center', paddingVertical: 30, gap: 8 },
-  emptyJobsText: { color: COLORS.textMuted, fontSize: 13 },
-  jobRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12,
-    padding: 14, marginHorizontal: SPACING.lg, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border, gap: 10,
-  },
-  jobTitle: { color: COLORS.text, fontWeight: '600', fontSize: 14, marginBottom: 2 },
-  jobMeta: { color: COLORS.textMuted, fontSize: 12 },
-  applicantBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#0EA5E915', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
-  applicantBadgeText: { color: '#0EA5E9', fontWeight: '700', fontSize: 12 },
-});

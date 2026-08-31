@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, BRAND } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { LiveStream, categoryOf } from '../../data/mockLiveStreams';
 import { RealLiveStream, joinRoom, getMyGuestInvite, respondGuestInvite } from '../../data/liveApi';
 import { formatCount } from '../../utils/format';
@@ -22,7 +23,6 @@ import EmojiBurstOverlay from '../../components/live/EmojiBurstOverlay';
 import GifPicker from '../../components/live/GifPicker';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import LiveCategoryViewerPanel from '../../components/live/LiveCategoryViewerPanel';
-import { GRADIENTS } from '../../theme';
 import * as modApi from '../../data/liveCategoryApi';
 import { reportLiveStream } from '../../data/liveCategoryApi';
 
@@ -55,6 +55,8 @@ interface Props {
 }
 
 export default function LiveStreamPage({ stream, navigation, isActive }: Props) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, BRAND } = theme;
   const category = categoryOf(stream);
   const isRealStream = !!(stream as any)?.real;
   const realStream = stream as RealLiveStream;
@@ -282,6 +284,98 @@ export default function LiveStreamPage({ stream, navigation, isActive }: Props) 
 
   const lastTapRef = useRef<number>(0);
   const [heartBurstNonce, setHeartBurstNonce] = useState(0);
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: '#000' },
+    endedWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, gap: SPACING.sm },
+    endedTitle: { ...TYPOGRAPHY.h2, marginTop: SPACING.md },
+    endedBody: { ...TYPOGRAPHY.body2, textAlign: 'center' },
+    endedBackBtn: { marginTop: SPACING.lg, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: RADIUS.pill },
+    endedBackBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+
+    topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.md, paddingTop: SPACING.md },
+    circleBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
+    videoBadges: { flexDirection: 'row', gap: 8 },
+    livePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,59,48,0.9)', borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4 },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFF' },
+    livePillText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+    viewersPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4 },
+    viewersText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
+
+    creatorBarOverlay: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingHorizontal: SPACING.md, marginTop: SPACING.sm, paddingRight: 76 },
+    avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#FFF' },
+    creatorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    creatorNameOverlay: { color: '#FFF', fontSize: 15, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+    followerCountText: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 },
+    followBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 7, borderRadius: RADIUS.pill },
+    followBtnActive: { backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+    followBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+    followBtnTextActive: { color: '#FFF' },
+
+    giftToastWrap: { position: 'absolute', top: 100, left: 0, right: 0, alignItems: 'center' },
+    centerHeartWrap: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center', zIndex: 5 },
+    guestInviteBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: 'rgba(124,58,237,0.9)', borderRadius: RADIUS.md,
+      marginHorizontal: SPACING.md, marginTop: SPACING.sm, padding: SPACING.sm,
+    },
+    guestInviteText: { flex: 1, color: '#FFF', fontSize: 12, fontWeight: '600' },
+    guestInviteAccept: { backgroundColor: '#FFF', borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 6 },
+    guestInviteAcceptText: { color: '#7C3AED', fontWeight: '800', fontSize: 12 },
+    guestInviteDecline: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+
+    categoryPanelWrap: { maxHeight: 220, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
+    // Shopping gets its own docked slot instead of the generic boxed panel —
+    // a persistent card sitting just above the comment feed, clear of the
+    // right-side action rail, the way TikTok Shop keeps the pinned product
+    // visible without ever covering the video or the comments.
+    shoppingCardWrap: { position: 'absolute', left: SPACING.md, right: 76, bottom: 276 },
+
+    // Right-side vertical action rail
+    actionRail: {
+      position: 'absolute', right: SPACING.sm, bottom: 210,
+      alignItems: 'center', gap: SPACING.lg,
+    },
+    railItem: { alignItems: 'center', gap: 4 },
+    railBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+    railEmoji: { fontSize: 22 },
+    railLabel: { color: '#FFF', fontSize: 11, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
+
+    // Bottom-left comment feed
+    chatOverlayContainer: {
+      position: 'absolute', left: SPACING.md, right: 76, bottom: 68,
+      height: 200, justifyContent: 'flex-end',
+    },
+    chatMessageBubble: { backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: RADIUS.md, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 6, alignSelf: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%' },
+    chatDeleteBtn: { marginLeft: 8, padding: 2 },
+    modMiniPanel: {
+      position: 'absolute', bottom: 280, left: SPACING.md, right: SPACING.md,
+      backgroundColor: 'rgba(18,18,26,0.97)', borderRadius: RADIUS.lg, padding: SPACING.md,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', zIndex: 100, maxHeight: 260,
+    },
+    modMiniHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    modMiniTitle: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+    modMiniRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+    modMiniName: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+    modMiniBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 6 },
+    modMiniBtnText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+    chatUser: { color: COLORS.secondary, fontWeight: '700', fontSize: 13 },
+    chatLine: { color: '#FFF', fontSize: 13, lineHeight: 18, flex: 1 },
+    chatGif: { width: 140, height: 100, borderRadius: RADIUS.sm, marginTop: 4 },
+
+    // Emoji tray
+    emojiTray: { position: 'absolute', bottom: 68, left: SPACING.md, flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.lg, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: RADIUS.lg, maxWidth: '85%' },
+    emojiTrayItem: { alignItems: 'center', gap: 4 },
+    emojiTrayLabel: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+
+    // Chat input
+    chatInputOverlayRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, alignItems: 'center' },
+    inputIconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+    gifBtn: { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', borderRadius: RADIUS.sm, paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center', alignItems: 'center' },
+    gifBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12, letterSpacing: 0.5 },
+    chatInputOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: RADIUS.pill, paddingHorizontal: 16, paddingVertical: 10, color: '#FFF' },
+    sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+  }));
 
   if (!stream) return null;
 
@@ -728,94 +822,3 @@ export default function LiveStreamPage({ stream, navigation, isActive }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  endedWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl, gap: SPACING.sm },
-  endedTitle: { ...TYPOGRAPHY.h2, marginTop: SPACING.md },
-  endedBody: { ...TYPOGRAPHY.body2, textAlign: 'center' },
-  endedBackBtn: { marginTop: SPACING.lg, backgroundColor: COLORS.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: RADIUS.pill },
-  endedBackBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-
-  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.md, paddingTop: SPACING.md },
-  circleBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' },
-  videoBadges: { flexDirection: 'row', gap: 8 },
-  livePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,59,48,0.9)', borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFF' },
-  livePillText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
-  viewersPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4 },
-  viewersText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
-
-  creatorBarOverlay: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingHorizontal: SPACING.md, marginTop: SPACING.sm, paddingRight: 76 },
-  avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#FFF' },
-  creatorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  creatorNameOverlay: { color: '#FFF', fontSize: 15, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-  followerCountText: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 },
-  followBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 7, borderRadius: RADIUS.pill },
-  followBtnActive: { backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  followBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
-  followBtnTextActive: { color: '#FFF' },
-
-  giftToastWrap: { position: 'absolute', top: 100, left: 0, right: 0, alignItems: 'center' },
-  centerHeartWrap: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center', zIndex: 5 },
-  guestInviteBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(124,58,237,0.9)', borderRadius: RADIUS.md,
-    marginHorizontal: SPACING.md, marginTop: SPACING.sm, padding: SPACING.sm,
-  },
-  guestInviteText: { flex: 1, color: '#FFF', fontSize: 12, fontWeight: '600' },
-  guestInviteAccept: { backgroundColor: '#FFF', borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 6 },
-  guestInviteAcceptText: { color: '#7C3AED', fontWeight: '800', fontSize: 12 },
-  guestInviteDecline: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-
-  categoryPanelWrap: { maxHeight: 220, marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
-  // Shopping gets its own docked slot instead of the generic boxed panel —
-  // a persistent card sitting just above the comment feed, clear of the
-  // right-side action rail, the way TikTok Shop keeps the pinned product
-  // visible without ever covering the video or the comments.
-  shoppingCardWrap: { position: 'absolute', left: SPACING.md, right: 76, bottom: 276 },
-
-  // Right-side vertical action rail
-  actionRail: {
-    position: 'absolute', right: SPACING.sm, bottom: 210,
-    alignItems: 'center', gap: SPACING.lg,
-  },
-  railItem: { alignItems: 'center', gap: 4 },
-  railBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  railEmoji: { fontSize: 22 },
-  railLabel: { color: '#FFF', fontSize: 11, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
-
-  // Bottom-left comment feed
-  chatOverlayContainer: {
-    position: 'absolute', left: SPACING.md, right: 76, bottom: 68,
-    height: 200, justifyContent: 'flex-end',
-  },
-  chatMessageBubble: { backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: RADIUS.md, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 6, alignSelf: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%' },
-  chatDeleteBtn: { marginLeft: 8, padding: 2 },
-  modMiniPanel: {
-    position: 'absolute', bottom: 280, left: SPACING.md, right: SPACING.md,
-    backgroundColor: 'rgba(18,18,26,0.97)', borderRadius: RADIUS.lg, padding: SPACING.md,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', zIndex: 100, maxHeight: 260,
-  },
-  modMiniHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  modMiniTitle: { color: '#FFF', fontWeight: '700', fontSize: 14 },
-  modMiniRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  modMiniName: { color: '#FFF', fontSize: 13, fontWeight: '600' },
-  modMiniBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 6 },
-  modMiniBtnText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-  chatUser: { color: COLORS.secondary, fontWeight: '700', fontSize: 13 },
-  chatLine: { color: '#FFF', fontSize: 13, lineHeight: 18, flex: 1 },
-  chatGif: { width: 140, height: 100, borderRadius: RADIUS.sm, marginTop: 4 },
-
-  // Emoji tray
-  emojiTray: { position: 'absolute', bottom: 68, left: SPACING.md, flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.lg, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: RADIUS.lg, maxWidth: '85%' },
-  emojiTrayItem: { alignItems: 'center', gap: 4 },
-  emojiTrayLabel: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-
-  // Chat input
-  chatInputOverlayRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingBottom: SPACING.md, alignItems: 'center' },
-  inputIconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  gifBtn: { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', borderRadius: RADIUS.sm, paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center', alignItems: 'center' },
-  gifBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12, letterSpacing: 0.5 },
-  chatInputOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: RADIUS.pill, paddingHorizontal: 16, paddingVertical: 10, color: '#FFF' },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-});

@@ -133,6 +133,8 @@ model User {
   stokvelsCreated              Stokvel[]                  @relation("stokvelsCreated")
   stokvelMemberships           StokvelMember[]
   stokvelRequestsMade          StokvelFundingRequest[]    @relation("stokvelRequestsMade")
+  structuresCreated            Structure[]                @relation("structuresCreated")
+  structureMemberships         StructureMember[]
   learningCoursesCreated       LearningCourse[]           @relation("learningCoursesCreated")
   learningEnrollments          LearningEnrollment[]
   learningTutorProfile         LearningTutor?             @relation("learningTutorProfile")
@@ -1337,6 +1339,48 @@ model AiReminder {
   createdAt DateTime  @default(now())
 }
 
+// A sensitive/write AI tool call requested by an EXTERNAL MCP client (Claude
+// Desktop, Claude Code, etc, via apps/api/src/mcp/mcp.controller.ts) that
+// requires the user's real in-app approval before it runs — mirrors the
+// in-chat pending-action flow (AiConversationContext / ai.controller.ts
+// resolve) for calls that originated outside the app entirely.
+// Bare userId (no relation), matching AiReminder — operational table.
+model PendingMcpAction {
+  id         String    @id @default(uuid())
+  userId     String
+  toolName   String
+  input      Json
+  summary    String
+  status     String    @default("pending") // pending | approved | declined | executed | expired
+  result     Json?
+  resultText String?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  expiresAt  DateTime
+
+  @@index([userId, status])
+}
+
+// One row per user per connected external service (Google Calendar, GitHub,
+// Slack — see apps/api/src/integrations/). accessToken/refreshToken are
+// AES-256-GCM ciphertext (see common/crypto.util.ts), never plaintext at
+// rest — these are real credentials to a third-party account, not app-scoped
+// secrets. Bare userId (no relation), matching AiReminder — operational table.
+model ExternalIntegration {
+  id                   String    @id @default(uuid())
+  userId               String
+  provider             String    // 'google_calendar' | 'github' | 'slack'
+  accessToken          String
+  refreshToken         String?
+  expiresAt            DateTime?
+  scope                String?
+  externalAccountLabel String?   // e.g. connected email or workspace name, for display
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([userId, provider])
+}
+
 // Audit trail for every AI tool invocation (Tool Registry / Action Executor).
 // Bare userId (no relation), matching AiReminder — operational/audit table.
 model ToolExecutionLog {
@@ -2333,6 +2377,124 @@ model StokvelAuditLog {
   action    String
   detail    String?
   createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Voting ("Ballot") — elections for any structure (HOA, company
+// board, union, student body, ...). Each structure keeps its own
+// voter roll; each election can carry several simultaneous
+// ballots (positions), each with its own voting mechanic. Every
+// cast vote is recorded on XRPL testnet as a memo-only Payment
+// from the voter's personal wallet to the election's ballot-box
+// wallet — the memo carries positionId/structureId only, never
+// the selection, so the on-chain receipt proves inclusion without
+// revealing how anyone voted. Check-ins record that an on-device
+// biometric check passed, never any biometric data itself.
+// ============================================================
+
+model Structure {
+  id            String   @id @default(uuid())
+  name          String
+  type          String // HOA | CORPORATE | UNION | CLUB | STUDENT_BODY | OTHER
+  creatorId     String
+  creator       User     @relation("structuresCreated", fields: [creatorId], references: [id])
+  createdAt     DateTime @default(now())
+
+  members   StructureMember[]
+  elections Election[]
+}
+
+model StructureMember {
+  id            String   @id @default(uuid())
+  structureId   String
+  structure     Structure @relation(fields: [structureId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  role          String    @default("MEMBER") // ADMIN | POLL_WORKER | MEMBER
+  votingWeight  Int       @default(1) // shares, for WEIGHTED positions
+  status        String    @default("ACTIVE") // ACTIVE | REMOVED
+  joinedAt      DateTime  @default(now())
+
+  checkIns ElectionCheckIn[]
+  votes    ElectionVote[]
+
+  @@unique([structureId, userId])
+}
+
+model Election {
+  id                  String    @id @default(uuid())
+  structureId         String
+  structure           Structure @relation(fields: [structureId], references: [id])
+  title               String
+  opensAt             DateTime  @default(now())
+  closesAt            DateTime?
+  status              String    @default("OPEN") // SCHEDULED | OPEN | CLOSED
+
+  // XRPL ballot-box wallet — every cast vote sends a memo-only
+  // payment here, giving the election a single publicly auditable
+  // on-chain address (mirrors Stokvel.xrplAddress/xrplSeed).
+  ballotBoxXrplAddress String?
+  ballotBoxXrplSeed    String?
+
+  positions Position[]
+  checkIns  ElectionCheckIn[]
+
+  createdAt DateTime @default(now())
+}
+
+model ElectionCheckIn {
+  id                String          @id @default(uuid())
+  electionId        String
+  election          Election        @relation(fields: [electionId], references: [id])
+  structureMemberId String
+  structureMember   StructureMember @relation(fields: [structureMemberId], references: [id])
+  method            String // FINGERPRINT | FACE_ID
+  verifiedAt        DateTime        @default(now())
+
+  @@unique([electionId, structureMemberId])
+}
+
+model Position {
+  id         String   @id @default(uuid())
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id])
+  title      String
+  votingType String // SINGLE_CHOICE | RANKED_CHOICE | MULTI_SELECT | WEIGHTED
+  seats      Int      @default(1)
+
+  candidates Candidate[]
+  votes      ElectionVote[]
+}
+
+model Candidate {
+  id         String   @id @default(uuid())
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id])
+  name       String
+  slateName  String?
+  colorHex   String?
+}
+
+model ElectionVote {
+  id                String          @id @default(uuid())
+  positionId        String
+  position          Position        @relation(fields: [positionId], references: [id])
+  structureMemberId String
+  structureMember   StructureMember @relation(fields: [structureMemberId], references: [id])
+
+  // Shape depends on Position.votingType — see VotingService for
+  // the per-type validation:
+  //   SINGLE_CHOICE -> { candidateId }
+  //   MULTI_SELECT  -> { candidateIds: string[] }
+  //   RANKED_CHOICE -> { rankedCandidateIds: string[] }
+  //   WEIGHTED      -> { allocations: Record<candidateId, number> }
+  selection Json
+
+  xrplTxHash      String?
+  xrplLedgerIndex Int?
+  castAt          DateTime @default(now())
+
+  @@unique([positionId, structureMemberId])
 }
 
 // ============================================================

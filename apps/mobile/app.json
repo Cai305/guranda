@@ -74,12 +74,31 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Guranda saves the posters and edited photos you create to your photo library.",
+          "photosPermission": "Guranda saves the posters and edited photos you create to your photo library. Nova can also look up recent photo filenames/dates when you approve it.",
           "savePhotosPermission": "Guranda saves the posters and edited photos you create to your photo library."
         }
       ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Guranda's AI companion Nova can search your contacts when you ask it to and approve the request."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Guranda's AI companion Nova can read and add events to your phone's calendar when you ask it to and approve the request."
+        }
+      ],
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/guranda-logo.png",
+          "backgroundColor": "#07070C",
+          "imageWidth": 220
+        }
+      ],
       "expo-image",
       "@react-native-community/datetimepicker"
     ]

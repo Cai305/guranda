@@ -74,6 +74,9 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { CapabilitiesModule } from './capabilities/capabilities.module';
+import { VotingModule } from './voting/voting.module';
+import { DeviceModule } from './device/device.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 
 @Module({
   imports: [
@@ -132,6 +135,7 @@ import { CapabilitiesModule } from './capabilities/capabilities.module';
     WorkModule,
     HealthAppModule,
     FinanceModule,
+    VotingModule,
     LearningModule,
     HairModule,
     MurabarabaModule,
@@ -159,6 +163,8 @@ import { CapabilitiesModule } from './capabilities/capabilities.module';
     AnnouncementsModule,
     OpportunitiesModule,
     CapabilitiesModule,
+    DeviceModule,
+    IntegrationsModule,
   ],
   controllers: [AppController],
   providers: [

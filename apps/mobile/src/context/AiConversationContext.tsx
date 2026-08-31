@@ -3,6 +3,7 @@ import { fetchApi } from '../utils/api';
 import { useAuth } from './AuthContext';
 import { AI_ENABLED } from '../config/featureFlags';
 import { ToolWidget } from '../components/ai-widgets/AiWidgetRenderer';
+import { fulfillDeviceTool } from '../utils/deviceToolFulfillment';
 
 export interface AiBubble {
   id: number;
@@ -140,9 +141,28 @@ export function AiConversationProvider({ children }: { children: React.ReactNode
 
   const resolveAction = useCallback(async (approved: boolean) => {
     if (!pending) return;
-    addBubble('system', approved ? `✅ You approved: ${pending.summary}` : `❌ You declined: ${pending.summary}`);
-    const action = pending;
+    let action = pending;
     setPending(null);
+
+    // device.* tools (contacts/calendar/photos) read or write data that
+    // only exists on the phone, not in Guranda's DB — the actual native
+    // Expo call happens here, right after approval, and its result is
+    // attached to action.input.deviceData before the resolve round-trip.
+    // See apps/api/src/device/device-ai-tools.provider.ts.
+    if (approved && action.toolName.startsWith('device.')) {
+      addBubble('system', `✅ You approved: ${action.summary}`);
+      try {
+        const input = await fulfillDeviceTool(action.toolName, action.input);
+        action = { ...action, input };
+      } catch {
+        addBubble('system', "Couldn't access that on your device — check the app's permission settings.");
+        await runRequest('/ai/resolve', { conversation: conversation.current, action, approved: false });
+        return;
+      }
+    } else {
+      addBubble('system', approved ? `✅ You approved: ${action.summary}` : `❌ You declined: ${action.summary}`);
+    }
+
     await runRequest('/ai/resolve', { conversation: conversation.current, action, approved });
   }, [pending, addBubble, runRequest]);
 

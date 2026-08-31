@@ -55,6 +55,16 @@ import FinanceHomeScreen from '../screens/finance/FinanceHomeScreen';
 import CreateFundingRequestScreen from '../screens/finance/CreateFundingRequestScreen';
 import FundingRequestDetailScreen from '../screens/finance/FundingRequestDetailScreen';
 import StokvelAuditLogScreen from '../screens/finance/StokvelAuditLogScreen';
+import VotingHomeScreen from '../screens/voting/VotingHomeScreen';
+import CreateStructureScreen from '../screens/voting/CreateStructureScreen';
+import StructureDetailScreen from '../screens/voting/StructureDetailScreen';
+import CreateElectionScreen from '../screens/voting/CreateElectionScreen';
+import ElectionDetailScreen from '../screens/voting/ElectionDetailScreen';
+import AddPositionScreen from '../screens/voting/AddPositionScreen';
+import VoterRollScreen from '../screens/voting/VoterRollScreen';
+import BiometricCheckInScreen from '../screens/voting/BiometricCheckInScreen';
+import CastVoteScreen from '../screens/voting/CastVoteScreen';
+import VoteReceiptScreen from '../screens/voting/VoteReceiptScreen';
 import LearningHomeScreen from '../screens/learning/LearningHomeScreen';
 import CourseDetailScreen from '../screens/learning/CourseDetailScreen';
 import TutorDetailScreen from '../screens/learning/TutorDetailScreen';
@@ -157,6 +167,16 @@ export default function HubStackNavigator() {
       <Stack.Screen name="CreateFundingRequest" component={CreateFundingRequestScreen} />
       <Stack.Screen name="FundingRequestDetail" component={FundingRequestDetailScreen} />
       <Stack.Screen name="StokvelAuditLog" component={StokvelAuditLogScreen} />
+      <Stack.Screen name="VotingHome" component={VotingHomeScreen} />
+      <Stack.Screen name="CreateStructure" component={CreateStructureScreen} />
+      <Stack.Screen name="StructureDetail" component={StructureDetailScreen} />
+      <Stack.Screen name="CreateElection" component={CreateElectionScreen} />
+      <Stack.Screen name="ElectionDetail" component={ElectionDetailScreen} />
+      <Stack.Screen name="AddPosition" component={AddPositionScreen} />
+      <Stack.Screen name="VoterRoll" component={VoterRollScreen} />
+      <Stack.Screen name="BiometricCheckIn" component={BiometricCheckInScreen} />
+      <Stack.Screen name="CastVote" component={CastVoteScreen} />
+      <Stack.Screen name="VoteReceipt" component={VoteReceiptScreen} />
       <Stack.Screen name="LearningHome" component={LearningHomeScreen} />
       <Stack.Screen name="CourseDetail" component={CourseDetailScreen} />
       <Stack.Screen name="TutorDetail" component={TutorDetailScreen} />

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import type { PoolDifficulty } from '../../games/pool/ai';
@@ -19,6 +20,8 @@ const DIFFICULTIES: { key: PoolDifficulty; label: string; blurb: string }[] = [
 const WAGERS = [0, 10, 25, 50];
 
 export default function PoolLobbyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const { user } = useAuth();
   const [difficulty, setDifficulty] = useState<PoolDifficulty>('medium');
   const [wager, setWager] = useState(0);
@@ -54,6 +57,87 @@ export default function PoolLobbyScreen({ navigation }: any) {
     socket?.emit('leave_queue');
     setSearching(false);
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: '#0A1F12' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    hero: {
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      padding: 22,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    heroEmoji: { fontSize: 42 },
+    heroTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 8 },
+    heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    diffRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    diffCard: {
+      flex: 1,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 12,
+      alignItems: 'center',
+    },
+    diffCardActive: { borderColor: '#0EA5E9', backgroundColor: 'rgba(14,165,233,0.15)' },
+    diffLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
+    diffBlurb: { color: COLORS.textMuted, fontSize: 10, marginTop: 4, textAlign: 'center' },
+    wagerRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    wagerChip: {
+      flex: 1,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 11,
+      alignItems: 'center',
+    },
+    wagerChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
+    wagerText: { color: COLORS.textMuted, fontWeight: '800', fontSize: 13 },
+    wagerHint: {
+      color: COLORS.textMuted, fontSize: 11.5,
+      paddingHorizontal: SPACING.lg, marginTop: 8,
+    },
+    playBtn: {
+      flexDirection: 'row', gap: 10,
+      marginHorizontal: SPACING.lg, marginTop: SPACING.md,
+      backgroundColor: '#E53935',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 14,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    playText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+    rules: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+      gap: 12,
+    },
+    ruleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    ruleNum: {
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: 'rgba(229,57,53,0.25)',
+      color: '#E53935', fontWeight: '800', fontSize: 12,
+      textAlign: 'center', lineHeight: 22,
+      overflow: 'hidden',
+    },
+    ruleText: { color: COLORS.textMuted, fontSize: 12.5, flex: 1, lineHeight: 18 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -171,84 +255,3 @@ export default function PoolLobbyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A1F12' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  hero: {
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    padding: 22,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  heroEmoji: { fontSize: 42 },
-  heroTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 8 },
-  heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  diffRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  diffCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 12,
-    alignItems: 'center',
-  },
-  diffCardActive: { borderColor: '#0EA5E9', backgroundColor: 'rgba(14,165,233,0.15)' },
-  diffLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
-  diffBlurb: { color: COLORS.textMuted, fontSize: 10, marginTop: 4, textAlign: 'center' },
-  wagerRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  wagerChip: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  wagerChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
-  wagerText: { color: COLORS.textMuted, fontWeight: '800', fontSize: 13 },
-  wagerHint: {
-    color: COLORS.textMuted, fontSize: 11.5,
-    paddingHorizontal: SPACING.lg, marginTop: 8,
-  },
-  playBtn: {
-    flexDirection: 'row', gap: 10,
-    marginHorizontal: SPACING.lg, marginTop: SPACING.md,
-    backgroundColor: '#E53935',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  playText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-  rules: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-    gap: 12,
-  },
-  ruleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  ruleNum: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: 'rgba(229,57,53,0.25)',
-    color: '#E53935', fontWeight: '800', fontSize: 12,
-    textAlign: 'center', lineHeight: 22,
-    overflow: 'hidden',
-  },
-  ruleText: { color: COLORS.textMuted, fontSize: 12.5, flex: 1, lineHeight: 18 },
-});

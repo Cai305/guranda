@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const FAQS = [
   {
@@ -24,6 +25,8 @@ const FAQS = [
 ];
 
 export default function HelpSupportScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   
   // Ticket form
@@ -68,6 +71,158 @@ export default function HelpSupportScreen({ navigation }: any) {
     setLegalContent(text);
     setLegalModalVisible(true);
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING, RADIUS }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: { padding: SPACING.lg },
+    sectionTitle: {
+      ...TYPOGRAPHY.label,
+      fontSize: 12,
+      marginBottom: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    card: {
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.md,
+      marginBottom: SPACING.lg,
+      overflow: 'hidden',
+    },
+    faqRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: SPACING.md,
+    },
+    faqQuestion: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '600',
+      flex: 1,
+      marginRight: SPACING.md,
+    },
+    faqAnswerContainer: {
+      paddingBottom: SPACING.md,
+    },
+    faqAnswer: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      lineHeight: 20,
+    },
+    divider: { height: 1, backgroundColor: COLORS.glassBorder },
+    formGroup: { marginBottom: SPACING.md },
+    label: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      marginBottom: SPACING.xs,
+    },
+    categoryRow: {
+      flexDirection: 'row',
+      gap: SPACING.xs,
+    },
+    catBtn: {
+      flex: 1,
+      paddingVertical: 8,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+    },
+    catBtnActive: {
+      borderColor: COLORS.primary,
+      backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    },
+    catBtnText: {
+      color: COLORS.textMuted,
+      fontWeight: '600',
+      fontSize: 12,
+    },
+    catBtnTextActive: {
+      color: COLORS.primary,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    textArea: { minHeight: 80 },
+    submitBtn: {
+      backgroundColor: COLORS.primary,
+      padding: SPACING.md,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      marginTop: SPACING.sm,
+    },
+    submitBtnText: {
+      ...TYPOGRAPHY.button,
+      color: '#FFF',
+    },
+    legalLinks: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: SPACING.md,
+      marginBottom: SPACING.xxl,
+    },
+    legalLinkText: {
+      color: COLORS.primary,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    legalLinkSeparator: {
+      color: COLORS.textMuted,
+      marginHorizontal: SPACING.sm,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    },
+    modalContent: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.lg,
+    },
+    legalBodyText: {
+      color: COLORS.text,
+      fontSize: 14,
+      lineHeight: 22,
+    },
+    closeModalBtn: {
+      backgroundColor: COLORS.border,
+      padding: 12,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      marginTop: SPACING.lg,
+    },
+    closeModalBtnText: {
+      color: COLORS.text,
+      fontWeight: '700',
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -198,155 +353,3 @@ export default function HelpSupportScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: { padding: SPACING.lg },
-  sectionTitle: {
-    ...TYPOGRAPHY.label,
-    fontSize: 12,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  card: {
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
-    overflow: 'hidden',
-  },
-  faqRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-  },
-  faqQuestion: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '600',
-    flex: 1,
-    marginRight: SPACING.md,
-  },
-  faqAnswerContainer: {
-    paddingBottom: SPACING.md,
-  },
-  faqAnswer: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  divider: { height: 1, backgroundColor: COLORS.glassBorder },
-  formGroup: { marginBottom: SPACING.md },
-  label: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    marginBottom: SPACING.xs,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    gap: SPACING.xs,
-  },
-  catBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-  },
-  catBtnActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
-  },
-  catBtnText: {
-    color: COLORS.textMuted,
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  catBtnTextActive: {
-    color: COLORS.primary,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  textArea: { minHeight: 80 },
-  submitBtn: {
-    backgroundColor: COLORS.primary,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    marginTop: SPACING.sm,
-  },
-  submitBtnText: {
-    ...TYPOGRAPHY.button,
-    color: '#FFF',
-  },
-  legalLinks: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.xxl,
-  },
-  legalLinkText: {
-    color: COLORS.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  legalLinkSeparator: {
-    color: COLORS.textMuted,
-    marginHorizontal: SPACING.sm,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    padding: SPACING.lg,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  legalBodyText: {
-    color: COLORS.text,
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  closeModalBtn: {
-    backgroundColor: COLORS.border,
-    padding: 12,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    marginTop: SPACING.lg,
-  },
-  closeModalBtnText: {
-    color: COLORS.text,
-    fontWeight: '700',
-  },
-});

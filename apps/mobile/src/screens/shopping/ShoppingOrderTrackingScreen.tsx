@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const STATUS_STEPS = [
@@ -13,6 +14,49 @@ const STATUS_STEPS = [
 ];
 
 export default function ShoppingOrderTrackingScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2 },
+    cancelledBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(248,113,113,0.1)',
+      borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)', borderRadius: RADIUS.lg, padding: 16, marginBottom: 16,
+    },
+    cancelledText: { color: '#F87171', fontWeight: '700', fontSize: 14 },
+    stepperCard: {
+      backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border,
+      padding: 16, marginBottom: 16,
+    },
+    stepRow: { flexDirection: 'row', gap: 14 },
+    stepIconCol: { alignItems: 'center' },
+    stepDot: {
+      width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surfaceElevated,
+      justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
+    },
+    stepDotDone: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+    stepDotCurrent: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+    stepLine: { width: 2, flex: 1, minHeight: 24, backgroundColor: COLORS.border, marginVertical: 2 },
+    stepLineDone: { backgroundColor: '#8B5CF6' },
+    stepTextCol: { flex: 1, paddingBottom: 20, justifyContent: 'center' },
+    stepLabel: { color: COLORS.textMuted, fontWeight: '600', fontSize: 14 },
+    stepLabelDone: { color: COLORS.text },
+    stepCurrentNote: { color: '#8B5CF6', fontSize: 11, marginTop: 2, fontWeight: '600' },
+    summaryCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, padding: 16 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    storeName: { ...TYPOGRAPHY.h3, marginBottom: 6 },
+    addrText: { color: COLORS.textMuted, fontSize: 12, marginBottom: 10 },
+    itemText: { color: COLORS.text, fontSize: 13, marginBottom: 4 },
+    divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
+    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+    totalLabel: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    totalValue: { color: '#8B5CF6', fontWeight: '800', fontSize: 15 },
+    rewardLabel: { color: COLORS.textMuted, fontSize: 12 },
+    rewardValue: { color: '#8B5CF6', fontWeight: '700', fontSize: 12 },
+  }));
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -107,45 +151,3 @@ export default function ShoppingOrderTrackingScreen({ navigation, route }: any) 
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2 },
-  cancelledBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(248,113,113,0.1)',
-    borderWidth: 1, borderColor: 'rgba(248,113,113,0.3)', borderRadius: RADIUS.lg, padding: 16, marginBottom: 16,
-  },
-  cancelledText: { color: '#F87171', fontWeight: '700', fontSize: 14 },
-  stepperCard: {
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border,
-    padding: 16, marginBottom: 16,
-  },
-  stepRow: { flexDirection: 'row', gap: 14 },
-  stepIconCol: { alignItems: 'center' },
-  stepDot: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surfaceElevated,
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
-  },
-  stepDotDone: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
-  stepDotCurrent: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
-  stepLine: { width: 2, flex: 1, minHeight: 24, backgroundColor: COLORS.border, marginVertical: 2 },
-  stepLineDone: { backgroundColor: '#8B5CF6' },
-  stepTextCol: { flex: 1, paddingBottom: 20, justifyContent: 'center' },
-  stepLabel: { color: COLORS.textMuted, fontWeight: '600', fontSize: 14 },
-  stepLabelDone: { color: COLORS.text },
-  stepCurrentNote: { color: '#8B5CF6', fontSize: 11, marginTop: 2, fontWeight: '600' },
-  summaryCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, padding: 16 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  storeName: { ...TYPOGRAPHY.h3, marginBottom: 6 },
-  addrText: { color: COLORS.textMuted, fontSize: 12, marginBottom: 10 },
-  itemText: { color: COLORS.text, fontSize: 13, marginBottom: 4 },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  totalLabel: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  totalValue: { color: '#8B5CF6', fontWeight: '800', fontSize: 15 },
-  rewardLabel: { color: COLORS.textMuted, fontSize: 12 },
-  rewardValue: { color: '#8B5CF6', fontWeight: '700', fontSize: 12 },
-});

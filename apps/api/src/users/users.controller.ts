@@ -19,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { SavePushTokenDto } from './dto/push-token.dto';
 import { SaveLocationDto } from './dto/save-location.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 // Scoped (not global — see docs/ARCHITECTURE_RECOMMENDATIONS.md #4) so this
 // doesn't affect the ~50 other controllers still using plain-interface
@@ -70,6 +71,20 @@ export class UsersController {
       body.lat,
       body.lng,
       body.label,
+    );
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  async changePassword(
+    @Request() req: any,
+    @Body() body: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(
+      req.user.userId,
+      body.currentPassword,
+      body.newPassword,
     );
   }
 

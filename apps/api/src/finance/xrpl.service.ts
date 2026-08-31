@@ -205,6 +205,43 @@ export class XrplService implements OnModuleDestroy {
     return signed.tx_blob;
   }
 
+  // A minimal-amount Payment carrying a hex-encoded Memo — used to record a
+  // vote's inclusion on-chain without ever putting the selection on-chain.
+  // Callers must only ever pass memo data that's safe to publish (e.g.
+  // positionId/structureId) — never a candidate choice or ranking.
+  async sendMemoPayment(
+    fromEncodedSeed: string,
+    toAddress: string,
+    memo: Record<string, string>,
+  ): Promise<{ hash: string; ledgerIndex: number }> {
+    const client = await this.getClient();
+    const wallet = Wallet.fromSeed(this.decodeSeed(fromEncodedSeed));
+    const tx = await client.autofill({
+      TransactionType: 'Payment',
+      Account: wallet.classicAddress,
+      Destination: toAddress,
+      Amount: drops(0.000001),
+      Memos: [
+        {
+          Memo: {
+            MemoData: Buffer.from(JSON.stringify(memo), 'utf8').toString(
+              'hex',
+            ),
+          },
+        },
+      ],
+    } as any);
+    const signed = wallet.sign(tx);
+    const result = await client.submitAndWait(signed.tx_blob);
+    const code = txResult(result.result.meta);
+    if (code !== 'tesSUCCESS')
+      throw new Error(`Vote receipt payment failed: ${code}`);
+    return {
+      hash: result.result.hash,
+      ledgerIndex: (result.result as any).ledger_index,
+    };
+  }
+
   async submitMultisigned(txBlobs: string[]): Promise<string> {
     const client = await this.getClient();
     const combined = multisign(txBlobs);

@@ -39,6 +39,10 @@ const MODULE_ICONS: Record<string, string> = {
   eat: 'restaurant-outline',
   finance: 'cash-outline',
   health: 'fitness-outline',
+  device: 'phone-portrait-outline',
+  googleCalendar: 'calendar-outline',
+  github: 'logo-github',
+  slack: 'logo-slack',
 };
 const DEFAULT_ICON = 'sparkles-outline';
 
@@ -46,6 +50,8 @@ const DEFAULT_ICON = 'sparkles-outline';
 const MODULE_LABELS: Record<string, string> = {
   carfind: 'CarFind',
   miniapps: 'Mini Apps',
+  googleCalendar: 'Google Calendar',
+  github: 'GitHub',
 };
 
 function humanizeLabel(permissionKey: string, module: string): string {

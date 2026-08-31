@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOW, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../../../utils/api';
 import { formatCurrency } from '../../../utils/format';
@@ -46,6 +47,317 @@ type NearbyDriver = { userId: string; lat: number; lng: number; vehicleModel?: s
 type FareEstimate = { distanceKm: number; fare: number; etaMinutes: number };
 
 export default function RiderView({ navigation }: { navigation?: any }) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(({ COLORS, RADIUS, SHADOW, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    mapFallback: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: '#1a2332',
+    },
+    mapGrid: {
+      ...StyleSheet.absoluteFill,
+      opacity: 0.15,
+      backgroundImage: Platform.OS === 'web' ? 'linear-gradient(rgba(139,92,246,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.2) 1px, transparent 1px)' : undefined,
+      backgroundSize: Platform.OS === 'web' ? '50px 50px' : undefined,
+    } as any,
+    mapOverlay: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(7, 7, 12, 0.5)',
+    },
+    radarWrap: {
+      position: 'absolute',
+      top: '28%',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+    },
+
+    // ── IDLE compact pill ────────────────────────────────────────────────────
+    // Not absolutely positioned — its parent (bottomSheetContainer) already is,
+    // offset above the persistent tab bar, so this just fills that naturally.
+    idleBarWrap: {
+      padding: SPACING.lg,
+      paddingBottom: SPACING.xl,
+    },
+    whereToPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surfaceElevated,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 16,
+      paddingHorizontal: 18,
+      ...SHADOW.glow,
+    },
+    whereToIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: COLORS.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    whereToText: {
+      color: COLORS.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+
+    // ── SEARCH full-screen sheet ─────────────────────────────────────────────
+    searchSheetContainer: {
+      ...StyleSheet.absoluteFill,
+    },
+    searchSheet: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      padding: SPACING.lg,
+      paddingTop: SPACING.xxl,
+    },
+    searchHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    iconBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: COLORS.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+    },
+    dotLine: {
+      width: 20,
+      alignItems: 'center',
+      marginRight: 10,
+      marginTop: 15,
+    },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: COLORS.primary,
+    },
+    line: {
+      width: 2,
+      height: 45,
+      backgroundColor: COLORS.border,
+      marginVertical: 4,
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 16,
+      borderRadius: RADIUS.md,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    inputConfirmed: {
+      borderColor: COLORS.primary + '60',
+    },
+    suggestionList: {
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      marginTop: 6,
+      maxHeight: 320,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    suggestionRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: COLORS.border,
+    },
+    suggestionIconWrap: {
+      width: 28,
+      alignItems: 'center',
+      marginTop: 1,
+    },
+    suggestionText: {
+      color: COLORS.text,
+      fontSize: 14,
+      flex: 1,
+    },
+
+    // ── Bottom sheet (SELECTING / matching / trip card) ──────────────────────
+    bottomSheetContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      ...SHADOW.glow,
+    },
+    bottomSheet: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderTopLeftRadius: RADIUS.xl,
+      borderTopRightRadius: RADIUS.xl,
+      padding: 20,
+      paddingBottom: 36,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    routeSummary: {
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      padding: 12,
+      marginBottom: 14,
+    },
+    routeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    routeDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    routeDotLine: {
+      width: 2,
+      height: 16,
+      backgroundColor: COLORS.border,
+      marginLeft: 3,
+      marginVertical: 2,
+    },
+    optionList: {
+      marginBottom: 16,
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 14,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
+    },
+    optionRowSelected: {
+      backgroundColor: COLORS.primary + '18',
+      borderColor: COLORS.primary + '60',
+    },
+    optionIconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: COLORS.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    primaryBtn: {
+      backgroundColor: COLORS.primary,
+      padding: 18,
+      borderRadius: RADIUS.lg,
+      alignItems: 'center',
+    },
+    primaryBtnDisabled: {
+      opacity: 0.5,
+    },
+    primaryBtnText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      fontSize: 17,
+    },
+
+    // ── Matching (REQUESTING / WAITING) ───────────────────────────────────────
+    matchingSheet: {
+      alignItems: 'center',
+      paddingVertical: 28,
+    },
+
+    // ── Trip card (ACCEPTED / IN_PROGRESS) ────────────────────────────────────
+    etaPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: COLORS.primary + '20',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      marginBottom: 16,
+    },
+    etaPillText: {
+      color: COLORS.primary,
+      fontWeight: '700',
+      fontSize: 13,
+      marginLeft: 6,
+    },
+    driverInfoCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    driverAvatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: COLORS.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    messageBtn: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: COLORS.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    vehiclePlateRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    plateChip: {
+      backgroundColor: COLORS.border,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: RADIUS.sm,
+    },
+    plateChipText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+      letterSpacing: 0.5,
+    },
+    destinationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 6,
+    },
+
+    // ── Rating modal ──────────────────────────────────────────────────────────
+    ratingOverlay: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    ratingCard: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderRadius: RADIUS.xl,
+      padding: 24,
+      alignItems: 'center',
+      width: '100%',
+      maxWidth: 340,
+    },
+    starRow: {
+      flexDirection: 'row',
+    },
+  }));
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
   const [pickupCoord, setPickupCoord] = useState<{ lat: number; lng: number } | null>(null);
@@ -800,315 +1112,6 @@ export default function RiderView({ navigation }: { navigation?: any }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  mapFallback: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: '#1a2332',
-  },
-  mapGrid: {
-    ...StyleSheet.absoluteFill,
-    opacity: 0.15,
-    backgroundImage: Platform.OS === 'web' ? 'linear-gradient(rgba(139,92,246,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.2) 1px, transparent 1px)' : undefined,
-    backgroundSize: Platform.OS === 'web' ? '50px 50px' : undefined,
-  } as any,
-  mapOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(7, 7, 12, 0.5)',
-  },
-  radarWrap: {
-    position: 'absolute',
-    top: '28%',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-
-  // ── IDLE compact pill ────────────────────────────────────────────────────
-  // Not absolutely positioned — its parent (bottomSheetContainer) already is,
-  // offset above the persistent tab bar, so this just fills that naturally.
-  idleBarWrap: {
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xl,
-  },
-  whereToPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.pill,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    ...SHADOW.glow,
-  },
-  whereToIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  whereToText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // ── SEARCH full-screen sheet ─────────────────────────────────────────────
-  searchSheetContainer: {
-    ...StyleSheet.absoluteFill,
-  },
-  searchSheet: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: SPACING.lg,
-    paddingTop: SPACING.xxl,
-  },
-  searchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-  },
-  dotLine: {
-    width: 20,
-    alignItems: 'center',
-    marginRight: 10,
-    marginTop: 15,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.primary,
-  },
-  line: {
-    width: 2,
-    height: 45,
-    backgroundColor: COLORS.border,
-    marginVertical: 4,
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 16,
-    borderRadius: RADIUS.md,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  inputConfirmed: {
-    borderColor: COLORS.primary + '60',
-  },
-  suggestionList: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    marginTop: 6,
-    maxHeight: 320,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  suggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.border,
-  },
-  suggestionIconWrap: {
-    width: 28,
-    alignItems: 'center',
-    marginTop: 1,
-  },
-  suggestionText: {
-    color: COLORS.text,
-    fontSize: 14,
-    flex: 1,
-  },
-
-  // ── Bottom sheet (SELECTING / matching / trip card) ──────────────────────
-  bottomSheetContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    ...SHADOW.glow,
-  },
-  bottomSheet: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
-    padding: 20,
-    paddingBottom: 36,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  routeSummary: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: 12,
-    marginBottom: 14,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  routeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  routeDotLine: {
-    width: 2,
-    height: 16,
-    backgroundColor: COLORS.border,
-    marginLeft: 3,
-    marginVertical: 2,
-  },
-  optionList: {
-    marginBottom: 16,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  optionRowSelected: {
-    backgroundColor: COLORS.primary + '18',
-    borderColor: COLORS.primary + '60',
-  },
-  optionIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryBtn: {
-    backgroundColor: COLORS.primary,
-    padding: 18,
-    borderRadius: RADIUS.lg,
-    alignItems: 'center',
-  },
-  primaryBtnDisabled: {
-    opacity: 0.5,
-  },
-  primaryBtnText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    fontSize: 17,
-  },
-
-  // ── Matching (REQUESTING / WAITING) ───────────────────────────────────────
-  matchingSheet: {
-    alignItems: 'center',
-    paddingVertical: 28,
-  },
-
-  // ── Trip card (ACCEPTED / IN_PROGRESS) ────────────────────────────────────
-  etaPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.primary + '20',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-  },
-  etaPillText: {
-    color: COLORS.primary,
-    fontWeight: '700',
-    fontSize: 13,
-    marginLeft: 6,
-  },
-  driverInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  driverAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  messageBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  vehiclePlateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  plateChip: {
-    backgroundColor: COLORS.border,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADIUS.sm,
-  },
-  plateChipText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  destinationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-
-  // ── Rating modal ──────────────────────────────────────────────────────────
-  ratingOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  ratingCard: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.xl,
-    padding: 24,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 340,
-  },
-  starRow: {
-    flexDirection: 'row',
-  },
-});
 
 // A standard dark theme map style (native only)
 const mapStyle = [

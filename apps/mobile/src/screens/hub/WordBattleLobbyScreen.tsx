@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import { WordBattleMode, WordBattleDifficulty } from '@mxit2/types';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
@@ -25,6 +26,8 @@ const DIFFICULTIES: { key: WordBattleDifficulty; label: string }[] = [
 const WAGERS = [0, 10, 25, 50];
 
 export default function WordBattleLobbyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS } = theme;
   const { user } = useAuth();
   const [mode, setMode] = useState<WordBattleMode>('WORDLE');
   const [difficulty, setDifficulty] = useState<WordBattleDifficulty>('medium');
@@ -80,6 +83,58 @@ export default function WordBattleLobbyScreen({ navigation }: any) {
     socket?.emit('leave_queue');
     setSearching(false);
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    modeStack: { paddingHorizontal: SPACING.lg, gap: 10 },
+    modeCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      borderRadius: RADIUS.lg, padding: 16,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    modeCardActive: { borderColor: 'rgba(255,255,255,0.3)' },
+    modeEmoji: { fontSize: 32 },
+    modeLabel: { color: COLORS.text, fontWeight: '800', fontSize: 16 },
+    modeBlurb: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
+    diffRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    diffCard: {
+      flex: 1, backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 12, alignItems: 'center',
+    },
+    diffCardActive: { borderColor: '#0EA5E9', backgroundColor: 'rgba(14,165,233,0.15)' },
+    diffLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
+    wagerRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
+    wagerChip: {
+      flex: 1, backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 11, alignItems: 'center',
+    },
+    wagerChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
+    wagerText: { color: COLORS.textMuted, fontWeight: '800', fontSize: 13 },
+    playBtn: {
+      flexDirection: 'row', gap: 10,
+      marginHorizontal: SPACING.lg, marginTop: SPACING.md,
+      backgroundColor: '#7C3AED',
+      borderRadius: RADIUS.pill, paddingVertical: 14,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    playText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -184,55 +239,3 @@ export default function WordBattleLobbyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  modeStack: { paddingHorizontal: SPACING.lg, gap: 10 },
-  modeCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderRadius: RADIUS.lg, padding: 16,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  modeCardActive: { borderColor: 'rgba(255,255,255,0.3)' },
-  modeEmoji: { fontSize: 32 },
-  modeLabel: { color: COLORS.text, fontWeight: '800', fontSize: 16 },
-  modeBlurb: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
-  diffRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  diffCard: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 12, alignItems: 'center',
-  },
-  diffCardActive: { borderColor: '#0EA5E9', backgroundColor: 'rgba(14,165,233,0.15)' },
-  diffLabel: { color: COLORS.textMuted, fontWeight: '800', fontSize: 14 },
-  wagerRow: { flexDirection: 'row', gap: 10, paddingHorizontal: SPACING.lg },
-  wagerChip: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 11, alignItems: 'center',
-  },
-  wagerChipActive: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
-  wagerText: { color: COLORS.textMuted, fontWeight: '800', fontSize: 13 },
-  playBtn: {
-    flexDirection: 'row', gap: 10,
-    marginHorizontal: SPACING.lg, marginTop: SPACING.md,
-    backgroundColor: '#7C3AED',
-    borderRadius: RADIUS.pill, paddingVertical: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  playText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-});

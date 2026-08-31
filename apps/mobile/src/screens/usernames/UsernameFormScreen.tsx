@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const DURATIONS = [
   { hours: 24, label: '1 day' },
@@ -15,6 +16,8 @@ const DURATIONS = [
 // this doesn't create the asset (that's mint/claim, done from
 // MyUsernamesScreen or registration); it just puts one up for sale.
 export default function UsernameFormScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const { usernameId, label } = route.params || {};
   const [listingType, setListingType] = useState<'FIXED' | 'AUCTION'>('FIXED');
   const [price, setPrice] = useState('');
@@ -45,6 +48,45 @@ export default function UsernameFormScreen({ navigation, route }: any) {
       setSaving(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: '#150A2E' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    label: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: 8,
+    },
+    input: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
+      color: COLORS.text, padding: 13, fontSize: 14,
+    },
+    chipRowFixed: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg },
+    chip: {
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
+      paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center',
+    },
+    chipActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
+    chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
+    hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17, paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
+    saveBtn: {
+      flexDirection: 'row', gap: 8,
+      margin: SPACING.lg, marginTop: SPACING.xl,
+      backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
+      paddingVertical: 15, justifyContent: 'center', alignItems: 'center',
+    },
+    saveText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -97,42 +139,3 @@ export default function UsernameFormScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#150A2E' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  label: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg, marginTop: SPACING.lg, marginBottom: 8,
-  },
-  input: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
-    color: COLORS.text, padding: 13, fontSize: 14,
-  },
-  chipRowFixed: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.glassBorder,
-    paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center',
-  },
-  chipActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
-  chipText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12.5 },
-  hint: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17, paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
-  saveBtn: {
-    flexDirection: 'row', gap: 8,
-    margin: SPACING.lg, marginTop: SPACING.xl,
-    backgroundColor: '#7C3AED', borderRadius: RADIUS.pill,
-    paddingVertical: 15, justifyContent: 'center', alignItems: 'center',
-  },
-  saveText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-});

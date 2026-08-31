@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi, uploadImage } from '../../../utils/api';
 
 const PRODUCT_CATS = ['Starters', 'Mains', 'Sides', 'Drinks', 'Desserts', 'Specials', 'Other'];
 
 export default function AddEditProductScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { storeId, product: existing } = route.params;
   const isEdit = !!existing;
 
@@ -23,6 +26,70 @@ export default function AddEditProductScreen({ navigation, route }: any) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4, marginRight: 8 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    optional: { color: COLORS.textMuted, fontWeight: '400' },
+    imagePicker: {
+      width: 120,
+      height: 120,
+      borderRadius: 20,
+      overflow: 'hidden',
+      backgroundColor: COLORS.surface,
+      borderWidth: 1.5,
+      borderColor: COLORS.border,
+      borderStyle: 'dashed',
+    },
+    imagePreview: { width: '100%', height: '100%' },
+    imagePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 6 },
+    imagePlaceholderText: { color: COLORS.textMuted, fontSize: 12 },
+    cameraBtn: {
+      position: 'absolute',
+      bottom: 6,
+      right: 6,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: '#ef4444',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    input: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 14,
+      color: COLORS.text,
+      fontSize: 14,
+    },
+    catChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    catChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    catChipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    catChipTextActive: { color: '#fff' },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    footer: {
+      position: 'absolute',
+      bottom: 0, left: 0, right: 0,
+      padding: SPACING.lg,
+      backgroundColor: COLORS.background,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+    },
+    saveBtn: { backgroundColor: '#ef4444', borderRadius: 14, padding: 16, alignItems: 'center' },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  }));
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -176,66 +243,3 @@ export default function AddEditProductScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4, marginRight: 8 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  optional: { color: COLORS.textMuted, fontWeight: '400' },
-  imagePicker: {
-    width: 120,
-    height: 120,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
-  },
-  imagePreview: { width: '100%', height: '100%' },
-  imagePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 6 },
-  imagePlaceholderText: { color: COLORS.textMuted, fontSize: 12 },
-  cameraBtn: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#ef4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 14,
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  catChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  catChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-  catChipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  catChipTextActive: { color: '#fff' },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  footer: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    padding: SPACING.lg,
-    backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  saveBtn: { backgroundColor: '#ef4444', borderRadius: 14, padding: 16, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-});

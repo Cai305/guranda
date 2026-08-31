@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../../theme';
 import { fetchApi, uploadImage } from '../../../utils/api';
+import { useTheme } from '../../../context/ThemeContext';
+import { useThemedStyles } from '../../../theme/useThemedStyles';
 
 const CATEGORIES = ['Restaurant', 'Fast Food', 'Grocery', 'Bakery', 'Pharmacy'];
 
 export default function AddEditStoreScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const existing = route.params?.store;
   const isEdit = !!existing;
 
@@ -73,6 +76,88 @@ export default function AddEditStoreScreen({ navigation, route }: any) {
       setUploading(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4, marginRight: 8 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    optional: { color: COLORS.textMuted, fontWeight: '400' },
+    coverPicker: {
+      height: 160,
+      borderRadius: 14,
+      overflow: 'hidden',
+      borderWidth: 1.5,
+      borderColor: COLORS.border,
+      borderStyle: 'dashed',
+      backgroundColor: COLORS.surface,
+    },
+    coverPreview: { width: '100%', height: '100%' },
+    coverPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
+    coverPlaceholderText: { color: COLORS.textMuted, fontSize: 13 },
+    coverEditBadge: {
+      position: 'absolute',
+      bottom: 10,
+      right: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    coverEditText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    input: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 14,
+      color: COLORS.text,
+      fontSize: 14,
+    },
+    catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    catChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    catChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+    catChipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    catChipTextActive: { color: '#fff' },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      backgroundColor: '#3b82f615',
+      borderRadius: 12,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: '#3b82f630',
+    },
+    infoText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18, flex: 1 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    footer: {
+      position: 'absolute',
+      bottom: 0, left: 0, right: 0,
+      padding: SPACING.lg,
+      backgroundColor: COLORS.background,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.border,
+    },
+    saveBtn: {
+      backgroundColor: '#ef4444',
+      borderRadius: 14,
+      padding: 16,
+      alignItems: 'center',
+    },
+    saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -178,85 +263,3 @@ export default function AddEditStoreScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4, marginRight: 8 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  label: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  optional: { color: COLORS.textMuted, fontWeight: '400' },
-  coverPicker: {
-    height: 160,
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
-    backgroundColor: COLORS.surface,
-  },
-  coverPreview: { width: '100%', height: '100%' },
-  coverPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  coverPlaceholderText: { color: COLORS.textMuted, fontSize: 13 },
-  coverEditBadge: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  coverEditText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  input: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 14,
-    color: COLORS.text,
-    fontSize: 14,
-  },
-  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  catChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  catChipActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-  catChipText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  catChipTextActive: { color: '#fff' },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: '#3b82f615',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#3b82f630',
-  },
-  infoText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18, flex: 1 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  footer: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    padding: SPACING.lg,
-    backgroundColor: COLORS.background,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  saveBtn: {
-    backgroundColor: '#ef4444',
-    borderRadius: 14,
-    padding: 16,
-    alignItems: 'center',
-  },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-});

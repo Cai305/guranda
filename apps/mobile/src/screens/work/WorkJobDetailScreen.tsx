@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import { formatCurrency } from '../../utils/format';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 export default function WorkJobDetailScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
   const { jobId } = route.params;
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,40 @@ export default function WorkJobDetailScreen({ navigation, route }: any) {
       setApplying(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    title: { ...TYPOGRAPHY.h2, marginBottom: 10 },
+    companyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
+    companyText: { color: '#0EA5E9', fontSize: 13, fontWeight: '600', flex: 1 },
+    badgeRow: { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
+    badge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: COLORS.border },
+    remoteBadge: { borderColor: '#22c55e40' },
+    badgeText: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
+    salary: { color: '#0EA5E9', fontWeight: '800', fontSize: 20, marginBottom: 16 },
+    section: { marginBottom: 20 },
+    sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
+    desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
+    input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
+    errorText: { color: '#ef4444', fontSize: 13 },
+    // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
+    // leaves the button flush against the home indicator / gesture bar on
+    // notched devices with no clearance from it.
+    actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
+    applyBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+    applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg, gap: 12 },
+    successIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+    successTitle: { ...TYPOGRAPHY.h2 },
+    successSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 16, textAlign: 'center' },
+    successBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 },
+    successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    successLink: { color: COLORS.textMuted, fontSize: 13, marginTop: 12 },
+  }));
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>;
   if (!job) return <View style={styles.center}><Text style={{ color: COLORS.textMuted }}>Job not found</Text></View>;
@@ -131,37 +168,3 @@ export default function WorkJobDetailScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  title: { ...TYPOGRAPHY.h2, marginBottom: 10 },
-  companyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
-  companyText: { color: '#0EA5E9', fontSize: 13, fontWeight: '600', flex: 1 },
-  badgeRow: { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: COLORS.border },
-  remoteBadge: { borderColor: '#22c55e40' },
-  badgeText: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
-  salary: { color: '#0EA5E9', fontWeight: '800', fontSize: 20, marginBottom: 16 },
-  section: { marginBottom: 20 },
-  sectionTitle: { ...TYPOGRAPHY.label, fontSize: 11, marginBottom: 10 },
-  desc: { color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
-  input: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 14 },
-  errorText: { color: '#ef4444', fontSize: 13 },
-  // paddingBottom set dynamically via insets in JSX — a flat SPACING.lg
-  // leaves the button flush against the home indicator / gesture bar on
-  // notched devices with no clearance from it.
-  actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: COLORS.border },
-  applyBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
-  applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.lg, gap: 12 },
-  successIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  successTitle: { ...TYPOGRAPHY.h2 },
-  successSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 16, textAlign: 'center' },
-  successBtn: { backgroundColor: '#0EA5E9', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 },
-  successBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successLink: { color: COLORS.textMuted, fontSize: 13, marginTop: 12 },
-});

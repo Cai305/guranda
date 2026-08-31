@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const STORAGE_KEY = '@mxit_language_setting';
 
@@ -16,6 +17,57 @@ const LANGUAGES = [
 ];
 
 export default function LanguageScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    content: { padding: SPACING.lg },
+    sectionTitle: {
+      ...TYPOGRAPHY.label,
+      fontSize: 12,
+      marginBottom: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    card: {
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+    },
+    langRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: SPACING.md,
+    },
+    langInfo: {
+      flex: 1,
+    },
+    langName: {
+      color: COLORS.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    langDetail: {
+      ...TYPOGRAPHY.caption,
+      color: COLORS.textMuted,
+      marginTop: 2,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: COLORS.glassBorder,
+    },
+  }));
   const [loading, setLoading] = useState(true);
   const [selectedLang, setSelectedLang] = useState('en');
 
@@ -101,53 +153,3 @@ export default function LanguageScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  content: { padding: SPACING.lg },
-  sectionTitle: {
-    ...TYPOGRAPHY.label,
-    fontSize: 12,
-    marginBottom: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  card: {
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-  },
-  langRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-  },
-  langInfo: {
-    flex: 1,
-  },
-  langName: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  langDetail: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.glassBorder,
-  },
-});

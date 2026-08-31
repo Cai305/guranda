@@ -1,17 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GLASS_CARD, RADIUS, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import RiderView from './ride/RiderView';
 import DriverView from './ride/DriverView';
 import { fetchApi } from '../../utils/api';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
 export default function RideScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const [mode, setMode] = useState<'rider' | 'driver'>('rider');
   const [driverProfile, setDriverProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const insets = useSafeAreaInsets();
+  const styles = useThemedStyles(({ COLORS, GLASS_CARD, RADIUS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    floatingHeader: {
+      position: 'absolute',
+      left: 15,
+      right: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      zIndex: 10, // Ensure it sits on top of maps
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: COLORS.surfaceElevated,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    toggleContainer: {
+      flexDirection: 'row',
+      ...GLASS_CARD,
+      backgroundColor: 'rgba(18, 18, 26, 0.8)', // slightly more opaque surface
+      borderRadius: RADIUS.pill,
+      padding: 4,
+    },
+    toggleBtn: {
+      paddingVertical: 8,
+      paddingHorizontal: 20,
+      borderRadius: RADIUS.pill,
+    },
+    activeToggle: {
+      backgroundColor: COLORS.primary,
+    },
+    toggleText: {
+      color: COLORS.textMuted,
+      fontWeight: '600',
+      fontSize: 14,
+    },
+    activeToggleText: {
+      color: COLORS.text,
+      fontWeight: 'bold',
+    },
+  }));
 
   useEffect(() => {
     fetchApi('/ride/driver/profile')
@@ -86,55 +141,3 @@ export default function RideScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  floatingHeader: {
-    position: 'absolute',
-    left: 15,
-    right: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 10, // Ensure it sits on top of maps
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    ...GLASS_CARD,
-    backgroundColor: 'rgba(18, 18, 26, 0.8)', // slightly more opaque surface
-    borderRadius: RADIUS.pill,
-    padding: 4,
-  },
-  toggleBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: RADIUS.pill,
-  },
-  activeToggle: {
-    backgroundColor: COLORS.primary,
-  },
-  toggleText: {
-    color: COLORS.textMuted,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  activeToggleText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-  },
-});

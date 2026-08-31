@@ -1,13 +1,16 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function RelationshipRequestsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const { refreshProfile } = useAuth();
   const [pending, setPending] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,25 @@ export default function RelationshipRequestsScreen({ navigation }: any) {
     if (action === 'accept') await refreshProfile();
     load();
   };
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, padding: SPACING.md, marginHorizontal: SPACING.lg, marginBottom: SPACING.sm,
+    },
+    avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surface },
+    name: { color: COLORS.text, fontWeight: '700' },
+    sub: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    acceptBtn: { backgroundColor: COLORS.success, borderRadius: RADIUS.pill, padding: 8 },
+    declineBtn: { backgroundColor: COLORS.error, borderRadius: RADIUS.pill, padding: 8 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -72,22 +94,3 @@ export default function RelationshipRequestsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, padding: SPACING.md, marginHorizontal: SPACING.lg, marginBottom: SPACING.sm,
-  },
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surface },
-  name: { color: COLORS.text, fontWeight: '700' },
-  sub: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  acceptBtn: { backgroundColor: COLORS.success, borderRadius: RADIUS.pill, padding: 8 },
-  declineBtn: { backgroundColor: COLORS.error, borderRadius: RADIUS.pill, padding: 8 },
-});

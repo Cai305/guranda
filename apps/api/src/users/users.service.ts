@@ -190,6 +190,43 @@ export class UsersService {
     return { success: true };
   }
 
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+    if (!isPasswordValid) {
+      // 400, not 401 — this is a validation failure on an already-valid
+      // session (the JWT itself is fine), not a session-expired case. The
+      // mobile client's fetchApi wrapper treats ANY 401 as "log the user
+      // out" (see apps/mobile/src/utils/api.ts), which would otherwise
+      // kick the user back to the login screen just for mistyping their
+      // current password.
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: hashedPassword },
+    });
+
+    return { success: true };
+  }
+
   /** Latest device-reported fix — this is a live "where are they right now" snapshot, not a location history log. */
   async getLocation(userId: string) {
     const user = await this.prisma.user.findUnique({

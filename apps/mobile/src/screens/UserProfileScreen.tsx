@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  StyleSheet,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,8 +13,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../theme';
 
 interface PublicProfile {
   id: string;
@@ -33,6 +33,8 @@ interface FollowStats {
 }
 
 export default function UserProfileScreen({ route, navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS } = theme;
   const { userId, username: initialUsername, avatarUrl: initialAvatar } = route.params || {};
   const { user: me } = useAuth();
   const { socket, onlineUsers } = useSocket();
@@ -131,6 +133,169 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
   const displayName = profile?.displayName || profile?.username || initialUsername || 'User';
   const avatarUri = profile?.avatarUrl || initialAvatar || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}`;
+
+  const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    backBtn: {
+      padding: 12,
+      paddingLeft: SPACING.lg,
+    },
+    loadingBox: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingTop: 100,
+    },
+    identityCard: {
+      margin: SPACING.lg,
+      borderRadius: RADIUS.xl,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+      alignItems: 'center',
+    },
+    avatarWrap: {
+      position: 'relative',
+      marginBottom: SPACING.md,
+    },
+    avatar: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      borderWidth: 3,
+      borderColor: COLORS.primary,
+      backgroundColor: COLORS.surface,
+    },
+    onlineDot: {
+      position: 'absolute',
+      bottom: 4,
+      right: 4,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: COLORS.background,
+    },
+    displayName: {
+      ...TYPOGRAPHY.h2,
+      textAlign: 'center',
+    },
+    username: {
+      ...TYPOGRAPHY.body2,
+      textAlign: 'center',
+      marginTop: 2,
+    },
+    statusLine: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: SPACING.lg,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      borderRadius: RADIUS.md,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.sm,
+      width: '100%',
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    statValue: {
+      color: COLORS.text,
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    statLabel: {
+      color: 'rgba(255,255,255,0.55)',
+      fontSize: 10,
+      marginTop: 2,
+    },
+    onlinePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    onlinePillDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
+    },
+    onlinePillText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: SPACING.sm,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      alignItems: 'center',
+    },
+    actionBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.md,
+      paddingVertical: 12,
+    },
+    actionBtnOutline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: COLORS.primary,
+    },
+    actionBtnText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: 13.5,
+    },
+    actionBtnIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: RADIUS.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sectionLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.lg,
+      marginBottom: SPACING.sm,
+    },
+    card: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+    },
+    bioText: {
+      color: COLORS.text,
+      fontSize: 14.5,
+      lineHeight: 22,
+    },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -254,166 +419,3 @@ export default function UserProfileScreen({ route, navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  backBtn: {
-    padding: 12,
-    paddingLeft: SPACING.lg,
-  },
-  loadingBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 100,
-  },
-  identityCard: {
-    margin: SPACING.lg,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-    alignItems: 'center',
-  },
-  avatarWrap: {
-    position: 'relative',
-    marginBottom: SPACING.md,
-  },
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.surface,
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.background,
-  },
-  displayName: {
-    ...TYPOGRAPHY.h2,
-    textAlign: 'center',
-  },
-  username: {
-    ...TYPOGRAPHY.body2,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  statusLine: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textMuted,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: SPACING.lg,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.sm,
-    width: '100%',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  statValue: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  statLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 10,
-    marginTop: 2,
-  },
-  onlinePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  onlinePillDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-  },
-  onlinePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    alignItems: 'center',
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    paddingVertical: 12,
-  },
-  actionBtnOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  actionBtnText: {
-    color: '#FFF',
-    fontWeight: '700',
-    fontSize: 13.5,
-  },
-  actionBtnIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionLabel: {
-    ...TYPOGRAPHY.label,
-    fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.sm,
-  },
-  card: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-  },
-  bioText: {
-    color: COLORS.text,
-    fontSize: 14.5,
-    lineHeight: 22,
-  },
-});

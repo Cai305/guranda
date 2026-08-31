@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -22,6 +23,39 @@ const STATUS_ICON: Record<string, string> = {
 };
 
 export default function ShoppingOrdersScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4, marginRight: 8 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
+    sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginTop: 16, marginBottom: 8 },
+    orderCard: {
+      marginHorizontal: SPACING.lg, marginBottom: 10, backgroundColor: COLORS.surface, borderRadius: 14,
+      padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 8,
+    },
+    orderHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    storeName: { ...TYPOGRAPHY.body1 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+    statusText: { fontSize: 11, fontWeight: '700' },
+    orderDate: { color: COLORS.textMuted, fontSize: 11 },
+    itemList: { gap: 2 },
+    itemText: { color: COLORS.textMuted, fontSize: 13 },
+    orderFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+    orderAddr: { color: COLORS.textMuted, fontSize: 11, flex: 1 },
+    orderTotal: { color: '#8B5CF6', fontWeight: '800', fontSize: 14 },
+    rewardText: { color: '#8B5CF6', fontSize: 11, fontWeight: '600' },
+    empty: { alignItems: 'center', paddingTop: 80, gap: 16 },
+    emptyTitle: { ...TYPOGRAPHY.h2, color: COLORS.textMuted },
+    browseBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+    browseBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    trackBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#8B5CF6', borderRadius: 10,
+      paddingVertical: 8, paddingHorizontal: 14, alignSelf: 'flex-start',
+    },
+    trackBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  }));
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,35 +158,3 @@ export default function ShoppingOrdersScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4, marginRight: 8 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1 },
-  sectionLabel: { ...TYPOGRAPHY.label, fontSize: 11, paddingHorizontal: SPACING.lg, marginTop: 16, marginBottom: 8 },
-  orderCard: {
-    marginHorizontal: SPACING.lg, marginBottom: 10, backgroundColor: COLORS.surface, borderRadius: 14,
-    padding: 14, borderWidth: 1, borderColor: COLORS.border, gap: 8,
-  },
-  orderHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  storeName: { ...TYPOGRAPHY.body1 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  orderDate: { color: COLORS.textMuted, fontSize: 11 },
-  itemList: { gap: 2 },
-  itemText: { color: COLORS.textMuted, fontSize: 13 },
-  orderFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  orderAddr: { color: COLORS.textMuted, fontSize: 11, flex: 1 },
-  orderTotal: { color: '#8B5CF6', fontWeight: '800', fontSize: 14 },
-  rewardText: { color: '#8B5CF6', fontSize: 11, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: 80, gap: 16 },
-  emptyTitle: { ...TYPOGRAPHY.h2, color: COLORS.textMuted },
-  browseBtn: { backgroundColor: '#8B5CF6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
-  browseBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  trackBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#8B5CF6', borderRadius: 10,
-    paddingVertical: 8, paddingHorizontal: 14, alignSelf: 'flex-start',
-  },
-  trackBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-});

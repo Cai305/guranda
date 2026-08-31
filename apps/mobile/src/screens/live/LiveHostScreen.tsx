@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Platform, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
+import { ThemeTokens } from '../../theme/themes';
 import { getLiveCategory } from '../../config/liveCategories';
 import { formatCount } from '../../utils/format';
 import { endRoom, inviteGuest, listGuests, removeGuest, LiveGuest } from '../../data/liveApi';
@@ -19,6 +21,9 @@ import * as modApi from '../../data/liveCategoryApi';
 // (native, or no room) it falls back to the original simulated
 // preview so the screen never breaks — just labeled honestly.
 export default function LiveHostScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+  const styles = useThemedStyles(createStyles);
   const { title, categoryId, moderatorsOn, roomId, roomName, token, wsUrl } = route?.params || {};
   const category = getLiveCategory(categoryId);
   const isReal = Platform.OS === 'web' && !!roomId && !!token;
@@ -497,7 +502,8 @@ export default function LiveHostScreen({ navigation, route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles({ COLORS, RADIUS, SPACING }: ThemeTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   topBar: {
     flexDirection: 'row',
@@ -648,6 +654,7 @@ const styles = StyleSheet.create({
   endBtnSmall: {
     backgroundColor: 'rgba(220, 38, 38, 0.7)',
   },
-});
+  });
+}
 
 

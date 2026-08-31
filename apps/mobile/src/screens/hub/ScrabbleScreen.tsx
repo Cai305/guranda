@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import io, { Socket } from 'socket.io-client';
 import { WordBattleGameDto, ScrabbleStateDto, ScrabblePlacement } from '@mxit2/types';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import GiftButton from '../../components/gifts/GiftButton';
@@ -26,6 +27,97 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 export default function ScrabbleScreen({ navigation, route }: any) {
   const { gameId, wager = 0 } = route.params || {};
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY, GRADIENTS, SPACING } = theme;
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    scoreRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, marginBottom: 6,
+    },
+    scoreCard: {
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center',
+    },
+    scoreCardActive: { borderColor: COLORS.primary },
+    scoreLabel: { color: COLORS.textMuted, fontSize: 10 },
+    scoreValue: { color: COLORS.text, fontWeight: '800', fontSize: 16 },
+    bagText: { color: COLORS.textMuted, fontSize: 11 },
+    errorText: { color: COLORS.error, textAlign: 'center', fontSize: 12, marginBottom: 4 },
+    turnText: { color: COLORS.textMuted, textAlign: 'center', fontSize: 12, marginBottom: 6 },
+    board: { padding: 4 },
+    boardRow: { flexDirection: 'row' },
+    cell: {
+      width: CELL, height: CELL,
+      borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cellPending: { backgroundColor: 'rgba(139,92,246,0.5)' },
+    tileLetter: { color: '#1A1200', fontWeight: '800', fontSize: 11, backgroundColor: '#FBBF24', width: '100%', height: '100%', textAlign: 'center', textAlignVertical: 'center' },
+    tileLetterPending: { color: '#FFF', fontWeight: '800', fontSize: 12 },
+    premiumText: { color: 'rgba(255,255,255,0.6)', fontSize: 7, fontWeight: '700' },
+    rack: {
+      flexDirection: 'row', gap: 6, justifyContent: 'center',
+      paddingVertical: SPACING.md,
+    },
+    rackTile: {
+      width: 38, height: 44, borderRadius: 6,
+      backgroundColor: '#FBBF24',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    rackTileUsed: { opacity: 0.25 },
+    rackTileSelected: { borderWidth: 3, borderColor: COLORS.primary },
+    rackTileMarked: { borderWidth: 3, borderColor: COLORS.error },
+    rackLetter: { color: '#1A1200', fontWeight: '800', fontSize: 18 },
+    rackValue: { color: '#1A1200', fontWeight: '700', fontSize: 9, position: 'absolute', bottom: 2, right: 4 },
+    actionRow: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md },
+    secondaryBtn: {
+      flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
+    },
+    secondaryText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
+    primaryBtn: {
+      flex: 1, backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
+    },
+    primaryText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
+    resultCard: {
+      marginHorizontal: SPACING.lg, marginBottom: SPACING.lg,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg, padding: 20, alignItems: 'center', gap: 6,
+    },
+    resultTitle: { color: COLORS.text, fontWeight: '800', fontSize: 20 },
+    resultSub: { color: COLORS.textMuted, fontSize: 14 },
+    resultWager: { color: COLORS.gold, fontWeight: '700', fontSize: 15, marginTop: 4 },
+    backToLobbyBtn: {
+      marginTop: 14, backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24,
+    },
+    backToLobbyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: SPACING.lg },
+    modalCard: {
+      backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.lg,
+    },
+    modalTitle: { color: COLORS.text, fontWeight: '700', fontSize: 15, marginBottom: 12, textAlign: 'center' },
+    alphabetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+    alphabetKey: {
+      width: 36, height: 36, borderRadius: 8,
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    alphabetKeyText: { color: COLORS.text, fontWeight: '700' },
+    modalCancel: { marginTop: 16, alignItems: 'center' },
+  }));
   const [game, setGame] = useState<WordBattleGameDto | null>(null);
   const [selectedRackIndex, setSelectedRackIndex] = useState<number | null>(null);
   const [pending, setPending] = useState<ScrabblePlacement[]>([]);
@@ -315,93 +407,3 @@ export default function ScrabbleScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  scoreRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, marginBottom: 6,
-  },
-  scoreCard: {
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center',
-  },
-  scoreCardActive: { borderColor: COLORS.primary },
-  scoreLabel: { color: COLORS.textMuted, fontSize: 10 },
-  scoreValue: { color: COLORS.text, fontWeight: '800', fontSize: 16 },
-  bagText: { color: COLORS.textMuted, fontSize: 11 },
-  errorText: { color: COLORS.error, textAlign: 'center', fontSize: 12, marginBottom: 4 },
-  turnText: { color: COLORS.textMuted, textAlign: 'center', fontSize: 12, marginBottom: 6 },
-  board: { padding: 4 },
-  boardRow: { flexDirection: 'row' },
-  cell: {
-    width: CELL, height: CELL,
-    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cellPending: { backgroundColor: 'rgba(139,92,246,0.5)' },
-  tileLetter: { color: '#1A1200', fontWeight: '800', fontSize: 11, backgroundColor: '#FBBF24', width: '100%', height: '100%', textAlign: 'center', textAlignVertical: 'center' },
-  tileLetterPending: { color: '#FFF', fontWeight: '800', fontSize: 12 },
-  premiumText: { color: 'rgba(255,255,255,0.6)', fontSize: 7, fontWeight: '700' },
-  rack: {
-    flexDirection: 'row', gap: 6, justifyContent: 'center',
-    paddingVertical: SPACING.md,
-  },
-  rackTile: {
-    width: 38, height: 44, borderRadius: 6,
-    backgroundColor: '#FBBF24',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  rackTileUsed: { opacity: 0.25 },
-  rackTileSelected: { borderWidth: 3, borderColor: COLORS.primary },
-  rackTileMarked: { borderWidth: 3, borderColor: COLORS.error },
-  rackLetter: { color: '#1A1200', fontWeight: '800', fontSize: 18 },
-  rackValue: { color: '#1A1200', fontWeight: '700', fontSize: 9, position: 'absolute', bottom: 2, right: 4 },
-  actionRow: { flexDirection: 'row', gap: 8, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md },
-  secondaryBtn: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
-  },
-  secondaryText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 12 },
-  primaryBtn: {
-    flex: 1, backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill, paddingVertical: 12, alignItems: 'center',
-  },
-  primaryText: { color: '#FFF', fontWeight: '800', fontSize: 13 },
-  resultCard: {
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.lg,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg, padding: 20, alignItems: 'center', gap: 6,
-  },
-  resultTitle: { color: COLORS.text, fontWeight: '800', fontSize: 20 },
-  resultSub: { color: COLORS.textMuted, fontSize: 14 },
-  resultWager: { color: COLORS.gold, fontWeight: '700', fontSize: 15, marginTop: 4 },
-  backToLobbyBtn: {
-    marginTop: 14, backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24,
-  },
-  backToLobbyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: SPACING.lg },
-  modalCard: {
-    backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder, padding: SPACING.lg,
-  },
-  modalTitle: { color: COLORS.text, fontWeight: '700', fontSize: 15, marginBottom: 12, textAlign: 'center' },
-  alphabetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  alphabetKey: {
-    width: 36, height: 36, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  alphabetKeyText: { color: COLORS.text, fontWeight: '700' },
-  modalCancel: { marginTop: 16, alignItems: 'center' },
-});

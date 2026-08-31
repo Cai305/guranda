@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 
 const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
@@ -13,6 +14,31 @@ const TYPE_META: Record<string, { icon: string; color: string; label: string }> 
 };
 
 export default function TravelTripsScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, SPACING } = theme;
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
+    tripCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
+      borderWidth: 1, borderColor: COLORS.border,
+    },
+    iconWrap: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    tripTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
+    tripType: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+    statusPill: { backgroundColor: '#22c55e22', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+    statusText: { color: '#22c55e', fontSize: 10, fontWeight: '700' },
+    tripTitle: { color: COLORS.text, fontSize: 14, fontWeight: '700', marginBottom: 2 },
+    tripSub: { color: COLORS.textMuted, fontSize: 12, marginBottom: 2 },
+    tripDate: { color: COLORS.textMuted, fontSize: 11 },
+    tripPrice: { color: '#8B5CF6', fontWeight: '800', fontSize: 14 },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
+  }));
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,27 +106,3 @@ export default function TravelTripsScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2, flex: 1, textAlign: 'center' },
-  tripCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  iconWrap: { width: 42, height: 42, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  tripTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  tripType: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  statusPill: { backgroundColor: '#22c55e22', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
-  statusText: { color: '#22c55e', fontSize: 10, fontWeight: '700' },
-  tripTitle: { color: COLORS.text, fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  tripSub: { color: COLORS.textMuted, fontSize: 12, marginBottom: 2 },
-  tripDate: { color: COLORS.textMuted, fontSize: 11 },
-  tripPrice: { color: '#8B5CF6', fontWeight: '800', fontSize: 14 },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  emptySub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center' },
-});

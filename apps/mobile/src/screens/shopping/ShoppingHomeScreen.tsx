@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, GRADIENTS } from '../../theme';
 import { fetchApi } from '../../utils/api';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const CATEGORIES = ['All', 'Fashion', 'Electronics', 'Home & Garden', 'Beauty', 'Sports', 'Toys', 'Books', 'Other'];
 
@@ -23,6 +24,8 @@ const CAT_ICONS: Record<string, string> = {
 };
 
 export default function ShoppingHomeScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, SPACING } = theme;
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -32,6 +35,72 @@ export default function ShoppingHomeScreen({ navigation }: any) {
 
   const gap = 12;
   const cardWidth = (Math.min(width, 900) - SPACING.lg * 2 - gap) / 2;
+
+  const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
+    back: { padding: 4, marginRight: 8 },
+    headerCenter: { flex: 1 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    headerTitle: { ...TYPOGRAPHY.h2 },
+    headerSub: { color: COLORS.textMuted, fontSize: 12 },
+    cartBtn: { padding: 4, position: 'relative' },
+    cartBadge: {
+      position: 'absolute', top: -2, right: -4,
+      backgroundColor: '#8B5CF6', borderRadius: 8, width: 16, height: 16,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cartBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: SPACING.lg, marginBottom: 12,
+      backgroundColor: COLORS.surface, borderRadius: 12,
+      paddingHorizontal: 14, paddingVertical: 10,
+      borderWidth: 1, borderColor: COLORS.border,
+    },
+    searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
+    hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
+    heroIcon: { position: 'absolute', right: 16, top: 12 },
+    heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
+    heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+    catScroll: { marginBottom: 16 },
+    catContent: { paddingHorizontal: SPACING.lg, gap: 8 },
+    catChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+    },
+    catChipActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+    catLabel: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+    catLabelActive: { color: '#fff' },
+    grid: {
+      paddingHorizontal: SPACING.lg, gap: 12,
+      flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
+    },
+    card: {
+      backgroundColor: COLORS.surface, borderRadius: 16, overflow: 'hidden',
+      borderWidth: 1, borderColor: COLORS.border, marginBottom: 12,
+    },
+    cardImageWrap: { position: 'relative' },
+    cardImage: { width: '100%', height: 130, justifyContent: 'center', alignItems: 'center' },
+    rewardBadge: {
+      position: 'absolute', top: 8, left: 8,
+      backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8,
+      paddingHorizontal: 8, paddingVertical: 3,
+    },
+    rewardBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    cardInfo: { padding: 10 },
+    cardName: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 4, minHeight: 34 },
+    cardPrice: { color: '#8B5CF6', fontWeight: '800', fontSize: 16, marginBottom: 4 },
+    cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
+    cardRating: { color: COLORS.textMuted, fontSize: 11 },
+    cardSoldBy: { color: COLORS.textMuted, fontSize: 11, marginBottom: 4 },
+    freeDeliveryRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    freeDeliveryText: { color: '#22c55e', fontSize: 10, fontWeight: '600' },
+    empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+    emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    emptySub: { color: COLORS.textMuted, fontSize: 13 },
+  }));
 
   const load = async (cat?: string, q?: string) => {
     setLoading(true);
@@ -163,69 +232,3 @@ export default function ShoppingHomeScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
-  back: { padding: 4, marginRight: 8 },
-  headerCenter: { flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  headerTitle: { ...TYPOGRAPHY.h2 },
-  headerSub: { color: COLORS.textMuted, fontSize: 12 },
-  cartBtn: { padding: 4, position: 'relative' },
-  cartBadge: {
-    position: 'absolute', top: -2, right: -4,
-    backgroundColor: '#8B5CF6', borderRadius: 8, width: 16, height: 16,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cartBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: SPACING.lg, marginBottom: 12,
-    backgroundColor: COLORS.surface, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
-  hero: { marginHorizontal: SPACING.lg, borderRadius: 16, padding: 20, marginBottom: 16, overflow: 'hidden' },
-  heroIcon: { position: 'absolute', right: 16, top: 12 },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  catScroll: { marginBottom: 16 },
-  catContent: { paddingHorizontal: SPACING.lg, gap: 8 },
-  catChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-  },
-  catChipActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
-  catLabel: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
-  catLabelActive: { color: '#fff' },
-  grid: {
-    paddingHorizontal: SPACING.lg, gap: 12,
-    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
-  },
-  card: {
-    backgroundColor: COLORS.surface, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.border, marginBottom: 12,
-  },
-  cardImageWrap: { position: 'relative' },
-  cardImage: { width: '100%', height: 130, justifyContent: 'center', alignItems: 'center' },
-  rewardBadge: {
-    position: 'absolute', top: 8, left: 8,
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8,
-    paddingHorizontal: 8, paddingVertical: 3,
-  },
-  rewardBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  cardInfo: { padding: 10 },
-  cardName: { color: COLORS.text, fontSize: 13, fontWeight: '600', marginBottom: 4, minHeight: 34 },
-  cardPrice: { color: '#8B5CF6', fontWeight: '800', fontSize: 16, marginBottom: 4 },
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
-  cardRating: { color: COLORS.textMuted, fontSize: 11 },
-  cardSoldBy: { color: COLORS.textMuted, fontSize: 11, marginBottom: 4 },
-  freeDeliveryRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  freeDeliveryText: { color: '#22c55e', fontSize: 10, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
-  emptyText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  emptySub: { color: COLORS.textMuted, fontSize: 13 },
-});

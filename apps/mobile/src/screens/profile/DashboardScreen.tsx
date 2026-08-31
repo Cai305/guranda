@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Rect } from 'react-native-svg';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, GRADIENTS, SHADOW } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
+import { ThemeTokens } from '../../theme/themes';
 import { fetchApi } from '../../utils/api';
 import { formatCurrency } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
@@ -55,6 +57,7 @@ function buildDayBuckets(dates: string[]) {
 }
 
 function MiniBarChart({ buckets }: { buckets: { label: string; count: number }[] }) {
+  const dash = useThemedStyles(createDashStyles);
   const width = 220;
   const height = 56;
   const barW = width / buckets.length - 8;
@@ -105,6 +108,9 @@ function ManageAppCard({
   locked: boolean;
   onPress: () => void;
 }) {
+  const { theme } = useTheme();
+  const { COLORS } = theme;
+  const dash = useThemedStyles(createDashStyles);
   const hasRevenue = !loading && !!summary && summary.revenue !== undefined;
   // Prefer the earnings chart when there's dated revenue data — money made
   // is more useful to see trending than raw item count — falling back to
@@ -156,6 +162,7 @@ function AnalyticsCard({
   title: string;
   stats: { value: string | number; label: string }[];
 }) {
+  const dash = useThemedStyles(createDashStyles);
   return (
     <View style={dash.card}>
       <View style={dash.cardHeaderRow}>
@@ -175,6 +182,10 @@ function AnalyticsCard({
 }
 
 export default function DashboardScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, SHADOW, SPACING } = theme;
+  const styles = useThemedStyles(createStyles);
+  const dash = useThemedStyles(createDashStyles);
   const { user, isVerified } = useAuth();
   const { isInstalled } = useStore();
   const { effectiveAccess } = useFeatureFlags();
@@ -580,7 +591,8 @@ export default function DashboardScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles({ COLORS, SPACING, TYPOGRAPHY }: ThemeTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
   back: { padding: 4, marginRight: 8 },
@@ -592,9 +604,11 @@ const styles = StyleSheet.create({
   setupText: { flex: 1 },
   setupTitle: { color: '#fff', fontWeight: '700', fontSize: 15 },
   setupSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
-});
+  });
+}
 
-const dash = StyleSheet.create({
+function createDashStyles({ COLORS, SPACING, RADIUS, TYPOGRAPHY }: ThemeTokens) {
+  return StyleSheet.create({
   accountTypeBadge: {
     borderWidth: 1, borderColor: COLORS.glassBorder, backgroundColor: COLORS.glass,
     borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 5,
@@ -693,4 +707,5 @@ const dash = StyleSheet.create({
   feedDot: { width: 7, height: 7, borderRadius: 3.5, marginTop: 5 },
   feedText: { color: COLORS.text, fontSize: 12.5, lineHeight: 17 },
   feedTime: { color: COLORS.textMuted, fontSize: 10, marginTop: 2, letterSpacing: 0.3 },
-});
+  });
+}

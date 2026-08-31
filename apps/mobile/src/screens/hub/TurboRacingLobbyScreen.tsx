@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import {
   UpgradeStat, MAX_UPGRADE_LEVEL, costForLevel, accelFor, handlingFor,
@@ -22,6 +23,8 @@ const STATS: { key: UpgradeStat; label: string; icon: string; levelField: 'speed
 ];
 
 export default function TurboRacingLobbyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, TYPOGRAPHY } = theme;
   const { user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
   const [upgrades, setUpgrades] = useState<{ speedLevel: number; accelLevel: number; handlingLevel: number; color: string }>({
@@ -97,6 +100,95 @@ export default function TurboRacingLobbyScreen({ navigation }: any) {
       setPickingColor(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    hero: {
+      marginHorizontal: SPACING.lg,
+      borderRadius: RADIUS.lg,
+      padding: 22,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    heroTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 8 },
+    heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+    sectionLabel: {
+      ...TYPOGRAPHY.label, fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.xl, marginBottom: SPACING.md,
+    },
+    colorRow: {
+      flexDirection: 'row', flexWrap: 'wrap', gap: 12,
+      paddingHorizontal: SPACING.lg,
+    },
+    colorSwatch: {
+      width: 36, height: 36, borderRadius: 18,
+      borderWidth: 2, borderColor: 'transparent',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    colorSwatchActive: { borderColor: '#fff' },
+    garage: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 12,
+      gap: 12,
+    },
+    statRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    statIcon: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: 'rgba(239,68,68,0.15)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    statLabel: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
+    statMeta: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2 },
+    buyBtn: {
+      backgroundColor: '#EF4444',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      minWidth: 74,
+      alignItems: 'center',
+    },
+    buyBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
+    buyBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+    playBtn: {
+      flexDirection: 'row', gap: 10,
+      marginHorizontal: SPACING.lg,
+      backgroundColor: '#E53935',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 14,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    playText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+    rules: {
+      marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      padding: 14,
+      gap: 12,
+    },
+    ruleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    ruleNum: {
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: 'rgba(229,57,53,0.25)',
+      color: '#E53935', fontWeight: '800', fontSize: 12,
+      textAlign: 'center', lineHeight: 22,
+      overflow: 'hidden',
+    },
+    ruleText: { color: COLORS.textMuted, fontSize: 12.5, flex: 1, lineHeight: 18 },
+  }));
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -212,92 +304,3 @@ export default function TurboRacingLobbyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  hero: {
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    padding: 22,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  heroTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', marginTop: 8 },
-  heroSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
-  sectionLabel: {
-    ...TYPOGRAPHY.label, fontSize: 11,
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl, marginBottom: SPACING.md,
-  },
-  colorRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 12,
-    paddingHorizontal: SPACING.lg,
-  },
-  colorSwatch: {
-    width: 36, height: 36, borderRadius: 18,
-    borderWidth: 2, borderColor: 'transparent',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  colorSwatchActive: { borderColor: '#fff' },
-  garage: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 12,
-    gap: 12,
-  },
-  statRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  statIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(239,68,68,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  statLabel: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
-  statMeta: { color: COLORS.textMuted, fontSize: 11.5, marginTop: 2 },
-  buyBtn: {
-    backgroundColor: '#EF4444',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    minWidth: 74,
-    alignItems: 'center',
-  },
-  buyBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
-  buyBtnText: { color: '#fff', fontWeight: '800', fontSize: 12 },
-  playBtn: {
-    flexDirection: 'row', gap: 10,
-    marginHorizontal: SPACING.lg,
-    backgroundColor: '#E53935',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  playText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-  rules: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    padding: 14,
-    gap: 12,
-  },
-  ruleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  ruleNum: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: 'rgba(229,57,53,0.25)',
-    color: '#E53935', fontWeight: '800', fontSize: 12,
-    textAlign: 'center', lineHeight: 22,
-    overflow: 'hidden',
-  },
-  ruleText: { color: COLORS.textMuted, fontSize: 12.5, flex: 1, lineHeight: 18 },
-});

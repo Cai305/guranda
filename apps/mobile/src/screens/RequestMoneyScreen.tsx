@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TYPOGRAPHY } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../utils/api';
 import { formatCurrency } from '../utils/format';
 
 export default function RequestMoneyScreen({ navigation }: any) {
+  const { theme } = useTheme();
+  const { COLORS, TYPOGRAPHY } = theme;
   const [destination, setDestination] = useState('');
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
@@ -55,6 +58,129 @@ export default function RequestMoneyScreen({ navigation }: any) {
       setSending(false);
     }
   };
+
+  const styles = useThemedStyles(({ COLORS }) => ({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+    },
+    backButton: {
+      padding: 4,
+    },
+    form: {
+      flex: 1,
+      paddingHorizontal: 20,
+      gap: 24,
+    },
+    amountSection: {
+      alignItems: 'center',
+      paddingVertical: 30,
+      backgroundColor: COLORS.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    currencyLabel: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    amountInput: {
+      color: COLORS.secondary,
+      fontSize: 48,
+      fontWeight: '700',
+      textAlign: 'center',
+      minWidth: 150,
+    },
+    inputGroup: {
+      gap: 8,
+    },
+    addressInput: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      fontSize: 14,
+    },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: COLORS.surface,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    sendButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      backgroundColor: COLORS.primary,
+      padding: 18,
+      borderRadius: 16,
+      marginTop: 10,
+    },
+    sendButtonDisabled: {
+      opacity: 0.6,
+    },
+    sendButtonText: {
+      color: COLORS.text,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    sheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    reviewSheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      paddingBottom: 32,
+    },
+    grabber: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: COLORS.border,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    reviewTitle: {
+      color: COLORS.textMuted,
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 12,
+    },
+    reviewRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    reviewRowLast: {
+      borderBottomWidth: 0,
+      marginBottom: 6,
+    },
+    reviewKey: { color: COLORS.textMuted, fontSize: 14 },
+    reviewVal: { color: COLORS.text, fontSize: 14, fontWeight: '700', maxWidth: '65%' },
+  }));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -167,126 +293,3 @@ export default function RequestMoneyScreen({ navigation }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  backButton: {
-    padding: 4,
-  },
-  form: {
-    flex: 1,
-    paddingHorizontal: 20,
-    gap: 24,
-  },
-  amountSection: {
-    alignItems: 'center',
-    paddingVertical: 30,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  currencyLabel: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  amountInput: {
-    color: COLORS.secondary,
-    fontSize: 48,
-    fontWeight: '700',
-    textAlign: 'center',
-    minWidth: 150,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  addressInput: {
-    backgroundColor: COLORS.surface,
-    color: COLORS.text,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    fontSize: 14,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  sendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: COLORS.primary,
-    padding: 18,
-    borderRadius: 16,
-    marginTop: 10,
-  },
-  sendButtonDisabled: {
-    opacity: 0.6,
-  },
-  sendButtonText: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  reviewSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 32,
-  },
-  grabber: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.border,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  reviewTitle: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  reviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  reviewRowLast: {
-    borderBottomWidth: 0,
-    marginBottom: 6,
-  },
-  reviewKey: { color: COLORS.textMuted, fontSize: 14 },
-  reviewVal: { color: COLORS.text, fontSize: 14, fontWeight: '700', maxWidth: '65%' },
-});

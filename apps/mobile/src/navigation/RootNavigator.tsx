@@ -53,6 +53,7 @@ import AiSetupScreen from '../screens/ai/AiSetupScreen';
 import AiAccessScreen from '../screens/ai/AiAccessScreen';
 import AiChatScreen from '../screens/ai/AiChatScreen';
 import AiTourScreen from '../screens/ai/AiTourScreen';
+import McpApprovalsScreen from '../screens/ai/McpApprovalsScreen';
 import CompanionChatScreen from '../screens/ai/CompanionChatScreen';
 import CallScreen from '../screens/calls/CallScreen';
 import MoonBaseScreen from '../screens/moonbase/MoonBaseScreen';
@@ -117,6 +118,7 @@ import TutorSessionsScreen from '../screens/profile/learning/TutorSessionsScreen
 import AddCommunityScreen from '../screens/profile/learning/AddCommunityScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import SecurityPrivacyScreen from '../screens/profile/SecurityPrivacyScreen';
+import ConnectedAppsScreen from '../screens/profile/ConnectedAppsScreen';
 import NotificationsSettingsScreen from '../screens/profile/NotificationsSettingsScreen';
 import AppearanceScreen from '../screens/profile/AppearanceScreen';
 import LanguageScreen from '../screens/profile/LanguageScreen';
@@ -196,6 +198,7 @@ export default function RootNavigator() {
           <Stack.Screen name="AiAccess" component={AiAccessScreen} />
           <Stack.Screen name="AiChat" component={AiChatScreen} />
           <Stack.Screen name="AiTour" component={AiTourScreen} />
+          <Stack.Screen name="McpApprovals" component={McpApprovalsScreen} />
           <Stack.Screen name="CompanionChat" component={CompanionChatScreen} />
           <Stack.Screen name="CallScreen" component={CallScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="MoonBase" component={MoonBaseScreen} />
@@ -254,6 +257,7 @@ export default function RootNavigator() {
           <Stack.Screen name="AddCommunity" component={AddCommunityScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="SecurityPrivacy" component={SecurityPrivacyScreen} />
+          <Stack.Screen name="ConnectedApps" component={ConnectedAppsScreen} />
           <Stack.Screen name="NotificationsSettings" component={NotificationsSettingsScreen} />
           <Stack.Screen name="Appearance" component={AppearanceScreen} />
           <Stack.Screen name="Language" component={LanguageScreen} />

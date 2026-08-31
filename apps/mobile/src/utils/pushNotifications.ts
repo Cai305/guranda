@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { fetchApi } from './api';
+import { navigate } from '../navigation/navigationRef';
 
 // Foreground presentation — without this, notifications received while the
 // app is open never show a banner/sound on some platforms.
@@ -49,4 +50,18 @@ export async function syncPushToken(): Promise<void> {
   } catch (e) {
     console.error('Failed to sync push token:', e);
   }
+}
+
+let responseListenerRegistered = false;
+
+/** Deep-links a tapped push notification to the right in-app screen, by data.type. Safe to call more than once — only registers the OS listener the first time. */
+export function registerNotificationResponseHandler(): void {
+  if (Platform.OS === 'web' || responseListenerRegistered) return;
+  responseListenerRegistered = true;
+  Notifications.addNotificationResponseReceivedListener(response => {
+    const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+    if (data?.type === 'mcp_pending_action') {
+      navigate('McpApprovals', { pendingActionId: data.pendingActionId });
+    }
+  });
 }

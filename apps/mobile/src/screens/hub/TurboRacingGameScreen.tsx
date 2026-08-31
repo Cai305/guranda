@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, useWindowDimensions, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import io, { Socket } from 'socket.io-client';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import { generateTrack, TrackItem, TurboRacingSeatDto, CarUpgrades, DEFAULT_CAR_COLOR } from '@mxit2/types';
@@ -16,9 +17,67 @@ const REPORT_INTERVAL_MS = 150;
 export default function TurboRacingGameScreen({ navigation, route }: any) {
   const raceId: string = route.params?.raceId;
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const { TYPOGRAPHY, GRADIENTS } = theme;
   const { width } = useWindowDimensions();
   const trackWidth = Math.min(width - 32, 420);
   const trackHeight = 460;
+
+  const styles = useThemedStyles(({ COLORS, SPACING, RADIUS }) => ({
+    root: { flex: 1, backgroundColor: '#0A0A12' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    progressWrap: { paddingHorizontal: SPACING.lg, gap: 6, marginBottom: 8 },
+    progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    progressLabel: { color: COLORS.textMuted, fontSize: 11, width: 60 },
+    progressTrack: {
+      flex: 1, height: 6, borderRadius: 3,
+      backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden',
+    },
+    progressFill: { height: '100%', borderRadius: 3 },
+    progressPct: { color: COLORS.textMuted, fontSize: 11, width: 34, textAlign: 'right' },
+    trackWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    leftZone: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '30%' },
+    rightZone: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '30%' },
+    statusBar: {
+      margin: SPACING.lg,
+      padding: 12,
+      borderRadius: RADIUS.lg,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+      alignItems: 'center',
+    },
+    statusText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+    overlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.75)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    overlayCard: {
+      width: '80%',
+      borderRadius: RADIUS.lg,
+      padding: 24,
+      alignItems: 'center',
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    overlayEmoji: { fontSize: 44 },
+    overlayTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 8 },
+    overlaySub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 6, textAlign: 'center' },
+    overlayBtn: {
+      marginTop: 18,
+      backgroundColor: '#E53935',
+      borderRadius: RADIUS.pill,
+      paddingVertical: 12, paddingHorizontal: 36,
+    },
+    overlayBtnText: { color: '#FFF', fontWeight: '800' },
+  }));
 
   const [loading, setLoading] = useState(true);
   const [finishDistance, setFinishDistance] = useState(3000);
@@ -217,59 +276,3 @@ export default function TurboRacingGameScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0A12' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  progressWrap: { paddingHorizontal: SPACING.lg, gap: 6, marginBottom: 8 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  progressLabel: { color: COLORS.textMuted, fontSize: 11, width: 60 },
-  progressTrack: {
-    flex: 1, height: 6, borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden',
-  },
-  progressFill: { height: '100%', borderRadius: 3 },
-  progressPct: { color: COLORS.textMuted, fontSize: 11, width: 34, textAlign: 'right' },
-  trackWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  leftZone: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '30%' },
-  rightZone: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '30%' },
-  statusBar: {
-    margin: SPACING.lg,
-    padding: 12,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    alignItems: 'center',
-  },
-  statusText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  overlayCard: {
-    width: '80%',
-    borderRadius: RADIUS.lg,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-  },
-  overlayEmoji: { fontSize: 44 },
-  overlayTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800', marginTop: 8 },
-  overlaySub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 6, textAlign: 'center' },
-  overlayBtn: {
-    marginTop: 18,
-    backgroundColor: '#E53935',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 12, paddingHorizontal: 36,
-  },
-  overlayBtnText: { color: '#FFF', fontWeight: '800' },
-});

@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import { WordBattleGameDto, WordleStateDto, LetterState } from '@mxit2/types';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, GRADIENTS } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
 import GiftButton from '../../components/gifts/GiftButton';
@@ -24,6 +25,8 @@ const STATE_COLOR: Record<LetterState, string> = {
 const STATE_RANK: Record<LetterState, number> = { absent: 0, present: 1, correct: 2 };
 
 export default function WordleDuelScreen({ navigation, route }: any) {
+  const { theme } = useTheme();
+  const { COLORS, GRADIENTS, TYPOGRAPHY } = theme;
   const { gameId, wager = 0 } = route.params || {};
   const { user } = useAuth();
   const [game, setGame] = useState<WordBattleGameDto | null>(null);
@@ -31,6 +34,59 @@ export default function WordleDuelScreen({ navigation, route }: any) {
   const [error, setError] = useState('');
   const socketRef = useRef<Socket | null>(null);
   const settled = useRef(false);
+
+  const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
+    root: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
+    },
+    backBtn: {
+      width: 40, height: 40, borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    oppCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      marginHorizontal: SPACING.lg, backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md,
+      padding: 10, marginBottom: SPACING.md,
+    },
+    oppText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+    grid: { alignItems: 'center', gap: 6, marginTop: 4 },
+    gridRow: { flexDirection: 'row', gap: 6 },
+    cell: {
+      width: 46, height: 46, borderRadius: 8,
+      borderWidth: 2, borderColor: COLORS.border,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cellTyping: { borderColor: COLORS.textMuted },
+    cellText: { color: COLORS.text, fontWeight: '800', fontSize: 22 },
+    errorText: { color: COLORS.error, textAlign: 'center', marginTop: 10, fontSize: 13 },
+    keyboard: { marginTop: 'auto', paddingHorizontal: 6, paddingBottom: 16, gap: 8 },
+    keyRow: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
+    key: {
+      minWidth: 30, height: 46, paddingHorizontal: 8,
+      backgroundColor: '#3F3F46', borderRadius: 6,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    keyWide: { minWidth: 50 },
+    keyText: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
+    waitingText: { color: COLORS.textMuted, textAlign: 'center', marginTop: 'auto', marginBottom: 20, fontSize: 13 },
+    resultCard: {
+      marginTop: SPACING.xl, marginHorizontal: SPACING.lg,
+      backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.lg, padding: 20, alignItems: 'center', gap: 6,
+    },
+    resultTitle: { color: COLORS.text, fontWeight: '800', fontSize: 20 },
+    resultWord: { color: COLORS.textMuted, fontSize: 14 },
+    resultWager: { color: COLORS.gold, fontWeight: '700', fontSize: 15, marginTop: 4 },
+    backToLobbyBtn: {
+      marginTop: 14, backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24,
+    },
+    backToLobbyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  }));
 
   useEffect(() => {
     fetchApi(`/word-battle/${gameId}`)
@@ -215,56 +271,3 @@ export default function WordleDuelScreen({ navigation, route }: any) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40, borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  oppCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: SPACING.lg, backgroundColor: COLORS.glass,
-    borderWidth: 1, borderColor: COLORS.glassBorder, borderRadius: RADIUS.md,
-    padding: 10, marginBottom: SPACING.md,
-  },
-  oppText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
-  grid: { alignItems: 'center', gap: 6, marginTop: 4 },
-  gridRow: { flexDirection: 'row', gap: 6 },
-  cell: {
-    width: 46, height: 46, borderRadius: 8,
-    borderWidth: 2, borderColor: COLORS.border,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cellTyping: { borderColor: COLORS.textMuted },
-  cellText: { color: COLORS.text, fontWeight: '800', fontSize: 22 },
-  errorText: { color: COLORS.error, textAlign: 'center', marginTop: 10, fontSize: 13 },
-  keyboard: { marginTop: 'auto', paddingHorizontal: 6, paddingBottom: 16, gap: 8 },
-  keyRow: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
-  key: {
-    minWidth: 30, height: 46, paddingHorizontal: 8,
-    backgroundColor: '#3F3F46', borderRadius: 6,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  keyWide: { minWidth: 50 },
-  keyText: { color: COLORS.text, fontWeight: '700', fontSize: 13 },
-  waitingText: { color: COLORS.textMuted, textAlign: 'center', marginTop: 'auto', marginBottom: 20, fontSize: 13 },
-  resultCard: {
-    marginTop: SPACING.xl, marginHorizontal: SPACING.lg,
-    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder,
-    borderRadius: RADIUS.lg, padding: 20, alignItems: 'center', gap: 6,
-  },
-  resultTitle: { color: COLORS.text, fontWeight: '800', fontSize: 20 },
-  resultWord: { color: COLORS.textMuted, fontSize: 14 },
-  resultWager: { color: COLORS.gold, fontWeight: '700', fontSize: 15, marginTop: 4 },
-  backToLobbyBtn: {
-    marginTop: 14, backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.pill, paddingVertical: 12, paddingHorizontal: 24,
-  },
-  backToLobbyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
-});

@@ -159,6 +159,17 @@ export const MODULES: LifeModule[] = [
     route: { name: 'PropertyHome' },
   },
   {
+    id: 'voting',
+    name: 'Ballot',
+    icon: 'checkmark-done-circle',
+    gradient: GRADIENTS.aurora,
+    status: 'live',
+    tagline: 'Elections for any structure',
+    description: 'Real elections for any structure — HOAs, company boards, unions, student bodies. Single-choice, ranked-choice, multi-select and weighted ballots, biometric check-in, and every vote recorded as a verifiable XRPL transaction.',
+    features: ['Any structure', 'Single/ranked/multi/weighted ballots', 'Biometric check-in', 'XRPL vote receipts', 'Live results'],
+    route: { name: 'Main', params: { screen: 'Life', params: { screen: 'VotingHome' } } },
+  },
+  {
     id: 'finance',
     name: 'Finance',
     icon: 'trending-up',
@@ -292,7 +303,7 @@ export const getModule = (id: string): LifeModule | undefined =>
 // are 'live' (Poster & Editor, Events) but are still browsed/opened the
 // same way a mini app is.
 export const MINI_APP_IDS = [
-  'poster', 'events', 'health', 'travel', 'learning', 'shopping', 'property',
+  'poster', 'voting', 'events', 'health', 'travel', 'learning', 'shopping', 'property',
   'finance', 'work', 'marketplace', 'username-market', 'ride', 'eat', 'hair',
   'entertainment', 'carfind', 'carwash',
 ];
