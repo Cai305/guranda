@@ -2,11 +2,27 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchApi } from '../utils/api';
 
+export interface CommunityAppEntry {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  description?: string;
+  sourceUrl: string;
+  isGame: boolean;
+}
+
 interface StoreContextType {
   installedApps: string[];
   installApp: (appId: string) => Promise<void>;
   uninstallApp: (appId: string) => Promise<void>;
   isInstalled: (appId: string) => boolean;
+  // Third-party apps/games published via Profile > Developer Hub — fetched
+  // once here so every screen that needs to resolve an installed app's
+  // name/icon/route (Home, Hub/Store, Games) shares one fetch instead of
+  // each re-implementing its own, which is how community apps ended up
+  // installable but invisible everywhere except the Store's own list.
+  communityApps: CommunityAppEntry[];
 }
 
 const CACHE_KEY = '@mxit_installed_apps';
@@ -15,9 +31,29 @@ const StoreContext = createContext<StoreContextType | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [installedApps, setInstalledApps] = useState<string[]>([]);
+  const [communityApps, setCommunityApps] = useState<CommunityAppEntry[]>([]);
 
   useEffect(() => {
     loadInstalledApps();
+    fetchApi('/store/apps')
+      .then(res => (res.ok ? res.json() : []))
+      .then((apps: any[]) => {
+        if (!Array.isArray(apps)) return;
+        setCommunityApps(
+          apps
+            .filter(a => !a.isNative && a.sourceUrl)
+            .map(a => ({
+              id: a.id,
+              name: a.name,
+              icon: a.iconUrl || 'apps',
+              color: a.color || '#3A86FF',
+              description: a.description,
+              sourceUrl: a.sourceUrl,
+              isGame: a.type === 'Game',
+            })),
+        );
+      })
+      .catch(() => {});
   }, []);
 
   // Server is the source of truth (so AI-driven installs show up here too) —
@@ -78,7 +114,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <StoreContext.Provider value={{ installedApps, installApp, uninstallApp, isInstalled }}>
+    <StoreContext.Provider value={{ installedApps, installApp, uninstallApp, isInstalled, communityApps }}>
       {children}
     </StoreContext.Provider>
   );

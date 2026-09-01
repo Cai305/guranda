@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { MODULES, LifeModule, MINI_APP_IDS } from '../config/modules';
 import { useStore } from '../context/StoreContext';
-import { fetchApi } from '../utils/api';
 
 import { GAMES } from './hub/GamesScreen';
 
@@ -15,11 +14,9 @@ export default function HubScreen({ route, navigation }: any) {
   const { width } = useWindowDimensions();
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
-  const { installApp, uninstallApp, isInstalled } = useStore();
+  const { installApp, uninstallApp, isInstalled, communityApps: communityAppEntries } = useStore();
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<LifeModule | null>(null);
-  const [communityApps, setCommunityApps] = useState<LifeModule[]>([]);
-  const [communityGameIds, setCommunityGameIds] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState<'all' | 'apps' | 'games' | 'community'>('all');
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
@@ -217,34 +214,25 @@ export default function HubScreen({ route, navigation }: any) {
 
   // Third-party apps published via Profile > Developer Hub — the built-in
   // catalog above (MODULES/GAMES) already covers every native module, so
-  // this only pulls in genuine external web apps (isNative: false).
-  useEffect(() => {
-    fetchApi('/store/apps')
-      .then(res => (res.ok ? res.json() : []))
-      .then((apps: any[]) => {
-        if (!Array.isArray(apps)) return;
-        const mapped: LifeModule[] = apps
-          .filter(a => !a.isNative && a.sourceUrl)
-          .map(a => ({
-            id: a.id,
-            name: a.name,
-            icon: a.iconUrl || 'apps',
-            gradient: [a.color || COLORS.primary, a.color || COLORS.primary],
-            status: 'live',
-            tagline: a.description || 'Community mini-app',
-            description: a.description || '',
-            features: [],
-            route: { name: 'ExternalApp', params: { sourceUrl: a.sourceUrl, name: a.name } },
-          }));
-        setCommunityApps(mapped);
-        setCommunityGameIds(new Set(apps.filter(a => !a.isNative && a.sourceUrl && a.type === 'Game').map(a => a.id)));
-      })
-      .catch(() => {});
-  }, []);
+  // this only pulls in genuine external web apps (isNative: false). Fetched
+  // once, centrally, in StoreContext — shared with Home/Games so an
+  // installed community app is findable everywhere, not just here.
+  const communityApps: LifeModule[] = communityAppEntries.map(a => ({
+    id: a.id,
+    name: a.name,
+    icon: a.icon,
+    gradient: [a.color, a.color],
+    status: 'live',
+    tagline: a.description || 'Community mini-app',
+    description: a.description || '',
+    features: [],
+    route: { name: 'ExternalApp', params: { sourceUrl: a.sourceUrl, name: a.name } },
+  }));
+  const communityGameIds = new Set(communityAppEntries.filter(a => a.isGame).map(a => a.id));
 
   // Mini apps
   const baseMiniApps = MINI_APP_IDS.map(id => MODULES.find(m => m.id === id)).filter(Boolean) as LifeModule[];
-  
+
   // Games as modules
   const gamesAsModules: LifeModule[] = GAMES.map(g => ({
     id: g.id,
@@ -259,7 +247,10 @@ export default function HubScreen({ route, navigation }: any) {
   }));
 
   const allStoreModules = mode === 'store' ? [...baseMiniApps, ...gamesAsModules, ...communityApps] : baseMiniApps;
-  const installedModules = baseMiniApps.filter(m => isInstalled(m.id));
+  // Installed mini-apps view: built-in modules plus any installed community
+  // app that isn't a game (games get their own installed list on GamesScreen).
+  const installedModules = [...baseMiniApps, ...communityApps.filter(c => !communityGameIds.has(c.id))]
+    .filter(m => isInstalled(m.id));
   
   const searched = allStoreModules.filter(m =>
     m.name.toLowerCase().includes(search.toLowerCase()) ||

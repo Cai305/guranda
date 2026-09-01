@@ -17,6 +17,10 @@ interface GameEntry {
   live: boolean;
   route?: string;
   features: string[];
+  // Set for games published via Profile > Developer Hub instead of built
+  // into the app — routes to ExternalApp with this URL rather than a
+  // registered screen name.
+  externalUrl?: string;
 }
 
 // Every existing game stays playable. Upcoming games are
@@ -128,8 +132,25 @@ export const GAMES: GameEntry[] = [
 export default function GamesScreen({ route, navigation }: any) {
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY, SPACING, BRAND } = theme;
-  const { installApp, isInstalled } = useStore();
+  const { installApp, isInstalled, communityApps } = useStore();
   const [modal, setModal] = useState<GameEntry | null>(null);
+
+  // Games published via Profile > Developer Hub — merged alongside the
+  // built-in catalog above so an installed community game actually shows
+  // up here (previously it was installable from the Store but had no
+  // "installed games" list of its own to appear in).
+  const communityGames: GameEntry[] = communityApps
+    .filter(a => a.isGame)
+    .map(a => ({
+      id: a.id,
+      name: a.name,
+      blurb: a.description || 'Community game',
+      icon: a.icon,
+      gradient: [a.color, a.color],
+      live: true,
+      features: [],
+      externalUrl: a.sourceUrl,
+    }));
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
     container: {
@@ -278,7 +299,11 @@ export default function GamesScreen({ route, navigation }: any) {
         features: game.features,
       });
     } else if (isInstalled(game.id)) {
-      navigation.navigate(game.route!);
+      if (game.externalUrl) {
+        navigation.navigate('ExternalApp', { sourceUrl: game.externalUrl, name: game.name });
+      } else {
+        navigation.navigate(game.route!);
+      }
     } else {
       setModal(game);
     }
@@ -328,9 +353,9 @@ export default function GamesScreen({ route, navigation }: any) {
     );
   };
 
-  const liveGames = GAMES.filter(g => g.live);
+  const liveGames = [...GAMES.filter(g => g.live), ...communityGames];
   const upcomingGames = GAMES.filter(g => !g.live);
-  const installedGames = GAMES.filter(g => isInstalled(g.id));
+  const installedGames = [...GAMES, ...communityGames].filter(g => isInstalled(g.id));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

@@ -139,7 +139,10 @@ export default function HomeScreen({ navigation }: any) {
   ];
 
   const { isInstalled } = useStore();
-  const recommended = MINI_APP_IDS.map(id => MODULES.find(m => m.id === id)).filter(Boolean).slice(0, 8) as LifeModule[];
+  // Full list, not a truncated slice — this horizontal strip is the only
+  // place some mini-apps (e.g. Finance, needed to install before Invest
+  // shows on the wallet card below) are discoverable from Home at all.
+  const recommended = MINI_APP_IDS.map(id => MODULES.find(m => m.id === id)).filter(Boolean) as LifeModule[];
 
   const openChat = (item: any) => {
     const companionId = AI_ENABLED ? FIXED_COMPANION_IDS[item.id] : undefined;
