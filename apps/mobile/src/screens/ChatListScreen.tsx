@@ -219,15 +219,16 @@ export default function ChatListScreen({ navigation }: any) {
   const fetchChats = async () => {
     try {
       setLoading(true);
-      const res = await fetchApi('/chats');
+      const [res, publicRes] = await Promise.all([
+        fetchApi('/chats'),
+        fetchApi('/chats/public'),
+      ]);
       if (res.ok) {
         const chats = await res.json();
-        
-        // Inject Global Channels
-        const publicChannels = [
-          { id: 'global-room', name: 'Global Lounge', type: 'Public', status: 'online' },
-          { id: 'marketplace-room', name: 'Marketplace', type: 'Public', status: 'online' },
-        ];
+
+        // Real, backend-driven global channels (e.g. "Global Lounge") — any
+        // authenticated user can read/post, no membership row required.
+        const publicChannels = publicRes.ok ? await publicRes.json() : [];
 
         // Inject Custom Groups
         const customGroups = [

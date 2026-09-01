@@ -1,11 +1,10 @@
 import React from 'react';
 import { View, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../context/ThemeContext';
 import { useAiOrb } from '../../context/AiOrbContext';
-import { ROUTE_ICONS, ROUTE_LABELS, visibleRoutes, makeOnPress, AiIconButton } from './shared';
+import { ROUTE_LABELS, visibleRoutes, makeOnPress, AiIconButton, RouteIcon } from './shared';
 
 // A traditional flat bar anchored to the bottom edge — no floating, no
 // notch. Five equal tabs, icon above label, AI slotted in as a plain tab
@@ -35,10 +34,11 @@ export default function ClassicTabBar({ state, descriptors, navigation }: Bottom
         accessibilityLabel={label}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8 }}
       >
-        <Ionicons
-          name={ROUTE_ICONS[route.name] ?? 'ellipse-outline'}
+        <RouteIcon
+          routeName={route.name}
           size={22}
           color={isFocused ? COLORS.primary : COLORS.textMuted}
+          focused={isFocused}
         />
         <Text
           numberOfLines={1}

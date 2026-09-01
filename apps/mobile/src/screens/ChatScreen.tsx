@@ -114,6 +114,18 @@ export default function ChatScreen({ route, navigation }: any) {
     }, [targetUserId])
   );
 
+  // Individual conversations are a full-screen surface (own input row at
+  // the very bottom, like WhatsApp/Messenger) — the floating bottom tab bar
+  // otherwise renders on top of the message input. Hidden only while this
+  // screen is focused; ChatListScreen (the tab-level "Chats" screen) keeps it.
+  useFocusEffect(
+    React.useCallback(() => {
+      const parent = navigation.getParent();
+      parent?.setOptions({ tabBarStyle: { display: 'none' } });
+      return () => parent?.setOptions({ tabBarStyle: undefined });
+    }, [navigation])
+  );
+
   useEffect(() => {
     // 1. Fetch historical messages
     setMessagesLoading(true);

@@ -145,7 +145,10 @@ export class ChatGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage('send_message')
-  async handleMessage(@MessageBody() dto: ChatMessageDto): Promise<void> {
+  async handleMessage(
+    @MessageBody() dto: ChatMessageDto,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
     try {
       // 1. Save message via the shared ChatService (same path the
       // chat.sendMessage AI tool uses)
@@ -181,8 +184,12 @@ export class ChatGateway implements OnGatewayDisconnect {
         dto.content,
         dto.mediaUrl,
       ).catch((e) => console.error('Failed to push-notify chat members:', e));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to save message:', e);
+      client.emit('message_error', {
+        chatId: dto.chatId,
+        message: e?.message || 'Failed to send message',
+      });
     }
   }
 

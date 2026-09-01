@@ -414,14 +414,20 @@ model DepositRequest {
 }
 
 model Chat {
-  id          String       @id @default(uuid())
-  type        String // DIRECT, GROUP, CHANNEL
-  name        String?
-  communityId String?
-  community   Community?   @relation(fields: [communityId], references: [id])
-  createdAt   DateTime     @default(now())
-  members     ChatMember[]
-  messages    Message[]
+  id            String       @id @default(uuid())
+  type          String // DIRECT, GROUP, CHANNEL
+  name          String?
+  communityId   String?
+  community     Community?   @relation(fields: [communityId], references: [id])
+  // CHANNEL-only fields. channelType: TEXT, ANNOUNCEMENT, VOICE.
+  channelType   String       @default("TEXT")
+  voiceRoomName String?
+  // A global channel with no community and no membership requirement —
+  // any authenticated user can read/post (e.g. "Global Lounge").
+  isPublic      Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  members       ChatMember[]
+  messages      Message[]
 }
 
 model ChatMember {
@@ -586,13 +592,32 @@ model CommentLike {
 }
 
 model Community {
-  id          String            @id @default(uuid())
+  id          String              @id @default(uuid())
   name        String
   description String?
   iconUrl     String?
-  createdAt   DateTime          @default(now())
+  coverUrl    String?
+  category    String?
+  privacy     String              @default("PUBLIC") // PUBLIC, PRIVATE
+  createdAt   DateTime            @default(now())
   members     CommunityMember[]
   rooms       Chat[]
+  invites     CommunityInvite[]
+  posts       CommunityPost[]
+  pinnedApps  CommunityPinnedApp[]
+}
+
+// A shortcut into the app's existing mini-app/game catalog (MODULES/GAMES in
+// apps/mobile/src/config) — appId is one of those static ids, not a foreign
+// key, since that catalog lives in client config rather than the database.
+model CommunityPinnedApp {
+  id          String    @id @default(uuid())
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id])
+  appId       String
+  addedAt     DateTime  @default(now())
+
+  @@unique([communityId, appId])
 }
 
 model CommunityMember {
@@ -605,6 +630,50 @@ model CommunityMember {
   joinedAt    DateTime  @default(now())
 
   @@unique([communityId, userId])
+}
+
+model CommunityInvite {
+  id          String    @id @default(uuid())
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id])
+  code        String    @unique
+  createdById String
+  expiresAt   DateTime?
+  maxUses     Int?
+  useCount    Int       @default(0)
+  createdAt   DateTime  @default(now())
+}
+
+model CommunityPost {
+  id          String                 @id @default(uuid())
+  communityId String
+  community   Community              @relation(fields: [communityId], references: [id])
+  authorId    String
+  content     String
+  mediaUrl    String?
+  createdAt   DateTime               @default(now())
+  editedAt    DateTime?
+  likes       CommunityPostLike[]
+  comments    CommunityPostComment[]
+}
+
+model CommunityPostLike {
+  id        String        @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id])
+  userId    String
+  createdAt DateTime      @default(now())
+
+  @@unique([postId, userId])
+}
+
+model CommunityPostComment {
+  id        String        @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id])
+  authorId  String
+  content   String
+  createdAt DateTime      @default(now())
 }
 
 // Paid, once-per-user-per-story interactions on labeled ("of the Day") stories.

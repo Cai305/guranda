@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -6,12 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadMedia } from '../utils/api';
+import { invalidateCachedResponse } from '../utils/apiCache';
 
 const CATEGORIES = ['Gaming', 'Music', 'Sports', 'Tech', 'Business', 'Lifestyle', 'Education', 'Other'];
 
-export default function CreateCommunityScreen({ navigation }: any) {
+export default function EditCommunityScreen({ route, navigation }: any) {
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY } = theme;
+  const { communityId } = route.params;
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -20,120 +25,71 @@ export default function CreateCommunityScreen({ navigation }: any) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchApi(`/communities/${communityId}`, { headers: { 'Cache-Control': 'no-cache' } });
+        if (res.ok) {
+          const data = await res.json();
+          setName(data.name || '');
+          setDescription(data.description || '');
+          setCategory(data.category || null);
+          setPrivacy(data.privacy || 'PUBLIC');
+          setIconUrl(data.iconUrl || null);
+          setCoverUrl(data.coverUrl || null);
+        }
+      } catch {}
+      setLoading(false);
+    })();
+  }, [communityId]);
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
-    container: {
-      flex: 1,
-      backgroundColor: COLORS.background,
-    },
-    keyboardContainer: {
-      flex: 1,
-    },
+    container: { flex: 1, backgroundColor: COLORS.background },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 15,
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.border,
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      padding: 15, borderBottomWidth: 1, borderBottomColor: COLORS.border,
     },
-    closeBtn: {
-      padding: 5,
-    },
-    createBtn: {
-      backgroundColor: COLORS.primary,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-    },
-    createBtnDisabled: {
-      opacity: 0.5,
-    },
-    createBtnText: {
-      ...TYPOGRAPHY.body2,
-      color: COLORS.surface,
-      fontWeight: 'bold',
-    },
-    form: {
-      padding: 20,
-    },
-    label: {
-      ...TYPOGRAPHY.body2,
-      color: COLORS.textMuted,
-      marginBottom: 8,
-      marginTop: 16,
-    },
+    closeBtn: { padding: 5 },
+    saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+    saveBtnDisabled: { opacity: 0.5 },
+    saveBtnText: { ...TYPOGRAPHY.body2, color: COLORS.surface, fontWeight: 'bold' },
+    form: { padding: 20 },
+    label: { ...TYPOGRAPHY.body2, color: COLORS.textMuted, marginBottom: 8, marginTop: 16 },
     input: {
-      backgroundColor: COLORS.surface,
-      color: COLORS.text,
-      paddingHorizontal: 15,
-      paddingVertical: 12,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      fontSize: 16,
+      backgroundColor: COLORS.surface, color: COLORS.text, paddingHorizontal: 15, paddingVertical: 12,
+      borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, fontSize: 16,
     },
-    textArea: {
-      minHeight: 100,
-    },
+    textArea: { minHeight: 100 },
     coverWrap: {
-      height: 120,
-      borderRadius: 16,
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      overflow: 'hidden',
-      alignItems: 'center',
-      justifyContent: 'center',
+      height: 120, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+      overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
     },
-    coverImage: {
-      width: '100%',
-      height: '100%',
-    },
-    iconRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
+    coverImage: { width: '100%', height: '100%' },
+    iconRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     iconCircle: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
+      width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
+      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     },
     iconImage: { width: 64, height: 64 },
     pickBtnText: { color: COLORS.primary, fontWeight: '600' },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-    chip: {
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 999,
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
     chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
     chipText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 13 },
     chipTextActive: { color: '#fff' },
     privacyRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-    privacyOption: {
-      flex: 1,
-      padding: 14,
-      borderRadius: 12,
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      gap: 4,
-    },
+    privacyOption: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, gap: 4 },
     privacyOptionActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}15` },
     privacyTitle: { color: COLORS.text, fontWeight: '700', fontSize: 14 },
     privacyDesc: { color: COLORS.textMuted, fontSize: 12 },
+    dangerZone: { marginTop: 32, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 20 },
+    deleteBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      borderWidth: 1, borderColor: COLORS.error, borderRadius: 12, paddingVertical: 14,
+    },
+    deleteBtnText: { color: COLORS.error, fontWeight: '700' },
   }));
 
   const pickIcon = async () => {
@@ -164,13 +120,12 @@ export default function CreateCommunityScreen({ navigation }: any) {
     }
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
-
     try {
-      setLoading(true);
-      const res = await fetchApi('/communities', {
-        method: 'POST',
+      setSaving(true);
+      const res = await fetchApi(`/communities/${communityId}`, {
+        method: 'PATCH',
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim(),
@@ -180,42 +135,71 @@ export default function CreateCommunityScreen({ navigation }: any) {
           privacy,
         }),
       });
-
       if (res.ok) {
-        const community = await res.json();
-        navigation.replace('Community', { communityId: community.id, communityName: community.name });
+        await invalidateCachedResponse(`/communities/${communityId}`);
+        await invalidateCachedResponse('/communities');
+        navigation.goBack();
       } else {
         const data = await res.json().catch(() => null);
-        Alert.alert('Error', data?.message || "Couldn't create the community. Please try again.");
+        Alert.alert('Error', data?.message || "Couldn't save changes.");
       }
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Something went wrong.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete community',
+      'This permanently deletes the community, its channels, posts and messages. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const res = await fetchApi(`/communities/${communityId}`, { method: 'DELETE' });
+            setDeleting(false);
+            if (res.ok) {
+              await invalidateCachedResponse('/communities');
+              await invalidateCachedResponse('/communities/my');
+              navigation.navigate('Main');
+            } else {
+              Alert.alert('Error', (await res.json().catch(() => null))?.message || "Couldn't delete the community.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
             <Ionicons name="close" size={28} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={TYPOGRAPHY.h3}>New Community</Text>
+          <Text style={TYPOGRAPHY.h3}>Edit Community</Text>
           <TouchableOpacity
-            style={[styles.createBtn, (!name.trim() || loading) && styles.createBtnDisabled]}
-            onPress={handleCreate}
-            disabled={!name.trim() || loading}
+            style={[styles.saveBtn, (!name.trim() || saving) && styles.saveBtnDisabled]}
+            onPress={handleSave}
+            disabled={!name.trim() || saving}
           >
-            {loading ? (
-              <ActivityIndicator color={COLORS.surface} size="small" />
-            ) : (
-              <Text style={styles.createBtnText}>Create</Text>
-            )}
+            {saving ? <ActivityIndicator color={COLORS.surface} size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
           </TouchableOpacity>
         </View>
 
@@ -251,34 +235,22 @@ export default function CreateCommunityScreen({ navigation }: any) {
           </View>
 
           <Text style={styles.label}>Community Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. MXit Crypto Fans"
-            placeholderTextColor={COLORS.textMuted}
-            value={name}
-            onChangeText={setName}
-            autoFocus
-          />
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={COLORS.textMuted} />
 
-          <Text style={styles.label}>Description (optional)</Text>
+          <Text style={styles.label}>Description</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="What is this community about?"
-            placeholderTextColor={COLORS.textMuted}
             value={description}
             onChangeText={setDescription}
             multiline
             textAlignVertical="top"
+            placeholderTextColor={COLORS.textMuted}
           />
 
-          <Text style={styles.label}>Category (optional)</Text>
+          <Text style={styles.label}>Category</Text>
           <View style={styles.chipRow}>
             {CATEGORIES.map((c) => (
-              <TouchableOpacity
-                key={c}
-                style={[styles.chip, category === c && styles.chipActive]}
-                onPress={() => setCategory(category === c ? null : c)}
-              >
+              <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive]} onPress={() => setCategory(category === c ? null : c)}>
                 <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
               </TouchableOpacity>
             ))}
@@ -286,21 +258,26 @@ export default function CreateCommunityScreen({ navigation }: any) {
 
           <Text style={styles.label}>Privacy</Text>
           <View style={styles.privacyRow}>
-            <TouchableOpacity
-              style={[styles.privacyOption, privacy === 'PUBLIC' && styles.privacyOptionActive]}
-              onPress={() => setPrivacy('PUBLIC')}
-            >
+            <TouchableOpacity style={[styles.privacyOption, privacy === 'PUBLIC' && styles.privacyOptionActive]} onPress={() => setPrivacy('PUBLIC')}>
               <Ionicons name="earth" size={18} color={privacy === 'PUBLIC' ? COLORS.primary : COLORS.textMuted} />
               <Text style={styles.privacyTitle}>Public</Text>
               <Text style={styles.privacyDesc}>Anyone can find and join</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.privacyOption, privacy === 'PRIVATE' && styles.privacyOptionActive]}
-              onPress={() => setPrivacy('PRIVATE')}
-            >
+            <TouchableOpacity style={[styles.privacyOption, privacy === 'PRIVATE' && styles.privacyOptionActive]} onPress={() => setPrivacy('PRIVATE')}>
               <Ionicons name="lock-closed" size={18} color={privacy === 'PRIVATE' ? COLORS.primary : COLORS.textMuted} />
               <Text style={styles.privacyTitle}>Private</Text>
               <Text style={styles.privacyDesc}>Invite-only, hidden from browse</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.dangerZone}>
+            <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} disabled={deleting}>
+              {deleting ? <ActivityIndicator color={COLORS.error} size="small" /> : (
+                <>
+                  <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                  <Text style={styles.deleteBtnText}>Delete Community</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>

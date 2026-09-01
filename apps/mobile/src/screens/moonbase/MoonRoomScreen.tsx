@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Image,
+  View, Text, StyleSheet, TouchableOpacity, FlatList, Image,
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ChatComposer from '../../components/chat/ChatComposer';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -46,7 +46,7 @@ const SLOTS = [
 
 export default function MoonRoomScreen({ navigation, route }: any) {
   const { theme } = useTheme();
-  const { COLORS, SPACING, GRADIENTS } = theme;
+  const { SPACING, GRADIENTS } = theme;
   const { roomId, roomName, emoji } = route.params || {};
   const { user } = useAuth();
   const [members, setMembers] = useState<MoonMember[]>([]);
@@ -267,19 +267,12 @@ export default function MoonRoomScreen({ navigation, route }: any) {
           renderItem={renderMessage}
           contentContainerStyle={{ padding: SPACING.lg, gap: 8 }}
         />
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder={`Say something in ${roomName}…`}
-            placeholderTextColor={COLORS.textMuted}
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={send}
-          />
-          <TouchableOpacity style={styles.sendBtn} onPress={send} disabled={!input.trim()}>
-            <Ionicons name="arrow-up" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <ChatComposer
+          value={input}
+          onChangeText={setInput}
+          onSend={send}
+          placeholder={`Say something in ${roomName}…`}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

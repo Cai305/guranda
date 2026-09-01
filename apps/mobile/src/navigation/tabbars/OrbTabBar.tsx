@@ -10,7 +10,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../context/ThemeContext';
 import { useAiOrb } from '../../context/AiOrbContext';
 import { BAR_HEIGHT, ORB_SIZE, NOTCH_RADIUS } from '../aiOrbMetrics';
-import { ROUTE_ICONS, ROUTE_LABELS, visibleRoutes, makeOnPress, usePulse } from './shared';
+import { ROUTE_LABELS, visibleRoutes, makeOnPress, usePulse, RouteIcon } from './shared';
 
 // Default style: one continuous pill bar with a circular notch cut into its
 // top edge — the AI orb sits nested in that notch, half poking above the
@@ -69,10 +69,11 @@ export default function OrbTabBar({ state, descriptors, navigation }: BottomTabB
         accessibilityLabel={label}
         style={{ alignItems: 'center', justifyContent: 'center', height: BAR_HEIGHT, paddingHorizontal: 10 }}
       >
-        <Ionicons
-          name={ROUTE_ICONS[route.name] ?? 'ellipse-outline'}
+        <RouteIcon
+          routeName={route.name}
           size={20}
           color={isFocused ? COLORS.primary : COLORS.textMuted}
+          focused={isFocused}
         />
         <Text
           numberOfLines={1}

@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../context/ThemeContext';
-import { ROUTE_ICONS, ROUTE_LABELS, visibleRoutes, makeOnPress, AiIconButton } from './shared';
+import { ROUTE_LABELS, visibleRoutes, makeOnPress, AiIconButton, RouteIcon } from './shared';
 
 // Icon-only and slim — no labels, smaller height, maximizes screen space
 // for people who already know the icons. AI is a small circular gradient
@@ -35,10 +34,11 @@ export default function CompactTabBar({ state, descriptors, navigation }: Bottom
         accessibilityLabel={label}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Ionicons
-          name={ROUTE_ICONS[route.name] ?? 'ellipse-outline'}
+        <RouteIcon
+          routeName={route.name}
           size={22}
           color={isFocused ? COLORS.primary : COLORS.textMuted}
+          focused={isFocused}
         />
         {isFocused && (
           <View

@@ -50,6 +50,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [canSponsor, setCanSponsor] = useState(false);
   const [hq, setHq] = useState<ProfileHQ | null>(null);
   const [postStats, setPostStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number; totalViews: number } | null>(null);
+  const [followStats, setFollowStats] = useState<{ followerCount: number; followingCount: number } | null>(null);
 
   const loadHQ = () => {
     fetchApi('/profile/me/hq')
@@ -75,6 +76,12 @@ export default function ProfileScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => d && setPostStats(d))
       .catch(() => {});
+    if (user?.userId) {
+      fetchApi(`/users/${user.userId}/follow-stats`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => d && setFollowStats({ followerCount: d.followerCount ?? 0, followingCount: d.followingCount ?? 0 }))
+        .catch(() => {});
+    }
     loadHQ();
   }, []);
 
@@ -212,6 +219,20 @@ export default function ProfileScreen({ navigation }: any) {
     username: {
       ...TYPOGRAPHY.body2,
       marginTop: 2,
+    },
+    followRow: {
+      flexDirection: 'row',
+      gap: SPACING.md,
+      marginTop: 6,
+    },
+    followStat: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.textMuted,
+      fontSize: 12.5,
+    },
+    followStatNumber: {
+      color: COLORS.text,
+      fontWeight: '700',
     },
     partnerRow: {
       flexDirection: 'row',
@@ -361,10 +382,17 @@ export default function ProfileScreen({ navigation }: any) {
           style={styles.identityCard}
         >
           <View style={styles.identityTop}>
-            <Image
-              source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}` }}
-              style={styles.avatar}
-            />
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('EditProfile')}
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile picture"
+            >
+              <Image
+                source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}` }}
+                style={styles.avatar}
+              />
+            </TouchableOpacity>
             {/* The companion pet lives right here — its stage IS your
                 reputation level, so this replaces what used to be a plain
                 "Nano" text pill sitting in a lot of empty gradient space. */}
@@ -379,6 +407,16 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
           <Text style={styles.displayName}>{displayName}</Text>
           <Text style={styles.username}>{username}</Text>
+          {followStats && (
+            <View style={styles.followRow}>
+              <Text style={styles.followStat}>
+                <Text style={styles.followStatNumber}>{followStats.followerCount}</Text> followers
+              </Text>
+              <Text style={styles.followStat}>
+                <Text style={styles.followStatNumber}>{followStats.followingCount}</Text> following
+              </Text>
+            </View>
+          )}
           {!!(user?.effectiveStatus || user?.bio) && (
             <Text style={styles.statusLine} numberOfLines={2}>{user?.effectiveStatus || user?.bio}</Text>
           )}

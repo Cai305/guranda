@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, FlatList,
+  View, Text, TouchableOpacity, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import AiWidgetRenderer from '../../components/ai-widgets/AiWidgetRenderer';
 import { useAiConversation, AiBubble } from '../../context/AiConversationContext';
+import ChatComposer from '../../components/chat/ChatComposer';
 
 export default function AiChatScreen({ navigation, route }: any) {
   const { theme } = useTheme();
@@ -181,24 +182,6 @@ export default function AiChatScreen({ navigation, route }: any) {
     declineText: { color: COLORS.textMuted, fontWeight: '700' },
     approveBtn: { backgroundColor: COLORS.success },
     approveText: { color: '#04291B', fontWeight: '800' },
-    inputRow: {
-      flexDirection: 'row', gap: 10, alignItems: 'flex-end',
-      padding: SPACING.lg, paddingTop: 6,
-    },
-    input: {
-      flex: 1,
-      backgroundColor: COLORS.surface,
-      borderRadius: RADIUS.lg,
-      borderWidth: 1, borderColor: COLORS.glassBorder,
-      color: COLORS.text,
-      paddingHorizontal: 14, paddingVertical: 10,
-      maxHeight: 110, fontSize: 14,
-    },
-    sendBtn: {
-      width: 42, height: 42, borderRadius: 21,
-      backgroundColor: COLORS.primary,
-      justifyContent: 'center', alignItems: 'center',
-    },
   }));
 
   return (
@@ -263,25 +246,13 @@ export default function AiChatScreen({ navigation, route }: any) {
           </View>
         )}
 
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder={`Message ${agentName}…`}
-            placeholderTextColor={COLORS.textMuted}
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={send}
-            editable={!thinking}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, (!input.trim() || thinking) && { opacity: 0.4 }]}
-            onPress={send}
-            disabled={!input.trim() || thinking}
-          >
-            <Ionicons name="arrow-up" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <ChatComposer
+          value={input}
+          onChangeText={setInput}
+          onSend={send}
+          placeholder={`Message ${agentName}…`}
+          sending={thinking}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -222,13 +222,75 @@ export interface CommunityDto {
   name: string;
   description?: string;
   iconUrl?: string;
+  coverUrl?: string;
+  category?: string;
+  privacy: 'PUBLIC' | 'PRIVATE';
   createdAt: Date;
   _count?: { members: number };
+  myRole?: 'ADMIN' | 'MOD' | 'MEMBER';
 }
 
 export interface CommunityDetailsDto extends CommunityDto {
-  rooms: { id: string; name: string; type: string }[];
+  rooms: ChannelDto[];
   isMember: boolean;
+  myRole?: 'ADMIN' | 'MOD' | 'MEMBER';
+  pinnedAppIds: string[];
+}
+
+export interface ChannelDto {
+  id: string;
+  name: string;
+  type: string;
+  channelType: 'TEXT' | 'ANNOUNCEMENT' | 'VOICE';
+  voiceRoomName?: string;
+}
+
+export interface CommunityMemberDto {
+  id: string;
+  userId: string;
+  role: 'ADMIN' | 'MOD' | 'MEMBER';
+  joinedAt: Date;
+  user: {
+    username: string;
+    profile?: { displayName?: string; avatarUrl?: string };
+  };
+}
+
+export interface CommunityPostDto {
+  id: string;
+  communityId: string;
+  authorId: string;
+  content: string;
+  mediaUrl?: string;
+  createdAt: Date;
+  editedAt?: Date;
+  author: {
+    username: string;
+    profile?: { displayName?: string; avatarUrl?: string };
+  };
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+}
+
+export interface CommunityPostCommentDto {
+  id: string;
+  postId: string;
+  authorId: string;
+  content: string;
+  createdAt: Date;
+  author: {
+    username: string;
+    profile?: { displayName?: string; avatarUrl?: string };
+  };
+}
+
+export interface CommunityInviteDto {
+  code: string;
+  link: string;
+  expiresAt?: Date;
+  maxUses?: number;
+  useCount: number;
 }
 
 export interface StoryItemDto {

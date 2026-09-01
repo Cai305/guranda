@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
@@ -65,6 +66,21 @@ export class ChatService {
       isPerChatOverride: !!membership.wallpaperUrl,
       globalWallpaperUrl: profile?.chatWallpaperUrl ?? null,
     };
+  }
+
+  async getPublicChannels() {
+    const channels = await this.prisma.chat.findMany({
+      where: { isPublic: true },
+      include: { messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    });
+    return channels.map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: 'Public',
+      channelType: c.channelType,
+      status: 'online',
+      lastMessageAt: c.messages[0]?.createdAt ?? c.createdAt,
+    }));
   }
 
   async getUserChats(userId: string) {
@@ -165,7 +181,38 @@ export class ChatService {
     return user?.profile?.displayName || user?.username || 'Someone';
   }
 
+  // Community channels have no ChatMember rows — membership is tracked at the
+  // community level (CommunityMember), not the chat level. This is the one
+  // access check either send or read path enforces today; DIRECT/GROUP chats
+  // and public (isPublic) channels are untouched — same open-by-default
+  // behavior they've always had.
+  private async assertCanAccessChannel(chatId: string, userId: string) {
+    const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+    if (!chat || !chat.communityId || chat.isPublic) return;
+    const membership = await this.prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId: chat.communityId, userId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You must be a member of this community to access this channel');
+    }
+  }
+
+  private async assertCanPostInChannel(chatId: string, userId: string) {
+    const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+    if (!chat || !chat.communityId || chat.isPublic) return;
+    const membership = await this.prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId: chat.communityId, userId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You must be a member of this community to post here');
+    }
+    if (chat.channelType === 'ANNOUNCEMENT' && membership.role === 'MEMBER') {
+      throw new ForbiddenException('Only admins and moderators can post in this announcement channel');
+    }
+  }
+
   async getMessages(chatId: string, userId: string) {
+    await this.assertCanAccessChannel(chatId, userId);
     // Update lastReadAt when user opens the chat
     await this.prisma.chatMember.updateMany({
       where: { chatId, userId },
@@ -223,6 +270,7 @@ export class ChatService {
     replyToId?: string,
     isForwarded?: boolean,
   ) {
+    await this.assertCanPostInChannel(chatId, senderId);
     const message = await this.prisma.message.create({
       data: { chatId, senderId, content, mediaUrl, replyToId, isForwarded },
       include: {

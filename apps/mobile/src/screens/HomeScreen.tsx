@@ -26,6 +26,19 @@ import { GAMES } from './hub/GamesScreen';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 import OpportunitiesCarousel from '../components/opportunities/OpportunitiesCarousel';
 
+const EVENT_CATEGORY_ICONS: Record<string, string> = {
+  Festival: 'musical-notes',
+  Comedy: 'happy',
+  Theatre: 'videocam',
+  Sports: 'football',
+};
+
+const fmtEventWhen = (iso: string) => {
+  const date = new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+};
+
 export default function HomeScreen({ navigation }: any) {
   const { theme } = useTheme();
   const { COLORS, GRADIENTS, BRAND, SPACING } = theme;
@@ -57,18 +70,13 @@ export default function HomeScreen({ navigation }: any) {
     } as LifeModule] : []),
   ];
 
-  const EVENTS = [
-    { id: 'e1', title: 'Season 1 Championship', when: 'Starts Monday', icon: 'trophy', color: COLORS.gold },
-    { id: 'e2', title: 'Community Game Night', when: 'Friday · 19:00', icon: 'game-controller', color: COLORS.secondary },
-    { id: 'e3', title: 'Guranda Creator AMA', when: 'Next week', icon: 'mic', color: COLORS.accent },
-  ];
-
   const { user } = useAuth();
   const { onlineUsers } = useSocket();
   const MODULES = useEffectiveModules();
   const [wallet, setWallet] = useState<any>(null);
   const [chats, setChats] = useState<any[]>([]);
   const [communities, setCommunities] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [realRooms, setRealRooms] = useState<RealLiveStream[]>([]);
   const homeLiveStreams = React.useMemo(() => [...realRooms, ...MOCK_STREAMS].slice(0, 6), [realRooms]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -103,6 +111,10 @@ export default function HomeScreen({ navigation }: any) {
       fetchApi('/communities')
         .then(res => (res.ok ? res.json() : []))
         .then(data => Array.isArray(data) && setCommunities(data))
+        .catch(() => {});
+      fetchApi('/entertainment/events')
+        .then(res => (res.ok ? res.json() : []))
+        .then(data => Array.isArray(data) && setUpcomingEvents(data.slice(0, 3)))
         .catch(() => {});
       fetchApi('/relationships/mine')
         .then(res => (res.ok ? res.json() : null))
@@ -588,12 +600,15 @@ export default function HomeScreen({ navigation }: any) {
                 <Ionicons name="stats-chart" size={14} color="#FFF" />
                 <Text style={styles.walletBtnText}>Activity</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.walletBtn, styles.walletBtnGhost]}
-                onPress={() => navigation.navigate('UnderConstruction', { moduleId: 'finance' })}
-              >
-                <Text style={styles.walletBtnText}>Invest 🚧</Text>
-              </TouchableOpacity>
+              {isInstalled('finance') && (
+                <TouchableOpacity
+                  style={[styles.walletBtn, styles.walletBtnGhost]}
+                  onPress={() => navigation.navigate('FinanceHome')}
+                >
+                  <Ionicons name="trending-up" size={14} color="#FFF" />
+                  <Text style={styles.walletBtnText}>Invest</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </LinearGradient>
         </TouchableOpacity>
@@ -665,7 +680,7 @@ export default function HomeScreen({ navigation }: any) {
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.chatCard} activeOpacity={0.8} onPress={() => openChat(item)}>
               <Image
-                source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
+                source={{ uri: item.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.name}` }}
                 style={styles.chatAvatar}
               />
               <Text style={styles.chatName} numberOfLines={1}>{item.name}</Text>
@@ -710,7 +725,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* ===== Communities ===== */}
         <SectionHeader
           title="Communities"
-          onSeeAll={() => navigation.navigate('Main', { screen: 'Chat', params: { screen: 'ChatList' } })}
+          onSeeAll={() => navigation.navigate('BrowseCommunities')}
         />
         {communities.length > 0 ? (
           <FlatList
@@ -747,20 +762,36 @@ export default function HomeScreen({ navigation }: any) {
         )}
 
         {/* ===== Trending & events ===== */}
-        <SectionHeader title="Upcoming events" />
+        <SectionHeader title="Upcoming events" onSeeAll={() => navigation.navigate('Life', { screen: 'EventsHome' })} seeAllLabel="Events" />
         <View style={{ paddingHorizontal: SPACING.lg, gap: SPACING.md }}>
-          {EVENTS.map(ev => (
-            <View key={ev.id} style={styles.eventRow}>
-              <View style={[styles.eventIcon, { backgroundColor: ev.color + '22' }]}>
-                <Ionicons name={ev.icon as any} size={20} color={ev.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.eventTitle}>{ev.title}</Text>
-                <Text style={styles.eventWhen}>{ev.when}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
-            </View>
-          ))}
+          {upcomingEvents.length > 0 ? (
+            upcomingEvents.map(ev => (
+              <TouchableOpacity
+                key={ev.id}
+                style={styles.eventRow}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('Life', { screen: 'EventDetail', params: { eventId: ev.id } })}
+              >
+                <View style={[styles.eventIcon, { backgroundColor: COLORS.secondary + '22' }]}>
+                  <Ionicons name={(EVENT_CATEGORY_ICONS[ev.category] || 'calendar') as any} size={20} color={COLORS.secondary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.eventTitle} numberOfLines={1}>{ev.title}</Text>
+                  <Text style={styles.eventWhen}>{fmtEventWhen(ev.startsAt)} · {ev.venue}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <TouchableOpacity
+              style={styles.emptyCard}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Life', { screen: 'EventsHome' })}
+            >
+              <Ionicons name="calendar-outline" size={22} color={COLORS.secondary} />
+              <Text style={styles.emptyCardText}>No upcoming events yet — browse Events</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ===== Achievements ===== */}

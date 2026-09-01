@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, FlatList,
+  View, Text, TouchableOpacity, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import ChatComposer from '../../components/chat/ChatComposer';
 
 // Real full-screen DM-style chat for the fixed platform personas (Sipho,
 // Thandi, Guranda AI Assistant) — deliberately NOT the floating orb pattern
@@ -141,16 +142,6 @@ export default function CompanionChatScreen({ navigation, route }: any) {
     systemText: { color: COLORS.textMuted, fontSize: 11.5, textAlign: 'center', marginVertical: 2 },
     thinkingRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: SPACING.lg, paddingBottom: 6 },
     thinkingText: { color: COLORS.textMuted, fontSize: 12 },
-    inputRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end', padding: SPACING.lg, paddingTop: 6 },
-    input: {
-      flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
-      borderWidth: 1, borderColor: COLORS.glassBorder, color: COLORS.text,
-      paddingHorizontal: 14, paddingVertical: 10, maxHeight: 110, fontSize: 14,
-    },
-    sendBtn: {
-      width: 42, height: 42, borderRadius: 21,
-      backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
-    },
   }));
 
   return (
@@ -192,25 +183,13 @@ export default function CompanionChatScreen({ navigation, route }: any) {
           </View>
         )}
 
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder={`Message ${companionName}…`}
-            placeholderTextColor={COLORS.textMuted}
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={send}
-            editable={!thinking}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, (!input.trim() || thinking) && { opacity: 0.4 }]}
-            onPress={send}
-            disabled={!input.trim() || thinking}
-          >
-            <Ionicons name="arrow-up" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <ChatComposer
+          value={input}
+          onChangeText={setInput}
+          onSend={send}
+          placeholder={`Message ${companionName}…`}
+          sending={thinking}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

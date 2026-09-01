@@ -5,6 +5,7 @@ import { API_BASE_URL, setOnUnauthorized } from '../utils/api';
 import { clearApiCache } from '../utils/apiCache';
 import { syncPushToken, registerNotificationResponseHandler } from '../utils/pushNotifications';
 import { registerIntegrationsDeepLinkHandler } from '../utils/integrationsDeepLink';
+import { registerCommunityDeepLinkHandler } from '../utils/communityDeepLink';
 import { syncLocation } from '../utils/locationSync';
 import { rideSocket } from '../services/RideSocketService';
 
@@ -235,6 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       syncPushToken();
       registerNotificationResponseHandler();
       registerIntegrationsDeepLinkHandler();
+      registerCommunityDeepLinkHandler();
       syncLocation();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

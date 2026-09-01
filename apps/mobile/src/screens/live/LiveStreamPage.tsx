@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, Alert, Share, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import ChatComposer from '../../components/chat/ChatComposer';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -767,37 +768,32 @@ export default function LiveStreamPage({ stream, navigation, isActive }: Props) 
           </View>
         )}
 
-        {/* Chat Input Row */}
-        <View style={styles.chatInputOverlayRow}>
-          {/* Emoji tray toggle */}
-          <TouchableOpacity
-            style={[styles.inputIconBtn, emojiTrayOpen && { backgroundColor: 'rgba(255,255,255,0.2)' }]}
-            onPress={() => { setEmojiTrayOpen(o => !o); setGifPickerOpen(false); }}
-          >
-            <Text style={{ fontSize: 20 }}>😹</Text>
-          </TouchableOpacity>
-
-          {/* GIF button */}
-          <TouchableOpacity
-            style={styles.gifBtn}
-            onPress={() => { setGifPickerOpen(true); setEmojiTrayOpen(false); }}
-          >
-            <Text style={styles.gifBtnText}>GIF</Text>
-          </TouchableOpacity>
-
-          <TextInput
-            style={styles.chatInputOverlay}
-            placeholder="Add a comment..."
-            placeholderTextColor="rgba(255,255,255,0.6)"
-            value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={sendMessage}
-            onFocus={() => { setEmojiTrayOpen(false); }}
-          />
-          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-            <Ionicons name="send" size={16} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        {/* Chat Input Row — the same composer used everywhere else in the
+            app; the live-reaction tray (sound-linked emoji) and GIF picker
+            are stream-specific extras, not duplicates of chat's own
+            Vemoji/GIF pickers, so they ride along as extraButtons. */}
+        <ChatComposer
+          value={message}
+          onChangeText={setMessage}
+          onSend={sendMessage}
+          placeholder="Add a comment..."
+          extraButtons={
+            <>
+              <TouchableOpacity
+                style={[styles.inputIconBtn, emojiTrayOpen && { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+                onPress={() => { setEmojiTrayOpen(o => !o); setGifPickerOpen(false); }}
+              >
+                <Text style={{ fontSize: 20 }}>😹</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.gifBtn}
+                onPress={() => { setGifPickerOpen(true); setEmojiTrayOpen(false); }}
+              >
+                <Text style={styles.gifBtnText}>GIF</Text>
+              </TouchableOpacity>
+            </>
+          }
+        />
 
       </KeyboardAvoidingView>
 

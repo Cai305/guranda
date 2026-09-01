@@ -23,7 +23,11 @@ export default function BottomTabNavigator() {
           navigate here) but no longer gets a bottom-bar slot — its tiles
           now surface directly on Home instead. CustomTabBar also skips it
           explicitly, but options.tabBarButton is kept as a fallback. */}
-      <Tab.Screen name="Life" component={HubStackNavigator} options={{ tabBarButton: () => null }} />
+      <Tab.Screen
+        name="Life"
+        component={HubStackNavigator}
+        options={{ tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

@@ -19,6 +19,7 @@ export default function HubScreen({ route, navigation }: any) {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<LifeModule | null>(null);
   const [communityApps, setCommunityApps] = useState<LifeModule[]>([]);
+  const [communityGameIds, setCommunityGameIds] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState<'all' | 'apps' | 'games' | 'community'>('all');
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
@@ -236,6 +237,7 @@ export default function HubScreen({ route, navigation }: any) {
             route: { name: 'ExternalApp', params: { sourceUrl: a.sourceUrl, name: a.name } },
           }));
         setCommunityApps(mapped);
+        setCommunityGameIds(new Set(apps.filter(a => !a.isNative && a.sourceUrl && a.type === 'Game').map(a => a.id)));
       })
       .catch(() => {});
   }, []);
@@ -268,8 +270,8 @@ export default function HubScreen({ route, navigation }: any) {
     : searched.filter(m => {
         if (category === 'all') return true;
         if (category === 'apps') return baseMiniApps.some(b => b.id === m.id);
-        if (category === 'games') return gamesAsModules.some(g => g.id === m.id);
-        return communityApps.some(c => c.id === m.id);
+        if (category === 'games') return gamesAsModules.some(g => g.id === m.id) || communityGameIds.has(m.id);
+        return communityApps.some(c => c.id === m.id) && !communityGameIds.has(m.id);
       });
 
   const openModule = (module: LifeModule) => {
@@ -504,7 +506,7 @@ export default function HubScreen({ route, navigation }: any) {
                 {renderHorizontalGroup(
                   "Great Games",
                   "Play Now",
-                  filtered.filter(m => gamesAsModules.some(b => b.id === m.id) && m.status !== 'construction')
+                  filtered.filter(m => (gamesAsModules.some(b => b.id === m.id) || communityGameIds.has(m.id)) && m.status !== 'construction')
                 )}
                 <View style={styles.sectionDivider} />
 
@@ -521,7 +523,7 @@ export default function HubScreen({ route, navigation }: any) {
               renderHorizontalGroup(
                 "Community Apps",
                 "From Developers",
-                filtered.filter(m => communityApps.some(c => c.id === m.id))
+                filtered.filter(m => communityApps.some(c => c.id === m.id) && !communityGameIds.has(m.id))
               )
             )}
 

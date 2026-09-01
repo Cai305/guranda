@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing } from 'react-native';
+import { Animated, Easing, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useAiOrb } from '../../context/AiOrbContext';
+import { useAuth } from '../../context/AuthContext';
 import { ThemeTokens } from '../../theme/themes';
 
 // Shared across every bottom-bar style variant (see config/tabBarStyles.ts)
@@ -30,6 +31,34 @@ export const ROUTE_LABELS: Record<string, string> = {
 
 export function visibleRoutes(state: BottomTabBarProps['state']) {
   return state.routes.filter(r => !HIDDEN_ROUTES.includes(r.name));
+}
+
+interface RouteIconProps {
+  routeName: string;
+  size: number;
+  color: string;
+  focused: boolean;
+}
+
+// The Profile tab shows the user's own avatar instead of a generic icon —
+// every other tab keeps its Ionicons glyph. Centralized here so all 5
+// tab-bar styles (Orb/Classic/Pill/Compact/Dock) render it identically
+// instead of each hardcoding <Ionicons name={ROUTE_ICONS[route.name]}>.
+export function RouteIcon({ routeName, size, color, focused }: RouteIconProps) {
+  const { user } = useAuth();
+  if (routeName === 'Profile') {
+    const uri = user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}`;
+    return (
+      <Image
+        source={{ uri }}
+        style={{
+          width: size, height: size, borderRadius: size / 2,
+          borderWidth: focused ? 1.5 : 0, borderColor: color,
+        }}
+      />
+    );
+  }
+  return <Ionicons name={ROUTE_ICONS[routeName] ?? 'ellipse-outline'} size={size} color={color} />;
 }
 
 export function makeOnPress(

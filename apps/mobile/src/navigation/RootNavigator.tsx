@@ -25,6 +25,13 @@ import CampaignAnalyticsScreen from '../screens/CampaignAnalyticsScreen';
 import CampaignDetailScreen from '../screens/CampaignDetailScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CreateCommunityScreen from '../screens/CreateCommunityScreen';
+import CommunityMembersScreen from '../screens/CommunityMembersScreen';
+import EditCommunityScreen from '../screens/EditCommunityScreen';
+import CreateChannelScreen from '../screens/CreateChannelScreen';
+import CommunityVoiceScreen from '../screens/CommunityVoiceScreen';
+import CommunityPostScreen from '../screens/CommunityPostScreen';
+import InviteToCommunityScreen from '../screens/InviteToCommunityScreen';
+import BrowseCommunitiesScreen from '../screens/BrowseCommunitiesScreen';
 import UnderConstructionScreen from '../screens/UnderConstructionScreen';
 import ExternalAppScreen from '../screens/hub/ExternalAppScreen';
 import LiveScreen from '../screens/live/LiveScreen';
@@ -170,6 +177,13 @@ export default function RootNavigator() {
           <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="CreateCommunity" component={CreateCommunityScreen} />
+          <Stack.Screen name="CommunityMembers" component={CommunityMembersScreen} />
+          <Stack.Screen name="EditCommunity" component={EditCommunityScreen} />
+          <Stack.Screen name="CreateChannel" component={CreateChannelScreen} />
+          <Stack.Screen name="CommunityVoice" component={CommunityVoiceScreen} />
+          <Stack.Screen name="CommunityPost" component={CommunityPostScreen} />
+          <Stack.Screen name="InviteToCommunity" component={InviteToCommunityScreen} />
+          <Stack.Screen name="BrowseCommunities" component={BrowseCommunitiesScreen} />
           <Stack.Screen name="UnderConstruction" component={UnderConstructionScreen} />
           <Stack.Screen name="ExternalApp" component={ExternalAppScreen} />
           <Stack.Screen name="Live" component={LiveScreen} />

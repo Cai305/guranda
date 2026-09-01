@@ -14,6 +14,18 @@ import DockTabBar from './tabbars/DockTabBar';
 export default function CustomTabBar(props: BottomTabBarProps) {
   const { styleId, isReady } = useTabBarStyle();
 
+  // Screens set options.tabBarStyle={{display:'none'}} (directly, e.g. the
+  // "Life" tab which hosts every mini-app/game, or via
+  // navigation.getParent()?.setOptions(...) from a nested screen, e.g. an
+  // individual chat conversation) to reclaim the bar's screen space. None of
+  // the 5 tab bar styles below read `options` for this themselves, so it's
+  // handled once, here, before dispatching to any of them.
+  const focusedRoute = props.state.routes[props.state.index];
+  const focusedStyle = props.descriptors[focusedRoute.key]?.options.tabBarStyle as
+    | { display?: string }
+    | undefined;
+  if (focusedStyle?.display === 'none') return null;
+
   // Render the default while the stored preference is still loading rather
   // than flashing a different style for a frame.
   if (!isReady || styleId === 'orb') return <OrbTabBar {...props} />;

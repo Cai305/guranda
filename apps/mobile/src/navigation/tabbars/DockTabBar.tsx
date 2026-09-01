@@ -2,10 +2,9 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '../../context/ThemeContext';
-import { ROUTE_ICONS, ROUTE_LABELS, visibleRoutes, makeOnPress, AiIconButton } from './shared';
+import { ROUTE_LABELS, visibleRoutes, makeOnPress, AiIconButton, RouteIcon } from './shared';
 
 // A frosted-glass floating dock of circular buttons, macOS-dock inspired.
 // No labels — the active icon lifts (scales up) and sits on a soft glow
@@ -48,10 +47,11 @@ export default function DockTabBar({ state, descriptors, navigation }: BottomTab
             transform: [{ scale: isFocused ? 1.12 : 1 }],
           }}
         >
-          <Ionicons
-            name={ROUTE_ICONS[route.name] ?? 'ellipse-outline'}
+          <RouteIcon
+            routeName={route.name}
             size={22}
             color={isFocused ? COLORS.primary : COLORS.text}
+            focused={isFocused}
           />
         </View>
       </TouchableOpacity>

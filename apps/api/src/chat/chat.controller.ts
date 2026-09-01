@@ -28,6 +28,13 @@ export class ChatController {
     return this.chatService.getUserChats(userId);
   }
 
+  // Registered before ':id/messages' — 'public' would otherwise be parsed as
+  // a chat id by that route.
+  @Get('public')
+  async getPublicChannels() {
+    return this.chatService.getPublicChannels();
+  }
+
   @Get(':id/messages')
   async getChatMessages(@Param('id') chatId: string, @Request() req: any) {
     const userId = req.user.userId;

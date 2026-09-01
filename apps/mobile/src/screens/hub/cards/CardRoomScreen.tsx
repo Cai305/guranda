@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Share, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Share, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import io, { Socket } from 'socket.io-client';
@@ -7,6 +7,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL } from '../../../utils/api';
+import ChatComposer from '../../../components/chat/ChatComposer';
 
 interface ChatEntry {
   kind: 'message' | 'reaction';
@@ -216,19 +217,12 @@ export default function CardRoomScreen({ route, navigation }: any) {
           ))}
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={styles.chatInputRow}>
-            <TextInput
-              style={styles.chatInput}
-              placeholder="Say something…"
-              placeholderTextColor={COLORS.textMuted}
-              value={message}
-              onChangeText={setMessage}
-              onSubmitEditing={sendMessage}
-            />
-            <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-              <Ionicons name="send" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          <ChatComposer
+            value={message}
+            onChangeText={setMessage}
+            onSend={sendMessage}
+            placeholder="Say something…"
+          />
         </KeyboardAvoidingView>
       </View>
     </SafeAreaView>
