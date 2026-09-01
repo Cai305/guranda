@@ -12,6 +12,7 @@ import PulsingRadar from '../../../components/PulsingRadar';
 import * as Location from 'expo-location';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RIDE_MAP_STYLE } from '../../../theme/mapStyle';
 
 // react-native-maps doesn't work on web — use a conditional import
 let MapView: any = null;
@@ -1029,6 +1030,7 @@ export default function RiderView({ navigation }: { navigation?: any }) {
       return (
         <LeafletMap
           center={{ lat: mapCenter.lat, lng: mapCenter.lng }}
+          selfCoord={deviceLocation}
           pickupCoord={pickupCoord}
           dropoffCoord={dropoffCoord}
           driverPins={showIdlePins ? idleDriverPins : liveDriverPin}
@@ -1044,8 +1046,9 @@ export default function RiderView({ navigation }: { navigation?: any }) {
           ref={mapRef}
           style={StyleSheet.absoluteFill}
           initialRegion={deviceLocation ? { latitude: deviceLocation.lat, longitude: deviceLocation.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : INITIAL_REGION}
-          customMapStyle={mapStyle}
+          customMapStyle={RIDE_MAP_STYLE}
           showsUserLocation={true}
+          showsMyLocationButton={true}
         >
           {Marker && pickupCoord && (
             <Marker coordinate={{ latitude: pickupCoord.lat, longitude: pickupCoord.lng }} title="Pickup" pinColor={COLORS.primary} />
@@ -1067,7 +1070,7 @@ export default function RiderView({ navigation }: { navigation?: any }) {
               coordinate={{ latitude: liveDriverCoord.lat, longitude: liveDriverCoord.lng }}
               title={activeRide?.driver?.username || 'Driver'}
               description="On the way"
-              pinColor="#f59e0b"
+              pinColor={COLORS.warning}
             />
           )}
           {Polyline && displayRoute.length > 1 && (
@@ -1111,26 +1114,3 @@ export default function RiderView({ navigation }: { navigation?: any }) {
     </View>
   );
 }
-
-
-// A standard dark theme map style (native only)
-const mapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#263c3f' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#6b9a76' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212a37' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9ca5b3' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#746855' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1f2835' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#f3d19c' }] },
-  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2f3948' }] },
-  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#d59563' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#515c6d' }] },
-  { featureType: 'water', elementType: 'labels.text.stroke', stylers: [{ color: '#17263c' }] },
-];

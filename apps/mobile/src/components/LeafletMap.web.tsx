@@ -17,6 +17,8 @@ export interface DriverPin { id: string; lat: number; lng: number; name: string;
 
 interface Props {
   center?: Coord;
+  /** This device's own current position — rendered as a pulsing "you are here" dot, always kept in sync while the screen is mounted. */
+  selfCoord?: Coord | null;
   pickupCoord?: Coord | null;
   dropoffCoord?: Coord | null;
   driverPins?: DriverPin[];
@@ -33,8 +35,37 @@ interface Props {
 
 const LEAFLET_VER = '1.9.4';
 
+// Injected once — Leaflet divIcons render as plain HTML, so animations live
+// in a real stylesheet rather than inline styles (which can't declare
+// @keyframes). Also covers the driver/rider live-position pulse, which
+// referenced a "pulse-car" animation that was never actually defined.
+const MAP_ANIMATIONS_ID = 'mxit-leaflet-animations';
+function ensureMapAnimations() {
+  if (typeof document === 'undefined' || document.getElementById(MAP_ANIMATIONS_ID)) return;
+  const styleEl = document.createElement('style');
+  styleEl.id = MAP_ANIMATIONS_ID;
+  styleEl.textContent = `
+    @keyframes mxit-self-pulse {
+      0% { transform: scale(0.6); opacity: 0.55; }
+      70% { transform: scale(1); opacity: 0; }
+      100% { transform: scale(1); opacity: 0; }
+    }
+    @keyframes pulse-car {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.12); }
+    }
+    .mxit-marker-pop { animation: mxit-marker-in 220ms ease-out; }
+    @keyframes mxit-marker-in {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(styleEl);
+}
+
 export default function LeafletMap({
   center = { lat: -26.2041, lng: 28.0473 },
+  selfCoord,
   pickupCoord,
   dropoffCoord,
   driverPins = [],
@@ -47,6 +78,8 @@ export default function LeafletMap({
 }: Props) {
   const containerRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
+  const selfRef = useRef<any>(null);
+  const hasCenteredOnSelf = useRef(false);
   const pickupRef = useRef<any>(null);
   const dropoffRef = useRef<any>(null);
   const driverRefs = useRef<any[]>([]);
@@ -104,6 +137,7 @@ export default function LeafletMap({
   useEffect(() => {
     if (!ready || !containerRef.current || mapRef.current) return;
     const L = window.L;
+    ensureMapAnimations();
 
     // Fix default icon paths (broken when loaded from CDN without a bundler)
     delete L.Icon.Default.prototype._getIconUrl;
@@ -137,6 +171,41 @@ export default function LeafletMap({
     mapRef.current = map;
   }, [ready]);
 
+  // ── 2b. Sync "you are here" marker ───────────────────────────────────────
+  // The one thing this map was missing that the native MapView gets for
+  // free via showsUserLocation — a real-time dot for this device's own
+  // position, styled to match the familiar blue Google-Maps convention
+  // (solid dot + soft pulsing accuracy ring) rather than reusing the
+  // driver/rider emoji pins, which mean something different (the other
+  // party in an active ride, not "me").
+  useEffect(() => {
+    if (!mapRef.current || !window.L) return;
+    const L = window.L;
+    if (selfRef.current) { selfRef.current.remove(); selfRef.current = null; }
+    if (!selfCoord) return;
+
+    const icon = L.divIcon({
+      html: `
+        <div style="position:relative;width:22px;height:22px;">
+          <div style="position:absolute;inset:0;border-radius:50%;background:#4285F4;opacity:0.35;animation:mxit-self-pulse 1.8s ease-out infinite;"></div>
+          <div style="position:absolute;top:5px;left:5px;width:12px;height:12px;border-radius:50%;background:#4285F4;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>
+        </div>
+      `,
+      iconSize: [22, 22], iconAnchor: [11, 11], className: '',
+    });
+    selfRef.current = L.marker([selfCoord.lat, selfCoord.lng], { icon, zIndexOffset: 1000 })
+      .addTo(mapRef.current)
+      .bindPopup('<b>You are here</b>');
+
+    // Only auto-center the very first time a fix arrives and nothing else
+    // has already framed the view (a pickup/dropoff pair, or fitBounds) —
+    // after that, respect wherever the rider/driver has since panned to.
+    if (!hasCenteredOnSelf.current && !pickupCoord && !dropoffCoord) {
+      hasCenteredOnSelf.current = true;
+      mapRef.current.setView([selfCoord.lat, selfCoord.lng], 15, { animate: true });
+    }
+  }, [selfCoord]);
+
   // ── 3. Sync pickup marker ────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !window.L) return;
@@ -145,10 +214,12 @@ export default function LeafletMap({
     if (!pickupCoord) return;
 
     const icon = L.divIcon({
-      html: `<div style="width:16px;height:16px;border-radius:50%;background:#8B5CF6;border:3px solid #fff;box-shadow:0 0 10px rgba(139,92,246,0.9);"></div>`,
-      iconSize: [16, 16], iconAnchor: [8, 8], className: '',
+      html: `<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:#8B5CF6;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,0.5);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
+        <span style="transform:rotate(45deg);font-size:13px;">📍</span>
+      </div>`,
+      iconSize: [30, 30], iconAnchor: [15, 30], className: 'mxit-marker-pop',
     });
-    pickupRef.current = L.marker([pickupCoord.lat, pickupCoord.lng], { icon })
+    pickupRef.current = L.marker([pickupCoord.lat, pickupCoord.lng], { icon, zIndexOffset: 500 })
       .addTo(mapRef.current)
       .bindPopup('<b>📍 Pickup</b>');
     mapRef.current.setView([pickupCoord.lat, pickupCoord.lng], 14, { animate: true });
@@ -162,10 +233,12 @@ export default function LeafletMap({
     if (!dropoffCoord) return;
 
     const icon = L.divIcon({
-      html: `<div style="width:16px;height:16px;border-radius:50%;background:#22D3EE;border:3px solid #fff;box-shadow:0 0 10px rgba(34,211,238,0.9);"></div>`,
-      iconSize: [16, 16], iconAnchor: [8, 8], className: '',
+      html: `<div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:#22D3EE;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,0.5);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
+        <span style="transform:rotate(45deg);font-size:13px;">🏁</span>
+      </div>`,
+      iconSize: [30, 30], iconAnchor: [15, 30], className: 'mxit-marker-pop',
     });
-    dropoffRef.current = L.marker([dropoffCoord.lat, dropoffCoord.lng], { icon })
+    dropoffRef.current = L.marker([dropoffCoord.lat, dropoffCoord.lng], { icon, zIndexOffset: 500 })
       .addTo(mapRef.current)
       .bindPopup('<b>🏁 Dropoff</b>');
   }, [dropoffCoord]);
@@ -188,8 +261,8 @@ export default function LeafletMap({
     driverRefs.current.forEach(m => m.remove());
     driverRefs.current = driverPins.map(d => {
       const icon = L.divIcon({
-        html: `<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));">🚗</div>`,
-        iconSize: [24, 24], iconAnchor: [12, 12], className: '',
+        html: `<div style="width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid ${COLORS.secondary};box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:15px;">🚗</div>`,
+        iconSize: [30, 30], iconAnchor: [15, 15], className: 'mxit-marker-pop',
       });
       return L.marker([d.lat, d.lng], { icon })
         .addTo(mapRef.current)
@@ -204,10 +277,10 @@ export default function LeafletMap({
     if (liveDriverRef.current) { liveDriverRef.current.remove(); liveDriverRef.current = null; }
     if (!liveDriverCoord) return;
     const icon = L.divIcon({
-      html: `<div style="font-size:26px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));animation:pulse-car 1s infinite alternate;"><span>🚗</span></div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14], className: '',
+      html: `<div style="width:34px;height:34px;border-radius:50%;background:${COLORS.warning};border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:17px;animation:pulse-car 0.9s ease-in-out infinite alternate;">🚗</div>`,
+      iconSize: [34, 34], iconAnchor: [17, 17], className: '',
     });
-    liveDriverRef.current = L.marker([liveDriverCoord.lat, liveDriverCoord.lng], { icon })
+    liveDriverRef.current = L.marker([liveDriverCoord.lat, liveDriverCoord.lng], { icon, zIndexOffset: 800 })
       .addTo(mapRef.current)
       .bindPopup('<b>🚗 Driver is here</b>');
     mapRef.current.panTo([liveDriverCoord.lat, liveDriverCoord.lng], { animate: true, duration: 0.5 });
@@ -220,10 +293,10 @@ export default function LeafletMap({
     if (riderRef.current) { riderRef.current.remove(); riderRef.current = null; }
     if (!riderCoord) return;
     const icon = L.divIcon({
-      html: `<div style="font-size:22px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));">🧍</div>`,
-      iconSize: [24, 24], iconAnchor: [12, 12], className: '',
+      html: `<div style="width:30px;height:30px;border-radius:50%;background:${COLORS.warning};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:15px;">🧍</div>`,
+      iconSize: [30, 30], iconAnchor: [15, 15], className: 'mxit-marker-pop',
     });
-    riderRef.current = L.marker([riderCoord.lat, riderCoord.lng], { icon })
+    riderRef.current = L.marker([riderCoord.lat, riderCoord.lng], { icon, zIndexOffset: 800 })
       .addTo(mapRef.current)
       .bindPopup('<b>🧍 Rider</b>');
   }, [riderCoord]);
