@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, BadRequestException, NotFoundException } from
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 import { EventBusService } from '../events/event-bus.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Same upsert-by-stable-key seed pattern as AchievementsService and
 // CouplesService's DEFAULT_TEMPLATES. The six PAID_LEGACY entries mirror
@@ -30,6 +31,7 @@ export class ReactionsService implements OnModuleInit {
     private prisma: PrismaService,
     private verificationService: VerificationService,
     private eventBus: EventBusService,
+    private notifications: NotificationsService,
   ) {}
 
   async onModuleInit() {
@@ -70,7 +72,7 @@ export class ReactionsService implements OnModuleInit {
     if (!type) throw new NotFoundException('Unknown reaction type');
 
     if (type.amount === 0) {
-      return this.prisma.gift.create({
+      const freeReaction = await this.prisma.gift.create({
         data: {
           senderId,
           recipientId,
@@ -80,6 +82,14 @@ export class ReactionsService implements OnModuleInit {
           contextId: contextId ?? null,
         },
       });
+      await this.notifications.create(
+        recipientId,
+        'reaction.received',
+        `${type.icon} New reaction`,
+        `Someone reacted to your ${context} with ${type.label}`,
+        { reactionId: freeReaction.id, reactionKey: type.key, senderId, context, contextId },
+      );
+      return freeReaction;
     }
 
     await this.verificationService.assertVerified(senderId, 'Sending a reaction');
@@ -125,6 +135,14 @@ export class ReactionsService implements OnModuleInit {
         amount: type.amount,
         creatorShare,
       }),
+    );
+
+    await this.notifications.create(
+      recipientId,
+      'reaction.received',
+      `${type.icon} New reaction`,
+      `Someone reacted to your ${context} with ${type.label}`,
+      { reactionId: reaction.id, reactionKey: type.key, senderId, context, contextId },
     );
 
     return reaction;

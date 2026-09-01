@@ -7,9 +7,10 @@ import { CalendarAiToolsProvider } from './calendar-ai-tools.provider';
 import { GamesAiToolsProvider } from './games-ai-tools.provider';
 import { PrismaService } from '../prisma.service';
 import { AiRuntimeModule } from '../ai-runtime/ai-runtime.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [AiRuntimeModule],
+  imports: [AiRuntimeModule, NotificationsModule],
   controllers: [AiController],
   providers: [
     AiService,

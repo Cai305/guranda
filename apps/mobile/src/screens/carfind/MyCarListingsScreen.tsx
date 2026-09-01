@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,6 +16,7 @@ export default function MyCarListingsScreen({ navigation }: any) {
   const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     fetchApi('/carfind/listings/mine')
@@ -28,12 +29,19 @@ export default function MyCarListingsScreen({ navigation }: any) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const toggleSold = async (listing: any) => {
-    const res = await fetchApi(`/carfind/listings/${listing.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ sold: !listing.sold }),
-    });
-    if (res.ok) load();
-    else Alert.alert('Update failed', 'Could not update this listing');
+    setTogglingId(listing.id);
+    try {
+      const res = await fetchApi(`/carfind/listings/${listing.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sold: !listing.sold }),
+      });
+      if (res.ok) load();
+      else Alert.alert('Update failed', 'Could not update this listing');
+    } catch {
+      Alert.alert('Update failed', 'Could not update this listing');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const remove = (listing: any) => {
@@ -136,9 +144,15 @@ export default function MyCarListingsScreen({ navigation }: any) {
                 <Ionicons name="eye-outline" size={14} color="#A78BFA" />
                 <Text style={styles.actionText}>View</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={() => toggleSold(listing)}>
-                <Ionicons name={listing.sold ? 'refresh-outline' : 'checkmark-done-outline'} size={14} color="#A78BFA" />
-                <Text style={styles.actionText}>{listing.sold ? 'Mark available' : 'Mark sold'}</Text>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => toggleSold(listing)} disabled={togglingId === listing.id}>
+                {togglingId === listing.id ? (
+                  <ActivityIndicator color="#A78BFA" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name={listing.sold ? 'refresh-outline' : 'checkmark-done-outline'} size={14} color="#A78BFA" />
+                    <Text style={styles.actionText}>{listing.sold ? 'Mark available' : 'Mark sold'}</Text>
+                  </>
+                )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={() => remove(listing)}>
                 <Ionicons name="trash-outline" size={14} color="#F87171" />

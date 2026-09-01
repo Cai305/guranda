@@ -21,7 +21,7 @@ export class PostsAiToolsProvider implements OnModuleInit {
           permissionKey: 'posts.read',
           sensitive: false,
           defaultGranted: true,
-          handler: (ctx) => this.posts.getFeed(ctx.userId),
+          handler: (ctx) => this.posts.getFeed(ctx.userId).then((r) => r.posts),
           describeResult: (_i, output: any[]) =>
             output.length === 0
               ? 'Feed is empty.'

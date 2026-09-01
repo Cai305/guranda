@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { ChallengeGeneratorService } from './challenge-generator.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const AUTHOR_SELECT = {
   id: true,
@@ -29,6 +30,7 @@ export class ChallengesService {
     private prisma: PrismaService,
     private achievements: AchievementsService,
     private generator: ChallengeGeneratorService,
+    private notifications: NotificationsService,
   ) {}
 
   // ── Public reads ──────────────────────────────────────────────────────────
@@ -661,6 +663,13 @@ export class ChallengesService {
         update: { xp: { increment: challenge.bonusXpReward }, wins: { increment: 1 } },
       });
       await this.achievements.evaluateChallengeAchievementsForUser(winner.userId);
+      await this.notifications.create(
+        winner.userId,
+        'challenge.won',
+        'You won the challenge!',
+        `Your entry won "${challenge.title}"`,
+        { challengeId: challenge.id, entryId: winner.entryId },
+      );
     }
   }
 }

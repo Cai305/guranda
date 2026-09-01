@@ -8,6 +8,7 @@ import { EventBusService } from '../events/event-bus.service';
 import { MentionsService, MentionRef } from '../mentions/mentions.service';
 import { PostsGateway } from './posts.gateway';
 import { BadgeService } from '../profile/badge.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export type PostMediaInput = { url: string; type: string; thumbnailUrl?: string };
 
@@ -65,6 +66,7 @@ export class PostsService {
     private mentions: MentionsService,
     private postsGateway: PostsGateway,
     private badgeService: BadgeService,
+    private notifications: NotificationsService,
   ) {}
 
   // TEMPORARY (see schema.prisma note on Post.mediaUrl/mediaType): copies
@@ -169,8 +171,19 @@ export class PostsService {
   // simpler and less error-prone than an id-based cursor here, since Post.id
   // is a random UUID (not sortable), so `id: {lt: cursor}` wouldn't actually
   // track recency the way it does for models with sequential/sortable ids.
+  //
+  // getFeed reranks its raw pool by score (recency/reputation/proximity),
+  // so the returned page is NOT in chronological order — the client can't
+  // safely derive the next cursor from the last item it received (a
+  // low-scoring-but-recent post could get pushed past the page cut, then
+  // permanently excluded by `createdAt < cursor` on the next call before it
+  // ever has a chance to surface, silently breaking infinite scroll). The
+  // cursor returned here instead tracks the boundary of the raw chronological
+  // pool, so a post is never skipped — only its position within a page can
+  // shift as later batches get reranked, not whether it's ever reachable.
   async getFeed(viewerId?: string, take = 20, cursor?: string) {
     const pageSize = toPositiveInt(take, 20);
+    const poolSize = Math.max(pageSize * 4, 50);
     // Widen the raw pool beyond what's actually shown — ranking needs
     // candidates to reorder, not just the newest page.
     const [posts, viewer] = await Promise.all([
@@ -187,7 +200,7 @@ export class PostsService {
             orderBy: { createdAt: 'asc' },
           },
         },
-        take: Math.max(pageSize * 4, 50),
+        take: poolSize,
       }),
       viewerId
         ? this.prisma.user.findUnique({
@@ -213,7 +226,12 @@ export class PostsService {
       pageSize,
     );
 
-    return this.hydrate(ranked, viewerId);
+    // Fewer raw rows than we asked for means we've hit the true end of the
+    // table — no cursor to hand back, or the client would loop forever on
+    // an unchanging `createdAt < cursor` boundary.
+    const nextCursor = posts.length < poolSize ? null : posts[posts.length - 1].createdAt.toISOString();
+
+    return { posts: await this.hydrate(ranked, viewerId), nextCursor };
   }
 
   // Trending — engagement-scored, not personalized (no reputation/proximity
@@ -412,9 +430,19 @@ export class PostsService {
 
   async likePost(userId: string, postId: string) {
     try {
-      await this.prisma.postLike.create({
+      const like = await this.prisma.postLike.create({
         data: { userId, postId },
+        include: { post: { select: { authorId: true } } },
       });
+      if (like.post.authorId !== userId) {
+        await this.notifications.create(
+          like.post.authorId,
+          'post.liked',
+          'New like',
+          'Someone liked your post',
+          { postId, userId },
+        );
+      }
       return { status: 'liked' };
     } catch {
       await this.prisma.postLike.delete({
@@ -426,9 +454,19 @@ export class PostsService {
 
   async repostPost(userId: string, postId: string) {
     try {
-      await this.prisma.postRepost.create({
+      const repost = await this.prisma.postRepost.create({
         data: { userId, postId },
+        include: { post: { select: { authorId: true } } },
       });
+      if (repost.post.authorId !== userId) {
+        await this.notifications.create(
+          repost.post.authorId,
+          'post.reposted',
+          'New repost',
+          'Someone reposted your post',
+          { postId, userId },
+        );
+      }
       return { status: 'reposted' };
     } catch {
       await this.prisma.postRepost.delete({
@@ -464,14 +502,36 @@ export class PostsService {
     }
     const comment = await this.prisma.comment.create({
       data: { authorId: userId, postId, content, parentId: parentId ?? null },
-      include: { author: { select: AUTHOR_SELECT } },
+      include: { author: { select: AUTHOR_SELECT }, post: { select: { authorId: true } } },
     });
-    return { ...comment, author: toPostAuthor(comment.author) };
+    if (comment.post.authorId !== userId) {
+      await this.notifications.create(
+        comment.post.authorId,
+        'post.comment',
+        'New comment',
+        'Someone commented on your post',
+        { postId, commentId: comment.id, userId },
+      );
+    }
+    const { post: _post, ...rest } = comment;
+    return { ...rest, author: toPostAuthor(comment.author) };
   }
 
   async likeComment(userId: string, commentId: string) {
     try {
-      await this.prisma.commentLike.create({ data: { userId, commentId } });
+      const like = await this.prisma.commentLike.create({
+        data: { userId, commentId },
+        include: { comment: { select: { authorId: true } } },
+      });
+      if (like.comment.authorId !== userId) {
+        await this.notifications.create(
+          like.comment.authorId,
+          'post.comment_liked',
+          'New like',
+          'Someone liked your comment',
+          { commentId, userId },
+        );
+      }
       return { status: 'liked' };
     } catch {
       await this.prisma.commentLike.delete({

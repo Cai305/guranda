@@ -2,12 +2,14 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class FriendsService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
+    private notifications: NotificationsService,
   ) {}
 
   async sendRequest(requesterId: string, addresseeId: string) {
@@ -41,6 +43,13 @@ export class FriendsService {
     if (addressee?.expoPushToken) {
       await sendPushNotification(addressee.expoPushToken, 'New friend request', 'Someone wants to add you as a friend on Guranda');
     }
+    await this.notifications.create(
+      addresseeId,
+      'friend.request',
+      'New friend request',
+      'Someone wants to add you as a friend on Guranda',
+      { friendshipId: friendship.id, requesterId },
+    );
     return friendship;
   }
 
@@ -49,7 +58,15 @@ export class FriendsService {
     if (!friendship || friendship.addresseeId !== userId) {
       throw new NotFoundException('Friend request not found');
     }
-    return this.prisma.friendship.update({ where: { id: friendshipId }, data: { status: 'accepted' } });
+    const updated = await this.prisma.friendship.update({ where: { id: friendshipId }, data: { status: 'accepted' } });
+    await this.notifications.create(
+      friendship.requesterId,
+      'friend.request_accepted',
+      'Friend request accepted',
+      'Your friend request was accepted',
+      { friendshipId: friendship.id, accepterId: userId },
+    );
+    return updated;
   }
 
   async declineRequest(friendshipId: string, userId: string) {

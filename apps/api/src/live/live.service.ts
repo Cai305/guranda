@@ -18,6 +18,7 @@ import {
   ReputationLevel,
 } from '../ranking/content-ranking.service';
 import { BadgeService } from '../profile/badge.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class LiveService {
@@ -36,6 +37,7 @@ export class LiveService {
     private rideService: RideService,
     private ranking: ContentRankingService,
     private badgeService: BadgeService,
+    private notifications: NotificationsService,
   ) {
     const httpUrl = process.env.LIVEKIT_HTTP_URL || 'http://localhost:7880';
     this.roomService = new RoomServiceClient(
@@ -943,9 +945,17 @@ export class LiveService {
     });
     if (existing)
       throw new BadRequestException('You already applied to this job');
-    return this.prisma.liveJobApplication.create({
+    const application = await this.prisma.liveJobApplication.create({
       data: { jobId, applicantId, message: message || null },
     });
+    await this.notifications.create(
+      job.room.hostId,
+      'live.job_application',
+      'New job application',
+      `Someone applied to your "${job.title}" posting`,
+      { jobId, applicationId: application.id, applicantId },
+    );
+    return application;
   }
 
   async getJobApplicants(hostId: string, jobId: string) {
@@ -1100,6 +1110,15 @@ export class LiveService {
       }),
     ]);
     await this.chatService.createDirectChat(a.userId, b.userId);
+    for (const userId of [a.userId, b.userId]) {
+      await this.notifications.create(
+        userId,
+        'live.dating_match',
+        "It's a match!",
+        'You matched with someone on Live Dating',
+        { roomId },
+      );
+    }
     return { matched: true, applicantAId: a.userId, applicantBId: b.userId };
   }
 
@@ -1217,6 +1236,13 @@ export class LiveService {
       update: { status: 'INVITED', respondedAt: null },
       include: { user: { select: { id: true, username: true, profile: true } } },
     });
+    await this.notifications.create(
+      guestUserId,
+      'live.guest_invite',
+      "You're invited to go live!",
+      'The host invited you to join their live stream',
+      { roomId },
+    );
     return { ...guest, roomName: room.roomName };
   }
 

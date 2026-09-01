@@ -8,9 +8,10 @@ import { PostsAiToolsProvider } from './posts-ai-tools.provider';
 import { EventsModule } from '../events/events.module';
 import { MentionsModule } from '../mentions/mentions.module';
 import { ProfileModule } from '../profile/profile.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [RankingModule, EventsModule, MentionsModule, ProfileModule],
+  imports: [RankingModule, EventsModule, MentionsModule, ProfileModule, NotificationsModule],
   controllers: [PostsController],
   providers: [PostsService, PrismaService, PostsAiToolsProvider, PostsGateway],
   exports: [PostsService],

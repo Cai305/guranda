@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Image } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { COLORS } from '../theme';
 import AuthNavigator from './AuthNavigator';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -142,9 +143,20 @@ const Stack = createNativeStackNavigator();
 export default function RootNavigator() {
   const { isAuthenticated, isReady } = useAuth();
 
+  useEffect(() => {
+    if (isReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isReady]);
+
   if (!isReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+        <Image
+          source={require('../../assets/guranda-logo.png')}
+          style={{ width: 140, height: 140, marginBottom: 24 }}
+          resizeMode="contain"
+        />
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );

@@ -11,6 +11,7 @@ export default function MyCarWashesScreen({ navigation }: any) {
   const { COLORS, SPACING } = theme;
   const [carWashes, setCarWashes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
@@ -52,11 +53,14 @@ export default function MyCarWashesScreen({ navigation }: any) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          setDeletingId(id);
           try {
             await fetchApi(`/carwash/${id}`, { method: 'DELETE' });
             setCarWashes(c => c.filter(x => x.id !== id));
           } catch {
             Alert.alert('Error', 'Failed to delete car wash');
+          } finally {
+            setDeletingId(null);
           }
         },
       },
@@ -108,8 +112,12 @@ export default function MyCarWashesScreen({ navigation }: any) {
                   <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('ManageCarWash', { carWash: cw })}>
                     <Ionicons name="create-outline" size={16} color={COLORS.textMuted} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCarWash(cw.id)}>
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCarWash(cw.id)} disabled={deletingId === cw.id}>
+                    {deletingId === cw.id ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>

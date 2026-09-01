@@ -11,6 +11,7 @@ import { AchievementsModule } from '../achievements/achievements.module';
 import { DailyChallengesModule } from '../daily-challenges/daily-challenges.module';
 import { ReferralsModule } from '../referrals/referrals.module';
 import { CardsTournamentsModule } from '../cards-tournaments/cards-tournaments.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CardsTournamentsModule } from '../cards-tournaments/cards-tournaments.m
     DailyChallengesModule,
     ReferralsModule,
     forwardRef(() => CardsTournamentsModule),
+    NotificationsModule,
   ],
   controllers: [CardsController],
   providers: [CardsService, CardsGateway, PrismaService, CardsAiToolsProvider, CardsFinishHooksProvider],

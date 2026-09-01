@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Polls for reminders/wake-ups the AI companion has scheduled and delivers
 // them as push notifications when their fireAt time arrives. Runs every
@@ -11,7 +12,10 @@ import { sendPushNotification } from '../common/push';
 export class AiReminderScheduler {
   private readonly logger = new Logger(AiReminderScheduler.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async handleDueReminders() {
@@ -40,6 +44,13 @@ export class AiReminderScheduler {
           `Reminder ${reminder.id} for user ${reminder.userId}: no push token registered, skipping delivery`,
         );
       }
+      await this.notifications.create(
+        reminder.userId,
+        'ai.reminder',
+        reminder.title,
+        reminder.prepNote || 'Your Guranda AI companion has a reminder for you.',
+        { reminderId: reminder.id },
+      );
       await this.prisma.aiReminder.update({
         where: { id: reminder.id },
         data: { done: true, firedAt: new Date() },

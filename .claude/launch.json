@@ -20,6 +20,44 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "website", "--", "-p", "3010"],
       "port": 3010
+    },
+    {
+      "name": "sinthumule-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:\\Users\\USER\\Desktop\\Sinthumule holdings(Pty) Ltd\\sinthumule-holdings",
+        "run",
+        "start",
+        "--",
+        "--port",
+        "4300"
+      ],
+      "port": 4300
+    },
+    {
+      "name": "civicfund-api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "C:\\Users\\USER\\Desktop\\CivicFund", "--filter", "@civicfund/api", "start:dev"],
+      "port": 4000
+    },
+    {
+      "name": "civicfund-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "C:\\Users\\USER\\Desktop\\CivicFund", "--filter", "@civicfund/web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "fathom-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\Users\\USER\\Desktop\\fathom\\apps\\web", "run", "start"],
+      "port": 4200
+    },
+    {
+      "name": "thuma",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\Users\\USER\\Desktop\\thuma", "run", "dev", "--", "-p", "3050"],
+      "port": 3050
     }
   ]
 }

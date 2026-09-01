@@ -43,6 +43,7 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [votingValue, setVotingValue] = useState<number | null>(null);
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING, RADIUS }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
@@ -206,6 +207,7 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
   };
 
   const vote = async (entry: any, value: number) => {
+    setVotingValue(value);
     try {
       const res = await fetchApi(`/challenges/entries/${entry.id}/vote`, { method: 'POST', body: JSON.stringify({ value }) });
       if (!res.ok) {
@@ -217,6 +219,8 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
     } catch (e: any) {
       console.error(e);
       Alert.alert('Error', e.message || "Couldn't submit your vote.");
+    } finally {
+      setVotingValue(null);
     }
   };
 
@@ -430,8 +434,14 @@ export default function ChallengeDetailScreen({ route, navigation }: any) {
                         <Text style={styles.voteLabel}>Rate this entry</Text>
                         <View style={styles.voteButtons}>
                           {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
-                            <TouchableOpacity key={n} onPress={() => vote(selectedEntry, n)}>
-                              <Text style={[styles.voteNum, selectedEntry.myVote === n && styles.voteNumActive]}>{n}</Text>
+                            <TouchableOpacity key={n} onPress={() => vote(selectedEntry, n)} disabled={votingValue !== null}>
+                              {votingValue === n ? (
+                                <View style={[styles.voteNum, selectedEntry.myVote === n && styles.voteNumActive, { justifyContent: 'center', alignItems: 'center' }]}>
+                                  <ActivityIndicator size="small" color={selectedEntry.myVote === n ? '#fff' : COLORS.text} />
+                                </View>
+                              ) : (
+                                <Text style={[styles.voteNum, selectedEntry.myVote === n && styles.voteNumActive]}>{n}</Text>
+                              )}
                             </TouchableOpacity>
                           ))}
                         </View>

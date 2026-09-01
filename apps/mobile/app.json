@@ -8,10 +8,6 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#07070C",
     "scheme": "lifeos",
-    "splash": {
-      "backgroundColor": "#07070C",
-      "resizeMode": "contain"
-    },
     "ios": {
       "supportsTablet": true
     },

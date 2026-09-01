@@ -12,9 +12,10 @@ import { ChessModule } from '../chess/chess.module';
 import { FriendsModule } from '../friends/friends.module';
 import { ProfileModule } from '../profile/profile.module';
 import { RideModule } from '../ride/ride.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [ShoppingModule, EatModule, ChatModule, RankingModule, ChessModule, FriendsModule, ProfileModule, RideModule],
+  imports: [ShoppingModule, EatModule, ChatModule, RankingModule, ChessModule, FriendsModule, ProfileModule, RideModule, NotificationsModule],
   controllers: [LiveController],
   providers: [LiveService, LiveGateway, PrismaService, LiveAiToolsProvider],
   exports: [LiveGateway, LiveService],

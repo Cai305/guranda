@@ -14,6 +14,7 @@ export default function WatchLaterScreen({ navigation }: any) {
   const [videos, setVideos] = useState<VideoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingVertical: 12 },
@@ -42,8 +43,15 @@ export default function WatchLaterScreen({ navigation }: any) {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive', onPress: async () => {
-          setVideos(prev => prev.filter(x => x.id !== v.id));
-          await fetchApi(`/videos/${v.id}/watch-later`, { method: 'DELETE' });
+          setRemovingId(v.id);
+          try {
+            await fetchApi(`/videos/${v.id}/watch-later`, { method: 'DELETE' });
+            setVideos(prev => prev.filter(x => x.id !== v.id));
+          } catch {
+            Alert.alert('Error', "Couldn't remove this video. Please try again.");
+          } finally {
+            setRemovingId(null);
+          }
         }
       }
     ]);
@@ -72,6 +80,7 @@ export default function WatchLaterScreen({ navigation }: any) {
               onPress={v => navigation.navigate('VideoPlayer', { videoId: v.id })}
               onMenuPress={remove}
               menuIcon="trash-outline"
+              menuLoading={removingId === item.id}
             />
           )}
           ItemSeparatorComponent={() => <View style={styles.sep} />}

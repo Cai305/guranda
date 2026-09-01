@@ -18,6 +18,7 @@ export default function CommunityMembersScreen({ route }: any) {
   const [members, setMembers] = useState<CommunityMemberDto[]>([]);
   const [myRole, setMyRole] = useState<string>('MEMBER');
   const [loading, setLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -106,13 +107,20 @@ export default function CommunityMembersScreen({ route }: any) {
   };
 
   const removeMember = async (member: CommunityMemberDto) => {
-    const res = await fetchApi(`/communities/${communityId}/members/${member.userId}`, { method: 'DELETE' });
-    if (res.ok) load();
-    else Alert.alert('Error', (await res.json().catch(() => null))?.message || "Couldn't remove that member.");
+    setRemovingId(member.userId);
+    try {
+      const res = await fetchApi(`/communities/${communityId}/members/${member.userId}`, { method: 'DELETE' });
+      if (res.ok) load();
+      else Alert.alert('Error', (await res.json().catch(() => null))?.message || "Couldn't remove that member.");
+    } catch {
+      Alert.alert('Error', "Couldn't remove that member.");
+    } finally {
+      setRemovingId(null);
+    }
   };
 
   const renderMember = ({ item }: { item: CommunityMemberDto }) => (
-    <TouchableOpacity style={styles.row} activeOpacity={0.8} onPress={() => openActions(item)}>
+    <TouchableOpacity style={styles.row} activeOpacity={0.8} onPress={() => openActions(item)} disabled={removingId === item.userId}>
       <Image
         source={{ uri: item.user.profile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${item.user.username}` }}
         style={styles.avatar}
@@ -121,9 +129,13 @@ export default function CommunityMembersScreen({ route }: any) {
         <Text style={styles.name}>{item.user.profile?.displayName || item.user.username}</Text>
         <Text style={styles.username}>@{item.user.username}</Text>
       </View>
-      <View style={[styles.rolePill, item.role === 'ADMIN' && styles.rolePillAdmin]}>
-        <Text style={[styles.rolePillText, item.role === 'ADMIN' && styles.rolePillTextAdmin]}>{ROLE_LABEL[item.role]}</Text>
-      </View>
+      {removingId === item.userId ? (
+        <ActivityIndicator size="small" color={COLORS.primary} />
+      ) : (
+        <View style={[styles.rolePill, item.role === 'ADMIN' && styles.rolePillAdmin]}>
+          <Text style={[styles.rolePillText, item.role === 'ADMIN' && styles.rolePillTextAdmin]}>{ROLE_LABEL[item.role]}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 

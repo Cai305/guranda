@@ -14,6 +14,8 @@ export default function MySalonScreen({ navigation }: any) {
   const { COLORS, GRADIENTS } = theme;
   const [salon, setSalon] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -34,17 +36,23 @@ export default function MySalonScreen({ navigation }: any) {
   };
 
   const deleteService = async (id: string) => {
+    setDeletingServiceId(id);
     try {
       await fetchApi(`/hair/mine/services/${id}`, { method: 'DELETE' });
       setSalon((s: any) => ({ ...s, services: s.services.filter((x: any) => x.id !== id) }));
-    } catch {}
+    } catch {} finally {
+      setDeletingServiceId(null);
+    }
   };
 
   const deleteProduct = async (id: string) => {
+    setDeletingProductId(id);
     try {
       await fetchApi(`/hair/mine/products/${id}`, { method: 'DELETE' });
       setSalon((s: any) => ({ ...s, products: s.products.filter((x: any) => x.id !== id) }));
-    } catch {}
+    } catch {} finally {
+      setDeletingProductId(null);
+    }
   };
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING, RADIUS }) => ({
@@ -170,8 +178,12 @@ export default function MySalonScreen({ navigation }: any) {
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AddEditSalonService', { service: s })}>
                 <Ionicons name="create-outline" size={18} color={COLORS.textMuted} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => deleteService(s.id)}>
-                <Ionicons name="trash-outline" size={18} color="#ef4444" />
+              <TouchableOpacity style={styles.iconBtn} onPress={() => deleteService(s.id)} disabled={deletingServiceId === s.id}>
+                {deletingServiceId === s.id ? (
+                  <ActivityIndicator color="#ef4444" size="small" />
+                ) : (
+                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                )}
               </TouchableOpacity>
             </View>
           ))
@@ -197,8 +209,12 @@ export default function MySalonScreen({ navigation }: any) {
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AddEditSalonProduct', { product: p })}>
                 <Ionicons name="create-outline" size={18} color={COLORS.textMuted} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => deleteProduct(p.id)}>
-                <Ionicons name="trash-outline" size={18} color="#ef4444" />
+              <TouchableOpacity style={styles.iconBtn} onPress={() => deleteProduct(p.id)} disabled={deletingProductId === p.id}>
+                {deletingProductId === p.id ? (
+                  <ActivityIndicator color="#ef4444" size="small" />
+                ) : (
+                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                )}
               </TouchableOpacity>
             </View>
           ))

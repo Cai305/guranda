@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Chess } from 'chess.js';
 
 @Injectable()
@@ -8,7 +9,10 @@ export class ChessService {
   private queue: Map<number, { socketId: string; userId: string }[]> =
     new Map();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   joinQueue(userId: string, socketId: string, timeControl: number) {
     let list = this.queue.get(timeControl);
@@ -39,9 +43,14 @@ export class ChessService {
     }
   }
 
-  async createGame(whiteId: string, blackId: string, timeControl: number) {
+  async createGame(
+    whiteId: string,
+    blackId: string,
+    timeControl: number,
+    notify = true,
+  ) {
     const chess = new Chess();
-    return this.prisma.chessGame.create({
+    const game = await this.prisma.chessGame.create({
       data: {
         whiteId,
         blackId,
@@ -57,6 +66,18 @@ export class ChessService {
         blackPlayer: true,
       },
     });
+    if (notify) {
+      for (const userId of [whiteId, blackId]) {
+        await this.notifications.create(
+          userId,
+          'chess.invite',
+          'Chess match found',
+          "You've been matched into a chess game",
+          { gameId: game.id },
+        );
+      }
+    }
+    return game;
   }
 
   async makeMove(
@@ -147,10 +168,11 @@ export class ChessService {
     if (!game || game.status !== 'active') return null;
 
     let status = game.status;
+    const opponentId = game.whiteId === userId ? game.blackId : game.whiteId;
     if (game.whiteId === userId) status = 'black_won';
     else if (game.blackId === userId) status = 'white_won';
 
-    return this.prisma.chessGame.update({
+    const updated = await this.prisma.chessGame.update({
       where: { id: gameId },
       data: { status },
       include: {
@@ -158,6 +180,18 @@ export class ChessService {
         blackPlayer: true,
       },
     });
+
+    if (opponentId) {
+      await this.notifications.create(
+        opponentId,
+        'chess.resigned',
+        'Opponent resigned',
+        'Your opponent resigned — you win!',
+        { gameId },
+      );
+    }
+
+    return updated;
   }
 
   async getGame(gameId: string) {
@@ -177,10 +211,21 @@ export class ChessService {
     if (!original) return null;
 
     // Swap colors for the rematch
-    return this.createGame(
+    const rematch = await this.createGame(
       original.blackId,
       original.whiteId,
       original.timeControl,
+      false,
     );
+    for (const userId of [original.whiteId, original.blackId]) {
+      await this.notifications.create(
+        userId,
+        'chess.rematch_offer',
+        'Rematch started',
+        'A new rematch game has started',
+        { gameId: rematch.id, originalGameId },
+      );
+    }
+    return rematch;
   }
 }

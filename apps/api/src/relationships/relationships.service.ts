@@ -113,6 +113,13 @@ export class RelationshipsService {
         data: { relationshipStatus: request.intendedStatus },
       }),
     ]);
+    await this.notifications.create(
+      request.requesterId,
+      'relationship.request_accepted',
+      'Relationship request accepted',
+      'Your relationship request was accepted',
+      { requestId: request.id, accepterId: userId },
+    );
     return relationship;
   }
 

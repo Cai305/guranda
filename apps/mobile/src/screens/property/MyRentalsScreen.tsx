@@ -18,6 +18,7 @@ export default function MyRentalsScreen({ navigation }: any) {
   const [issueFor, setIssueFor] = useState<string | null>(null);
   const [issueTitle, setIssueTitle] = useState('');
   const [issueDesc, setIssueDesc] = useState('');
+  const [submittingIssue, setSubmittingIssue] = useState(false);
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
@@ -116,18 +117,25 @@ export default function MyRentalsScreen({ navigation }: any) {
 
   const submitIssue = async (tenancyId: string) => {
     if (!issueTitle.trim()) return;
-    const res = await fetchApi(`/property/tenancy/${tenancyId}/issues`, {
-      method: 'POST',
-      body: JSON.stringify({ title: issueTitle.trim(), description: issueDesc.trim() || undefined }),
-    });
-    if (res.ok) {
-      setIssueFor(null);
-      setIssueTitle('');
-      setIssueDesc('');
-      Alert.alert('Issue reported', 'Your agent has been notified.');
-      load();
-    } else {
+    setSubmittingIssue(true);
+    try {
+      const res = await fetchApi(`/property/tenancy/${tenancyId}/issues`, {
+        method: 'POST',
+        body: JSON.stringify({ title: issueTitle.trim(), description: issueDesc.trim() || undefined }),
+      });
+      if (res.ok) {
+        setIssueFor(null);
+        setIssueTitle('');
+        setIssueDesc('');
+        Alert.alert('Issue reported', 'Your agent has been notified.');
+        load();
+      } else {
+        Alert.alert('Report failed', 'Could not report the issue');
+      }
+    } catch {
       Alert.alert('Report failed', 'Could not report the issue');
+    } finally {
+      setSubmittingIssue(false);
     }
   };
 
@@ -233,8 +241,12 @@ export default function MyRentalsScreen({ navigation }: any) {
                   onChangeText={setIssueDesc}
                   multiline
                 />
-                <TouchableOpacity style={styles.issueSubmit} onPress={() => submitIssue(t.id)}>
-                  <Text style={styles.issueSubmitText}>Send to agent</Text>
+                <TouchableOpacity style={styles.issueSubmit} onPress={() => submitIssue(t.id)} disabled={submittingIssue}>
+                  {submittingIssue ? (
+                    <ActivityIndicator color="#4A2A00" size="small" />
+                  ) : (
+                    <Text style={styles.issueSubmitText}>Send to agent</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             )}

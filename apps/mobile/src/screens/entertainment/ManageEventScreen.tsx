@@ -21,6 +21,8 @@ export default function ManageEventScreen({ navigation, route }: any) {
   const [addingManager, setAddingManager] = useState(false);
   const [addingScanner, setAddingScanner] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [removingManagerId, setRemovingManagerId] = useState<string | null>(null);
+  const [removingScannerId, setRemovingScannerId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -57,10 +59,13 @@ export default function ManageEventScreen({ navigation, route }: any) {
   };
 
   const removeManager = async (userId: string) => {
+    setRemovingManagerId(userId);
     try {
       await fetchApi(`/entertainment/events/${eventId}/managers/${userId}`, { method: 'DELETE' });
       load();
-    } catch { Alert.alert('Error', 'Failed to remove co-manager'); }
+    } catch { Alert.alert('Error', 'Failed to remove co-manager'); } finally {
+      setRemovingManagerId(null);
+    }
   };
 
   const addScanner = async () => {
@@ -76,10 +81,13 @@ export default function ManageEventScreen({ navigation, route }: any) {
   };
 
   const removeScanner = async (userId: string) => {
+    setRemovingScannerId(userId);
     try {
       await fetchApi(`/entertainment/events/${eventId}/scanners/${userId}`, { method: 'DELETE' });
       load();
-    } catch { Alert.alert('Error', 'Failed to remove scanner'); }
+    } catch { Alert.alert('Error', 'Failed to remove scanner'); } finally {
+      setRemovingScannerId(null);
+    }
   };
 
   const regenerateCode = async (type: 'manager' | 'scanner') => {
@@ -206,8 +214,12 @@ export default function ManageEventScreen({ navigation, route }: any) {
                 <Text style={styles.teamName}>@{m.username}</Text>
                 <Text style={styles.teamRoleTag}>Co-Manager</Text>
                 {isOrganizer && (
-                  <TouchableOpacity onPress={() => removeManager(m.id)} style={styles.removeBtn}>
-                    <Ionicons name="close" size={16} color={COLORS.textMuted} />
+                  <TouchableOpacity onPress={() => removeManager(m.id)} style={styles.removeBtn} disabled={removingManagerId === m.id}>
+                    {removingManagerId === m.id ? (
+                      <ActivityIndicator size="small" color={COLORS.textMuted} />
+                    ) : (
+                      <Ionicons name="close" size={16} color={COLORS.textMuted} />
+                    )}
                   </TouchableOpacity>
                 )}
               </View>
@@ -217,8 +229,12 @@ export default function ManageEventScreen({ navigation, route }: any) {
                 <Ionicons name="scan-outline" size={16} color="#F59E0B" />
                 <Text style={styles.teamName}>@{s.username}</Text>
                 <Text style={styles.teamRoleTag}>Scanner</Text>
-                <TouchableOpacity onPress={() => removeScanner(s.id)} style={styles.removeBtn}>
-                  <Ionicons name="close" size={16} color={COLORS.textMuted} />
+                <TouchableOpacity onPress={() => removeScanner(s.id)} style={styles.removeBtn} disabled={removingScannerId === s.id}>
+                  {removingScannerId === s.id ? (
+                    <ActivityIndicator size="small" color={COLORS.textMuted} />
+                  ) : (
+                    <Ionicons name="close" size={16} color={COLORS.textMuted} />
+                  )}
                 </TouchableOpacity>
               </View>
             ))}

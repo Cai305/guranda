@@ -11,6 +11,7 @@ import { CardsService, CardGameMode } from './cards.service';
 import { PrismaService } from '../prisma.service';
 import { FriendsService } from '../friends/friends.service';
 import { sendPushNotification } from '../common/push';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Card, CassinoMatchMode } from '@mxit2/types';
 
 const AI_STEP_DELAY_MS = 1200;
@@ -38,6 +39,7 @@ export class CardsGateway implements OnGatewayDisconnect {
     private readonly cards: CardsService,
     private prisma: PrismaService,
     private friends: FriendsService,
+    private notifications: NotificationsService,
   ) {}
 
   handleDisconnect(client: Socket) {
@@ -269,12 +271,21 @@ export class CardsGateway implements OnGatewayDisconnect {
     }
     const friend = await this.prisma.user.findUnique({ where: { id: data.friendUserId } });
     const room = await this.cards.getRoom(data.roomId);
-    if (friend?.expoPushToken && room) {
-      await sendPushNotification(
-        friend.expoPushToken,
+    if (room) {
+      if (friend?.expoPushToken) {
+        await sendPushNotification(
+          friend.expoPushToken,
+          'Game invite',
+          `You've been invited to a ${room.mode === 'FIVE_CARDS' ? '5 Cards' : 'Cassino'} room`,
+          { deepLink: `guranda://cards/join/${room.roomCode}` },
+        );
+      }
+      await this.notifications.create(
+        data.friendUserId,
+        'cards.room_invite',
         'Game invite',
         `You've been invited to a ${room.mode === 'FIVE_CARDS' ? '5 Cards' : 'Cassino'} room`,
-        { deepLink: `guranda://cards/join/${room.roomCode}` },
+        { roomId: room.id, roomCode: room.roomCode },
       );
     }
     this.server.to(data.roomId).emit('friend_invited_you', { friendUserId: data.friendUserId });

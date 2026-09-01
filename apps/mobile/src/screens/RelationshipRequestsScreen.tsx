@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,6 +14,7 @@ export default function RelationshipRequestsScreen({ navigation }: any) {
   const { refreshProfile } = useAuth();
   const [pending, setPending] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [respondingKey, setRespondingKey] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -27,9 +28,16 @@ export default function RelationshipRequestsScreen({ navigation }: any) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const respond = async (id: string, action: 'accept' | 'decline') => {
-    await fetchApi(`/relationships/${id}/${action}`, { method: 'POST' });
-    if (action === 'accept') await refreshProfile();
-    load();
+    setRespondingKey(`${id}:${action}`);
+    try {
+      await fetchApi(`/relationships/${id}/${action}`, { method: 'POST' });
+      if (action === 'accept') await refreshProfile();
+      load();
+    } catch {
+      Alert.alert('Error', `Couldn't ${action} the request`);
+    } finally {
+      setRespondingKey(null);
+    }
   };
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
@@ -81,11 +89,19 @@ export default function RelationshipRequestsScreen({ navigation }: any) {
               <Text style={styles.sub}>wants to link up as {p.intendedStatus === 'MARRIED' ? 'married' : 'in a relationship'}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={styles.acceptBtn} onPress={() => respond(p.id, 'accept')}>
-                <Ionicons name="checkmark" size={16} color="#fff" />
+              <TouchableOpacity style={styles.acceptBtn} onPress={() => respond(p.id, 'accept')} disabled={respondingKey === `${p.id}:accept` || respondingKey === `${p.id}:decline`}>
+                {respondingKey === `${p.id}:accept` ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.declineBtn} onPress={() => respond(p.id, 'decline')}>
-                <Ionicons name="close" size={16} color="#fff" />
+              <TouchableOpacity style={styles.declineBtn} onPress={() => respond(p.id, 'decline')} disabled={respondingKey === `${p.id}:accept` || respondingKey === `${p.id}:decline`}>
+                {respondingKey === `${p.id}:decline` ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Ionicons name="close" size={16} color="#fff" />
+                )}
               </TouchableOpacity>
             </View>
           </View>

@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
 import { BadgeService } from '../profile/badge.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Uncapped Badge.code counterparts for a small subset of achievements —
 // unlocking these achievements also mints the matching collectible badge.
@@ -40,6 +41,7 @@ export class AchievementsService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private badgeService: BadgeService,
+    private notifications: NotificationsService,
   ) {}
 
   private async mintLinkedBadge(userId: string, achievementCode: string) {
@@ -107,6 +109,13 @@ export class AchievementsService implements OnModuleInit {
       if (user?.expoPushToken) {
         await sendPushNotification(user.expoPushToken, 'Achievement unlocked!', achievement.name);
       }
+      await this.notifications.create(
+        userId,
+        'achievement.unlocked',
+        'Achievement unlocked!',
+        achievement.name,
+        { achievementId: achievement.id, achievementCode: achievement.code },
+      );
     }
   }
 
@@ -150,6 +159,13 @@ export class AchievementsService implements OnModuleInit {
       if (user?.expoPushToken) {
         await sendPushNotification(user.expoPushToken, 'Achievement unlocked!', achievement.name);
       }
+      await this.notifications.create(
+        userId,
+        'achievement.unlocked',
+        'Achievement unlocked!',
+        achievement.name,
+        { achievementId: achievement.id, achievementCode: achievement.code },
+      );
     }
   }
 }

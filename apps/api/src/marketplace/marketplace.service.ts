@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Guranda Marketplace: any user can list an item for a fixed price or run
 // an auction. Fixed-price sales settle instantly; auctions accumulate
@@ -13,7 +14,10 @@ import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class MarketplaceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private generateInvoiceNumber() {
     const d = new Date();
@@ -333,13 +337,26 @@ export class MarketplaceService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const previousBidderId = listing.currentBidderId;
+    const updated = await this.prisma.$transaction(async (tx) => {
       await tx.marketplaceBid.create({ data: { listingId, bidderId, amount } });
       return tx.marketplaceListing.update({
         where: { id: listingId },
         data: { currentBid: amount, currentBidderId: bidderId },
       });
     });
+
+    if (previousBidderId && previousBidderId !== bidderId) {
+      await this.notifications.create(
+        previousBidderId,
+        'marketplace.outbid',
+        "You've been outbid",
+        `Someone placed a higher bid on "${listing.title}"`,
+        { listingId, amount },
+      );
+    }
+
+    return updated;
   }
 
   private async maybeFinalizeAuction(listingId: string) {
@@ -386,7 +403,7 @@ export class MarketplaceService {
       return;
     }
     try {
-      await this.prisma.$transaction(async (tx) => {
+      const sold = await this.prisma.$transaction(async (tx) => {
         const buyerWallet = await tx.wallet.findUnique({
           where: { userId: listing.currentBidderId! },
         });
@@ -442,7 +459,23 @@ export class MarketplaceService {
             amount: Number(listing.currentBid),
           },
         });
+        return sold;
       });
+
+      await this.notifications.create(
+        listing.currentBidderId!,
+        'marketplace.auction_won',
+        'You won the auction!',
+        `Your bid won "${sold.title}"`,
+        { listingId: listing.id, amount: Number(listing.currentBid) },
+      );
+      await this.notifications.create(
+        listing.sellerId,
+        'marketplace.item_sold',
+        'Your item sold!',
+        `"${sold.title}" sold at auction for ${Number(listing.currentBid)} MSH`,
+        { listingId: listing.id, amount: Number(listing.currentBid) },
+      );
     } catch {
       await this.prisma.marketplaceListing.update({
         where: { id: listing.id },

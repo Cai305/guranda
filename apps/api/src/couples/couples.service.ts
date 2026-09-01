@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, No
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
+import { NotificationsService } from '../notifications/notifications.service';
 import { rankForXp } from '../relationships/relationships.service';
 import { LLM_ADAPTER } from '../ai-runtime/llm-adapter.token';
 import type { LlmAdapter } from '../ai-runtime/llm-adapter.interface';
@@ -41,6 +42,7 @@ export class CouplesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     @Inject(LLM_ADAPTER) private llm: LlmAdapter,
+    private notifications: NotificationsService,
   ) {}
 
   async onModuleInit() {
@@ -330,6 +332,15 @@ export class CouplesService implements OnModuleInit {
         if (token) {
           await sendPushNotification(token, 'Your Couple Challenge is Ready ❤️', "Tonight's challenge is waiting for you both.");
         }
+      }
+      for (const userId of [r.userAId, r.userBId]) {
+        await this.notifications.create(
+          userId,
+          'couples.challenge_ready',
+          'Your Couple Challenge is Ready ❤️',
+          "Tonight's challenge is waiting for you both.",
+          { relationshipId: r.id },
+        );
       }
     }
   }

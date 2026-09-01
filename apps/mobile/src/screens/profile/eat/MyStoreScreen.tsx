@@ -13,6 +13,7 @@ export default function MyStoreScreen({ navigation }: any) {
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
@@ -101,10 +102,13 @@ export default function MyStoreScreen({ navigation }: any) {
 
   const deleteProduct = async (productId: string) => {
     if (!store) return;
+    setDeletingId(productId);
     try {
       await fetchApi(`/eat/stores/${store.id}/products/${productId}`, { method: 'DELETE' });
       setStore((s: any) => ({ ...s, products: s.products.filter((p: any) => p.id !== productId) }));
-    } catch { }
+    } catch { } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) return (
@@ -226,8 +230,12 @@ export default function MyStoreScreen({ navigation }: any) {
                     >
                       <Ionicons name="create-outline" size={16} color={COLORS.textMuted} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)}>
-                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                    <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)} disabled={deletingId === p.id}>
+                      {deletingId === p.id ? (
+                        <ActivityIndicator color="#ef4444" size="small" />
+                      ) : (
+                        <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>

@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 import { LiveGateway } from '../live/live.gateway';
 import { WalletsService } from '../wallets/wallets.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // The one gift catalog shared across every surface — Live streams and
 // every game screen. Amounts are MSH, debited from the sender's wallet
@@ -59,6 +60,7 @@ export class GiftsService {
     private verificationService: VerificationService,
     private liveGateway: LiveGateway,
     private wallets: WalletsService,
+    private notifications: NotificationsService,
   ) {}
 
   catalog() {
@@ -259,6 +261,14 @@ export class GiftsService {
     ]);
 
     this.broadcastIfLive(dto, item, sender);
+
+    await this.notifications.create(
+      dto.recipientId,
+      'gift.received',
+      `You received a ${item.label}!`,
+      `${sender?.profile?.displayName || sender?.username || 'Someone'} sent you a ${item.label} ${item.icon}`,
+      { giftId: gift.id, giftType: item.key, senderId },
+    );
 
     return gift;
   }

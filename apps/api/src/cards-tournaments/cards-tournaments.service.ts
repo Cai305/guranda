@@ -1,6 +1,7 @@
 import { Injectable, Inject, forwardRef, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CardsService, CardGameMode } from '../cards/cards.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface Matchup {
   entryAId: string;
@@ -23,6 +24,7 @@ export class CardsTournamentsService {
   constructor(
     private prisma: PrismaService,
     @Inject(forwardRef(() => CardsService)) private cards: CardsService,
+    private notifications: NotificationsService,
   ) {}
 
   async createTournament(
@@ -174,8 +176,35 @@ export class CardsTournamentsService {
 
     matchups[index] = { ...matchup, winnerEntryId };
     await this.prisma.cardTournamentRound.update({ where: { id: roundId }, data: { matchups: matchups as any } });
+
+    const loserUserId = loserEntryId === matchup.entryAId ? entryA?.userId : entryB?.userId;
+
     if (loserEntryId) {
       await this.prisma.cardTournamentEntry.update({ where: { id: loserEntryId }, data: { eliminated: true } });
+    }
+
+    await this.notifications.create(
+      winnerUserId,
+      'tournament.round_result',
+      'You won your round!',
+      "You've advanced to the next round of the tournament",
+      { tournamentId: tournament.id, roundId },
+    );
+    if (loserUserId) {
+      await this.notifications.create(
+        loserUserId,
+        'tournament.round_result',
+        'Round result',
+        'You lost your round',
+        { tournamentId: tournament.id, roundId },
+      );
+      await this.notifications.create(
+        loserUserId,
+        'tournament.eliminated',
+        'Eliminated',
+        "You've been eliminated from the tournament",
+        { tournamentId: tournament.id, roundId },
+      );
     }
 
     await this.finishRoundIfComplete(tournament, roundId);
@@ -201,8 +230,9 @@ export class CardsTournamentsService {
     await this.prisma.cardTournament.update({ where: { id: tournament.id }, data: { status: 'completed' } });
     await this.prisma.cardTournamentEntry.update({ where: { id: winnerEntryId }, data: { placement: 1 } });
 
+    const winnerEntry = await this.prisma.cardTournamentEntry.findUnique({ where: { id: winnerEntryId } });
+
     if (tournament.prizePool > 0) {
-      const winnerEntry = await this.prisma.cardTournamentEntry.findUnique({ where: { id: winnerEntryId } });
       if (winnerEntry) {
         const wallet = await this.prisma.wallet.findUnique({ where: { userId: winnerEntry.userId } });
         if (wallet) {
@@ -217,6 +247,18 @@ export class CardsTournamentsService {
           ]);
         }
       }
+    }
+
+    if (winnerEntry) {
+      await this.notifications.create(
+        winnerEntry.userId,
+        'tournament.won',
+        'Tournament champion!',
+        tournament.prizePool > 0
+          ? `You won the tournament and ${tournament.prizePool} MSH!`
+          : "You won the tournament!",
+        { tournamentId: tournament.id },
+      );
     }
   }
 }

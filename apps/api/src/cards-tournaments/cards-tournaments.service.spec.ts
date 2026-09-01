@@ -117,7 +117,8 @@ describe('CardsTournamentsService — bracket engine', () => {
     for (let i = 1; i <= 4; i++) db.users.set(`u${i}`, { id: `u${i}`, username: `player${i}` });
     prisma = makePrismaMock(db);
     cards = makeCardsMock(db);
-    service = new CardsTournamentsService(prisma as any, cards as any);
+    const notifications = { create: jest.fn(async () => ({})) };
+    service = new CardsTournamentsService(prisma as any, cards as any, notifications as any);
   });
 
   it('gives a bye when the field has an odd number of entries', async () => {

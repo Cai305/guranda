@@ -155,17 +155,23 @@ function makeGeneratorMock() {
   return { generate: jest.fn(async () => []) };
 }
 
+function makeNotificationsMock() {
+  return { create: jest.fn(async () => ({})) };
+}
+
 describe('ChallengesService', () => {
   let prisma: ReturnType<typeof makePrismaMock>;
   let achievements: ReturnType<typeof makeAchievementsMock>;
   let generator: ReturnType<typeof makeGeneratorMock>;
+  let notifications: ReturnType<typeof makeNotificationsMock>;
   let service: ChallengesService;
 
   beforeEach(() => {
     prisma = makePrismaMock();
     achievements = makeAchievementsMock();
     generator = makeGeneratorMock();
-    service = new ChallengesService(prisma as any, achievements as any, generator as any);
+    notifications = makeNotificationsMock();
+    service = new ChallengesService(prisma as any, achievements as any, generator as any, notifications as any);
   });
 
   function seedActiveChallenge(overrides: Partial<any> = {}) {

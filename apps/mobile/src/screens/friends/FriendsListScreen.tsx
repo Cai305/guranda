@@ -48,6 +48,7 @@ export default function FriendsListScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [sending, setSending] = useState(false);
+  const [respondingKey, setRespondingKey] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -81,12 +82,15 @@ export default function FriendsListScreen({ route, navigation }: any) {
   };
 
   const respond = async (id: string, action: 'accept' | 'decline') => {
+    setRespondingKey(`${id}:${action}`);
     try {
       const res = await fetchApi(`/friends/${id}/${action}`, { method: 'POST' });
       if (!res.ok) throw new Error((await res.json())?.message || `Couldn't ${action} the request`);
       load();
     } catch (e: any) {
       Alert.alert('Error', e.message);
+    } finally {
+      setRespondingKey(null);
     }
   };
 
@@ -144,11 +148,19 @@ export default function FriendsListScreen({ route, navigation }: any) {
             <View key={p.id} style={styles.pendingRow}>
               <Text style={styles.friendName}>{p.requester?.profile?.displayName || p.requester?.username}</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => respond(p.id, 'accept')}>
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                <TouchableOpacity style={styles.acceptBtn} onPress={() => respond(p.id, 'accept')} disabled={respondingKey === `${p.id}:accept` || respondingKey === `${p.id}:decline`}>
+                  {respondingKey === `${p.id}:accept` ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.declineBtn} onPress={() => respond(p.id, 'decline')}>
-                  <Ionicons name="close" size={16} color="#fff" />
+                <TouchableOpacity style={styles.declineBtn} onPress={() => respond(p.id, 'decline')} disabled={respondingKey === `${p.id}:accept` || respondingKey === `${p.id}:decline`}>
+                  {respondingKey === `${p.id}:decline` ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Ionicons name="close" size={16} color="#fff" />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

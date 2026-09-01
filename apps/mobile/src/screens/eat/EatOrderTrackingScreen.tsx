@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -41,11 +41,13 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
   const { COLORS } = theme;
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [liveDriverCoord, setLiveDriverCoord] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
     headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
     header: {
       flexDirection: 'row',
@@ -139,7 +141,8 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
     fetchApi(`/eat/orders/${orderId}`)
       .then(r => r.json())
       .then(setOrder)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [orderId]);
 
   useEffect(() => {
@@ -208,6 +211,14 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
       </View>
     );
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center} edges={['top']}>
+        <ActivityIndicator color={COLORS.primary} size="large" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={styles.container}>

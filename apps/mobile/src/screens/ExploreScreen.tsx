@@ -140,19 +140,34 @@ export default function ExploreScreen({ navigation }: any) {
     navigation.navigate('CreateStory', label ? { mode: 'trend', label } : { mode: 'trend' });
   };
 
+  // /posts (For You) reranks its raw pool by score before paginating, so it
+  // can't hand back a reliable cursor as "the last post in this page" the
+  // way /posts/following (plain chronological order) can — it returns an
+  // explicit { posts, nextCursor } envelope instead; see posts.service.ts's
+  // getFeed for why deriving the cursor from the reranked page would silently
+  // skip posts. /posts/following keeps returning a plain PostDto[].
   const fetchFeed = async () => {
     try {
       setLoading(true);
       viewedIds.current.clear();
       cursorRef.current = null;
       setNewPostCount(0);
-      const endpoint = feedMode === 'following' ? '/posts/following' : '/posts';
-      const res = await fetchApi(`${endpoint}?take=${FEED_PAGE_SIZE}`);
-      if (res.ok) {
-        const data: PostDto[] = await res.json();
-        setPosts(data);
-        cursorRef.current = data.length ? String(data[data.length - 1].createdAt) : null;
-        setHasMore(data.length === FEED_PAGE_SIZE);
+      if (feedMode === 'following') {
+        const res = await fetchApi(`/posts/following?take=${FEED_PAGE_SIZE}`);
+        if (res.ok) {
+          const data: PostDto[] = await res.json();
+          setPosts(data);
+          cursorRef.current = data.length ? String(data[data.length - 1].createdAt) : null;
+          setHasMore(data.length === FEED_PAGE_SIZE);
+        }
+      } else {
+        const res = await fetchApi(`/posts?take=${FEED_PAGE_SIZE}`);
+        if (res.ok) {
+          const data: { posts: PostDto[]; nextCursor: string | null } = await res.json();
+          setPosts(data.posts);
+          cursorRef.current = data.nextCursor;
+          setHasMore(data.nextCursor !== null);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -165,13 +180,22 @@ export default function ExploreScreen({ navigation }: any) {
     if (loadingMore || !hasMore || !cursorRef.current || activeTab !== 'feed') return;
     try {
       setLoadingMore(true);
-      const endpoint = feedMode === 'following' ? '/posts/following' : '/posts';
-      const res = await fetchApi(`${endpoint}?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(cursorRef.current)}`);
-      if (res.ok) {
-        const data: PostDto[] = await res.json();
-        setPosts((prev) => [...prev, ...data]);
-        cursorRef.current = data.length ? String(data[data.length - 1].createdAt) : cursorRef.current;
-        setHasMore(data.length === FEED_PAGE_SIZE);
+      if (feedMode === 'following') {
+        const res = await fetchApi(`/posts/following?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(cursorRef.current)}`);
+        if (res.ok) {
+          const data: PostDto[] = await res.json();
+          setPosts((prev) => [...prev, ...data]);
+          cursorRef.current = data.length ? String(data[data.length - 1].createdAt) : cursorRef.current;
+          setHasMore(data.length === FEED_PAGE_SIZE);
+        }
+      } else {
+        const res = await fetchApi(`/posts?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(cursorRef.current)}`);
+        if (res.ok) {
+          const data: { posts: PostDto[]; nextCursor: string | null } = await res.json();
+          setPosts((prev) => [...prev, ...data.posts]);
+          cursorRef.current = data.nextCursor;
+          setHasMore(data.nextCursor !== null);
+        }
       }
     } catch (e) {
       console.error(e);

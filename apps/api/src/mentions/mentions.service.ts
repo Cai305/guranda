@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export type MentionRef = { targetType: string; targetId: string };
 
@@ -15,17 +16,20 @@ export type MentionRef = { targetType: string; targetId: string };
  */
 @Injectable()
 export class MentionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   /** Pass `tx` to write inside an existing transaction (e.g. alongside the post/message that carries the mentions). */
-  record(
+  async record(
     sourceType: string,
     sourceId: string,
     mentions: MentionRef[],
     tx: Prisma.TransactionClient | PrismaClient = this.prisma,
   ) {
     if (!mentions.length) return Promise.resolve({ count: 0 });
-    return tx.mention.createMany({
+    const result = await tx.mention.createMany({
       data: mentions.map((m) => ({
         sourceType,
         sourceId,
@@ -33,6 +37,21 @@ export class MentionsService {
         targetId: m.targetId,
       })),
     });
+    // Best-effort in-app notification for user mentions — uses the real
+    // prisma connection (not `tx`) since Notification has no FK dependency
+    // on the mention/source row, so it doesn't need to wait on the caller's
+    // transaction to commit.
+    for (const m of mentions) {
+      if (m.targetType !== 'user') continue;
+      await this.notifications.create(
+        m.targetId,
+        'mention',
+        'You were mentioned',
+        `Someone mentioned you in a ${sourceType}`,
+        { sourceType, sourceId },
+      ).catch(() => {});
+    }
+    return result;
   }
 
   /** Everything that mentions a given target — e.g. "posts mentioning this product". */

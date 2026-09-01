@@ -14,6 +14,7 @@ export default function MyPharmacyScreen({ navigation }: any) {
   const [pharmacy, setPharmacy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -38,10 +39,13 @@ export default function MyPharmacyScreen({ navigation }: any) {
 
   const deleteProduct = async (productId: string) => {
     if (!pharmacy) return;
+    setDeletingId(productId);
     try {
       await fetchApi(`/health/pharmacies/${pharmacy.id}/products/${productId}`, { method: 'DELETE' });
       setPharmacy((p: any) => ({ ...p, products: p.products.filter((x: any) => x.id !== productId) }));
-    } catch {}
+    } catch {} finally {
+      setDeletingId(null);
+    }
   };
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
@@ -169,8 +173,12 @@ export default function MyPharmacyScreen({ navigation }: any) {
                 <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('AddEditHealthProduct', { pharmacyId: pharmacy.id, product: p })}>
                   <Ionicons name="create-outline" size={16} color={COLORS.textMuted} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)}>
-                  <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteProduct(p.id)} disabled={deletingId === p.id}>
+                  {deletingId === p.id ? (
+                    <ActivityIndicator color="#ef4444" size="small" />
+                  ) : (
+                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

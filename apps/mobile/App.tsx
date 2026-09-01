@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer, DarkTheme, getStateFromPath as defaultGetStateFromPath } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -21,6 +22,8 @@ import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
 import UploadStatusOverlay from './src/components/UploadStatusOverlay';
 import ContextualNewsOverlay from './src/context/ContextualNewsOverlay';
 import WebAlertHost from './src/utils/webAlertPolyfill';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const prefix = Linking.createURL('/');
 const linking = {

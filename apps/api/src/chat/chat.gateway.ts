@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma.service';
 import { ChatService } from './chat.service';
 import { CallService } from '../calls/call.service';
 import { sendPushNotification } from '../common/push';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   VEMOJI_CATALOG,
   parseVemojiMessage,
@@ -53,6 +54,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     private prisma: PrismaService,
     private chatService: ChatService,
     private callService: CallService,
+    private notifications: NotificationsService,
   ) {}
 
   handleDisconnect(client: Socket) {
@@ -251,11 +253,13 @@ export class ChatGateway implements OnGatewayDisconnect {
 
     for (const member of members) {
       const token = member.user.expoPushToken;
-      if (!token) continue;
-      await sendPushNotification(token, senderName, body, {
-        type: 'chat_message',
-        chatId,
-      });
+      if (token) {
+        await sendPushNotification(token, senderName, body, {
+          type: 'chat_message',
+          chatId,
+        });
+      }
+      await this.notifications.create(member.userId, 'chat.message', senderName, body, { chatId });
     }
   }
 

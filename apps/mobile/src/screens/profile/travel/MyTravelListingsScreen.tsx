@@ -45,6 +45,8 @@ export default function MyTravelListingsScreen({ navigation }: any) {
   const [stays, setStays] = useState<any[]>([]);
   const [cars, setCars] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingStayId, setDeletingStayId] = useState<string | null>(null);
+  const [deletingCarId, setDeletingCarId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -61,17 +63,23 @@ export default function MyTravelListingsScreen({ navigation }: any) {
   useEffect(() => { load(); }, [load]);
 
   const deleteStay = async (id: string) => {
+    setDeletingStayId(id);
     try {
       await fetchApi(`/travel/stays/${id}`, { method: 'DELETE' });
       setStays(s => s.filter(x => x.id !== id));
-    } catch {}
+    } catch {} finally {
+      setDeletingStayId(null);
+    }
   };
 
   const deleteCar = async (id: string) => {
+    setDeletingCarId(id);
     try {
       await fetchApi(`/travel/cars/${id}`, { method: 'DELETE' });
       setCars(c => c.filter(x => x.id !== id));
-    } catch {}
+    } catch {} finally {
+      setDeletingCarId(null);
+    }
   };
 
   const items = tab === 'stays' ? stays : cars;
@@ -132,8 +140,12 @@ export default function MyTravelListingsScreen({ navigation }: any) {
                   <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('AddEditTravelStay', { stay })}>
                     <Ionicons name="create-outline" size={16} color={COLORS.textMuted} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteStay(stay.id)}>
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteStay(stay.id)} disabled={deletingStayId === stay.id}>
+                    {deletingStayId === stay.id ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -153,8 +165,12 @@ export default function MyTravelListingsScreen({ navigation }: any) {
                   <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('AddEditTravelCar', { car })}>
                     <Ionicons name="create-outline" size={16} color={COLORS.textMuted} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCar(car.id)}>
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteCar(car.id)} disabled={deletingCarId === car.id}>
+                    {deletingCarId === car.id ? (
+                      <ActivityIndicator color="#ef4444" size="small" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
