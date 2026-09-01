@@ -9,12 +9,16 @@ import {
   ContentRankingService,
   ReputationLevel,
 } from '../ranking/content-ranking.service';
+import { VideoTranscodeService } from './video-transcode.service';
+import { VideoRewardService } from './video-reward.service';
 
 @Injectable()
 export class VideoService {
   constructor(
     private prisma: PrismaService,
     private ranking: ContentRankingService,
+    private transcode: VideoTranscodeService,
+    private reward: VideoRewardService,
   ) {}
 
   // ── Upload ────────────────────────────────────────────────────────────────
@@ -28,11 +32,12 @@ export class VideoService {
       duration: number;
       category: string;
       tags?: string[];
+      videoType?: string;
     },
   ) {
     if (dto.duration <= 45)
       throw new BadRequestException('Video must be longer than 45 seconds');
-    return this.prisma.video.create({
+    const video = await this.prisma.video.create({
       data: {
         creatorId,
         title: dto.title,
@@ -42,12 +47,18 @@ export class VideoService {
         duration: dto.duration,
         category: dto.category,
         tags: dto.tags ?? [],
+        videoType: dto.videoType || 'STANDARD',
+        processingStatus: 'processing',
       },
       include: {
         creator: { include: { profile: true } },
         _count: { select: { likes: true, comments: true } },
       },
     });
+    // Fire-and-forget — the HTTP response to the uploader returns immediately,
+    // it does not wait for the (multi-second/minute) background transcode.
+    this.transcode.enqueue(video.id, video.url);
+    return video;
   }
 
   // watchProgress (seconds into the video, from WatchHistory) for every
@@ -66,7 +77,17 @@ export class VideoService {
   }
 
   // ── Feed (personalized) ───────────────────────────────────────────────────
-  async getFeed(userId: string) {
+  // Reranks a raw chronological pool by score before slicing to a page, same
+  // as posts.service.ts's getFeed — so the pagination cursor has to track
+  // the raw pool's boundary, not the reranked page's last item, or a
+  // low-scoring-but-recent video could fall into a permanent gap: never
+  // shown on this page (score too low) and excluded from the next page's
+  // `createdAt < cursor` filter (too recent). See posts.service.ts's getFeed
+  // for the full explanation.
+  async getFeed(userId: string, take = 20, cursor?: string, category?: string) {
+    const pageSize = take > 0 ? Math.min(take, 50) : 20;
+    const poolSize = Math.max(pageSize * 4, 50);
+
     const interests = await this.prisma.userInterest.findMany({
       where: { userId },
     });
@@ -76,12 +97,17 @@ export class VideoService {
 
     const [videos, viewer] = await Promise.all([
       this.prisma.video.findMany({
+        where: {
+          ...(category && category !== 'All' ? { category } : {}),
+          ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+        },
         include: {
           creator: { include: { profile: true, activeUsername: true } },
           _count: { select: { likes: true, comments: true } },
+          reward: { select: { payoutMode: true, amountPerUnit: true, remainingBudgetMsh: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 100,
+        take: poolSize,
       }),
       userId
         ? this.prisma.user.findUnique({
@@ -132,7 +158,12 @@ export class VideoService {
       };
     });
 
-    return scored.sort((a, b) => b.score - a.score).slice(0, 30);
+    const nextCursor = videos.length < poolSize ? null : videos[videos.length - 1].createdAt.toISOString();
+
+    return {
+      videos: scored.sort((a, b) => b.score - a.score).slice(0, pageSize),
+      nextCursor,
+    };
   }
 
   // ── My stats (creator dashboard) ─────────────────────────────────────────
@@ -171,6 +202,7 @@ export class VideoService {
       include: {
         creator: { include: { profile: true } },
         _count: { select: { likes: true, comments: true } },
+        reward: { select: { payoutMode: true, amountPerUnit: true, remainingBudgetMsh: true } },
       },
       orderBy: { views: 'desc' },
       take: 30,
@@ -219,6 +251,7 @@ export class VideoService {
       include: {
         creator: { include: { profile: true } },
         _count: { select: { likes: true, comments: true } },
+        reward: { select: { payoutMode: true, amountPerUnit: true, remainingBudgetMsh: true } },
       },
       orderBy: { views: 'desc' },
       take: 30,
@@ -248,9 +281,24 @@ export class VideoService {
       include: {
         creator: { include: { profile: true } },
         _count: { select: { likes: true, comments: true } },
+        renditions: { orderBy: { width: 'desc' } },
+        reward: userId ? { include: { claims: { where: { userId } } } } : true,
       },
     });
     if (!video) throw new NotFoundException('Video not found');
+    // Flatten this viewer's own reward ledger row (if any) alongside the
+    // reward config, instead of a nested claims[] array with at most one
+    // entry — the client only ever cares about "my" progress on this video.
+    const rewardWithMyClaim = video.reward
+      ? {
+          id: video.reward.id,
+          payoutMode: video.reward.payoutMode,
+          amountPerUnit: video.reward.amountPerUnit,
+          totalBudgetMsh: video.reward.totalBudgetMsh,
+          remainingBudgetMsh: video.reward.remainingBudgetMsh,
+          myEarnedMsh: (video.reward as any).claims?.[0]?.amountPaid ?? 0,
+        }
+      : null;
     const liked = userId
       ? !!(await this.prisma.videoLike.findUnique({
           where: { videoId_userId: { videoId: id, userId } },
@@ -283,6 +331,7 @@ export class VideoService {
     });
     return {
       ...video,
+      reward: rewardWithMyClaim,
       liked,
       savedLater,
       subscribed,
@@ -290,6 +339,11 @@ export class VideoService {
       giftTotal: giftAgg._sum.amount ?? 0,
       giftCount: giftAgg._count,
     };
+  }
+
+  // ── Watch-to-earn ─────────────────────────────────────────────────────────
+  async fundReward(videoId: string, creatorId: string, payoutMode: string, amountPerUnit: number, totalBudgetMsh: number) {
+    return this.reward.fundReward(videoId, creatorId, payoutMode, amountPerUnit, totalBudgetMsh);
   }
 
   // ── View (increment + history) ────────────────────────────────────────────
@@ -314,6 +368,10 @@ export class VideoService {
       update: { progress, watchedAt: new Date() },
       create: { userId, videoId, progress },
     });
+    // Fire-and-forget — a watch-to-earn payout is a side effect of a real
+    // heartbeat, never something the progress-save request should wait on
+    // or fail because of.
+    this.reward.processHeartbeat(videoId, userId, progress).catch(() => {});
   }
 
   // ── Likes ─────────────────────────────────────────────────────────────────
@@ -520,6 +578,8 @@ export class VideoService {
       include: {
         creator: { include: { profile: true } },
         _count: { select: { likes: true } },
+        renditions: { orderBy: { width: 'desc' } },
+        reward: { select: { payoutMode: true, amountPerUnit: true, remainingBudgetMsh: true } },
       },
       orderBy: { views: 'desc' },
       take: 15,

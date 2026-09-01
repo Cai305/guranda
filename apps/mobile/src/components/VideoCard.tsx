@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { API_BASE_URL } from '../utils/api';
+import { getCachedUri } from '../utils/mediaCache';
 
 export interface VideoMeta {
   id: string;
@@ -20,7 +21,20 @@ export interface VideoMeta {
   savedLater?: boolean;
   /** Seconds this user has watched into the video — drives the YouTube-style red progress bar. */
   watchProgress?: number;
+  /** Always present on real API responses; defaults to 'STANDARD' for ordinary videos (no special UI). */
+  videoType?: string;
+  /** null for the ~99% of videos with no watch-to-earn reward configured. */
+  reward?: { payoutMode: string; amountPerUnit: number; remainingBudgetMsh: number; myEarnedMsh?: number } | null;
 }
+
+// Shared with VideoPlayerScreen so the type badge reads the same everywhere.
+export const VIDEO_TYPE_META: Record<string, { emoji: string; label: string }> = {
+  SPONSORED: { emoji: '🤝', label: 'Sponsored' },
+  PROMO: { emoji: '📣', label: 'Promo' },
+  CAMPAIGN: { emoji: '🚩', label: 'Campaign' },
+  ADVERT: { emoji: '📺', label: 'Advert' },
+  MUSIC: { emoji: '🎵', label: 'Music' },
+};
 
 interface Props {
   video: VideoMeta;
@@ -28,6 +42,7 @@ interface Props {
   onMenuPress?: (v: VideoMeta) => void;
   compact?: boolean;
   menuIcon?: string;
+  menuLoading?: boolean;
 }
 
 function fmtDuration(s: number) {
@@ -71,16 +86,28 @@ const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
   Finance: ['#15803d', '#14532d'],
 };
 
-export default function VideoCard({ video, onPress, onMenuPress, compact, menuIcon = 'ellipsis-vertical' }: Props) {
+export default function VideoCard({ video, onPress, onMenuPress, compact, menuIcon = 'ellipsis-vertical', menuLoading }: Props) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const grad = CATEGORY_GRADIENTS[video.category] ?? ['#1e293b', '#0f172a'];
   const thumbUrl = video.thumbnailUrl ? (video.thumbnailUrl.startsWith('http') ? video.thumbnailUrl : `${API_BASE_URL}${video.thumbnailUrl}`) : null;
+  const [displayUri, setDisplayUri] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (thumbUrl) {
+      getCachedUri(thumbUrl).then((uri) => { if (!cancelled) setDisplayUri(uri); });
+    } else {
+      setDisplayUri(null);
+    }
+    return () => { cancelled = true; };
+  }, [thumbUrl]);
   const displayName = video.creator?.profile?.displayName || video.creator?.username || 'Unknown';
   // Clamp to [0,1] — progress can exceed duration slightly from rounding/replays.
   const watchRatio = video.duration > 0 && video.watchProgress
     ? Math.min(1, Math.max(0, video.watchProgress / video.duration))
     : 0;
+  const typeMeta = video.videoType && video.videoType !== 'STANDARD' ? VIDEO_TYPE_META[video.videoType] : null;
+  const hasReward = !!video.reward;
 
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY }) => ({
     card: { marginBottom: 8 },
@@ -88,6 +115,10 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
     thumbIcon: { ...{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, justifyContent: 'center', alignItems: 'center' },
     durationBadge: { position: 'absolute', bottom: 6, right: 8, backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
     durationText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    typeBadge: { position: 'absolute', top: 6, left: 8, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 3 },
+    typeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    rewardBadge: { position: 'absolute', top: 6, right: 8, backgroundColor: 'rgba(217,119,6,0.92)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 3 },
+    rewardBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
     watchTrack: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
     watchFill: { height: '100%', backgroundColor: '#ff0033' },
     infoRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
@@ -109,7 +140,13 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
     return (
       <TouchableOpacity style={styles.compact} onPress={() => onPress(video)} activeOpacity={0.85}>
         <View style={styles.compactThumb}>
-          {thumbUrl ? <Image source={{ uri: thumbUrl }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" /> : <LinearGradient colors={grad} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />}
+          {displayUri ? <Image source={{ uri: displayUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" /> : <LinearGradient colors={grad} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />}
+          {typeMeta && (
+            <View style={styles.typeBadge}><Text style={styles.typeBadgeText}>{typeMeta.emoji} {typeMeta.label}</Text></View>
+          )}
+          {hasReward && (
+            <View style={styles.rewardBadge}><Text style={styles.rewardBadgeText}>💰 Earn</Text></View>
+          )}
           <View style={styles.durationBadge}><Text style={styles.durationText}>{fmtDuration(video.duration)}</Text></View>
           {watchRatio > 0 && (
             <View style={styles.watchTrack}>
@@ -122,8 +159,12 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
           <Text style={styles.compactMeta}>{displayName} · {fmtViews(video.views)} views</Text>
         </View>
         {onMenuPress && (
-          <TouchableOpacity style={styles.menuBtn} onPress={() => onMenuPress(video)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name={menuIcon as any} size={18} color={COLORS.textMuted} />
+          <TouchableOpacity style={styles.menuBtn} onPress={() => onMenuPress(video)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} disabled={menuLoading}>
+            {menuLoading ? (
+              <ActivityIndicator size="small" color={COLORS.textMuted} />
+            ) : (
+              <Ionicons name={menuIcon as any} size={18} color={COLORS.textMuted} />
+            )}
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -134,14 +175,20 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
     <TouchableOpacity style={styles.card} onPress={() => onPress(video)} activeOpacity={0.9}>
       {/* Thumbnail */}
       <View style={styles.thumb}>
-        {thumbUrl ? (
-          <Image source={{ uri: thumbUrl }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+        {displayUri ? (
+          <Image source={{ uri: displayUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
         ) : (
           <LinearGradient colors={grad} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <View style={styles.thumbIcon}>
               <Ionicons name="play-circle" size={40} color="rgba(255,255,255,0.5)" />
             </View>
           </LinearGradient>
+        )}
+        {typeMeta && (
+          <View style={styles.typeBadge}><Text style={styles.typeBadgeText}>{typeMeta.emoji} {typeMeta.label}</Text></View>
+        )}
+        {hasReward && (
+          <View style={styles.rewardBadge}><Text style={styles.rewardBadgeText}>💰 Earn</Text></View>
         )}
         <View style={styles.durationBadge}><Text style={styles.durationText}>{fmtDuration(video.duration)}</Text></View>
         {watchRatio > 0 && (
@@ -168,8 +215,12 @@ export default function VideoCard({ video, onPress, onMenuPress, compact, menuIc
         </View>
         {/* 3-dot menu */}
         {onMenuPress && (
-          <TouchableOpacity style={styles.menuBtn} onPress={() => onMenuPress(video)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name={menuIcon as any} size={18} color={COLORS.textMuted} />
+          <TouchableOpacity style={styles.menuBtn} onPress={() => onMenuPress(video)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} disabled={menuLoading}>
+            {menuLoading ? (
+              <ActivityIndicator size="small" color={COLORS.textMuted} />
+            ) : (
+              <Ionicons name={menuIcon as any} size={18} color={COLORS.textMuted} />
+            )}
           </TouchableOpacity>
         )}
       </View>

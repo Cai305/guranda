@@ -74,13 +74,36 @@ export class VideoController {
             .map((t: string) => t.trim())
             .filter(Boolean)
         : [],
+      videoType: body.videoType,
     });
+  }
+
+  // ── Watch-to-earn ──────────────────────────────────────────────────────────
+  // Creator/advertiser funds a reward budget for a video they own, debited
+  // from their own wallet immediately (see video-reward.service.ts). Kept as
+  // a separate step from upload rather than an upload-body field, so funding
+  // an existing video (or funding it after seeing initial performance) works
+  // without re-uploading.
+  @Post(':id/reward')
+  fundReward(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body('payoutMode') payoutMode: string,
+    @Body('amountPerUnit') amountPerUnit: number,
+    @Body('totalBudgetMsh') totalBudgetMsh: number,
+  ) {
+    return this.video.fundReward(id, req.user.userId, payoutMode, Number(amountPerUnit), Number(totalBudgetMsh));
   }
 
   // ── Feed & discovery ──────────────────────────────────────────────────────
   @Get('feed')
-  getFeed(@Request() req: any) {
-    return this.video.getFeed(req.user.userId);
+  getFeed(
+    @Request() req: any,
+    @Query('take') take?: string,
+    @Query('cursor') cursor?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.video.getFeed(req.user.userId, take ? Number(take) : undefined, cursor, category);
   }
 
   @Get('trending')

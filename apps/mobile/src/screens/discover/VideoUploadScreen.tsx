@@ -5,12 +5,27 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { API_BASE_URL, xhrUploadFormData } from '../../utils/api';
+import { API_BASE_URL, fetchApi, xhrUploadFormData } from '../../utils/api';
 import { startUpload, updateUploadProgress, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
 import { generateVideoThumbnail } from '../../utils/videoThumbnail';
 
 const CATEGORIES = ['Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
 const MIN_DURATION_S = 45;
+
+const VIDEO_TYPES: { label: string; value: string }[] = [
+  { label: 'Standard', value: 'STANDARD' },
+  { label: 'Sponsored', value: 'SPONSORED' },
+  { label: 'Promo', value: 'PROMO' },
+  { label: 'Campaign', value: 'CAMPAIGN' },
+  { label: 'Advert', value: 'ADVERT' },
+  { label: 'Music', value: 'MUSIC' },
+];
+
+const PAYOUT_MODES: { label: string; value: string; unit: string }[] = [
+  { label: 'Pay per full watch', value: 'COMPLETION', unit: 'watch' },
+  { label: 'Pay per minute watched', value: 'PER_MINUTE', unit: 'minute' },
+  { label: 'Pay for watch + subscribe', value: 'WATCH_AND_SUBSCRIBE', unit: 'watch' },
+];
 
 export default function VideoUploadScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -25,6 +40,16 @@ export default function VideoUploadScreen({ navigation }: any) {
   const [uploading, setUploading] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [generatingThumbnail, setGeneratingThumbnail] = useState(false);
+  const [videoType, setVideoType] = useState('STANDARD');
+
+  // Optional reward-funding step — off by default, doesn't touch anything
+  // else about the upload flow when left alone.
+  const [rewardEnabled, setRewardEnabled] = useState(false);
+  const [payoutMode, setPayoutMode] = useState('COMPLETION');
+  const [amountPerUnit, setAmountPerUnit] = useState('');
+  const [totalBudgetMsh, setTotalBudgetMsh] = useState('');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   // Grabs a poster frame the moment a valid video is picked, well ahead of
   // the actual upload — so by the time the user taps "Upload" it's already
@@ -90,6 +115,32 @@ export default function VideoUploadScreen({ navigation }: any) {
     vid.src = uri;
   };
 
+  // Fetches the creator's current balance the first time they open the
+  // reward section, so the budget field can be validated against it without
+  // making every upload pay for a wallet call it'll never use.
+  const toggleReward = (next: boolean) => {
+    setRewardEnabled(next);
+    if (next && walletBalance === null && !walletLoading) {
+      setWalletLoading(true);
+      fetchApi('/wallets/me')
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => { if (ok) setWalletBalance(data.balanceMasheleni ?? 0); })
+        .catch(() => {})
+        .finally(() => setWalletLoading(false));
+    }
+  };
+
+  const parsedAmountPerUnit = parseFloat(amountPerUnit);
+  const parsedTotalBudget = parseFloat(totalBudgetMsh);
+  const rewardValid =
+    !rewardEnabled ||
+    (Number.isFinite(parsedAmountPerUnit) && parsedAmountPerUnit > 0 &&
+      Number.isFinite(parsedTotalBudget) && parsedTotalBudget > 0);
+  const rewardExceedsBalance =
+    rewardEnabled && walletBalance !== null &&
+    Number.isFinite(parsedTotalBudget) && parsedTotalBudget > walletBalance;
+  const selectedPayoutMode = PAYOUT_MODES.find(m => m.value === payoutMode) ?? PAYOUT_MODES[0];
+
   const upload = async () => {
     if (!title.trim()) { notify('warning', 'Please enter a title'); return; }
     if (!category) { notify('warning', 'Please select a category'); return; }
@@ -97,6 +148,10 @@ export default function VideoUploadScreen({ navigation }: any) {
     if (videoDuration !== null && videoDuration <= MIN_DURATION_S) {
       setDurationError(`Video must be longer than ${MIN_DURATION_S} seconds`);
       return;
+    }
+    if (rewardEnabled) {
+      if (!rewardValid) { notify('warning', 'Enter a valid MSH amount and total budget'); return; }
+      if (rewardExceedsBalance) { notify('warning', `Your budget exceeds your wallet balance (${walletBalance} MSH)`); return; }
     }
 
     setUploading(true);
@@ -121,19 +176,41 @@ export default function VideoUploadScreen({ navigation }: any) {
     form.append('category', category);
     form.append('tags', tags);
     form.append('duration', String(videoDuration ?? 60));
+    form.append('videoType', videoType);
     if (thumbnailUrl) form.append('thumbnailUrl', thumbnailUrl);
 
     // xhrUploadFormData (not fetch) is what makes the real percentage in the
     // progress bar possible — fetch has no upload-progress event.
     const uploadId = startUpload('Uploading video…');
     try {
-      await xhrUploadFormData(
+      const uploadedVideo = await xhrUploadFormData(
         `${API_BASE_URL}/videos/upload`,
         form,
         token,
         (percent) => updateUploadProgress(uploadId, percent),
       );
       finishUpload(uploadId, 'Video uploaded successfully');
+
+      // The video itself is already live at this point — a failure funding
+      // the reward is a separate, non-fatal problem, not an upload failure.
+      if (rewardEnabled && uploadedVideo?.id) {
+        try {
+          const res = await fetchApi(`/videos/${uploadedVideo.id}/reward`, {
+            method: 'POST',
+            body: JSON.stringify({
+              payoutMode,
+              amountPerUnit: parsedAmountPerUnit,
+              totalBudgetMsh: parsedTotalBudget,
+            }),
+          });
+          const rewardData = await res.json();
+          if (!res.ok) throw new Error(rewardData.message || 'Could not fund the reward');
+          notify('success', 'Reward funded — viewers can now earn MSH watching this video');
+        } catch (e: any) {
+          notify('warning', `Video uploaded, but the reward wasn't funded: ${e.message || 'unknown error'}`);
+        }
+      }
+
       navigation.navigate('Discovery');
     } catch (e: any) {
       // Stay on this screen on failure — the video (title, description,
@@ -173,6 +250,27 @@ export default function VideoUploadScreen({ navigation }: any) {
     catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
     catChipText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
     catChipTextActive: { color: '#fff' },
+    rewardCard: { borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, overflow: 'hidden' },
+    rewardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
+    rewardHeaderText: { ...TYPOGRAPHY.body1, fontWeight: '700' },
+    rewardHeaderHint: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+    toggle: { width: 44, height: 26, borderRadius: 13, backgroundColor: COLORS.border, padding: 3, justifyContent: 'center' },
+    toggleOn: { backgroundColor: COLORS.primary },
+    toggleKnob: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
+    toggleKnobOn: { alignSelf: 'flex-end' },
+    rewardBody: { padding: 14, paddingTop: 0, gap: 16 },
+    payoutList: { gap: 8 },
+    payoutOption: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
+    payoutOptionActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}14` },
+    radioOuter: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+    radioOuterActive: { borderColor: COLORS.primary },
+    radioInner: { width: 9, height: 9, borderRadius: 5, backgroundColor: COLORS.primary },
+    payoutOptionText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    rewardRow: { flexDirection: 'row', gap: 12 },
+    rewardField: { flex: 1, gap: 8 },
+    balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    balanceText: { color: COLORS.textMuted, fontSize: 12 },
+    balanceWarning: { color: '#ef4444', fontSize: 12, fontWeight: '600' },
   }));
 
   return (
@@ -269,6 +367,93 @@ export default function VideoUploadScreen({ navigation }: any) {
             value={tags}
             onChangeText={setTags}
           />
+        </View>
+
+        {/* Video type */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Video Type</Text>
+          <View style={styles.catGrid}>
+            {VIDEO_TYPES.map(t => (
+              <TouchableOpacity
+                key={t.value}
+                style={[styles.catChip, videoType === t.value && styles.catChipActive]}
+                onPress={() => setVideoType(t.value)}
+              >
+                <Text style={[styles.catChipText, videoType === t.value && styles.catChipTextActive]}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Reward funding */}
+        <View style={styles.rewardCard}>
+          <TouchableOpacity style={styles.rewardHeader} onPress={() => toggleReward(!rewardEnabled)} activeOpacity={0.8}>
+            <View>
+              <Text style={styles.rewardHeaderText}>Fund a reward for this video 💰</Text>
+              <Text style={styles.rewardHeaderHint}>Pay viewers MSH for watching</Text>
+            </View>
+            <View style={[styles.toggle, rewardEnabled && styles.toggleOn]}>
+              <View style={[styles.toggleKnob, rewardEnabled && styles.toggleKnobOn]} />
+            </View>
+          </TouchableOpacity>
+
+          {rewardEnabled && (
+            <View style={styles.rewardBody}>
+              <View style={styles.field}>
+                <Text style={styles.label}>Payout Mode</Text>
+                <View style={styles.payoutList}>
+                  {PAYOUT_MODES.map(m => (
+                    <TouchableOpacity
+                      key={m.value}
+                      style={[styles.payoutOption, payoutMode === m.value && styles.payoutOptionActive]}
+                      onPress={() => setPayoutMode(m.value)}
+                    >
+                      <View style={[styles.radioOuter, payoutMode === m.value && styles.radioOuterActive]}>
+                        {payoutMode === m.value && <View style={styles.radioInner} />}
+                      </View>
+                      <Text style={styles.payoutOptionText}>{m.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.rewardRow}>
+                <View style={styles.rewardField}>
+                  <Text style={styles.label}>MSH per {selectedPayoutMode.unit}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. 5"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={amountPerUnit}
+                    onChangeText={setAmountPerUnit}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={styles.rewardField}>
+                  <Text style={styles.label}>Total budget (MSH)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. 500"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={totalBudgetMsh}
+                    onChangeText={setTotalBudgetMsh}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.balanceRow}>
+                {walletLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.textMuted} />
+                ) : walletBalance !== null ? (
+                  <Text style={rewardExceedsBalance ? styles.balanceWarning : styles.balanceText}>
+                    Wallet balance: {walletBalance} MSH
+                    {rewardExceedsBalance ? ' — budget exceeds your balance' : ''}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

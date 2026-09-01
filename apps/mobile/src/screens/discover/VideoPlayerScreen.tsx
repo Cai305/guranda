@@ -1,21 +1,22 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Share, Modal, Alert, Platform, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Share, Modal, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi, API_BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
-import VideoCard, { VideoMeta } from '../../components/VideoCard';
+import VideoCard, { VideoMeta, VIDEO_TYPE_META } from '../../components/VideoCard';
 import GiftButton from '../../components/gifts/GiftButton';
 import { GiftCatalogItem } from '../../components/gifts/GiftSheet';
 import { formatCurrency } from '../../utils/format';
+import VideoPlayer from '../../components/VideoPlayer';
+import { getCachedUri } from '../../utils/mediaCache';
 
-let VideoPlayer: any = null;
-if (Platform.OS === 'web') {
-  VideoPlayer = require('../../components/VideoPlayer.web').default;
-} else {
-  VideoPlayer = require('../../components/VideoPlayer').default;
+interface ResolvedMedia {
+  url: string;
+  poster: string | null;
+  renditions: { label: string; url: string; width: number; height: number }[];
 }
 
 export default function VideoPlayerScreen({ navigation, route }: any) {
@@ -24,6 +25,7 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const [video, setVideo] = useState<any>(null);
+  const [resolvedMedia, setResolvedMedia] = useState<ResolvedMedia | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [related, setRelated] = useState<VideoMeta[]>([]);
   const [comment, setComment] = useState('');
@@ -42,6 +44,27 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
     const c = await cRes.json();
     setVideo(v);
     setComments(Array.isArray(c) ? c : []);
+
+    // Resolve the video's own playable URL(s) + poster through the on-device
+    // media cache before they're ever handed to <VideoPlayer> — a fresh
+    // (<3 day old) cache hit resolves to a local file:// URI, a miss returns
+    // the original remote URL immediately and lazily starts caching it for
+    // next time. Kept sequential/inline here (not a separate effect) so it
+    // can't race the fetch above.
+    const rawUrl = v?.url ? (v.url.startsWith('http') ? v.url : `${API_BASE_URL}${v.url}`) : '';
+    const rawRenditions: { label: string; url: string; width: number; height: number }[] =
+      Array.isArray(v?.renditions) ? v.renditions : [];
+    const [resolvedUrl, resolvedPoster, resolvedRenditionUrls] = await Promise.all([
+      rawUrl ? getCachedUri(rawUrl) : Promise.resolve(''),
+      v?.thumbnailUrl ? getCachedUri(v.thumbnailUrl) : Promise.resolve(null as string | null),
+      Promise.all(rawRenditions.map((r) => getCachedUri(r.url))),
+    ]);
+    setResolvedMedia({
+      url: resolvedUrl,
+      poster: resolvedPoster,
+      renditions: rawRenditions.map((r, i) => ({ ...r, url: resolvedRenditionUrls[i] })),
+    });
+
     if (v.category) {
       fetchApi(`/videos/${videoId}/related?category=${encodeURIComponent(v.category)}`)
         .then(r => r.json()).then(d => setRelated(Array.isArray(d) ? d : []));
@@ -52,26 +75,29 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Flushes the real playback position to the server. Shared by the
+  // heartbeat interval below and the player's onEnded callback, so the
+  // YouTube-style "watched up to here" red bar on VideoCard reflects actual
+  // progress immediately on completion instead of waiting for the next tick.
+  const flushProgress = useCallback(() => {
+    const seconds = Math.floor(progressRef.current);
+    if (seconds > 0) {
+      fetchApi(`/videos/${videoId}/progress`, {
+        method: 'PATCH',
+        body: JSON.stringify({ progress: seconds }),
+      }).catch(() => {});
+    }
+  }, [videoId]);
+
   // Heartbeat the real playback position to the server every 10s, and once
-  // more on unmount/navigation-away — this is what makes the YouTube-style
-  // "watched up to here" red bar on VideoCard reflect actual progress
-  // instead of staying frozen at the progress:0 the initial view POST sends.
+  // more on unmount/navigation-away.
   useEffect(() => {
-    const flush = () => {
-      const seconds = Math.floor(progressRef.current);
-      if (seconds > 0) {
-        fetchApi(`/videos/${videoId}/progress`, {
-          method: 'PATCH',
-          body: JSON.stringify({ progress: seconds }),
-        }).catch(() => {});
-      }
-    };
-    const interval = setInterval(flush, 10000);
+    const interval = setInterval(flushProgress, 10000);
     return () => {
       clearInterval(interval);
-      flush();
+      flushProgress();
     };
-  }, [videoId]);
+  }, [flushProgress]);
 
   const toggleLike = async () => {
     if (!video) return;
@@ -150,8 +176,6 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
     Alert.alert('Added', 'Video added to playlist');
   };
 
-  const videoUrl = video?.url ? (video.url.startsWith('http') ? video.url : `${API_BASE_URL}${video.url}`) : '';
-
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
     loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
@@ -162,6 +186,13 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
     videoTitle: { ...TYPOGRAPHY.h3, fontSize: 16, lineHeight: 22, marginBottom: 4 },
     videoMeta: { color: COLORS.textMuted, fontSize: 12 },
     giftMeta: { color: COLORS.gold, fontSize: 12, fontWeight: '600', marginTop: 4 },
+    typeBadgeInline: { flexDirection: 'row', alignSelf: 'flex-start', backgroundColor: COLORS.surface, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 },
+    typeBadgeInlineText: { color: COLORS.text, fontSize: 11, fontWeight: '700' },
+    rewardCard: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: SPACING.lg, marginTop: 4, marginBottom: 10, padding: 12, borderRadius: 10, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.gold + '55' },
+    rewardCardEmoji: { fontSize: 20 },
+    rewardCardBody: { flex: 1 },
+    rewardCardText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+    rewardCardSubtext: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
     actionRow: { paddingHorizontal: SPACING.lg, gap: 4, alignItems: 'center', paddingVertical: 4 },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface },
     actionBtnActive: { backgroundColor: COLORS.primary + '22' },
@@ -210,15 +241,24 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
   }
 
   const displayName = video.creator?.profile?.displayName || video.creator?.username || 'Unknown';
+  const typeMeta = video.videoType && video.videoType !== 'STANDARD' ? VIDEO_TYPE_META[video.videoType] : null;
+  const reward = video.reward as { payoutMode: string; amountPerUnit: number; remainingBudgetMsh: number; myEarnedMsh: number } | null | undefined;
+  const rewardBudgetGone = !!reward && reward.remainingBudgetMsh <= 0;
 
   return (
     <View style={styles.container}>
       {/* Video player — full width, pinned to top */}
-      {videoUrl ? (
+      {resolvedMedia?.url ? (
         <VideoPlayer
-          url={videoUrl}
+          url={resolvedMedia.url}
+          renditions={resolvedMedia.renditions}
+          poster={resolvedMedia.poster}
           autoPlay
           onProgress={(s: number) => { progressRef.current = s; }}
+          onEnded={flushProgress}
+          nextVideo={related[0] ? { id: related[0].id, title: related[0].title, thumbnailUrl: related[0].thumbnailUrl } : null}
+          onPlayNext={() => { if (related[0]) navigation.replace('VideoPlayer', { videoId: related[0].id }); }}
+          onBack={() => navigation.goBack()}
         />
       ) : (
         <View style={styles.playerPlaceholder}>
@@ -229,6 +269,11 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
         {/* Title + meta */}
         <View style={styles.titleBlock}>
+          {typeMeta && (
+            <View style={styles.typeBadgeInline}>
+              <Text style={styles.typeBadgeInlineText}>{typeMeta.emoji} {typeMeta.label}</Text>
+            </View>
+          )}
           <Text style={styles.videoTitle}>{video.title}</Text>
           <Text style={styles.videoMeta}>
             {video.views?.toLocaleString()} views · {new Date(video.createdAt).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}
@@ -239,6 +284,30 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
             </Text>
           )}
         </View>
+
+        {/* Watch-to-earn reward panel */}
+        {!!reward && (
+          <View style={styles.rewardCard}>
+            <Text style={styles.rewardCardEmoji}>🎁</Text>
+            <View style={styles.rewardCardBody}>
+              {rewardBudgetGone ? (
+                <>
+                  <Text style={styles.rewardCardText}>Reward budget fully claimed</Text>
+                  <Text style={styles.rewardCardSubtext}>This video's watch-to-earn budget has run out.</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.rewardCardText}>
+                    You've earned {formatCurrency(reward.myEarnedMsh ?? 0)} watching this video
+                  </Text>
+                  <Text style={styles.rewardCardSubtext}>
+                    {reward.payoutMode === 'PER_MINUTE' ? 'Keep watching to earn more' : 'Reward paid for watching'}
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Action row: Like, Dislike, Share, Save, Playlist */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>

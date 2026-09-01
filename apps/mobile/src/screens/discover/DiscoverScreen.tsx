@@ -6,8 +6,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import VideoCard, { VideoMeta } from '../../components/VideoCard';
+import VideoCardSkeleton from '../../components/VideoCardSkeleton';
 
 const CATEGORY_CHIPS = ['All', 'Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
+
+const FEED_PAGE_SIZE = 20;
+// Placeholder rows rendered while the 'feed' tab's first page is in flight —
+// count only, content comes from VideoCardSkeleton.
+const SKELETON_PLACEHOLDERS = Array.from({ length: 5 });
 
 export default function DiscoverScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -16,8 +22,16 @@ export default function DiscoverScreen({ navigation }: any) {
   const [videos, setVideos] = useState<VideoMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [tab, setTab] = useState<'feed' | 'trending'>('feed');
   const [chip, setChip] = useState('All');
+  // Next-page cursor for the 'feed' tab's real pagination (GET /videos/feed).
+  // A ref, not state, so appending pages doesn't re-render on its own.
+  const feedCursorRef = useRef<string | null>(null);
+  // Skips the chip-change effect's fetch on mount — the [tab] effect already
+  // does the initial load, so without this guard mount would double-fetch.
+  const chipMounted = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<VideoMeta[]>([]);
@@ -80,17 +94,68 @@ export default function DiscoverScreen({ navigation }: any) {
     fabText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   }));
 
-  const load = useCallback(async (t = tab) => {
+  // /videos/feed is real cursor pagination — { videos, nextCursor } — with an
+  // optional server-side `category` filter (see loadFeed below for why chip
+  // filtering must go through this instead of filtering the fetched list).
+  const fetchFeedPage = useCallback(async (reset: boolean) => {
+    if (reset) feedCursorRef.current = null;
     try {
-      const res = await fetchApi(t === 'trending' ? '/videos/trending' : '/videos/feed');
+      const params = new URLSearchParams();
+      params.set('take', String(FEED_PAGE_SIZE));
+      if (!reset && feedCursorRef.current) params.set('cursor', feedCursorRef.current);
+      if (chip !== 'All') params.set('category', chip);
+      const res = await fetchApi(`/videos/feed?${params.toString()}`);
+      const data: { videos: VideoMeta[]; nextCursor: string | null } = await res.json();
+      const page = Array.isArray(data?.videos) ? data.videos : [];
+      setVideos(prev => (reset ? page : [...prev, ...page]));
+      feedCursorRef.current = data?.nextCursor ?? null;
+      setHasMore(!!data?.nextCursor);
+    } catch {
+      if (reset) setVideos([]);
+      setHasMore(false);
+    }
+  }, [chip]);
+
+  const loadFeed = useCallback(async (reset: boolean) => {
+    if (reset) setLoading(true);
+    await fetchFeedPage(reset);
+    setLoading(false);
+    setRefreshing(false);
+  }, [fetchFeedPage]);
+
+  const loadMoreFeed = useCallback(async () => {
+    if (loadingMore || !hasMore || tab !== 'feed' || searchOpen || loading) return;
+    setLoadingMore(true);
+    await fetchFeedPage(false);
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, tab, searchOpen, loading, fetchFeedPage]);
+
+  // /videos/trending is unchanged — a single-shot fetch, no pagination.
+  const loadTrending = useCallback(async () => {
+    try {
+      const res = await fetchApi('/videos/trending');
       const data = await res.json();
       setVideos(Array.isArray(data) ? data : []);
     } catch { setVideos([]); }
     setLoading(false);
     setRefreshing(false);
-  }, [tab]);
+  }, []);
+
+  const load = useCallback(() => {
+    if (tab === 'trending') loadTrending();
+    else loadFeed(true);
+  }, [tab, loadTrending, loadFeed]);
 
   useEffect(() => { load(); }, [tab]);
+
+  // Category chip changes on the 'feed' tab reset + refetch server-side
+  // (via `category`) rather than filtering the already-fetched list — see
+  // the `filtered` comment below for why client-side filtering breaks
+  // pagination. Trending's chip filtering stays client-side, unchanged.
+  useEffect(() => {
+    if (!chipMounted.current) { chipMounted.current = true; return; }
+    if (tab === 'feed') loadFeed(true);
+  }, [chip]);
 
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setSearchResults([]); return; }
@@ -115,7 +180,15 @@ export default function DiscoverScreen({ navigation }: any) {
     } catch { }
   };
 
-  const filtered = chip === 'All' ? videos : videos.filter(v => v.category === chip);
+  // 'feed' videos are already category-filtered server-side (see fetchFeedPage) —
+  // filtering them again client-side here would leave `hasMore` reflecting the
+  // unfiltered page while the visibly-shorter filtered list hits its end,
+  // triggering loadMore fetches whose results just get filtered back out
+  // (looks stuck/broken). 'trending' has no category param, so it keeps the
+  // original client-side filter.
+  const filtered = tab === 'trending'
+    ? (chip === 'All' ? videos : videos.filter(v => v.category === chip))
+    : videos;
   const displayList = searchOpen && query ? searchResults : filtered;
 
   const handleMenuPress = (v: VideoMeta) => setMenuVideo(v);
@@ -231,7 +304,17 @@ export default function DiscoverScreen({ navigation }: any) {
       )}
 
       {/* Videos list */}
-      {loading ? (
+      {loading && tab === 'feed' ? (
+        // "Loads like YouTube": frame + chrome are already on screen (above),
+        // shimmer placeholders show where content will land, then real cards
+        // replace them once the first page resolves — never a blank/spinner-only screen.
+        <FlatList
+          data={SKELETON_PLACEHOLDERS}
+          keyExtractor={(_, i) => `skeleton-${i}`}
+          renderItem={() => <VideoCardSkeleton />}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      ) : loading ? (
         <ActivityIndicator color={COLORS.primary} style={{ marginTop: 60 }} />
       ) : (
         <FlatList
@@ -245,6 +328,11 @@ export default function DiscoverScreen({ navigation }: any) {
               onMenuPress={handleMenuPress}
             />
           )}
+          onEndReached={tab === 'feed' ? loadMoreFeed : undefined}
+          onEndReachedThreshold={0.6}
+          ListFooterComponent={
+            tab === 'feed' && loadingMore ? <ActivityIndicator color={COLORS.primary} style={{ paddingVertical: 20 }} /> : null
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="play-circle-outline" size={64} color={COLORS.textMuted} />

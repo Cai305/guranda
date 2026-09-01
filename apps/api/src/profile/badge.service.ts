@@ -13,6 +13,13 @@ const SEED_BADGES: { code: string; name: string; description: string; icon: stri
   { code: 'CENTURY_CLUB', name: 'Century Club', description: 'Completed 100 challenges.', icon: '💯', maxSupply: null },
   { code: 'CARD_SHARK', name: 'Card Shark', description: 'Won 50 card games.', icon: '🃏', maxSupply: null },
   { code: 'CCR_CREATOR', name: 'CCR Creator', description: 'Earned your first Content Contribution payout.', icon: '💰', maxSupply: null },
+  // One per Video.videoType — minted the first time a viewer earns any
+  // watch-to-earn payout from a video of that type. See video-reward.service.ts.
+  { code: 'SPONSORED_VIEWER', name: 'Sponsored Viewer', description: 'Earned MSH watching a sponsored video.', icon: '🤝', maxSupply: null },
+  { code: 'PROMO_VIEWER', name: 'Promo Viewer', description: 'Earned MSH watching a promo video.', icon: '📣', maxSupply: null },
+  { code: 'CAMPAIGN_VIEWER', name: 'Campaign Viewer', description: 'Earned MSH watching a campaign video.', icon: '🚩', maxSupply: null },
+  { code: 'ADVERT_VIEWER', name: 'Advert Viewer', description: 'Earned MSH watching an advert.', icon: '📺', maxSupply: null },
+  { code: 'MUSIC_LISTENER', name: 'Music Listener', description: 'Earned MSH watching a music video.', icon: '🎵', maxSupply: null },
 ];
 
 @Injectable()

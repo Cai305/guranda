@@ -75,6 +75,7 @@ model User {
   videos                       Video[]                    @relation("videosUploaded")
   videoLikes                   VideoLike[]
   videoComments                VideoComment[]
+  videoRewardClaims            VideoRewardClaim[]
   creatorSubscriptionsMade     CreatorSubscription[]      @relation("subscriptionsMade")
   creatorSubscriptionsReceived CreatorSubscription[]      @relation("subscriptionsReceived")
   playlists                    Playlist[]
@@ -389,7 +390,7 @@ model Transaction {
   wallet    Wallet   @relation(fields: [walletId], references: [id])
   txHash    String?
   amount    Decimal
-  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT
+  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT, VIDEO_REWARD_FUND, VIDEO_REWARD_PAYOUT
   status    String // PENDING, SUCCESS, FAILED
   timestamp DateTime @default(now())
 }
@@ -592,14 +593,14 @@ model CommentLike {
 }
 
 model Community {
-  id          String              @id @default(uuid())
+  id          String               @id @default(uuid())
   name        String
   description String?
   iconUrl     String?
   coverUrl    String?
   category    String?
-  privacy     String              @default("PUBLIC") // PUBLIC, PRIVATE
-  createdAt   DateTime            @default(now())
+  privacy     String               @default("PUBLIC") // PUBLIC, PRIVATE
+  createdAt   DateTime             @default(now())
   members     CommunityMember[]
   rooms       Chat[]
   invites     CommunityInvite[]
@@ -1276,24 +1277,102 @@ model Ride {
 // ── Discover / Video ──────────────────────────────────────────────────────────
 
 model Video {
-  id           String          @id @default(uuid())
-  title        String
-  description  String?         @db.Text
-  url          String
-  thumbnailUrl String?
-  duration     Int // seconds
-  views        Int             @default(0)
-  category     String
-  tags         String[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  creatorId    String
-  creator      User            @relation("videosUploaded", fields: [creatorId], references: [id])
-  likes        VideoLike[]
-  comments     VideoComment[]
-  playlists    PlaylistVideo[]
-  watchHistory WatchHistory[]
-  watchLater   WatchLater[]
+  id               String           @id @default(uuid())
+  title            String
+  description      String?          @db.Text
+  url              String
+  thumbnailUrl     String?
+  duration         Int // seconds
+  views            Int              @default(0)
+  category         String
+  tags             String[]
+  // "ready" | "processing" | "failed" — defaults "ready" so existing rows
+  // (uploaded before transcoding existed) and any row nobody bothers to set
+  // explicitly are never stuck showing a "processing" state forever; new
+  // uploads are set to "processing" at insert time in createVideo(), then
+  // flipped to "ready" (renditions attached) or "failed" (original url is
+  // still the fallback either way) once the background transcode finishes.
+  processingStatus String           @default("ready")
+  // "STANDARD" | "SPONSORED" | "PROMO" | "CAMPAIGN" | "ADVERT" | "MUSIC" —
+  // purely a classification/labeling axis, independent of `category`
+  // (genre). Only videos with a `reward` row attached actually pay out for
+  // watching; videoType alone never implies money is involved.
+  videoType        String           @default("STANDARD")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  creatorId        String
+  creator          User             @relation("videosUploaded", fields: [creatorId], references: [id])
+  likes            VideoLike[]
+  comments         VideoComment[]
+  playlists        PlaylistVideo[]
+  watchHistory     WatchHistory[]
+  watchLater       WatchLater[]
+  renditions       VideoRendition[]
+  reward           VideoReward?
+}
+
+// Watch-to-earn config for a single video, funded up front by its creator
+// (debited from their own wallet at creation — real budget behind it, never
+// free money creation) and paid out to viewers as they watch, via
+// video-reward.service.ts. Optional 1:1 with Video — most videos never have
+// one, and are entirely unaffected by any of this.
+model VideoReward {
+  id                 String             @id @default(uuid())
+  videoId            String             @unique
+  video              Video              @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  // "COMPLETION" (pay amountPerUnit once, on reaching ~95% watched) |
+  // "PER_MINUTE" (pay amountPerUnit per full minute watched, accrued
+  // incrementally as the viewer's progress heartbeats in) |
+  // "WATCH_AND_SUBSCRIBE" (same as COMPLETION, but also requires a
+  // CreatorSubscription to this video's creator to exist)
+  payoutMode         String
+  amountPerUnit      Float
+  totalBudgetMsh     Float
+  remainingBudgetMsh Float
+  // Floor below which no payout is ever considered, however small — a basic
+  // anti-fraud guard against near-zero "watches" still earning something.
+  minWatchSeconds    Int                @default(10)
+  createdAt          DateTime           @default(now())
+  claims             VideoRewardClaim[]
+}
+
+// One row per (video, viewer) — a running ledger of what's already been paid
+// for this pairing, not a log of individual payout events. `amountPaid` only
+// ever increases (upserted); video-reward.service.ts credits the viewer's
+// wallet for the delta between a newly-computed entitlement and this
+// recorded amount, never re-paying what's already been recorded here. The
+// unique constraint is what makes a payout un-repeatable by rewatching.
+model VideoRewardClaim {
+  id             String      @id @default(uuid())
+  videoRewardId  String
+  videoReward    VideoReward @relation(fields: [videoRewardId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  amountPaid     Float       @default(0)
+  watchedSeconds Int         @default(0)
+  badgeMinted    Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([videoRewardId, userId])
+}
+
+// Transcoded quality variants of a Video, produced asynchronously after
+// upload — see video-transcode.service.ts. Absent entirely for videos
+// uploaded before this existed, or while processingStatus is "processing";
+// the player always has Video.url as an "Auto"/original-quality fallback.
+model VideoRendition {
+  id        String   @id @default(uuid())
+  videoId   String
+  label     String // "1080p" | "720p" | "480p" | "360p"
+  url       String
+  width     Int
+  height    Int
+  bitrate   Int?
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, label])
 }
 
 model VideoLike {
@@ -1438,12 +1517,12 @@ model PendingMcpAction {
 model ExternalIntegration {
   id                   String    @id @default(uuid())
   userId               String
-  provider             String    // 'google_calendar' | 'github' | 'slack'
+  provider             String // 'google_calendar' | 'github' | 'slack'
   accessToken          String
   refreshToken         String?
   expiresAt            DateTime?
   scope                String?
-  externalAccountLabel String?   // e.g. connected email or workspace name, for display
+  externalAccountLabel String? // e.g. connected email or workspace name, for display
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -2462,27 +2541,27 @@ model StokvelAuditLog {
 // ============================================================
 
 model Structure {
-  id            String   @id @default(uuid())
-  name          String
-  type          String // HOA | CORPORATE | UNION | CLUB | STUDENT_BODY | OTHER
-  creatorId     String
-  creator       User     @relation("structuresCreated", fields: [creatorId], references: [id])
-  createdAt     DateTime @default(now())
+  id        String   @id @default(uuid())
+  name      String
+  type      String // HOA | CORPORATE | UNION | CLUB | STUDENT_BODY | OTHER
+  creatorId String
+  creator   User     @relation("structuresCreated", fields: [creatorId], references: [id])
+  createdAt DateTime @default(now())
 
   members   StructureMember[]
   elections Election[]
 }
 
 model StructureMember {
-  id            String   @id @default(uuid())
-  structureId   String
-  structure     Structure @relation(fields: [structureId], references: [id])
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  role          String    @default("MEMBER") // ADMIN | POLL_WORKER | MEMBER
-  votingWeight  Int       @default(1) // shares, for WEIGHTED positions
-  status        String    @default("ACTIVE") // ACTIVE | REMOVED
-  joinedAt      DateTime  @default(now())
+  id           String    @id @default(uuid())
+  structureId  String
+  structure    Structure @relation(fields: [structureId], references: [id])
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  role         String    @default("MEMBER") // ADMIN | POLL_WORKER | MEMBER
+  votingWeight Int       @default(1) // shares, for WEIGHTED positions
+  status       String    @default("ACTIVE") // ACTIVE | REMOVED
+  joinedAt     DateTime  @default(now())
 
   checkIns ElectionCheckIn[]
   votes    ElectionVote[]
@@ -2491,13 +2570,13 @@ model StructureMember {
 }
 
 model Election {
-  id                  String    @id @default(uuid())
-  structureId         String
-  structure           Structure @relation(fields: [structureId], references: [id])
-  title               String
-  opensAt             DateTime  @default(now())
-  closesAt            DateTime?
-  status              String    @default("OPEN") // SCHEDULED | OPEN | CLOSED
+  id          String    @id @default(uuid())
+  structureId String
+  structure   Structure @relation(fields: [structureId], references: [id])
+  title       String
+  opensAt     DateTime  @default(now())
+  closesAt    DateTime?
+  status      String    @default("OPEN") // SCHEDULED | OPEN | CLOSED
 
   // XRPL ballot-box wallet — every cast vote sends a memo-only
   // payment here, giving the election a single publicly auditable

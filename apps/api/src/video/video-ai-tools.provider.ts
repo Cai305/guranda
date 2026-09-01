@@ -20,7 +20,7 @@ export class VideoAiToolsProvider implements OnModuleInit {
           permissionKey: 'video.read',
           sensitive: false,
           defaultGranted: true,
-          handler: (ctx) => this.video.getFeed(ctx.userId),
+          handler: (ctx) => this.video.getFeed(ctx.userId).then((r) => r.videos),
           describeResult: (_i, output: any[]) =>
             `${output.length} video(s) in feed.`,
         },
