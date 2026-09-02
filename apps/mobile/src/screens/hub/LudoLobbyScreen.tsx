@@ -98,6 +98,19 @@ export default function LudoLobbyScreen({ navigation }: any) {
     },
     scroll: { paddingBottom: 40 },
 
+    // Tagline strip
+    tagline: { alignItems: 'center', gap: 9, marginTop: 8, marginBottom: 4 },
+    taglineDots: { flexDirection: 'row', gap: 7 },
+    taglineDot: {
+      width: 13, height: 13,
+      borderRadius: 7,
+      shadowOpacity: 0.7,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 3,
+    },
+    taglineText: { fontSize: 12.5, fontWeight: '700', color: 'rgba(255,255,255,0.55)', letterSpacing: 0.3 },
+
     // Big cards
     bigRow: {
       flexDirection: 'row',
@@ -229,6 +242,16 @@ export default function LudoLobbyScreen({ navigation }: any) {
         />
         <Text style={styles.headerTitle}>LUDO</Text>
         <View style={styles.headerBtn} />
+      </View>
+
+      {/* ── Tagline strip ── */}
+      <View style={styles.tagline}>
+        <View style={styles.taglineDots}>
+          {SEAT_COLORS.slice(0, 4).map((c) => (
+            <View key={c} style={[styles.taglineDot, { backgroundColor: c, shadowColor: c }]} />
+          ))}
+        </View>
+        <Text style={styles.taglineText}>Roll. Race. Rule the board.</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>

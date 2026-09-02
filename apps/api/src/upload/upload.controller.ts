@@ -21,7 +21,12 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 50 * 1024 * 1024 },
+      // 200MB — was 50MB, which real chat video clips (not just images)
+      // routinely exceeded, failing the upload with no obvious reason from
+      // the sender's side. Still well under the dedicated Discovery video
+      // upload's 500MB cap (video.controller.ts), since chat clips are
+      // typically much shorter than uploaded videos.
+      limits: { fileSize: 200 * 1024 * 1024 },
       fileFilter: (
         _req: Request,
         file: Express.Multer.File,

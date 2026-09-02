@@ -366,7 +366,7 @@ export default function EventMiniCard({
         {/* View */}
         <TouchableOpacity
           style={styles.viewBtn}
-          onPress={() => navigation?.navigate('EventDetail', { eventId: event.id })}
+          onPress={() => navigation?.navigate('Life', { screen: 'EventDetail', params: { eventId: event.id } })}
           activeOpacity={0.8}
         >
           <Ionicons name="eye-outline" size={14} color={COLORS.primary} />

@@ -11,13 +11,17 @@ import { fetchRoute, haversineKm, RoutePoint } from '../../../utils/routing';
 import PulsingRadar from '../../../components/PulsingRadar';
 import * as Location from 'expo-location';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { RIDE_MAP_STYLE } from '../../../theme/mapStyle';
+import { RIDE_MAP_STYLE, NATIVE_MAPS_AVAILABLE } from '../../../theme/mapStyle';
 
-// react-native-maps doesn't work on web — use a conditional import
+// react-native-maps doesn't work on web — use a conditional import. Also
+// skipped entirely when NATIVE_MAPS_AVAILABLE is false (see mapStyle.ts):
+// mounting a native MapView without a configured Google Maps API key is a
+// fatal native crash, so this avoids even loading the native module until
+// a key is in place.
 let MapView: any = null;
 let Marker: any = null;
 let Polyline: any = null;
-if (Platform.OS !== 'web') {
+if (Platform.OS !== 'web' && NATIVE_MAPS_AVAILABLE) {
   const Maps = require('react-native-maps');
   MapView = Maps.default;
   Marker = Maps.Marker;

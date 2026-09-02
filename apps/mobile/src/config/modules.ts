@@ -181,6 +181,17 @@ export const MODULES: LifeModule[] = [
     route: { name: 'Main', params: { screen: 'Life', params: { screen: 'FinanceHome' } } },
   },
   {
+    id: 'scan-to-pay',
+    name: 'Scan to Pay',
+    icon: 'scan-outline',
+    gradient: GRADIENTS.wallet,
+    status: 'installable',
+    tagline: 'Walk in, scan, walk out',
+    description: 'Shop at any Guranda-verified store — scan products as you go, track your budget live, pay straight from your wallet, and get a digital receipt.',
+    features: ['Store discovery', 'Barcode scanning', 'Live budget tracking', 'Grocery list matching', 'Guranda wallet checkout', 'Digital receipts'],
+    route: { name: 'Main', params: { screen: 'Life', params: { screen: 'ScanToPayLobby' } } },
+  },
+  {
     id: 'shopping',
     name: 'Shopping',
     icon: 'bag-handle',
@@ -305,7 +316,7 @@ export const getModule = (id: string): LifeModule | undefined =>
 export const MINI_APP_IDS = [
   'poster', 'voting', 'events', 'health', 'travel', 'learning', 'shopping', 'property',
   'finance', 'work', 'marketplace', 'username-market', 'ride', 'eat', 'hair',
-  'entertainment', 'carfind', 'carwash',
+  'entertainment', 'carfind', 'carwash', 'scan-to-pay',
 ];
 
 // Applies the admin dashboard's per-module feature flags on top of the

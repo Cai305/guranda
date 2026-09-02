@@ -74,6 +74,9 @@ export default function MiniAppProductPicker({ visible, onClose, onSendProduct }
     storeId: raw.storeId || raw.store?.id || 'unknown',
     storeName: raw.storeName || raw.store?.name || selectedApp.label,
     category: raw.category,
+    // Which mini app this came from — ProductMiniCard needs this to know
+    // which detail screen "View" should open (each app has its own).
+    sourceApp: selectedApp.id,
   });
 
   const handleSend = (raw: any) => {

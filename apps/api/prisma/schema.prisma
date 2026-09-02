@@ -187,6 +187,10 @@ model User {
   relationshipsAsUserB         Relationship[]             @relation("relationshipUserB")
   notifications                Notification[]
   campaignsCreated             Campaign[]
+  merchantsOwned               Merchant[]                 @relation("merchantsOwned")
+  merchantStaffRoles           MerchantStaff[]
+  scanToPaySessions            ShoppingSession[]          @relation("scanToPaySessions")
+  scanToPayTransactions        ScanToPayTransaction[]     @relation("scanToPayTransactions")
 }
 
 model UserProfile {
@@ -390,9 +394,11 @@ model Transaction {
   wallet    Wallet   @relation(fields: [walletId], references: [id])
   txHash    String?
   amount    Decimal
-  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT, VIDEO_REWARD_FUND, VIDEO_REWARD_PAYOUT
+  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT, VIDEO_REWARD_FUND, VIDEO_REWARD_PAYOUT, SCAN_TO_PAY_PAYOUT
   status    String // PENDING, SUCCESS, FAILED
   timestamp DateTime @default(now())
+
+  @@index([walletId, timestamp])
 }
 
 // A request to add real-world money (via PayShap or another rail) onto the
@@ -3811,4 +3817,154 @@ model BusinessMetricsSnapshot {
   capturedAt         DateTime @default(now())
 
   @@index([userId, capturedAt])
+}
+
+// ============================================================
+// Scan to Pay — walk into any Guranda-approved merchant, scan
+// products with the phone camera, watch a live budget, pay
+// through the Guranda wallet, get a digital receipt, and have
+// security verify it on the way out. Deliberately merchant-
+// agnostic: a Merchant/MerchantStore pair is the only thing a
+// retailer needs before it can accept Scan to Pay, so the same
+// tables serve one corner shop or a million of them.
+//
+// The barcode scan IS the product — there is no merchant
+// inventory integration in the MVP. ShoppingSessionItem freezes
+// whatever the customer's scan captured (barcode/name/price) at
+// scan time, and ScanToPayTransaction.itemsSnapshot freezes the
+// whole cart again at checkout, so a later price change on some
+// other session can never retroactively alter a paid receipt —
+// which is exactly what security verification checks against.
+// ============================================================
+
+model Merchant {
+  id          String    @id @default(uuid())
+  ownerId     String
+  owner       User      @relation("merchantsOwned", fields: [ownerId], references: [id])
+  name        String
+  category    String
+  description String?
+  address     String?
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  stores       MerchantStore[]
+  staff        MerchantStaff[]
+  sessions     ShoppingSession[]
+  transactions ScanToPayTransaction[]
+
+  @@index([status])
+}
+
+model MerchantStore {
+  id         String   @id @default(uuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+  name       String
+  address    String?
+  createdAt  DateTime @default(now())
+
+  // The merchant checkout screen's dynamic QR (brief §12) — regenerated
+  // (and re-expired) each time staff open that screen, so a photographed
+  // or reused QR can't pay a stale checkout indefinitely.
+  checkoutToken          String?
+  checkoutTokenExpiresAt DateTime?
+
+  staff        MerchantStaff[]
+  sessions     ShoppingSession[]
+  transactions ScanToPayTransaction[]
+}
+
+// A merchant's staff accounts/roles (brief §1, §15) — a Guranda user gains
+// merchant-side access (checkout QR, security scanning) by having a row
+// here, scoped to a specific store when they're not an owner/manager who
+// needs every store.
+model MerchantStaff {
+  id         String         @id @default(uuid())
+  merchantId String
+  merchant   Merchant       @relation(fields: [merchantId], references: [id])
+  storeId    String?
+  store      MerchantStore? @relation(fields: [storeId], references: [id])
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  role       String // OWNER, MANAGER, CASHIER, SECURITY
+  createdAt  DateTime       @default(now())
+
+  @@unique([merchantId, userId])
+}
+
+model ShoppingSession {
+  id          String        @id @default(uuid())
+  customerId  String
+  customer    User          @relation("scanToPaySessions", fields: [customerId], references: [id])
+  merchantId  String
+  merchant    Merchant      @relation(fields: [merchantId], references: [id])
+  storeId     String
+  store       MerchantStore @relation(fields: [storeId], references: [id])
+  status      String        @default("ACTIVE") // ACTIVE, CHECKOUT, COMPLETED, CANCELLED
+  budget      Float?
+  // Grocery list entries the customer set before shopping — each item's
+  // matched state is derived at read time from whether any scanned
+  // ShoppingSessionItem.name matches, never stored, so it can't drift.
+  groceryList String[]      @default([])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items        ShoppingSessionItem[]
+  // Not to-one: a FAILED attempt (e.g. insufficient balance) must stay
+  // retryable, so a session can accumulate more than one attempt row
+  // before exactly one of them ever reaches PAID.
+  transactions ScanToPayTransaction[]
+
+  @@index([customerId, status])
+}
+
+model ShoppingSessionItem {
+  id        String          @id @default(uuid())
+  sessionId String
+  session   ShoppingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  barcode   String
+  name      String
+  // Price captured at scan time — brief §4: this is what the cart charges
+  // unless the customer explicitly edits it, never re-priced from elsewhere.
+  price     Float
+  qty       Int             @default(1)
+  imageHint String?
+  createdAt DateTime        @default(now())
+
+  @@index([sessionId])
+}
+
+model ScanToPayTransaction {
+  id            String          @id @default(uuid())
+  sessionId     String
+  session       ShoppingSession @relation(fields: [sessionId], references: [id])
+  customerId    String
+  customer      User            @relation("scanToPayTransactions", fields: [customerId], references: [id])
+  merchantId    String
+  merchant      Merchant        @relation(fields: [merchantId], references: [id])
+  storeId       String
+  store         MerchantStore   @relation(fields: [storeId], references: [id])
+  subtotal      Float
+  discount      Float           @default(0)
+  fees          Float           @default(0)
+  total         Float
+  status        String          @default("PENDING") // PENDING, PROCESSING, PAID, FAILED
+  // Frozen at checkout — {barcode, name, price, qty}[] — the receipt and
+  // security verification both check against this snapshot, never live
+  // ShoppingSessionItem rows, so nothing about a paid receipt can move.
+  itemsSnapshot Json
+  paidAt        DateTime?
+  // Security verification (brief §13-14) — set on the first exit scan;
+  // flagged stays true once any scanned item comes back not-on-receipt,
+  // for merchant/security follow-up, even if later scans on the same exit
+  // all verify fine.
+  verifiedAt    DateTime?
+  flagged       Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+
+  @@index([merchantId, createdAt])
+  @@index([customerId, createdAt])
+  @@index([sessionId])
 }

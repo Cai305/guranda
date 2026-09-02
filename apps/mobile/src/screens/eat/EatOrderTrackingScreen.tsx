@@ -6,10 +6,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { rideSocket } from '../../services/RideSocketService';
 import { fetchApi } from '../../utils/api';
+import { NATIVE_MAPS_AVAILABLE } from '../../theme/mapStyle';
 
+// See theme/mapStyle.ts — react-native-maps' Android provider needs a
+// configured Google Maps API key or mounting it is a fatal native crash;
+// skipped entirely (falls back to the placeholder below) until one is set.
 let MapView: any = null;
 let Marker: any = null;
-if (Platform.OS !== 'web') {
+if (Platform.OS !== 'web' && NATIVE_MAPS_AVAILABLE) {
   const Maps = require('react-native-maps');
   MapView = Maps.default;
   Marker = Maps.Marker;

@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   Request,
   UseGuards,
   UsePipes,
@@ -34,6 +35,24 @@ export class WalletsController {
   @Get('me')
   async getMyWallet(@Request() req: any) {
     return this.walletsService.getMyWallet(req.user.userId);
+  }
+
+  @Get('me/transactions')
+  async getMyWalletTransactions(
+    @Request() req: any,
+    @Query('cursor') cursor?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.walletsService.getWalletTransactionsPage(
+      req.user.userId,
+      cursor,
+      take ? Number(take) : undefined,
+    );
+  }
+
+  @Get('me/summary')
+  async getMyWalletSummary(@Request() req: any) {
+    return this.walletsService.getWalletSummary(req.user.userId);
   }
 
   // Tighter than the global 60/min — money-movement, not a read.

@@ -115,6 +115,36 @@ export class LudoGateway implements OnGatewayDisconnect {
     this.maybeRunAI(data.gameId);
   }
 
+  // ── In-game quick reactions & chat ────────────────────────────────────────
+  // Deliberately ephemeral (no DB persistence) — a live reaction/chat burst
+  // between two people already sharing a game room, same spirit as the
+  // roll/move events above. A player who reconnects mid-game just won't see
+  // history before they joined, which is an acceptable tradeoff for what
+  // this is (a lightweight in-match aside, not a real conversation thread —
+  // apps/api/src/chat is the real persisted messaging system).
+  @SubscribeMessage('send_emoji')
+  handleSendEmoji(
+    @MessageBody() data: { gameId: string; userId: string; emoji: string },
+  ) {
+    this.server.to(data.gameId).emit('emoji_received', {
+      userId: data.userId,
+      emoji: data.emoji,
+    });
+  }
+
+  @SubscribeMessage('send_chat')
+  handleSendChat(
+    @MessageBody() data: { gameId: string; userId: string; displayName: string; text: string },
+  ) {
+    const text = (data.text || '').trim().slice(0, 200);
+    if (!text) return;
+    this.server.to(data.gameId).emit('chat_received', {
+      userId: data.userId,
+      displayName: data.displayName,
+      text,
+    });
+  }
+
   // Repeatedly plays AI turns (with a short delay between each, so
   // spectating humans can actually see it happen) until control
   // returns to a human seat or the game ends.

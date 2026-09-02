@@ -105,6 +105,16 @@ import CardsTournamentBracketScreen from '../screens/hub/cards/CardsTournamentBr
 import CardsDailyChallengesScreen from '../screens/hub/cards/CardsDailyChallengesScreen';
 import CardsAchievementsScreen from '../screens/hub/cards/CardsAchievementsScreen';
 import FriendsListScreen from '../screens/friends/FriendsListScreen';
+import ScanToPayLobbyScreen from '../screens/scan-to-pay/ScanToPayLobbyScreen';
+import ScanToPayStoreScreen from '../screens/scan-to-pay/ScanToPayStoreScreen';
+import ScanToPayScannerScreen from '../screens/scan-to-pay/ScanToPayScannerScreen';
+import ScanToPayCartScreen from '../screens/scan-to-pay/ScanToPayCartScreen';
+import ScanToPayCheckoutScreen from '../screens/scan-to-pay/ScanToPayCheckoutScreen';
+import ScanToPayPaymentStatusScreen from '../screens/scan-to-pay/ScanToPayPaymentStatusScreen';
+import ScanToPayReceiptScreen from '../screens/scan-to-pay/ScanToPayReceiptScreen';
+import ScanToPayMyReceiptsScreen from '../screens/scan-to-pay/ScanToPayMyReceiptsScreen';
+import ScanToPayMerchantCheckoutScreen from '../screens/scan-to-pay/ScanToPayMerchantCheckoutScreen';
+import ScanToPaySecurityScreen from '../screens/scan-to-pay/ScanToPaySecurityScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -132,6 +142,16 @@ export default function HubStackNavigator() {
       <Stack.Screen name="Scrabble" component={ScrabbleScreen} />
       <Stack.Screen name="Ride" component={RideScreen} />
       <Stack.Screen name="Food" component={FoodScreen} />
+      <Stack.Screen name="ScanToPayLobby" component={ScanToPayLobbyScreen} />
+      <Stack.Screen name="ScanToPayStore" component={ScanToPayStoreScreen} />
+      <Stack.Screen name="ScanToPayScanner" component={ScanToPayScannerScreen} />
+      <Stack.Screen name="ScanToPayCart" component={ScanToPayCartScreen} />
+      <Stack.Screen name="ScanToPayCheckout" component={ScanToPayCheckoutScreen} />
+      <Stack.Screen name="ScanToPayPaymentStatus" component={ScanToPayPaymentStatusScreen} />
+      <Stack.Screen name="ScanToPayReceipt" component={ScanToPayReceiptScreen} />
+      <Stack.Screen name="ScanToPayMyReceipts" component={ScanToPayMyReceiptsScreen} />
+      <Stack.Screen name="ScanToPayMerchantCheckout" component={ScanToPayMerchantCheckoutScreen} />
+      <Stack.Screen name="ScanToPaySecurity" component={ScanToPaySecurityScreen} />
       <Stack.Screen name="Category" component={CategoryScreen} />
       <Stack.Screen name="ExternalApp" component={ExternalAppScreen} />
       <Stack.Screen name="EatHome" component={EatHomeScreen} />

@@ -181,31 +181,78 @@ export default function ProfileScreen({ navigation }: any) {
       borderRadius: RADIUS.xl,
       padding: SPACING.lg,
       borderWidth: 1,
-      borderColor: 'rgba(139, 92, 246, 0.3)',
+      borderColor: 'rgba(139, 92, 246, 0.35)',
+      overflow: 'hidden',
+      shadowColor: COLORS.primary,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.25,
+      shadowRadius: 24,
+      elevation: 6,
+    },
+    // Decorative, purely atmospheric — clipped by identityCard's overflow:hidden.
+    glowBlobTopRight: {
+      position: 'absolute',
+      top: -60, right: -50,
+      width: 180, height: 180,
+      borderRadius: 90,
+    },
+    glowBlobBottomLeft: {
+      position: 'absolute',
+      bottom: -70, left: -40,
+      width: 200, height: 200,
+      borderRadius: 100,
     },
     identityTop: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
     },
+    avatarWrap: {
+      width: 84,
+      height: 84,
+    },
+    avatarRing: {
+      width: 84,
+      height: 84,
+      borderRadius: 42,
+      padding: 3,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     avatar: {
-      width: 76,
-      height: 76,
-      borderRadius: 38,
+      width: 78,
+      height: 78,
+      borderRadius: 39,
       borderWidth: 2,
-      borderColor: COLORS.primary,
+      borderColor: COLORS.background,
       backgroundColor: COLORS.surface,
+    },
+    avatarEditBadge: {
+      position: 'absolute',
+      bottom: -2, right: -2,
+      width: 26, height: 26,
+      borderRadius: 13,
+      backgroundColor: COLORS.surfaceElevated,
+      borderWidth: 2,
+      borderColor: '#1E1B4B',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     levelPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      backgroundColor: 'rgba(251, 191, 36, 0.15)',
+      gap: 5,
+      backgroundColor: 'rgba(251, 191, 36, 0.16)',
       borderWidth: 1,
-      borderColor: 'rgba(251, 191, 36, 0.4)',
+      borderColor: 'rgba(251, 191, 36, 0.5)',
       borderRadius: RADIUS.pill,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      shadowColor: COLORS.gold,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 3,
     },
     levelText: {
       color: COLORS.gold,
@@ -214,21 +261,35 @@ export default function ProfileScreen({ navigation }: any) {
     },
     displayName: {
       ...TYPOGRAPHY.h2,
-      marginTop: SPACING.md,
+      fontSize: 28,
+      fontWeight: '700',
+      marginTop: SPACING.md + 4,
     },
     username: {
       ...TYPOGRAPHY.body2,
-      marginTop: 2,
+      color: COLORS.secondary,
+      fontWeight: '600',
+      marginTop: 3,
     },
     followRow: {
       flexDirection: 'row',
-      gap: SPACING.md,
-      marginTop: 6,
+      gap: 10,
+      marginTop: SPACING.md,
     },
-    followStat: {
-      ...TYPOGRAPHY.body2,
-      color: COLORS.textMuted,
-      fontSize: 12.5,
+    followChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      borderRadius: RADIUS.pill,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    followChipText: {
+      color: COLORS.text,
+      fontSize: 13,
     },
     followStatNumber: {
       color: COLORS.text,
@@ -381,17 +442,40 @@ export default function ProfileScreen({ navigation }: any) {
           end={{ x: 1, y: 1 }}
           style={styles.identityCard}
         >
+          {/* Soft glow blobs for depth — purely decorative, sit behind everything */}
+          <LinearGradient
+            colors={['rgba(34,211,238,0.35)', 'rgba(34,211,238,0)']}
+            style={styles.glowBlobTopRight}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['rgba(139,92,246,0.4)', 'rgba(139,92,246,0)']}
+            style={styles.glowBlobBottomLeft}
+            pointerEvents="none"
+          />
+
           <View style={styles.identityTop}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => navigation.navigate('EditProfile')}
               accessibilityRole="button"
               accessibilityLabel="Edit profile picture"
+              style={styles.avatarWrap}
             >
-              <Image
-                source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}` }}
-                style={styles.avatar}
-              />
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.secondary, COLORS.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatarRing}
+              >
+                <Image
+                  source={{ uri: user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}` }}
+                  style={styles.avatar}
+                />
+              </LinearGradient>
+              <View style={styles.avatarEditBadge}>
+                <Ionicons name="pencil" size={12} color={COLORS.text} />
+              </View>
             </TouchableOpacity>
             {/* The companion pet lives right here — its stage IS your
                 reputation level, so this replaces what used to be a plain
@@ -409,12 +493,18 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.username}>{username}</Text>
           {followStats && (
             <View style={styles.followRow}>
-              <Text style={styles.followStat}>
-                <Text style={styles.followStatNumber}>{followStats.followerCount}</Text> followers
-              </Text>
-              <Text style={styles.followStat}>
-                <Text style={styles.followStatNumber}>{followStats.followingCount}</Text> following
-              </Text>
+              <View style={styles.followChip}>
+                <Ionicons name="people-outline" size={15} color="#C9BFE8" />
+                <Text style={styles.followChipText}>
+                  <Text style={styles.followStatNumber}>{followStats.followerCount}</Text> Followers
+                </Text>
+              </View>
+              <View style={styles.followChip}>
+                <Ionicons name="person-add-outline" size={15} color="#C9BFE8" />
+                <Text style={styles.followChipText}>
+                  <Text style={styles.followStatNumber}>{followStats.followingCount}</Text> Following
+                </Text>
+              </View>
             </View>
           )}
           {!!(user?.effectiveStatus || user?.bio) && (

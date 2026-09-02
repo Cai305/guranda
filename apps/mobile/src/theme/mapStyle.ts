@@ -1,3 +1,13 @@
+// react-native-maps' Android provider is Google Maps, which requires a
+// com.google.android.geo.API_KEY meta-data entry in AndroidManifest.xml —
+// without one, mounting a native MapView is a FATAL native crash the
+// instant a map screen opens on Android (not a catchable JS error). A key
+// is now wired into AndroidManifest.xml (and app.json, for future
+// `expo prebuild` runs) — flip this back to false if that key is ever
+// removed/invalidated, to fall back to the gradient placeholder instead of
+// crashing again.
+export const NATIVE_MAPS_AVAILABLE = true;
+
 // Shared dark Google-Maps style for every native (react-native-maps) MapView
 // in the Ride mini-app — previously duplicated verbatim between RiderView
 // and DriverView. Business POI icons/labels are hidden on top of the

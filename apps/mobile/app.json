@@ -19,7 +19,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.lifeos"
+      "package": "com.anonymous.lifeos",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDUMGescJdT-p5d457Ac4I5cCW-BzkZih4"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png",

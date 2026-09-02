@@ -29,19 +29,6 @@ const FRAME_WOOD = '#6B4226';
 const CELL_STROKE = 'rgba(40, 40, 40, 0.45)';
 const STAR_CELL_BG = '#D8DADD';
 const STAR_GLYPH = '#8E939B';
-const GOLD = '#F2C21F';
-const GOLD_DARK = '#C49A0C';
-
-// Crown glyph drawn as a small polygon so it inherits exact colors
-// on every platform (no emoji font differences).
-function crownPoints(x: number, y: number, r: number): string {
-  const s = r / 6;
-  const pts: [number, number][] = [
-    [-3.4, 2.6], [3.4, 2.6], [3.4, 1.4], [2.5, -0.9], [1.3, 0.7],
-    [0, -2.3], [-1.3, 0.7], [-2.5, -0.9], [-3.4, 1.4],
-  ];
-  return pts.map(([px, py]) => `${x + px * s},${y + py * s}`).join(' ');
-}
 
 function TokenCoin({ tp, color, selectable, onPress }: {
   tp: TokenPoint; color: string; selectable: boolean; onPress?: () => void;
@@ -69,16 +56,22 @@ function TokenCoin({ tp, color, selectable, onPress }: {
   return (
     <>
       <Circle cx={tp.x} cy={tp.y + 1} r={r + 1.5} fill="rgba(0,0,0,0.3)" />
+      {/* Outer ring is the token's own team color (not a universal gold),
+          so red tokens ring red, blue tokens ring blue, etc. */}
       <AnimatedCircle
         cx={tp.x} cy={tp.y} r={r + 1.5}
-        fill={GOLD}
-        stroke={selectable ? '#FFFFFF' : GOLD_DARK}
+        fill={color}
+        stroke={selectable ? '#FFFFFF' : 'rgba(0,0,0,0.35)'}
         strokeWidth={selectable ? ringStroke : 1}
         opacity={selectable ? ringOpacity : 1}
       />
       <Circle cx={tp.x} cy={tp.y} r={r - 1} fill="#FFFFFF" />
       <Circle cx={tp.x} cy={tp.y} r={r - 3.2} fill={color} onPress={onPress} />
-      <Polygon points={crownPoints(tp.x, tp.y, r - 3.2)} fill="#FFFFFF" onPress={onPress} />
+      {/* Dice-pip face — a small die glyph on the token, a classic/generic
+          Ludo marking (not a crown) drawn as plain shapes so it's exact on
+          every platform. */}
+      <Rect x={tp.x - 3.2} y={tp.y - 3.2} width={6.4} height={6.4} rx={1.5} fill="#FFFFFF" onPress={onPress} />
+      <Circle cx={tp.x} cy={tp.y} r={1.15} fill={color} onPress={onPress} />
     </>
   );
 }

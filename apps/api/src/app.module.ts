@@ -21,6 +21,7 @@ import { MurabarabaModule } from './murabaraba/murabaraba.module';
 import { TurboRacingModule } from './turbo-racing/turbo-racing.module';
 import { RideModule } from './ride/ride.module';
 import { EatModule } from './eat/eat.module';
+import { ScanToPayModule } from './scan-to-pay/scan-to-pay.module';
 import { UploadModule } from './upload/upload.module';
 import { VideoModule } from './video/video.module';
 import { AiModule } from './ai/ai.module';
@@ -108,6 +109,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     LudoModule,
     RideModule,
     EatModule,
+    ScanToPayModule,
     UploadModule,
     EditorModule,
     VideoModule,

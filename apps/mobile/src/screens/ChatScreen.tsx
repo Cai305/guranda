@@ -1089,6 +1089,12 @@ export default function ChatScreen({ route, navigation }: any) {
                 >
                   <Ionicons name="calendar-outline" size={18} color="#ec4899" />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pillIconBtn, styles.pillIconBtnLast]}
+                  onPress={() => navigation.navigate('Life', { screen: 'LudoLobby' })}
+                >
+                  <Ionicons name="game-controller-outline" size={18} color="#10B981" />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity

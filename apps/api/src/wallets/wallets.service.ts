@@ -58,6 +58,75 @@ export class WalletsService {
     return wallet;
   }
 
+  // Cursor-paginated transaction history for the "All Transactions" screen —
+  // getMyWallet only ever returns the latest 20, which isn't enough to page
+  // through everything. Same lt-cursor-on-timestamp shape as video.service.ts's
+  // getFeed, minus the score-reranking pool trick (this list is plain
+  // chronological, so no gap-under-cursor risk).
+  async getWalletTransactionsPage(userId: string, cursor?: string, take = 20) {
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+    const pageSize = Math.min(Math.max(take, 1), 50);
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        walletId: wallet.id,
+        ...(cursor ? { timestamp: { lt: new Date(cursor) } } : {}),
+      },
+      orderBy: { timestamp: 'desc' },
+      take: pageSize,
+    });
+    const nextCursor =
+      transactions.length < pageSize
+        ? null
+        : transactions[transactions.length - 1].timestamp.toISOString();
+    return { transactions, nextCursor };
+  }
+
+  // Month-to-date totals for the Activity dashboard, computed over ALL of
+  // this month's transactions (not just the latest 20 getMyWallet returns) —
+  // "money in" matches the exact set of types the transaction list already
+  // renders in green (isPositive in WalletScreen/WalletTransactionsScreen),
+  // so the dashboard's total never disagrees with what the list shows.
+  async getWalletSummary(userId: string) {
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthTransactions = await this.prisma.transaction.findMany({
+      where: { walletId: wallet.id, timestamp: { gte: periodStart } },
+      select: { amount: true, type: true },
+    });
+
+    // Some types (e.g. VIDEO_REWARD_FUND, a reward-pool reservation) are
+    // recorded with a negative amount as a ledger-internal debit convention
+    // — a magnitude dashboard should always show "how much moved", so every
+    // total and bar here is built from the absolute value, never the raw
+    // signed amount.
+    const POSITIVE_TYPES = new Set(['RECEIVE', 'DEPOSIT']);
+    let moneyIn = 0;
+    let moneyOut = 0;
+    const byType = new Map<string, number>();
+    for (const t of monthTransactions) {
+      const amount = Math.abs(Number(t.amount));
+      if (POSITIVE_TYPES.has(t.type)) moneyIn += amount;
+      else moneyOut += amount;
+      byType.set(t.type, (byType.get(t.type) ?? 0) + amount);
+    }
+
+    return {
+      periodStart: periodStart.toISOString(),
+      moneyIn,
+      moneyOut,
+      byType: Array.from(byType.entries())
+        .map(([type, amount]) => ({ type, amount }))
+        .sort((a, b) => b.amount - a.amount),
+    };
+  }
+
   /**
    * Transfer MSH between Guranda users on the ledger.
    * `destination` accepts a Guranda username or a wallet's XRPL address.

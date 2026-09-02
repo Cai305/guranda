@@ -32,11 +32,21 @@ export default function HubScreen({ route, navigation }: any) {
       paddingTop: SPACING.md,
       paddingBottom: SPACING.sm,
     },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: COLORS.surfaceElevated,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     mainTitle: {
-      fontSize: 34,
+      fontSize: 22,
       fontWeight: 'bold',
       color: COLORS.text,
-      letterSpacing: -0.5,
+      letterSpacing: -0.3,
     },
     profileAvatar: {
       width: 32,
@@ -420,14 +430,19 @@ export default function HubScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {mode === 'store' && (
-        <View style={styles.mainHeader}>
-          <Text style={styles.mainTitle}>Store</Text>
+      <View style={styles.mainHeader}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.mainTitle}>{mode === 'store' ? 'Store' : 'Mini Apps'}</Text>
+        {mode === 'store' ? (
           <View style={styles.profileAvatar}>
             <Ionicons name="person" size={16} color="#fff" />
           </View>
-        </View>
-      )}
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+      </View>
 
       {/* Search bar */}
       <View style={styles.searchWrap}>

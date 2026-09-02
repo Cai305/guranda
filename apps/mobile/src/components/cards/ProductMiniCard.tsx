@@ -16,7 +16,31 @@ export interface ProductCardData {
   storeId: string;
   storeName: string;
   category?: string;
+  /** Which mini app this came from (shopping/eat/health/marketplace/travel/property) — drives "View"'s destination. */
+  sourceApp?: string;
 }
+
+// Each mini app has its own detail (or, where no per-product detail screen
+// exists, the closest available store/listing) screen, param name, and which
+// id field on ProductCardData to send as that param. Screens registered on
+// the root navigator (marketplace, property) resolve fine with a bare
+// navigate() from anywhere; the rest live nested inside HubStackNavigator
+// under the "Life" tab, so they need the nested navigate('Life', {screen,
+// params}) form to be reachable from a different tab's stack (e.g. from
+// inside a chat conversation).
+const PRODUCT_VIEW_TARGETS: Record<
+  string,
+  { screen: string; param: string; idField: 'id' | 'storeId'; nested: boolean }
+> = {
+  shopping: { screen: 'ShoppingProduct', param: 'productId', idField: 'id', nested: true },
+  marketplace: { screen: 'MarketplaceDetail', param: 'listingId', idField: 'id', nested: false },
+  // Eat/Health have no standalone per-product detail screen — the store/
+  // pharmacy screen is the finest-grained real view available.
+  eat: { screen: 'EatStore', param: 'storeId', idField: 'storeId', nested: true },
+  health: { screen: 'HealthPharmacyDetail', param: 'pharmacyId', idField: 'storeId', nested: true },
+  travel: { screen: 'TravelStayDetail', param: 'stayId', idField: 'id', nested: true },
+  property: { screen: 'PropertyDetail', param: 'propertyId', idField: 'id', nested: false },
+};
 
 interface Props {
   product: ProductCardData;
@@ -101,6 +125,17 @@ export default function ProductMiniCard({ product, compact = false, onBuyNow, na
     Alert.alert('Added to cart ✓', `${product.name} is in your cart.`);
   };
 
+  const handleView = () => {
+    const target = product.sourceApp ? PRODUCT_VIEW_TARGETS[product.sourceApp] : undefined;
+    if (!target || !navigation) return;
+    const params = { [target.param]: product[target.idField] };
+    if (target.nested) {
+      navigation.navigate('Life', { screen: target.screen, params });
+    } else {
+      navigation.navigate(target.screen, params);
+    }
+  };
+
   const handleBuyNow = () => {
     if (onBuyNow) { onBuyNow(product); return; }
     addItem(
@@ -108,12 +143,18 @@ export default function ProductMiniCard({ product, compact = false, onBuyNow, na
       product.storeId,
       product.storeName,
     );
-    navigation?.navigate('ShoppingCart');
+    navigation?.navigate('Life', { screen: 'ShoppingCart' });
   };
 
   if (compact) {
+    const canView = !!product.sourceApp && !!navigation;
     return (
-      <View style={styles.compactCard}>
+      <TouchableOpacity
+        style={styles.compactCard}
+        onPress={canView ? handleView : undefined}
+        activeOpacity={canView ? 0.85 : 1}
+        disabled={!canView}
+      >
         {/* Thumbnail */}
         <View style={styles.compactThumb}>
           {product.imageUrl ? (
@@ -141,7 +182,7 @@ export default function ProductMiniCard({ product, compact = false, onBuyNow, na
             <Text style={styles.compactBuyText}>Buy</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
