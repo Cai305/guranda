@@ -150,7 +150,7 @@ export default function CardsHomeScreen({ navigation }: any) {
           <Ionicons name="calendar" size={16} color={COLORS.primary} />
           <Text style={styles.linkText}>Challenges</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('CardsAchievements')}>
+        <TouchableOpacity style={styles.linkBtn} onPress={() => navigation.navigate('Achievements')}>
           <Ionicons name="ribbon" size={16} color={COLORS.primary} />
           <Text style={styles.linkText}>Achievements</Text>
         </TouchableOpacity>

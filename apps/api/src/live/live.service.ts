@@ -19,6 +19,7 @@ import {
 } from '../ranking/content-ranking.service';
 import { BadgeService } from '../profile/badge.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AchievementsService } from '../achievements/achievements.service';
 
 @Injectable()
 export class LiveService {
@@ -38,6 +39,7 @@ export class LiveService {
     private ranking: ContentRankingService,
     private badgeService: BadgeService,
     private notifications: NotificationsService,
+    private achievements: AchievementsService,
   ) {
     const httpUrl = process.env.LIVEKIT_HTTP_URL || 'http://localhost:7880';
     this.roomService = new RoomServiceClient(
@@ -107,6 +109,7 @@ export class LiveService {
     const token = await this.mintToken(roomName, hostId, hostName, true);
     // Best-effort — a first-1,000 scarcity check should never block going live.
     this.badgeService.tryMintScarce(hostId, 'EARLY_LIVE_HOST').catch(() => {});
+    this.achievements.evaluatePlatformAchievementsForUser(hostId).catch(() => {});
     return { ...room, token, wsUrl: this.wsUrl };
   }
 

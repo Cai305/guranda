@@ -156,6 +156,8 @@ export default function ProfileScreen({ navigation }: any) {
     { icon: 'code-working-outline', label: 'Developer Hub (Publish App)', onPress: () => setDevModalVisible(true) },
     { icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
     { icon: 'heart-outline', label: 'Relationship Requests', onPress: () => navigation.navigate('RelationshipRequests') },
+    { icon: 'call-outline', label: 'Call History', onPress: () => navigation.navigate('CallLog') },
+    { icon: 'ribbon-outline', label: 'Achievements', onPress: () => navigation.navigate('Achievements') },
     ...(canSponsor ? [{ icon: 'ribbon-outline', label: 'Sponsor a Challenge', onPress: () => navigation.navigate('SponsorChallenge') }] : []),
     // Not gated on canSponsor — CREATOR_PROMO/REVIEWER_RECOMMENDATION campaign
     // types are open to any user, only BUSINESS/MINI_APP_LAUNCH need a

@@ -78,6 +78,7 @@ import { CapabilitiesModule } from './capabilities/capabilities.module';
 import { VotingModule } from './voting/voting.module';
 import { DeviceModule } from './device/device.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { BlocksModule } from './blocks/blocks.module';
 
 @Module({
   imports: [
@@ -167,6 +168,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
     CapabilitiesModule,
     DeviceModule,
     IntegrationsModule,
+    BlocksModule,
   ],
   controllers: [AppController],
   providers: [

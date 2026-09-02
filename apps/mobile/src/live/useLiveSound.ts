@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useAudioPlayer } from 'expo-audio';
 
-export type LiveSoundType = 'laugh' | 'cry' | 'fire' | 'clap' | 'love' | 'shocked' | 'blush' | 'inlove';
+export type LiveSoundType = 'laugh' | 'cry' | 'fire' | 'clap' | 'love' | 'shocked' | 'blush' | 'inlove'
+  | 'wink' | 'angry' | 'cool' | 'kiss' | 'sleepy' | 'party';
 
 // Mixkit free sound-effect previews (CC0-style Mixkit license), each picked
 // from Mixkit's own labeled category for the emotion it represents — not
@@ -15,6 +16,12 @@ const SOUND_URLS: Record<LiveSoundType, string> = {
   shocked: 'https://assets.mixkit.co/active_storage/sfx/965/965-preview.mp3', // "Female shocked gasp"
   blush: 'https://assets.mixkit.co/active_storage/sfx/743/743-preview.mp3', // "Cartoon giggle"
   inlove: 'https://assets.mixkit.co/active_storage/sfx/493/493-preview.mp3', // "Fast Heartbeat"
+  wink: 'https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3', // "Bubble pop up alert notification"
+  angry: 'https://assets.mixkit.co/active_storage/sfx/954/954-preview.mp3', // "Wrong long buzzer"
+  cool: 'https://assets.mixkit.co/active_storage/sfx/166/166-preview.mp3', // "Fast small sweep transition"
+  kiss: 'https://assets.mixkit.co/active_storage/sfx/2196/2196-preview.mp3', // "Flirtatious double kiss"
+  sleepy: 'https://assets.mixkit.co/active_storage/sfx/2269/2269-preview.mp3', // "Male sleepy yawning"
+  party: 'https://assets.mixkit.co/active_storage/sfx/530/530-preview.mp3', // "Happy party horn sound"
 };
 
 const SOUND_TYPES = Object.keys(SOUND_URLS) as LiveSoundType[];
@@ -32,10 +39,18 @@ export function useLiveSound() {
   const shockedPlayer = useAudioPlayer(SOUND_URLS.shocked);
   const blushPlayer = useAudioPlayer(SOUND_URLS.blush);
   const inlovePlayer = useAudioPlayer(SOUND_URLS.inlove);
+  const winkPlayer = useAudioPlayer(SOUND_URLS.wink);
+  const angryPlayer = useAudioPlayer(SOUND_URLS.angry);
+  const coolPlayer = useAudioPlayer(SOUND_URLS.cool);
+  const kissPlayer = useAudioPlayer(SOUND_URLS.kiss);
+  const sleepyPlayer = useAudioPlayer(SOUND_URLS.sleepy);
+  const partyPlayer = useAudioPlayer(SOUND_URLS.party);
 
   const players: Record<LiveSoundType, ReturnType<typeof useAudioPlayer>> = {
     laugh: laughPlayer, cry: cryPlayer, fire: firePlayer, clap: clapPlayer,
     love: lovePlayer, shocked: shockedPlayer, blush: blushPlayer, inlove: inlovePlayer,
+    wink: winkPlayer, angry: angryPlayer, cool: coolPlayer, kiss: kissPlayer,
+    sleepy: sleepyPlayer, party: partyPlayer,
   };
   const timerRefs = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
@@ -51,7 +66,10 @@ export function useLiveSound() {
       // Audio may not be available on all platforms — fail silently
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [laughPlayer, cryPlayer, firePlayer, clapPlayer, lovePlayer, shockedPlayer, blushPlayer, inlovePlayer]);
+  }, [
+    laughPlayer, cryPlayer, firePlayer, clapPlayer, lovePlayer, shockedPlayer, blushPlayer, inlovePlayer,
+    winkPlayer, angryPlayer, coolPlayer, kissPlayer, sleepyPlayer, partyPlayer,
+  ]);
 
   return { playSound };
 }

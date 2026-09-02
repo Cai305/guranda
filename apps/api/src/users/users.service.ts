@@ -2,15 +2,18 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { RegisterUserDto } from '@mxit2/types';
 import { Wallet as XrplWallet, Client as XrplClient } from 'xrpl';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth/auth.service';
-import { computeLiveActivity, getDisplayedReputation } from './reputation.util';
+import { computeLiveActivity, getDisplayedReputation, getLeagueStanding } from './reputation.util';
 import { assertUsernameClaimable } from '../usernames/username-validation.util';
 import { BadgeService } from '../profile/badge.service';
+import { BlocksService } from '../blocks/blocks.service';
+import { AchievementsService } from '../achievements/achievements.service';
 
 @Injectable()
 export class UsersService {
@@ -18,6 +21,8 @@ export class UsersService {
     private prisma: PrismaService,
     private authService: AuthService,
     private badgeService: BadgeService,
+    private blocks: BlocksService,
+    private achievements: AchievementsService,
   ) {}
 
   async registerUser(dto: RegisterUserDto) {
@@ -548,9 +553,10 @@ export class UsersService {
     });
     if (!profile) return profile;
 
-    const [{ live, subscribers, reputation, level }, autoStatus] = await Promise.all([
+    const [{ live, subscribers, reputation, level }, autoStatus, userRow] = await Promise.all([
       getDisplayedReputation(this.prisma, userId),
       this.resolveActiveStatus(userId),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { shareLiveActivity: true } }),
     ]);
 
     return {
@@ -558,6 +564,7 @@ export class UsersService {
       // What to actually display as "status" — the auto-derived activity
       // when one is active, else whatever the user typed manually.
       effectiveStatus: autoStatus ?? profile.statusMessage ?? null,
+      shareLiveActivity: userRow?.shareLiveActivity ?? false,
       postsCount: live.postsCount,
       likesReceived: live.likesReceived,
       gamesCount: live.gamesCount,
@@ -569,19 +576,75 @@ export class UsersService {
     };
   }
 
+  // Only IN_RELATIONSHIP/MARRIED surface anything — SINGLE and
+  // PREFER_NOT_TO_SAY (and no status at all) render nothing, respecting the
+  // profile owner's own privacy choice. UserProfile.relationshipStatus is
+  // only ever set by RelationshipsService.acceptRequest() once a real
+  // Relationship row exists for both sides, so it's safe to trust here
+  // without re-deriving it from the Relationship table — but the partner's
+  // identity still comes from that table, not from a second column.
+  private async getRelationshipInfo(userId: string) {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+      select: { relationshipStatus: true },
+    });
+    if (
+      !profile?.relationshipStatus ||
+      profile.relationshipStatus === 'SINGLE' ||
+      profile.relationshipStatus === 'PREFER_NOT_TO_SAY'
+    ) {
+      return null;
+    }
+
+    const relationship = await this.prisma.relationship.findFirst({
+      where: { status: 'active', OR: [{ userAId: userId }, { userBId: userId }] },
+      include: {
+        userA: { select: { id: true, username: true, profile: { select: { displayName: true, avatarUrl: true } } } },
+        userB: { select: { id: true, username: true, profile: { select: { displayName: true, avatarUrl: true } } } },
+      },
+    });
+    if (!relationship) return null;
+
+    const partnerUser = relationship.userAId === userId ? relationship.userB : relationship.userA;
+    return {
+      status: profile.relationshipStatus,
+      partner: {
+        id: partnerUser.id,
+        username: partnerUser.username,
+        displayName: partnerUser.profile?.displayName ?? null,
+        avatarUrl: partnerUser.profile?.avatarUrl ?? null,
+      },
+    };
+  }
+
   /** Public-facing profile for viewing another user — chat header, friends list, etc. */
-  async getPublicProfile(userId: string) {
+  async getPublicProfile(userId: string, viewerId?: string) {
+    // Mutual invisibility: a block in either direction hides the profile
+    // completely, not just chat/calls — matches the "full feed/profile
+    // invisibility" scope confirmed for blocking.
+    if (viewerId && viewerId !== userId) {
+      const blocked = await this.blocks.isBlockedEitherDirection(viewerId, userId);
+      if (blocked) {
+        throw new ForbiddenException('This profile is not available');
+      }
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         username: true,
+        lastSeenAt: true,
         profile: { select: { displayName: true, avatarUrl: true, bio: true, statusMessage: true } },
       },
     });
     if (!user) return null;
 
-    const autoStatus = await this.resolveActiveStatus(userId);
+    const [autoStatus, leagueStanding, relationship] = await Promise.all([
+      this.resolveActiveStatus(userId),
+      getLeagueStanding(this.prisma, userId),
+      this.getRelationshipInfo(userId),
+    ]);
     return {
       id: user.id,
       username: user.username,
@@ -589,6 +652,12 @@ export class UsersService {
       avatarUrl: user.profile?.avatarUrl ?? null,
       bio: user.profile?.bio ?? null,
       effectiveStatus: autoStatus ?? user.profile?.statusMessage ?? null,
+      lastSeenAt: user.lastSeenAt,
+      rating: leagueStanding.rating,
+      league: leagueStanding.league,
+      leaguePosition: leagueStanding.leaguePosition,
+      leagueSize: leagueStanding.leagueSize,
+      relationship,
     };
   }
 
@@ -600,8 +669,18 @@ export class UsersService {
       bio?: string;
       statusMessage?: string;
       autoStatusEnabled?: boolean;
+      shareLiveActivity?: boolean;
     },
   ) {
+    // shareLiveActivity lives on User, not UserProfile (it's a presence
+    // privacy toggle, not profile content) — write it separately so this
+    // still works even before a UserProfile row exists for this user.
+    if (data.shareLiveActivity !== undefined) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { shareLiveActivity: data.shareLiveActivity },
+      });
+    }
     return this.prisma.userProfile.upsert({
       where: { userId },
       update: {
@@ -668,6 +747,7 @@ export class UsersService {
       await this.prisma.follow.create({
         data: { followerId, followingId },
       });
+      this.achievements.evaluatePlatformAchievementsForUser(followingId).catch(() => {});
       return { status: 'followed' };
     } catch {
       await this.prisma.follow.delete({

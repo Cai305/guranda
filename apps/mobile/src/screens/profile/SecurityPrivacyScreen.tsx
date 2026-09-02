@@ -24,11 +24,11 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
-  // Blocked users state
-  const [blockedUsers, setBlockedUsers] = useState([
-    { id: '1', username: 'spam_bot_99', displayName: 'Spam Bot' },
-    { id: '2', username: 'troll_master', displayName: 'Troll Master' },
-  ]);
+  // Blocked users state — loaded from GET /users/blocked (see loadBlockedUsers)
+  const [blockedUsers, setBlockedUsers] = useState<
+    { id: string; username: string; displayName: string | null; avatarUrl: string | null }[]
+  >([]);
+  const [blockedLoading, setBlockedLoading] = useState(true);
 
   const styles = useThemedStyles(({ COLORS, SPACING, TYPOGRAPHY, RADIUS }) => ({
     container: { flex: 1, backgroundColor: COLORS.background },
@@ -193,7 +193,23 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
 
   useEffect(() => {
     loadSettings();
+    loadBlockedUsers();
   }, []);
+
+  const loadBlockedUsers = async () => {
+    setBlockedLoading(true);
+    try {
+      const res = await fetchApi('/users/blocked', { headers: { 'Cache-Control': 'no-cache' } });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setBlockedUsers(data);
+      }
+    } catch (e) {
+      console.error('Failed to load blocked users', e);
+    } finally {
+      setBlockedLoading(false);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -279,9 +295,16 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Unblock',
-        onPress: () => {
+        onPress: async () => {
+          const previous = blockedUsers;
           setBlockedUsers(prev => prev.filter(u => u.id !== id));
-          Alert.alert('Unblocked', `@${username} has been unblocked.`);
+          try {
+            const res = await fetchApi(`/users/${id}/unblock`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to unblock');
+          } catch (e) {
+            setBlockedUsers(previous);
+            Alert.alert('Error', 'Failed to unblock this user. Please try again.');
+          }
         },
       },
     ]);
@@ -371,7 +394,11 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
         {/* Blocked Users Section */}
         <Text style={styles.sectionTitle}>Blocked Users</Text>
         <View style={styles.card}>
-          {blockedUsers.length === 0 ? (
+          {blockedLoading ? (
+            <View style={styles.emptyContainer}>
+              <ActivityIndicator color={COLORS.primary} />
+            </View>
+          ) : blockedUsers.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No blocked users</Text>
             </View>
@@ -381,7 +408,7 @@ export default function SecurityPrivacyScreen({ navigation }: any) {
                 {index > 0 && <View style={styles.divider} />}
                 <View style={styles.blockedRow}>
                   <View>
-                    <Text style={styles.blockedName}>{user.displayName}</Text>
+                    <Text style={styles.blockedName}>{user.displayName || user.username}</Text>
                     <Text style={styles.blockedUsername}>@{user.username}</Text>
                   </View>
                   <TouchableOpacity style={styles.unblockBtn} onPress={() => handleUnblockUser(user.id, user.username)}>

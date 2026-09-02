@@ -103,7 +103,6 @@ import CardsLeaderboardScreen from '../screens/hub/cards/CardsLeaderboardScreen'
 import CardsTournamentListScreen from '../screens/hub/cards/CardsTournamentListScreen';
 import CardsTournamentBracketScreen from '../screens/hub/cards/CardsTournamentBracketScreen';
 import CardsDailyChallengesScreen from '../screens/hub/cards/CardsDailyChallengesScreen';
-import CardsAchievementsScreen from '../screens/hub/cards/CardsAchievementsScreen';
 import FriendsListScreen from '../screens/friends/FriendsListScreen';
 import ScanToPayLobbyScreen from '../screens/scan-to-pay/ScanToPayLobbyScreen';
 import ScanToPayStoreScreen from '../screens/scan-to-pay/ScanToPayStoreScreen';
@@ -235,7 +234,6 @@ export default function HubStackNavigator() {
       <Stack.Screen name="CardsTournamentList" component={CardsTournamentListScreen} />
       <Stack.Screen name="CardsTournamentBracket" component={CardsTournamentBracketScreen} />
       <Stack.Screen name="CardsDailyChallenges" component={CardsDailyChallengesScreen} />
-      <Stack.Screen name="CardsAchievements" component={CardsAchievementsScreen} />
       <Stack.Screen name="FriendsList" component={FriendsListScreen} />
     </Stack.Navigator>
   );

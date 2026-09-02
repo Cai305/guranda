@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL } from '../utils/api';
+import type { LiveSoundType } from './useLiveSound';
 
 // Real-time chat/reactions for a live room, over the same
 // Socket.IO server used for regular chat (namespaced /live so
@@ -15,7 +16,7 @@ export interface LiveChatMessage {
   ts: number;
   // Extended message types
   msgType?: 'text' | 'emoji' | 'gif';
-  emojiType?: 'laugh' | 'cry' | 'fire' | 'clap' | 'love' | 'shocked' | 'blush' | 'inlove';  // only when msgType === 'emoji'
+  emojiType?: LiveSoundType;  // only when msgType === 'emoji'
   gifUrl?: string;               // only when msgType === 'gif'
 }
 
@@ -23,7 +24,7 @@ export interface LiveChatMessage {
 export type LiveSpecialMessagePayload = {
   text: string;
   msgType: 'emoji';
-  emojiType: 'laugh' | 'cry' | 'fire' | 'clap' | 'love' | 'shocked' | 'blush' | 'inlove';
+  emojiType: LiveSoundType;
 } | {
   text?: string;
   msgType: 'gif';

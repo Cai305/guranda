@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Platform, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Platform, Animated, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -49,6 +49,7 @@ function FloatingVemoji({ type, left }: { type: VemojiType; left: number }) {
 export default function CallScreen({ navigation, route }: any) {
   const { callId, wsUrl, token, video, peerName, isCaller } = route.params || {};
   const { socket } = useSocket();
+  const { width } = useWindowDimensions();
 
   const [status, setStatus] = useState<'ringing' | 'connecting' | 'connected' | 'ended'>(
     isCaller ? 'ringing' : 'connecting',
@@ -60,9 +61,25 @@ export default function CallScreen({ navigation, route }: any) {
   const [remoteAudioTrack, setRemoteAudioTrack] = useState<any>(null);
   const [reactionTrayOpen, setReactionTrayOpen] = useState(false);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const sessionRef = useRef<CallSession | null>(null);
   const audioRef = useRef<any>(null);
   const reactionIdRef = useRef(0);
+
+  // Live call duration — mirrors what the server records in the Call table
+  // (durationSeconds, from connectedAt to endedAt), shown here in realtime.
+  useEffect(() => {
+    if (status !== 'connected') return;
+    setElapsedSeconds(0);
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  const formatDuration = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   const spawnFloatingReaction = (type: VemojiType) => {
     const id = String(reactionIdRef.current++);
@@ -204,11 +221,11 @@ export default function CallScreen({ navigation, route }: any) {
     },
     reactionTray: {
       position: 'absolute', bottom: 130, alignSelf: 'center',
-      flexDirection: 'row', gap: 10,
       backgroundColor: 'rgba(0,0,0,0.6)',
       borderRadius: RADIUS.lg, paddingHorizontal: 14, paddingVertical: 10,
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
     },
+    reactionTrayContent: { flexDirection: 'row', gap: 10 },
     reactionTrayItem: { padding: 4 },
     hangupBtn: {
       width: 64, height: 64, borderRadius: 32,
@@ -226,7 +243,7 @@ export default function CallScreen({ navigation, route }: any) {
           <Image source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${peerName}` }} style={styles.avatar} />
           <Text style={styles.peerName}>{peerName}</Text>
           <Text style={styles.statusText}>
-            {status === 'ringing' ? 'Calling…' : status === 'connecting' ? 'Connecting…' : status === 'connected' ? (video ? 'Camera off' : 'Voice call') : endReason || 'Call ended'}
+            {status === 'ringing' ? 'Ringing…' : status === 'connecting' ? 'Connecting…' : status === 'connected' ? formatDuration(elapsedSeconds) : endReason || 'Call ended'}
           </Text>
         </View>
       )}
@@ -241,7 +258,7 @@ export default function CallScreen({ navigation, route }: any) {
         <View style={styles.topOverlay} pointerEvents="none">
           <Text style={styles.peerNameOverlay}>{peerName}</Text>
           <Text style={styles.statusTextOverlay}>
-            {status === 'ringing' ? 'Calling…' : status === 'connecting' ? 'Connecting…' : status === 'connected' ? '' : endReason || 'Call ended'}
+            {status === 'ringing' ? 'Ringing…' : status === 'connecting' ? 'Connecting…' : status === 'connected' ? formatDuration(elapsedSeconds) : endReason || 'Call ended'}
           </Text>
         </View>
       )}
@@ -253,12 +270,14 @@ export default function CallScreen({ navigation, route }: any) {
       </View>
 
       {reactionTrayOpen && (
-        <View style={styles.reactionTray}>
-          {VEMOJI_CATALOG.map(v => (
-            <TouchableOpacity key={v.type} style={styles.reactionTrayItem} onPress={() => sendReaction(v.type)}>
-              <CustomEmoji type={v.type} size={36} />
-            </TouchableOpacity>
-          ))}
+        <View style={[styles.reactionTray, { maxWidth: width - 32 }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.reactionTrayContent}>
+            {VEMOJI_CATALOG.map(v => (
+              <TouchableOpacity key={v.type} style={styles.reactionTrayItem} onPress={() => sendReaction(v.type)}>
+                <CustomEmoji type={v.type} size={36} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       )}
 

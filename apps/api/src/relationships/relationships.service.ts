@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AchievementsService } from '../achievements/achievements.service';
 import type { RelationshipStatusType } from '@prisma/client';
 
 const AUTHOR_SELECT = {
@@ -21,6 +22,7 @@ export class RelationshipsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private achievements: AchievementsService,
   ) {}
 
   private async hasActiveRelationship(userId: string): Promise<boolean> {
@@ -120,6 +122,8 @@ export class RelationshipsService {
       'Your relationship request was accepted',
       { requestId: request.id, accepterId: userId },
     );
+    this.achievements.evaluatePlatformAchievementsForUser(request.requesterId).catch(() => {});
+    this.achievements.evaluatePlatformAchievementsForUser(userId).catch(() => {});
     return relationship;
   }
 

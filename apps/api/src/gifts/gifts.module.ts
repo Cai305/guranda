@@ -7,9 +7,10 @@ import { LiveModule } from '../live/live.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { GiftsAiToolsProvider } from './gifts-ai-tools.provider';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AchievementsModule } from '../achievements/achievements.module';
 
 @Module({
-  imports: [VerificationModule, LiveModule, WalletsModule, NotificationsModule],
+  imports: [VerificationModule, LiveModule, WalletsModule, NotificationsModule, AchievementsModule],
   controllers: [GiftsController],
   providers: [GiftsService, PrismaService, GiftsAiToolsProvider],
   exports: [GiftsService],

@@ -8,6 +8,7 @@ import { VerificationService } from '../verification/verification.service';
 import { LiveGateway } from '../live/live.gateway';
 import { WalletsService } from '../wallets/wallets.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AchievementsService } from '../achievements/achievements.service';
 
 // The one gift catalog shared across every surface — Live streams and
 // every game screen. Amounts are MSH, debited from the sender's wallet
@@ -61,7 +62,13 @@ export class GiftsService {
     private liveGateway: LiveGateway,
     private wallets: WalletsService,
     private notifications: NotificationsService,
+    private achievements: AchievementsService,
   ) {}
+
+  private evaluateGiftAchievements(senderId: string, recipientId: string) {
+    this.achievements.evaluatePlatformAchievementsForUser(senderId).catch(() => {});
+    this.achievements.evaluatePlatformAchievementsForUser(recipientId).catch(() => {});
+  }
 
   catalog() {
     return GIFT_CATALOG;
@@ -270,6 +277,7 @@ export class GiftsService {
       { giftId: gift.id, giftType: item.key, senderId },
     );
 
+    this.evaluateGiftAchievements(senderId, dto.recipientId);
     return gift;
   }
 
@@ -348,6 +356,7 @@ export class GiftsService {
 
     this.broadcastIfLive(dto, item, sender);
 
+    this.evaluateGiftAchievements(senderId, dto.recipientId);
     return gift;
   }
 

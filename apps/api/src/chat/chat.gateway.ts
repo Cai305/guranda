@@ -7,12 +7,12 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { ChatService } from './chat.service';
 import { CallService } from '../calls/call.service';
 import { sendPushNotification } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BlocksService } from '../blocks/blocks.service';
 import {
   VEMOJI_CATALOG,
   parseVemojiMessage,
@@ -24,6 +24,7 @@ import {
 const CALL_RING_TIMEOUT_MS = 30_000;
 
 interface PendingCall {
+  callId: string;
   callerId: string;
   calleeId: string;
   roomName: string;
@@ -40,10 +41,10 @@ export class ChatGateway implements OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  // Track connected users: Map<socketId, { userId, status }>
+  // Track connected users: Map<socketId, { userId, status, activityLabel }>
   private connectedUsers = new Map<
     string,
-    { userId: string; status: UserStatus }
+    { userId: string; status: UserStatus; activityLabel?: string | null }
   >();
 
   // Ephemeral — a call is either ringing/active right now or it isn't, no
@@ -55,6 +56,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     private chatService: ChatService,
     private callService: CallService,
     private notifications: NotificationsService,
+    private blocks: BlocksService,
   ) {}
 
   handleDisconnect(client: Socket) {
@@ -66,13 +68,30 @@ export class ChatGateway implements OnGatewayDisconnect {
         status: 'offline',
       });
 
+      // "Last seen" should reflect this user's last real disconnect, not
+      // flicker on every closed tab/reconnect — only write it once none of
+      // their other devices/tabs are still connected.
+      const stillConnectedElsewhere = Array.from(this.connectedUsers.values()).some(
+        (u) => u.userId === user.userId,
+      );
+      if (!stillConnectedElsewhere) {
+        this.prisma.user
+          .update({ where: { id: user.userId }, data: { lastSeenAt: new Date() } })
+          .catch((e) => console.error('Failed to record lastSeenAt:', e));
+      }
+
       // If this user drops mid-call, tell the other party rather than
-      // leaving them ringing/connected forever with no signal.
+      // leaving them ringing/connected forever with no signal, and close
+      // out the persisted Call row so it doesn't sit stuck as "ringing"/
+      // "ongoing" forever.
       for (const [callId, call] of this.pendingCalls.entries()) {
         if (call.callerId === user.userId || call.calleeId === user.userId) {
           const otherId =
             call.callerId === user.userId ? call.calleeId : call.callerId;
           this.emitToUser(otherId, 'call_ended', { callId });
+          this.callService
+            .markEnded(call.callId, call.accepted ? 'completed' : 'missed')
+            .catch((e) => console.error('Failed to record call end:', e));
           this.cleanupCall(callId);
         }
       }
@@ -110,25 +129,52 @@ export class ChatGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage('set_status')
   async handleSetStatus(
-    @MessageBody() data: { userId: string; status: UserStatus },
+    @MessageBody() data: { userId: string; status: UserStatus; activityLabel?: string | null },
     @ConnectedSocket() client: Socket,
   ) {
+    // Never trust the client's word alone on whether to reveal activity —
+    // a client could be modified to send a label regardless of the user's
+    // actual privacy setting, so re-check the DB flag server-side before
+    // storing or broadcasting anything.
+    let activityLabel: string | null = null;
+    if (data.activityLabel) {
+      const row = await this.prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { shareLiveActivity: true },
+      });
+      if (row?.shareLiveActivity) activityLabel = data.activityLabel;
+    }
+
     this.connectedUsers.set(client.id, {
       userId: data.userId,
       status: data.status,
+      activityLabel,
     });
     this.server.emit('user_status_changed', {
       userId: data.userId,
       status: data.status,
+      activityLabel,
     });
 
-    // Automatically join all chat rooms this user is a member of
-    const memberships = await this.prisma.chatMember.findMany({
-      where: { userId: data.userId },
-      select: { chatId: true },
-    });
+    // Automatically join all chat rooms this user is a member of, plus any
+    // chat a relationship partner has shared with them as a delegate — a
+    // delegate has no ChatMember row, so without this their socket would
+    // never join that chat's room and they'd miss realtime delivery.
+    const [memberships, delegatedShares] = await Promise.all([
+      this.prisma.chatMember.findMany({
+        where: { userId: data.userId },
+        select: { chatId: true },
+      }),
+      this.prisma.chatShare.findMany({
+        where: { delegateId: data.userId },
+        select: { chatId: true },
+      }),
+    ]);
     for (const mem of memberships) {
       client.join(mem.chatId);
+    }
+    for (const share of delegatedShares) {
+      client.join(share.chatId);
     }
   }
 
@@ -179,10 +225,15 @@ export class ChatGateway implements OnGatewayDisconnect {
       // 3. Push-notify the other members — covers the case where their
       // socket missed the broadcast (backgrounded/disconnected), and gives
       // Vemoji-only messages (raw content is just "vemoji:fire") readable
-      // notification text instead of the encoded string.
+      // notification text instead of the encoded string. Uses
+      // savedMessage.senderId (the DISPLAY sender), not dto.senderId (the
+      // real caller) — when a delegate sent this, dto.senderId is their own
+      // id, which is never a ChatMember of this chat and must never be the
+      // name shown in the notification (that would out the delegate to the
+      // chat's other participant).
       this.notifyChatMembers(
         dto.chatId,
-        dto.senderId,
+        savedMessage.senderId,
         dto.content,
         dto.mediaUrl,
       ).catch((e) => console.error('Failed to push-notify chat members:', e));
@@ -240,11 +291,17 @@ export class ChatGateway implements OnGatewayDisconnect {
     content: string,
     mediaUrl?: string,
   ) {
-    const [members, senderName] = await Promise.all([
+    const [members, delegates, senderName] = await Promise.all([
       this.chatService.getMembersForNotification(chatId, senderId),
+      // A delegate a chat is shared with is never a ChatMember, so without
+      // this they'd get no push/in-app notification at all when a message
+      // lands in a chat they're actively reading/replying in — this is the
+      // concrete fix for "messages should connect directly with my device"
+      // for the shared-chat case.
+      this.chatService.getDelegatesForNotification(chatId, senderId),
       this.chatService.getDisplayName(senderId),
     ]);
-    if (members.length === 0) return;
+    if (members.length === 0 && delegates.length === 0) return;
 
     const vemojiType = parseVemojiMessage(content);
     const body = vemojiType
@@ -260,6 +317,62 @@ export class ChatGateway implements OnGatewayDisconnect {
         });
       }
       await this.notifications.create(member.userId, 'chat.message', senderName, body, { chatId });
+    }
+    // A delegate reads this chat AS the owner, so the notification reads
+    // exactly like it would for the owner themselves ("message from
+    // {senderName}") — nothing here reveals the delegate relationship.
+    for (const share of delegates) {
+      const token = share.delegate.expoPushToken;
+      if (token) {
+        await sendPushNotification(token, senderName, body, { type: 'chat_message', chatId });
+      }
+      await this.notifications.create(share.delegateId, 'chat.message', senderName, body, { chatId });
+    }
+  }
+
+  // ── Edit / delete ────────────────────────────────────────────────────────
+
+  @SubscribeMessage('edit_message')
+  async handleEditMessage(
+    @MessageBody() data: { userId: string; messageId: string; content: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const updated = await this.chatService.editMessage(data.userId, data.messageId, data.content);
+      // Explicit whitelist, not a spread of `updated` — same reasoning as
+      // handleMessage's responseDto: actualSenderId must never reach the
+      // room broadcast (every recipient gets the identical payload), or
+      // the chat's other participant would learn a delegate edited this
+      // message "as" the owner, breaking the fully-invisible requirement.
+      this.server.to(updated.chatId).emit('message_updated', {
+        id: updated.id,
+        chatId: updated.chatId,
+        senderId: updated.senderId,
+        content: updated.content,
+        mediaUrl: updated.mediaUrl || undefined,
+        editedAt: updated.editedAt,
+      });
+    } catch (e: any) {
+      client.emit('message_error', {
+        chatId: undefined,
+        message: e?.message || 'Failed to edit message',
+      });
+    }
+  }
+
+  @SubscribeMessage('delete_message')
+  async handleDeleteMessage(
+    @MessageBody() data: { userId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const result = await this.chatService.deleteMessage(data.userId, data.messageId);
+      this.server.to(result.chatId).emit('message_deleted', result);
+    } catch (e: any) {
+      client.emit('message_error', {
+        chatId: undefined,
+        message: e?.message || 'Failed to delete message',
+      });
     }
   }
 
@@ -282,25 +395,33 @@ export class ChatGateway implements OnGatewayDisconnect {
   ) {
     if (data.callerId === data.targetUserId) return;
 
+    if (await this.blocks.isBlockedEitherDirection(data.callerId, data.targetUserId)) {
+      client.emit('call_failed', { reason: 'You cannot call this user.' });
+      return;
+    }
+
     const callee = await this.prisma.user.findUnique({
       where: { id: data.targetUserId },
-      select: { username: true, profile: { select: { displayName: true } } },
+      select: { username: true, expoPushToken: true, profile: { select: { displayName: true } } },
     });
     if (!callee) {
       client.emit('call_failed', { reason: 'That user could not be found.' });
       return;
     }
+    const calleeName = callee.profile?.displayName || callee.username;
     const isCalleeOnline = Array.from(this.connectedUsers.values()).some(
       (u) => u.userId === data.targetUserId,
     );
-    if (!isCalleeOnline) {
+    // A live socket is no longer a hard requirement — a push notification
+    // (below) can still reach a backgrounded/killed app. Only fail outright
+    // when there's neither a live socket NOR any way to reach the device.
+    if (!isCalleeOnline && !callee.expoPushToken) {
       client.emit('call_failed', {
-        reason: `${callee.profile?.displayName || callee.username} is offline right now.`,
+        reason: `${calleeName} is offline right now.`,
       });
       return;
     }
 
-    const calleeName = callee.profile?.displayName || callee.username;
     let roomName: string,
       wsUrl: string,
       callerToken: string,
@@ -325,7 +446,14 @@ export class ChatGateway implements OnGatewayDisconnect {
       return;
     }
 
-    const callId = randomUUID();
+    const callRecord = await this.callService.recordRinging(
+      data.callerId,
+      data.targetUserId,
+      data.video ? 'video' : 'voice',
+      roomName,
+    );
+    const callId = callRecord.id;
+
     const timeout = setTimeout(() => {
       this.emitToUser(data.callerId, 'call_ended', {
         callId,
@@ -335,10 +463,13 @@ export class ChatGateway implements OnGatewayDisconnect {
         callId,
         reason: 'missed',
       });
+      this.callService.markEnded(callId, 'missed').catch((e) => console.error('Failed to record missed call:', e));
+      this.notifyMissedCall(callId, data.callerId, data.targetUserId, data.video);
       this.cleanupCall(callId);
     }, CALL_RING_TIMEOUT_MS);
 
     this.pendingCalls.set(callId, {
+      callId,
       callerId: data.callerId,
       calleeId: data.targetUserId,
       roomName,
@@ -361,6 +492,33 @@ export class ChatGateway implements OnGatewayDisconnect {
       wsUrl,
       token: callerToken,
     });
+
+    // Push notification alongside the live socket emit above — this is what
+    // actually gets an incoming call to reach a backgrounded/killed device
+    // today (see docs/plan: Phase 6 layers native CallKit/ConnectionService
+    // ringing on top of this same Call record + push).
+    if (callee.expoPushToken) {
+      sendPushNotification(
+        callee.expoPushToken,
+        `Incoming ${data.video ? 'video' : 'voice'} call`,
+        `${data.callerName} is calling you`,
+        { type: 'incoming_call', callId, callerId: data.callerId, video: data.video },
+      ).catch((e) => console.error('Failed to push incoming-call notification:', e));
+    }
+  }
+
+  // Durable record for the callee even if they never saw the live ring —
+  // mirrors how a chat message always gets an in-app Notification row
+  // regardless of push-token/live-socket state (see notifyChatMembers).
+  private async notifyMissedCall(callId: string, callerId: string, calleeId: string, video: boolean) {
+    const callerName = await this.chatService.getDisplayName(callerId);
+    await this.notifications.create(
+      calleeId,
+      'call.missed',
+      'Missed call',
+      `You missed a ${video ? 'video' : 'voice'} call from ${callerName}`,
+      { callId, callerId },
+    );
   }
 
   @SubscribeMessage('call_accept')
@@ -368,6 +526,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     const call = this.pendingCalls.get(data.callId);
     if (!call) return;
     call.accepted = true;
+    this.callService.markOngoing(data.callId).catch((e) => console.error('Failed to record call connect:', e));
     this.emitToUser(call.callerId, 'call_accepted', { callId: data.callId });
   }
 
@@ -379,6 +538,7 @@ export class ChatGateway implements OnGatewayDisconnect {
       callId: data.callId,
       reason: 'declined',
     });
+    this.callService.markEnded(data.callId, 'declined').catch((e) => console.error('Failed to record declined call:', e));
     this.cleanupCall(data.callId);
   }
 
@@ -395,6 +555,9 @@ export class ChatGateway implements OnGatewayDisconnect {
       callId: data.callId,
       reason: 'ended',
     });
+    this.callService
+      .markEnded(data.callId, call.accepted ? 'completed' : 'missed')
+      .catch((e) => console.error('Failed to record call end:', e));
     this.cleanupCall(data.callId);
   }
 

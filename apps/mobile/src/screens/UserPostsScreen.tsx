@@ -56,8 +56,6 @@ export default function UserPostsScreen({ route, navigation }: any) {
       backgroundColor: COLORS.surface,
       padding: 16,
       borderRadius: RADIUS.lg,
-      borderWidth: 1,
-      borderColor: COLORS.border,
       marginBottom: SPACING.md,
     },
     postHeader: {

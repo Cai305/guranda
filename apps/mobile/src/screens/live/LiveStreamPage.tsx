@@ -15,6 +15,7 @@ import LiveGuestGrid, { VideoTile } from '../../components/live/LiveGuestGrid';
 import * as LiveKit from '../../live/liveKit';
 import { useLiveSocket, LiveSpecialMessagePayload } from '../../live/useLiveSocket';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { useLiveSound, LiveSoundType, LIVE_SOUND_DURATION_MS } from '../../live/useLiveSound';
 import { fetchApi } from '../../utils/api';
 import GiftSheet from '../../components/gifts/GiftSheet';
@@ -62,6 +63,7 @@ export default function LiveStreamPage({ stream, navigation, isActive }: Props) 
   const isRealStream = !!(stream as any)?.real;
   const realStream = stream as RealLiveStream;
   const { user } = useAuth();
+  const { setActivity } = useSocket();
   const { playSound } = useLiveSound();
 
   const [following, setFollowing] = useState(false);
@@ -141,6 +143,20 @@ export default function LiveStreamPage({ stream, navigation, isActive }: Props) 
   const [modState, setModState] = useState<{ moderators: any[]; muted: any[]; banned: any[] } | null>(null);
   const [modPanelOpen, setModPanelOpen] = useState(false);
   const isHost = isRealStream && stream?.creator?.id === user?.userId;
+
+  // Presence reads "Busy" (or, if the viewer opted in, the actual activity
+  // label) only while this specific stream is the one actively swiped into
+  // view — every other card in the feed stays inert, matching the isActive
+  // gating this screen already uses for the socket/video connection above.
+  useEffect(() => {
+    if (!isActive) return;
+    setActivity({
+      type: 'live',
+      label: isHost ? 'Live streaming' : (stream?.creator?.name ? `Watching ${stream.creator.name}'s live` : 'Watching a live stream'),
+    });
+    return () => setActivity(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, isHost, stream?.creator?.name]);
   const loadModState = () => {
     if (!isRealStream || !realStream.roomId) return;
     modApi.getModerationState(realStream.roomId).then(setModState).catch(() => setModState(null));

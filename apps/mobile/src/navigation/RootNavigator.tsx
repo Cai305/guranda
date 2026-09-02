@@ -64,6 +64,7 @@ import AiTourScreen from '../screens/ai/AiTourScreen';
 import McpApprovalsScreen from '../screens/ai/McpApprovalsScreen';
 import CompanionChatScreen from '../screens/ai/CompanionChatScreen';
 import CallScreen from '../screens/calls/CallScreen';
+import CallLogScreen from '../screens/calls/CallLogScreen';
 import MoonBaseScreen from '../screens/moonbase/MoonBaseScreen';
 import MoonRoomScreen from '../screens/moonbase/MoonRoomScreen';
 import MoonAvatarScreen from '../screens/moonbase/MoonAvatarScreen';
@@ -136,6 +137,7 @@ import HairdresserProfileScreen from '../screens/hub/hair/HairdresserProfileScre
 import HairServiceScreen from '../screens/hub/hair/HairServiceScreen';
 import HairBookingScreen from '../screens/hub/hair/HairBookingScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import AchievementsScreen from '../screens/AchievementsScreen';
 import UserPostsScreen from '../screens/UserPostsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -227,6 +229,7 @@ export default function RootNavigator() {
           <Stack.Screen name="McpApprovals" component={McpApprovalsScreen} />
           <Stack.Screen name="CompanionChat" component={CompanionChatScreen} />
           <Stack.Screen name="CallScreen" component={CallScreen} options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="CallLog" component={CallLogScreen} />
           <Stack.Screen name="MoonBase" component={MoonBaseScreen} />
           <Stack.Screen name="MoonRoom" component={MoonRoomScreen} />
           <Stack.Screen name="MoonAvatar" component={MoonAvatarScreen} />
@@ -300,6 +303,7 @@ export default function RootNavigator() {
           <Stack.Screen name="HairBooking" component={HairBookingScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="UserPosts" component={UserPostsScreen} />
+          <Stack.Screen name="Achievements" component={AchievementsScreen} />
         </>
       )}
     </Stack.Navigator>

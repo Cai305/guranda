@@ -39,7 +39,11 @@ const linking = {
             }
           }
         }
-      }
+      },
+      // UserProfile lives directly on the root stack (a sibling of Main,
+      // not nested inside it — see RootNavigator.tsx), unlike AddContact
+      // above which is nested inside the Chat tab's own stack.
+      UserProfile: 'profile/:username',
     }
   },
   // Almost every screen in this app is reached via navigation.navigate()
@@ -50,13 +54,15 @@ const linking = {
   // anything while auth is still hydrating (RootNavigator only registers
   // the Auth screens or the Main screens, never both, so a URL captured
   // before that resolves points at a screen that isn't registered yet).
-  // Only the one deep link this app actually supports (add/:username) is
+  // Only the deep links this app actually supports (add/:username,
+  // profile/:username — both carry the real id as a ?uid= query param, so
+  // the target screen never has to resolve a username by itself) are
   // allowed to restore state from a URL — every other path, including a
   // hard reload on any in-app screen and any unrecognized/"wild" URL,
   // falls back to undefined so NavigationContainer boots into its normal
   // initial route (Login or Home, whichever auth resolves to) instead.
   getStateFromPath: (path: string, options: any) => {
-    if (/^\/?add\//.test(path)) {
+    if (/^\/?(add|profile)\//.test(path)) {
       return defaultGetStateFromPath(path, options);
     }
     return undefined;

@@ -32,6 +32,15 @@ model User {
   locationLng                  Float?
   locationLabel                String?
   locationUpdatedAt            DateTime?
+  // Written when this user's last socket disconnects and no other
+  // device/tab is still connected for them (see chat.gateway.ts
+  // handleDisconnect) — null means "never seen" or "currently online".
+  lastSeenAt                   DateTime?
+  // Opt-in: when true, other users see WHAT this user is doing right now
+  // (e.g. "Watching a live stream", "Viewing a story") instead of just a
+  // generic "Busy" presence dot. Off by default — privacy-first, matching
+  // the rest of the app's opt-in visibility settings.
+  shareLiveActivity            Boolean                    @default(false)
   activeUsernameId             String?                    @unique
   activeUsername               Username?                  @relation("userActiveUsername", fields: [activeUsernameId], references: [id])
   usernamesOwned               Username[]                 @relation("usernameOwner")
@@ -44,8 +53,15 @@ model User {
   paymentRequestsMade          PaymentRequest[]           @relation("paymentRequestsMade")
   paymentRequestsReceived      PaymentRequest[]           @relation("paymentRequestsReceived")
   toolExecutionLogs            ToolExecutionLog[]
-  sentMessages                 Message[]
+  sentMessages                 Message[]                  @relation("MessageSender")
+  actualSentMessages           Message[]                  @relation("MessageActualSender")
   chatMemberships              ChatMember[]
+  chatSharesOwned              ChatShare[]                @relation("chatShareOwner")
+  chatSharesAsDelegate         ChatShare[]                @relation("chatShareDelegate")
+  blocksMade                   Block[]                    @relation("blocksMade")
+  blocksReceived               Block[]                    @relation("blocksReceived")
+  callsMade                    Call[]                     @relation("callsMade")
+  callsReceived                Call[]                     @relation("callsReceived")
   posts                        Post[]
   postLikes                    PostLike[]
   postReposts                  PostRepost[]
@@ -435,6 +451,44 @@ model Chat {
   createdAt     DateTime     @default(now())
   members       ChatMember[]
   messages      Message[]
+  shares        ChatShare[]
+}
+
+// A DIRECT chat the owner has explicitly opted to share with a relationship
+// partner (the "delegate") — see Relationship. The delegate gets read+send
+// access to this one chat, appearing to the chat's other participant as the
+// owner (Message.senderId stays the owner; the delegate's real identity is
+// only ever recorded in Message.actualSenderId, never broadcast to the room
+// or shown to that third participant — see chat.service.ts resolveSender).
+// Explicit opt-in per chat: being partnered does not by itself grant access,
+// only a row here does.
+model ChatShare {
+  id         String   @id @default(uuid())
+  chatId     String
+  chat       Chat     @relation(fields: [chatId], references: [id])
+  ownerId    String
+  owner      User     @relation("chatShareOwner", fields: [ownerId], references: [id])
+  delegateId String
+  delegate   User     @relation("chatShareDelegate", fields: [delegateId], references: [id])
+  createdAt  DateTime @default(now())
+  // The delegate's own read position in this chat — separate from the
+  // owner's ChatMember.lastReadAt, since the delegate has no ChatMember row
+  // of their own here and reads on a different schedule than the owner.
+  lastReadAt DateTime @default(now())
+
+  // Granular permissions — a delegate's access is no longer all-or-nothing.
+  // Read/write default on (matches the original all-or-nothing behavior);
+  // update/delete default off since they're more sensitive (letting a
+  // delegate edit/remove messages "as" the owner) and must be explicitly
+  // granted. Only ever checked when the caller is resolved via this row
+  // (a real ChatMember is never limited by these — see chat.service.ts
+  // resolveSender).
+  canRead           Boolean @default(true)
+  canWrite          Boolean @default(true)
+  canUpdateMessages Boolean @default(false)
+  canDeleteMessages Boolean @default(false)
+
+  @@unique([chatId, delegateId])
 }
 
 model ChatMember {
@@ -455,22 +509,69 @@ model ChatMember {
 }
 
 model Message {
-  id            String    @id @default(uuid())
-  chatId        String
-  chat          Chat      @relation(fields: [chatId], references: [id])
-  senderId      String
-  sender        User      @relation(fields: [senderId], references: [id])
-  content       String
-  mediaUrl      String?
-  isAiGenerated Boolean   @default(false)
-  isForwarded   Boolean   @default(false)
-  replyToId     String?
-  replyTo       Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
-  replies       Message[] @relation("MessageReplies")
-  createdAt     DateTime  @default(now())
-  deletedAt     DateTime?
+  id             String    @id @default(uuid())
+  chatId         String
+  chat           Chat      @relation(fields: [chatId], references: [id])
+  senderId       String
+  sender         User      @relation("MessageSender", fields: [senderId], references: [id])
+  // Set only when this message was sent by a relationship-partner delegate
+  // "as" the owner via ChatShare — senderId is the owner (so every existing
+  // render path stays unchanged and the chat's other participant sees no
+  // difference), actualSenderId records who really typed it, visible only to
+  // the owner/delegate pair themselves. Null for every normal message.
+  actualSenderId String?
+  actualSender   User?     @relation("MessageActualSender", fields: [actualSenderId], references: [id])
+  content        String
+  mediaUrl       String?
+  isAiGenerated  Boolean   @default(false)
+  isForwarded    Boolean   @default(false)
+  replyToId      String?
+  replyTo        Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies        Message[] @relation("MessageReplies")
+  createdAt      DateTime  @default(now())
+  // Set on a successful edit — client renders an "(edited)" label. Content
+  // itself is overwritten in place; no edit-history table.
+  editedAt       DateTime?
+  deletedAt      DateTime?
 
   @@index([replyToId])
+}
+
+// One direction of a block: blockerId doesn't want to see/hear from
+// blockedId, ever, anywhere in the app (chat, calls, friend requests, and
+// feeds/comments/profile visibility are all enforced in both directions —
+// see BlocksService.getBlockedEitherDirection, used everywhere a block
+// needs to be checked instead of querying this table directly).
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("blocksMade", fields: [blockerId], references: [id])
+  blockedId String
+  blocked   User     @relation("blocksReceived", fields: [blockedId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+// Persists what was previously purely ephemeral (chat.gateway.ts's in-memory
+// pendingCalls Map) — gives calls a duration, a call log, and a durable
+// "missed call" record even if the recipient's socket never saw the ring.
+model Call {
+  id              String    @id @default(uuid())
+  callerId        String
+  caller          User      @relation("callsMade", fields: [callerId], references: [id])
+  calleeId        String
+  callee          User      @relation("callsReceived", fields: [calleeId], references: [id])
+  type            String // voice, video
+  status          String // ringing, ongoing, completed, missed, declined
+  roomName        String
+  startedAt       DateTime  @default(now())
+  connectedAt     DateTime?
+  endedAt         DateTime?
+  durationSeconds Int?
+
+  @@index([callerId])
+  @@index([calleeId])
 }
 
 model Post {

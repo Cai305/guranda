@@ -147,3 +147,61 @@ export async function getDisplayedReputation(prisma: PrismaService, userId: stri
 
   return { live, subscribers, reputation, level: levelForSubscribers(subscribers) };
 }
+
+// ── League (profile rating + league position) ───────────────────────────
+// A distinct concept from the Nano..Mega Influencer subscriber ladder above
+// — the ladder is about influence/reach, the league is a competitive
+// bracket other users can be ranked within. Mirrors the exact tier names
+// and thresholds relationships.service.ts already uses for Couples ranks
+// (Bronze/Silver/Gold/Platinum/Diamond/Legendary), just applied to an
+// individual's reputation instead of a couple's XP — one naming convention
+// across the app instead of a second, unrelated one.
+const LEAGUE_THRESHOLDS: { min: number; name: string }[] = [
+  { min: 6000, name: 'Legendary League' },
+  { min: 3000, name: 'Diamond League' },
+  { min: 1500, name: 'Platinum League' },
+  { min: 700, name: 'Gold League' },
+  { min: 300, name: 'Silver League' },
+  { min: 100, name: 'Bronze League' },
+  { min: 0, name: 'Unranked' },
+];
+
+export function leagueForReputation(score: number): string {
+  return LEAGUE_THRESHOLDS.find((t) => score >= t.min)!.name;
+}
+
+// [lowerBound, upperBound) for the tier `score` falls into — upperBound is
+// undefined at the top tier (no ceiling).
+function leagueBounds(score: number): { lower: number; upper: number | undefined } {
+  const idx = LEAGUE_THRESHOLDS.findIndex((t) => score >= t.min);
+  return {
+    lower: LEAGUE_THRESHOLDS[idx].min,
+    upper: idx > 0 ? LEAGUE_THRESHOLDS[idx - 1].min : undefined,
+  };
+}
+
+// Rating + league + position-within-league for a profile. Ranked against
+// the stored Username.reputationScore column (the same frozen-baseline
+// value leaderboard.service.ts already ranks cards/challenges by), not a
+// live per-user recomputation — ranking every user's live activity on every
+// profile view would be prohibitively expensive; this is the same known,
+// documented tradeoff the existing leaderboard already makes.
+export async function getLeagueStanding(prisma: PrismaService, userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { activeUsername: { select: { reputationScore: true } } },
+  });
+  const rating = Math.round(user?.activeUsername?.reputationScore ?? 0);
+  const league = leagueForReputation(rating);
+  const { lower, upper } = leagueBounds(rating);
+  const bracketWhere = {
+    reputationScore: { gte: lower, ...(upper !== undefined ? { lt: upper } : {}) },
+  };
+
+  const [ahead, leagueSize] = await Promise.all([
+    prisma.username.count({ where: { ...bracketWhere, reputationScore: { ...bracketWhere.reputationScore, gt: rating } } }),
+    prisma.username.count({ where: bracketWhere }),
+  ]);
+
+  return { rating, league, leaguePosition: ahead + 1, leagueSize };
+}

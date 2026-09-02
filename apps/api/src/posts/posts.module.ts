@@ -9,9 +9,11 @@ import { EventsModule } from '../events/events.module';
 import { MentionsModule } from '../mentions/mentions.module';
 import { ProfileModule } from '../profile/profile.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { BlocksModule } from '../blocks/blocks.module';
+import { AchievementsModule } from '../achievements/achievements.module';
 
 @Module({
-  imports: [RankingModule, EventsModule, MentionsModule, ProfileModule, NotificationsModule],
+  imports: [RankingModule, EventsModule, MentionsModule, ProfileModule, NotificationsModule, BlocksModule, AchievementsModule],
   controllers: [PostsController],
   providers: [PostsService, PrismaService, PostsAiToolsProvider, PostsGateway],
   exports: [PostsService],

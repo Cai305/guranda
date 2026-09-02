@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Image, ImageBackground, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Image, ImageBackground, ActivityIndicator, Alert, Modal, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -21,13 +22,18 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useLiveSound, LIVE_SOUND_DURATION_MS } from '../live/useLiveSound';
 import { fetchApi, uploadMedia } from '../utils/api';
+import { formatLastSeen } from '../utils/format';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import MiniAppProductPicker from '../components/MiniAppProductPicker';
 import MiniAppEventPicker from '../components/MiniAppEventPicker';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
 import EventMiniCard, { decodeEventCard } from '../components/cards/EventMiniCard';
+import LocationMiniCard, { encodeLocationCard, decodeLocationCard } from '../components/cards/LocationMiniCard';
+import ContactMiniCard, { ContactCardData, encodeContactCard, decodeContactCard } from '../components/cards/ContactMiniCard';
+import ProfileMiniCard, { decodeProfileCard } from '../components/cards/ProfileMiniCard';
 import ChatWallpaperPicker from '../components/chat/ChatWallpaperPicker';
 import { findPreset, isPresetId } from '../config/chatWallpapers';
+import { searchContacts } from '../utils/deviceToolFulfillment';
 
 const isVideoUrl = (url: string) => /\.(mp4|mov|webm|m3u8)(\?|$)/i.test(url);
 const isAudioUrl = (url: string) => /\.(m4a|mp3|wav|aac|3gp|ogg|caf)(\?|$)/i.test(url);
@@ -75,7 +81,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const { theme } = useTheme();
   const { COLORS } = theme;
   const { user } = useAuth();
-  const { roomId = 'global-room', roomName = 'Global Lounge', roomType = 'Public', targetUserId, avatarUrl } = route?.params || {};
+  const { roomId = 'global-room', roomName = 'Global Lounge', roomType = 'Public', targetUserId, avatarUrl, sharedByUserId } = route?.params || {};
 
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(true);
@@ -86,23 +92,46 @@ export default function ChatScreen({ route, navigation }: any) {
   const [showVemojiPicker, setShowVemojiPicker] = useState(false);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [showEventPicker, setShowEventPicker]     = useState(false);
+  const [showActionsTray, setShowActionsTray] = useState(false);
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
   const [emojiBurst, setEmojiBurst] = useState<{ type: VemojiType; nonce: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessageDto | null>(null);
   const [actionSheetMessage, setActionSheetMessage] = useState<ChatMessageDto | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessageDto | null>(null);
   const [forwardTarget, setForwardTarget] = useState<ChatMessageDto | null>(null);
   const [forwardChats, setForwardChats] = useState<any[]>([]);
   const [forwardLoading, setForwardLoading] = useState(false);
   const [selectedForwardIds, setSelectedForwardIds] = useState<Set<string>>(new Set());
   const [forwarding, setForwarding] = useState(false);
-  const { socket, onlineUsers } = useSocket();
+  const [showLocationSheet, setShowLocationSheet] = useState(false);
+  const [sharingLocation, setSharingLocation] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [contactQuery, setContactQuery] = useState('');
+  const [contactResults, setContactResults] = useState<ContactCardData[]>([]);
+  const [contactSearching, setContactSearching] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [relationshipPartner, setRelationshipPartner] = useState<any>(null);
+  const [chatShares, setChatShares] = useState<any[]>([]);
+  const [shareBusy, setShareBusy] = useState(false);
+  const { socket, onlineUsers, activityLabels } = useSocket();
   const voiceRecorder = useVoiceRecorder();
   const { playSound } = useLiveSound();
-  const [targetProfile, setTargetProfile] = useState<{ avatarUrl?: string; effectiveStatus?: string | null } | null>(null);
+  const [targetProfile, setTargetProfile] = useState<{ avatarUrl?: string; effectiveStatus?: string | null; lastSeenAt?: string | null } | null>(null);
 
-  const isOnline = !!targetUserId && onlineUsers[targetUserId] === 'online';
-  const statusText = targetUserId ? (isOnline ? 'online' : 'offline') : (roomType || '').toLowerCase();
+  const presenceStatus = targetUserId ? onlineUsers[targetUserId] : undefined;
+  const isOnline = presenceStatus === 'online';
+  const isBusy = presenceStatus === 'busy' || presenceStatus === 'away';
+  // A booking-derived status ("On a flight", "At the gym") is only
+  // meaningful while the person is actually online — once they're busy or
+  // offline it's stale/misleading, so real presence takes over instead.
+  const statusText = !targetUserId
+    ? (roomType || '').toLowerCase()
+    : isOnline
+      ? (targetProfile?.effectiveStatus || 'online')
+      : isBusy
+        ? ((targetUserId && activityLabels[targetUserId]) || 'busy')
+        : formatLastSeen(targetProfile?.lastSeenAt ?? null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -159,10 +188,30 @@ export default function ChatScreen({ route, navigation }: any) {
       }
     };
 
+    const updateHandler = (updated: ChatMessageDto & { editedAt?: string }) => {
+      if (updated.chatId !== roomId) return;
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m)));
+    };
+    const deleteHandler = (data: { id: string; chatId: string; deletedAt: string }) => {
+      if (data.chatId !== roomId) return;
+      setMessages((prev) => prev.map((m) => (m.id === data.id ? { ...m, deletedAt: data.deletedAt } as any : m)));
+    };
+
+    const errorHandler = (data: { chatId?: string; message: string }) => {
+      if (data.chatId && data.chatId !== roomId) return;
+      Alert.alert('Error', data.message || 'Something went wrong');
+    };
+
     socket.on('new_message', messageHandler);
+    socket.on('message_updated', updateHandler);
+    socket.on('message_deleted', deleteHandler);
+    socket.on('message_error', errorHandler);
 
     return () => {
       socket.off('new_message', messageHandler);
+      socket.off('message_updated', updateHandler);
+      socket.off('message_deleted', deleteHandler);
+      socket.off('message_error', errorHandler);
     };
   }, [socket, roomId]);
 
@@ -224,6 +273,17 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const sendMessage = () => {
     if (!inputText.trim() || !socket || !user?.userId) return;
+
+    if (editingMessage) {
+      socket.emit('edit_message', {
+        userId: user.userId,
+        messageId: editingMessage.id,
+        content: inputText.trim(),
+      });
+      setInputText('');
+      setEditingMessage(null);
+      return;
+    }
 
     const newMsg: ChatMessageDto = {
       chatId: roomId,
@@ -360,6 +420,227 @@ export default function ChatScreen({ route, navigation }: any) {
     setReplyingTo(null);
   };
 
+  // ── Location sharing ────────────────────────────────────────────────
+  // Live location reuses the message-edit capability (Phase 3) instead of a
+  // separate tracking endpoint: the initial share is a normal message, and
+  // each tick is just an edit_message on that same message id, until the
+  // sender explicitly stops or `expiresAt` passes.
+  const liveTickRef = useRef<{ messageId: string; lat: number; lng: number; expiresAt?: string; nonce: string; interval: ReturnType<typeof setInterval> } | null>(null);
+
+  const stopLiveLocation = () => {
+    const state = liveTickRef.current;
+    if (!state || !socket || !user?.userId) return;
+    clearInterval(state.interval);
+    socket.emit('edit_message', {
+      userId: user.userId,
+      messageId: state.messageId,
+      content: encodeLocationCard({ lat: state.lat, lng: state.lng, live: true, stopped: true, expiresAt: state.expiresAt, nonce: state.nonce } as any),
+    });
+    liveTickRef.current = null;
+  };
+
+  useEffect(() => () => { if (liveTickRef.current) clearInterval(liveTickRef.current.interval); }, []);
+
+  const shareLocation = async (durationMinutes: number | null) => {
+    if (!socket || !user?.userId || sharingLocation) return;
+    setSharingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Location permission needed', 'Enable location access in Settings to share your location.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const lat = loc.coords.latitude, lng = loc.coords.longitude;
+      const isLive = durationMinutes !== null;
+      const expiresAt = durationMinutes ? new Date(Date.now() + durationMinutes * 60000).toISOString() : undefined;
+      const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const payload = encodeLocationCard({ lat, lng, live: isLive || undefined, expiresAt, nonce } as any);
+
+      setShowLocationSheet(false);
+      setReplyingTo(null);
+      socket.emit('send_message', { chatId: roomId, senderId: user.userId, content: payload, replyToId: replyingTo?.id });
+
+      if (!isLive) return;
+
+      // Capture the server-assigned message id off the broadcast echo (every
+      // client, including the sender, receives new_message for their own
+      // send) so subsequent ticks know which message to edit.
+      const messageId = await new Promise<string | null>((resolve) => {
+        const handler = (msg: ChatMessageDto) => {
+          if (msg.chatId !== roomId || msg.senderId !== user.userId || !msg.content?.includes(nonce)) return;
+          socket.off('new_message', handler);
+          resolve(msg.id ?? null);
+        };
+        socket.on('new_message', handler);
+        setTimeout(() => { socket.off('new_message', handler); resolve(null); }, 8000);
+      });
+      if (!messageId) return;
+
+      liveTickRef.current = { messageId, lat, lng, expiresAt, nonce, interval: setInterval(async () => {
+        const state = liveTickRef.current;
+        if (!state) return;
+        if (state.expiresAt && Date.now() >= new Date(state.expiresAt).getTime()) {
+          stopLiveLocation();
+          return;
+        }
+        try {
+          const tick = await Location.getCurrentPositionAsync({});
+          state.lat = tick.coords.latitude;
+          state.lng = tick.coords.longitude;
+          socket.emit('edit_message', {
+            userId: user.userId,
+            messageId: state.messageId,
+            content: encodeLocationCard({ lat: state.lat, lng: state.lng, live: true, expiresAt: state.expiresAt, nonce: state.nonce } as any),
+          });
+        } catch {
+          /* transient GPS read failure — try again next tick */
+        }
+      }, 20_000) };
+    } catch {
+      Alert.alert('Error', 'Could not get your current location.');
+    } finally {
+      setSharingLocation(false);
+    }
+  };
+
+  // ── Contact sharing ─────────────────────────────────────────────────
+  const openContactPicker = async () => {
+    setShowContactPicker(true);
+    setContactQuery('');
+    setContactResults([]);
+    setContactSearching(true);
+    try {
+      const result = await searchContacts('');
+      if (result.permissionDenied) {
+        Alert.alert('Contacts permission needed', 'Enable contacts access in Settings to share a contact.');
+      } else {
+        setContactResults((result.contacts || []).filter((c: ContactCardData) => c.phoneNumbers?.length));
+      }
+    } catch {
+      setContactResults([]);
+    } finally {
+      setContactSearching(false);
+    }
+  };
+
+  const searchContactsDebounced = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onContactQueryChange = (q: string) => {
+    setContactQuery(q);
+    if (searchContactsDebounced.current) clearTimeout(searchContactsDebounced.current);
+    searchContactsDebounced.current = setTimeout(async () => {
+      setContactSearching(true);
+      try {
+        const result = await searchContacts(q);
+        setContactResults((result.contacts || []).filter((c: ContactCardData) => c.phoneNumbers?.length));
+      } catch {
+        /* ignore */
+      } finally {
+        setContactSearching(false);
+      }
+    }, 300);
+  };
+
+  const sendContactCard = (contact: ContactCardData) => {
+    if (!socket || !user?.userId) return;
+    socket.emit('send_message', {
+      chatId: roomId,
+      senderId: user.userId,
+      content: encodeContactCard(contact),
+      replyToId: replyingTo?.id,
+    });
+    setReplyingTo(null);
+    setShowContactPicker(false);
+  };
+
+  // Every action that used to be its own icon crammed next to the input —
+  // now grouped in the Chat Actions tray (see the "+" button and the tray
+  // Modal in the render). Each onPress closes the tray and clears any other
+  // open inline picker before opening its own, same as the old inline
+  // toggle buttons did.
+  const closeOtherPickers = () => {
+    setShowActionsTray(false);
+    setShowEmojiPicker(false);
+    setShowGifPicker(false);
+    setShowVemojiPicker(false);
+  };
+  const chatActions = [
+    {
+      key: 'vemoji',
+      label: 'Vemoji',
+      renderIcon: () => <CustomEmoji type="fire" size={30} />,
+      onPress: () => { closeOtherPickers(); setShowVemojiPicker(true); },
+    },
+    {
+      key: 'gif',
+      label: 'GIF',
+      renderIcon: () => (
+        <View style={styles.actionGifBadge}>
+          <Text style={styles.actionGifBadgeText}>GIF</Text>
+        </View>
+      ),
+      onPress: () => { closeOtherPickers(); setShowGifPicker(true); },
+    },
+    {
+      key: 'attachment',
+      label: 'Attachment',
+      renderIcon: () => <Ionicons name="attach" size={30} color={COLORS.textMuted} />,
+      onPress: () => { setShowActionsTray(false); pickAndSendMedia(); },
+    },
+    {
+      key: 'camera',
+      label: 'Camera',
+      renderIcon: () => <Ionicons name="camera-outline" size={30} color={COLORS.textMuted} />,
+      onPress: () => { setShowActionsTray(false); captureAndSendMedia(); },
+    },
+    {
+      key: 'shopping',
+      label: 'Shopping',
+      renderIcon: () => <Ionicons name="bag-handle-outline" size={30} color={COLORS.primary} />,
+      onPress: () => { closeOtherPickers(); setShowProductPicker(true); },
+    },
+    {
+      key: 'event',
+      label: 'Event',
+      renderIcon: () => <Ionicons name="calendar-outline" size={30} color="#ec4899" />,
+      onPress: () => { closeOtherPickers(); setShowEventPicker(true); },
+    },
+    {
+      key: 'games',
+      label: 'Games',
+      renderIcon: () => <Ionicons name="game-controller-outline" size={30} color="#10B981" />,
+      onPress: () => { setShowActionsTray(false); navigation.navigate('Life', { screen: 'LudoLobby' }); },
+    },
+    {
+      key: 'location',
+      label: 'Location',
+      renderIcon: () => <Ionicons name="location-outline" size={30} color="#3B82F6" />,
+      onPress: () => { closeOtherPickers(); setShowLocationSheet(true); },
+    },
+    {
+      key: 'contact',
+      label: 'Contact',
+      renderIcon: () => <Ionicons name="person-outline" size={30} color="#F59E0B" />,
+      onPress: () => { setShowActionsTray(false); openContactPicker(); },
+    },
+    {
+      key: 'wallpaper',
+      label: 'Wallpaper',
+      renderIcon: () => <Ionicons name="image-outline" size={30} color="#A78BFA" />,
+      onPress: () => { setShowActionsTray(false); setShowWallpaperPicker(true); },
+    },
+    // Only the real owner of a DIRECT chat can share it — same condition
+    // the header icon used to gate on (see sharedByUserId above).
+    ...(roomType === 'DIRECT' && !sharedByUserId
+      ? [{
+          key: 'shareChat',
+          label: 'Share Chat',
+          renderIcon: () => <Ionicons name="people-outline" size={30} color="#22D3EE" />,
+          onPress: () => { setShowActionsTray(false); openShareModal(); },
+        }]
+      : []),
+  ];
+
   const sendVemoji = (type: VemojiType) => {
     if (!socket || !user?.userId) return;
     const newMsg: ChatMessageDto = { chatId: roomId, senderId: user.userId, content: encodeVemojiMessage(type), replyToId: replyingTo?.id };
@@ -383,6 +664,109 @@ export default function ChatScreen({ route, navigation }: any) {
     }
   };
 
+  // Relationship-partner shared chats — only the real owner of a DIRECT
+  // chat can share/unshare it (a delegate viewing a chat shared TO them
+  // never sees this action; see sharedByUserId above). Access is granular:
+  // read/write/edit-their-messages/delete-their-messages, each toggleable
+  // independently instead of one all-or-nothing switch.
+  const DEFAULT_SHARE_PERMISSIONS = { canRead: true, canWrite: true, canUpdateMessages: false, canDeleteMessages: false };
+  const [sharePermissions, setSharePermissions] = useState(DEFAULT_SHARE_PERMISSIONS);
+
+  const openShareModal = async () => {
+    setShowShareModal(true);
+    try {
+      const [partnerRes, sharesRes] = await Promise.all([
+        fetchApi('/relationships/mine'),
+        fetchApi(`/chats/${roomId}/shares`, { headers: { 'Cache-Control': 'no-cache' } }),
+      ]);
+      const partner = partnerRes.ok ? (await partnerRes.json())?.partner ?? null : null;
+      const shares = sharesRes.ok ? await sharesRes.json() : [];
+      setRelationshipPartner(partner);
+      setChatShares(Array.isArray(shares) ? shares : []);
+      const existing = Array.isArray(shares) ? shares.find((s: any) => s.delegateId === partner?.id) : null;
+      setSharePermissions(
+        existing
+          ? {
+              canRead: existing.canRead,
+              canWrite: existing.canWrite,
+              canUpdateMessages: existing.canUpdateMessages,
+              canDeleteMessages: existing.canDeleteMessages,
+            }
+          : DEFAULT_SHARE_PERMISSIONS,
+      );
+    } catch {
+      setRelationshipPartner(null);
+      setChatShares([]);
+      setSharePermissions(DEFAULT_SHARE_PERMISSIONS);
+    }
+  };
+
+  const isSharedWithPartner = chatShares.some(s => s.delegateId === relationshipPartner?.id);
+
+  // Creates the share (if not yet shared) or updates its permissions (if
+  // already shared) — the backend upserts either way, so this is the same
+  // call in both cases.
+  const applySharePermissions = async () => {
+    if (!relationshipPartner?.id || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const res = await fetchApi(`/chats/${roomId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delegateId: relationshipPartner.id, ...sharePermissions }),
+      });
+      if (!res.ok) throw new Error('Failed to share');
+      setChatShares(prev => {
+        const others = prev.filter(s => s.delegateId !== relationshipPartner.id);
+        return [...others, { delegateId: relationshipPartner.id, delegateName: relationshipPartner.displayName || relationshipPartner.username, ...sharePermissions }];
+      });
+    } catch {
+      Alert.alert('Something went wrong', 'Please try again.');
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const stopSharingWithPartner = async () => {
+    if (!relationshipPartner?.id || shareBusy) return;
+    setShareBusy(true);
+    try {
+      await fetchApi(`/chats/${roomId}/unshare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delegateId: relationshipPartner.id }),
+      });
+      setChatShares(prev => prev.filter(s => s.delegateId !== relationshipPartner.id));
+      setSharePermissions(DEFAULT_SHARE_PERMISSIONS);
+    } catch {
+      Alert.alert('Something went wrong', 'Please try again.');
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const startEditMessage = (message: ChatMessageDto) => {
+    setActionSheetMessage(null);
+    setReplyingTo(null);
+    setEditingMessage(message);
+    setInputText(message.content);
+  };
+
+  const confirmDeleteMessage = (message: ChatMessageDto) => {
+    setActionSheetMessage(null);
+    Alert.alert('Delete message', 'This will delete the message for everyone in this chat.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          if (!socket || !user?.userId || !message.id) return;
+          socket.emit('delete_message', { userId: user.userId, messageId: message.id });
+        },
+      },
+    ]);
+  };
+
   const toggleForwardChat = (chatId: string) => {
     setSelectedForwardIds(prev => {
       const next = new Set(prev);
@@ -404,6 +788,15 @@ export default function ChatScreen({ route, navigation }: any) {
   const renderMessage = ({ item }: { item: ChatMessageDto }) => {
     const isMe = item.senderId === user?.userId;
     const isAi = item.isAiGenerated || item.senderId === 'bot';
+
+    if (item.deletedAt) {
+      return (
+        <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.theirMessage, styles.deletedBubble]}>
+          <Ionicons name="ban-outline" size={13} color={isMe ? 'rgba(255,255,255,0.7)' : COLORS.textMuted} />
+          <Text style={[styles.deletedText, isMe && { color: 'rgba(255,255,255,0.7)' }]}>This message was deleted</Text>
+        </View>
+      );
+    }
     const vemojiType = parseVemojiMessage(item.content);
     const mediaOnly = !!item.mediaUrl && !item.content;
     const stickerOnly = mediaOnly || !!vemojiType;
@@ -417,9 +810,51 @@ export default function ChatScreen({ route, navigation }: any) {
     // Detect event card payload
     const eventCard = item.content?.includes('__eventCard') ? decodeEventCard(item.content) : null;
 
+    // Detect location/contact/profile card payloads
+    const locationCard = item.content?.includes('__locationCard') ? decodeLocationCard(item.content) : null;
+    const contactCard = item.content?.includes('__contactCard') ? decodeContactCard(item.content) : null;
+    const profileCard = item.content?.includes('__profileCard') ? decodeProfileCard(item.content) : null;
+
     const replyPreviewText = item.replyTo
       ? (parseVemojiMessage(item.replyTo.content) ? '🔥 Vemoji' : (item.replyTo.content || (item.replyTo.mediaUrl ? '📎 Attachment' : '')))
       : '';
+
+    if (locationCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          <LocationMiniCard
+            location={locationCard}
+            isMine={isMe}
+            onStop={isMe ? stopLiveLocation : undefined}
+          />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
+
+    if (contactCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          <ContactMiniCard contact={contactCard} />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
+
+    if (profileCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          <ProfileMiniCard profile={profileCard} navigation={navigation} />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
 
     if (eventCard) {
       return (
@@ -464,6 +899,10 @@ export default function ChatScreen({ route, navigation }: any) {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
+        onPress={vemojiType ? () => {
+          playSound(vemojiType);
+          setEmojiBurst({ type: vemojiType, nonce: Date.now() });
+        } : undefined}
         onLongPress={() => item.id && setActionSheetMessage(item)}
         style={[
           styles.messageBubble,
@@ -501,6 +940,11 @@ export default function ChatScreen({ route, navigation }: any) {
           </>
         )}
         <View style={[styles.metaRow, stickerOnly && styles.metaRowOnMedia]}>
+          {!!item.editedAt && (
+            <Text style={[styles.metaTime, isMe && !stickerOnly && styles.metaTimeMine, stickerOnly && styles.metaTimeOnMedia, { marginRight: 4 }]}>
+              (edited)
+            </Text>
+          )}
           <Text style={[styles.metaTime, isMe && !stickerOnly && styles.metaTimeMine, stickerOnly && styles.metaTimeOnMedia]}>
             {formatClockTime(item.createdAt)}
           </Text>
@@ -634,7 +1078,9 @@ export default function ChatScreen({ route, navigation }: any) {
       color: 'rgba(255,255,255,0.9)',
     },
     mediaOnlyBubble: {
-      padding: 4,
+      padding: 0,
+      backgroundColor: 'transparent',
+      overflow: 'hidden',
     },
     vemojiBubble: {
       backgroundColor: 'transparent',
@@ -663,18 +1109,63 @@ export default function ChatScreen({ route, navigation }: any) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    pillIconBtnLast: {
-      paddingRight: 0,
+    // ── Chat Actions tray (the "+" button next to voice) ────────────────
+    actionsTraySheet: {
+      backgroundColor: COLORS.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderTopWidth: 1,
+      borderColor: COLORS.border,
+      paddingTop: 12,
+      paddingBottom: 32,
     },
-    gifButtonText: {
-      color: COLORS.textMuted,
-      fontSize: 9.5,
-      fontWeight: '800',
-      borderWidth: 1.3,
+    actionsTrayHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: COLORS.border,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    actionsTrayTitle: {
+      color: COLORS.text,
+      fontSize: 17,
+      fontWeight: '700',
+      textAlign: 'center',
+      marginBottom: 22,
+    },
+    // Capped below the natural 3-row height for today's 9 actions, so the
+    // grid already scrolls now — not just once more actions get added.
+    actionsGridScroll: {
+      maxHeight: 210,
+    },
+    actionsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: 24,
+    },
+    actionItem: {
+      width: '33.33%',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 28,
+    },
+    actionItemLabel: {
+      color: COLORS.text,
+      fontSize: 12.5,
+      fontWeight: '600',
+    },
+    actionGifBadge: {
+      borderWidth: 2,
       borderColor: COLORS.textMuted,
-      borderRadius: 4,
-      paddingHorizontal: 3,
-      paddingVertical: 1,
+      borderRadius: 7,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    actionGifBadgeText: {
+      color: COLORS.textMuted,
+      fontSize: 14,
+      fontWeight: '800',
     },
     input: {
       flex: 1,
@@ -743,6 +1234,17 @@ export default function ChatScreen({ route, navigation }: any) {
     forwardedText: {
       color: COLORS.textMuted,
       fontSize: 11,
+      fontStyle: 'italic',
+    },
+    deletedBubble: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      opacity: 0.7,
+    },
+    deletedText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
       fontStyle: 'italic',
     },
 
@@ -889,6 +1391,41 @@ export default function ChatScreen({ route, navigation }: any) {
       fontWeight: '800',
       fontSize: 15,
     },
+    permissionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    permissionLabel: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    permissionDesc: {
+      color: COLORS.textMuted,
+      fontSize: 11.5,
+      marginTop: 1,
+    },
+    locationOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    contactSearchInput: {
+      backgroundColor: COLORS.surface,
+      color: COLORS.text,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 10,
+    },
 
     // Product card bubble
     productBubbleWrap: {
@@ -949,16 +1486,14 @@ export default function ChatScreen({ route, navigation }: any) {
                 <Text style={styles.headerName} numberOfLines={1}>{roomName}</Text>
                 <View style={styles.statusRow}>
                   {isOnline && <View style={styles.statusDot} />}
+                  {isBusy && <View style={[styles.statusDot, { backgroundColor: '#F59E0B' }]} />}
                   <Text style={styles.statusText} numberOfLines={1}>
-                    {targetProfile?.effectiveStatus || statusText}
+                    {statusText}
                   </Text>
                 </View>
               </View>
             </TouchableOpacity>
             <View style={styles.callButtons}>
-              <TouchableOpacity onPress={() => setShowWallpaperPicker(true)} style={styles.headerIconBtn}>
-                <Ionicons name="image-outline" size={20} color={COLORS.text} />
-              </TouchableOpacity>
               {!!targetUserId && (
                 <>
                   <TouchableOpacity onPress={() => startCall(false)} style={styles.headerIconBtn}>
@@ -1002,6 +1537,19 @@ export default function ChatScreen({ route, navigation }: any) {
             }
             return list;
           })()}
+
+          {editingMessage && (
+            <View style={styles.replyBar}>
+              <View style={styles.replyBarAccent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.replyBarSender}>Editing message</Text>
+                <Text style={styles.replyBarText} numberOfLines={1}>{editingMessage.content}</Text>
+              </View>
+              <TouchableOpacity onPress={() => { setEditingMessage(null); setInputText(''); }} style={styles.replyBarClose}>
+                <Ionicons name="close" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {replyingTo && (
             <View style={styles.replyBar}>
@@ -1051,50 +1599,6 @@ export default function ChatScreen({ route, navigation }: any) {
                   onSubmitEditing={sendMessage}
                   multiline
                 />
-                <TouchableOpacity
-                  style={styles.pillIconBtn}
-                  onPress={() => { setShowVemojiPicker(v => !v); setShowEmojiPicker(false); setShowGifPicker(false); }}
-                >
-                  {showVemojiPicker ? (
-                    <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
-                  ) : (
-                    <CustomEmoji type="fire" size={18} />
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.pillIconBtn}
-                  onPress={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setShowVemojiPicker(false); }}
-                >
-                  {showGifPicker ? (
-                    <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
-                  ) : (
-                    <Text style={styles.gifButtonText}>GIF</Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.pillIconBtn} onPress={pickAndSendMedia} disabled={uploadingMedia}>
-                  <Ionicons name="attach" size={18} color={COLORS.textMuted} />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.pillIconBtn, styles.pillIconBtnLast]} onPress={captureAndSendMedia} disabled={uploadingMedia}>
-                  <Ionicons name="camera-outline" size={18} color={COLORS.textMuted} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.pillIconBtn, styles.pillIconBtnLast]}
-                  onPress={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowVemojiPicker(false); setShowProductPicker(true); }}
-                >
-                  <Ionicons name="bag-handle-outline" size={18} color={COLORS.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.pillIconBtn, styles.pillIconBtnLast]}
-                  onPress={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowVemojiPicker(false); setShowProductPicker(false); setShowEventPicker(true); }}
-                >
-                  <Ionicons name="calendar-outline" size={18} color="#ec4899" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.pillIconBtn, styles.pillIconBtnLast]}
-                  onPress={() => navigation.navigate('Life', { screen: 'LudoLobby' })}
-                >
-                  <Ionicons name="game-controller-outline" size={18} color="#10B981" />
-                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
@@ -1107,6 +1611,13 @@ export default function ChatScreen({ route, navigation }: any) {
                 ) : (
                   <Ionicons name={inputText.trim() ? 'send' : 'mic'} size={20} color="#FFF" />
                 )}
+              </TouchableOpacity>
+
+              {/* Opens the Chat Actions tray — every action that used to be
+                  its own icon crammed next to the input now lives there
+                  (see chatActions below), matching the shared design canvas. */}
+              <TouchableOpacity style={styles.sendButton} onPress={() => setShowActionsTray(true)}>
+                <Ionicons name="add" size={24} color="#FFF" />
               </TouchableOpacity>
             </View>
           )}
@@ -1138,6 +1649,30 @@ export default function ChatScreen({ route, navigation }: any) {
       </View>
 
       <Modal
+        visible={showActionsTray}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowActionsTray(false)}
+      >
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowActionsTray(false)}>
+          <View style={styles.actionsTraySheet}>
+            <View style={styles.actionsTrayHandle} />
+            <Text style={styles.actionsTrayTitle}>Chat Actions</Text>
+            <ScrollView style={styles.actionsGridScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.actionsGrid}>
+                {chatActions.map(action => (
+                  <TouchableOpacity key={action.key} style={styles.actionItem} onPress={action.onPress}>
+                    {action.renderIcon()}
+                    <Text style={styles.actionItemLabel}>{action.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
         visible={!!actionSheetMessage}
         transparent
         animationType="fade"
@@ -1148,6 +1683,7 @@ export default function ChatScreen({ route, navigation }: any) {
             <TouchableOpacity
               style={styles.actionSheetItem}
               onPress={() => {
+                setEditingMessage(null);
                 setReplyingTo(actionSheetMessage);
                 setActionSheetMessage(null);
               }}
@@ -1166,6 +1702,32 @@ export default function ChatScreen({ route, navigation }: any) {
               <Ionicons name="arrow-redo" size={20} color={COLORS.text} />
               <Text style={styles.actionSheetItemText}>Forward</Text>
             </TouchableOpacity>
+            {/* Edit/delete are only offered for a message this caller
+                actually owns — either it's really theirs (senderId), or
+                they're the delegate who personally sent it while acting as
+                the owner (actualSenderId). Server enforces this too. */}
+            {!!actionSheetMessage &&
+              (actionSheetMessage.senderId === user?.userId || actionSheetMessage.actualSenderId === user?.userId) &&
+              !actionSheetMessage.mediaUrl &&
+              !parseVemojiMessage(actionSheetMessage.content) && (
+                <TouchableOpacity
+                  style={styles.actionSheetItem}
+                  onPress={() => actionSheetMessage && startEditMessage(actionSheetMessage)}
+                >
+                  <Ionicons name="create-outline" size={20} color={COLORS.text} />
+                  <Text style={styles.actionSheetItemText}>Edit</Text>
+                </TouchableOpacity>
+              )}
+            {!!actionSheetMessage &&
+              (actionSheetMessage.senderId === user?.userId || actionSheetMessage.actualSenderId === user?.userId) && (
+                <TouchableOpacity
+                  style={styles.actionSheetItem}
+                  onPress={() => actionSheetMessage && confirmDeleteMessage(actionSheetMessage)}
+                >
+                  <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                  <Text style={[styles.actionSheetItemText, { color: COLORS.error }]}>Delete</Text>
+                </TouchableOpacity>
+              )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -1228,6 +1790,182 @@ export default function ChatScreen({ route, navigation }: any) {
                 </Text>
               )}
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showShareModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowShareModal(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={styles.forwardSheet}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>Share this chat</Text>
+              <TouchableOpacity onPress={() => setShowShareModal(false)}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            {!relationshipPartner ? (
+              <Text style={styles.forwardEmpty}>
+                You need an active relationship partner before you can share a chat with them.
+              </Text>
+            ) : (
+              <>
+                <View style={styles.forwardChatRow}>
+                  <Image
+                    source={{ uri: relationshipPartner.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${relationshipPartner.username}` }}
+                    style={styles.forwardChatAvatar}
+                  />
+                  <Text style={styles.forwardChatName} numberOfLines={1}>
+                    {relationshipPartner.displayName || relationshipPartner.username}
+                  </Text>
+                  <Ionicons
+                    name={isSharedWithPartner ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={22}
+                    color={isSharedWithPartner ? COLORS.primary : COLORS.textMuted}
+                  />
+                </View>
+                <Text style={[styles.forwardEmpty, { marginTop: 0, marginBottom: 4 }]}>
+                  {isSharedWithPartner
+                    ? `${relationshipPartner.displayName || relationshipPartner.username} has access to this chat, appearing as you. The other person in this chat is never shown that you shared it. Choose exactly what they can do:`
+                    : `Let ${relationshipPartner.displayName || relationshipPartner.username} act in this chat as you. The other person in this chat won't be shown that you shared it. Choose what they can do:`}
+                </Text>
+
+                {[
+                  { key: 'canRead' as const, label: 'Read messages', desc: 'See the messages in this chat' },
+                  { key: 'canWrite' as const, label: 'Send messages', desc: 'Reply, appearing as you' },
+                  { key: 'canUpdateMessages' as const, label: 'Edit their sent messages', desc: 'Only messages they personally sent' },
+                  { key: 'canDeleteMessages' as const, label: 'Delete their sent messages', desc: 'Only messages they personally sent' },
+                ].map(perm => (
+                  <View key={perm.key} style={styles.permissionRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.permissionLabel}>{perm.label}</Text>
+                      <Text style={styles.permissionDesc}>{perm.desc}</Text>
+                    </View>
+                    <Switch
+                      value={sharePermissions[perm.key]}
+                      onValueChange={(val) => setSharePermissions(prev => ({ ...prev, [perm.key]: val }))}
+                      trackColor={{ false: COLORS.border, true: COLORS.primaryDeep }}
+                      thumbColor={sharePermissions[perm.key] ? COLORS.primary : COLORS.textMuted}
+                    />
+                  </View>
+                ))}
+
+                <TouchableOpacity
+                  style={[styles.forwardConfirmBtn, shareBusy && { opacity: 0.5 }, { marginTop: 14 }]}
+                  onPress={applySharePermissions}
+                  disabled={shareBusy}
+                >
+                  {shareBusy ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.forwardConfirmText}>
+                      {isSharedWithPartner ? 'Update permissions' : 'Share with partner'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                {isSharedWithPartner && (
+                  <TouchableOpacity
+                    style={[styles.forwardConfirmBtn, shareBusy && { opacity: 0.5 }, { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, marginTop: 8 }]}
+                    onPress={stopSharingWithPartner}
+                    disabled={shareBusy}
+                  >
+                    <Text style={[styles.forwardConfirmText, { color: COLORS.text }]}>Stop sharing</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showLocationSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLocationSheet(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={styles.forwardSheet}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>Share location</Text>
+              <TouchableOpacity onPress={() => setShowLocationSheet(false)}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            {sharingLocation ? (
+              <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 30 }} />
+            ) : (
+              <>
+                <TouchableOpacity style={styles.locationOption} onPress={() => shareLocation(null)}>
+                  <Ionicons name="location" size={20} color={COLORS.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.permissionLabel}>Share current location</Text>
+                    <Text style={styles.permissionDesc}>A one-time pin of where you are right now</Text>
+                  </View>
+                </TouchableOpacity>
+                {[15, 60, 480].map((mins) => (
+                  <TouchableOpacity key={mins} style={styles.locationOption} onPress={() => shareLocation(mins)}>
+                    <Ionicons name="navigate" size={20} color="#3B82F6" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.permissionLabel}>
+                        Share live location for {mins < 60 ? `${mins} min` : `${mins / 60} ${mins === 60 ? 'hour' : 'hours'}`}
+                      </Text>
+                      <Text style={styles.permissionDesc}>Keeps updating while this chat stays open</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showContactPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowContactPicker(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={styles.forwardSheet}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>Share a contact</Text>
+              <TouchableOpacity onPress={() => setShowContactPicker(false)}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.contactSearchInput}
+              placeholder="Search contacts…"
+              placeholderTextColor={COLORS.textMuted}
+              value={contactQuery}
+              onChangeText={onContactQueryChange}
+            />
+            {contactSearching ? (
+              <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />
+            ) : (
+              <ScrollView style={{ maxHeight: 320 }}>
+                {contactResults.length === 0 ? (
+                  <Text style={styles.forwardEmpty}>No contacts found.</Text>
+                ) : (
+                  contactResults.map((c, i) => (
+                    <TouchableOpacity key={i} style={styles.forwardChatRow} onPress={() => sendContactCard(c)}>
+                      <View style={[styles.forwardChatAvatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                        <Ionicons name="person" size={18} color={COLORS.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.forwardChatName} numberOfLines={1}>{c.name}</Text>
+                        <Text style={styles.permissionDesc} numberOfLines={1}>{c.phoneNumbers[0]}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>

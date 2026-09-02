@@ -60,6 +60,10 @@ export interface AuthUser {
   statusMessage?: string;
   autoStatusEnabled?: boolean;
   effectiveStatus?: string | null;
+  // Opt-in: reveals what this user is doing right now (watching a live
+  // stream, viewing a story) to others as their presence label, instead of
+  // just a generic "Busy" dot. Off by default.
+  shareLiveActivity?: boolean;
   relationshipStatus?: string | null;
   subscribers?: number;
   reputation?: number;
@@ -200,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           statusMessage: p.statusMessage ?? prev.statusMessage,
           autoStatusEnabled: p.autoStatusEnabled ?? prev.autoStatusEnabled,
           effectiveStatus: p.effectiveStatus ?? null,
+          shareLiveActivity: p.shareLiveActivity ?? prev.shareLiveActivity,
           relationshipStatus: p.relationshipStatus ?? null,
           subscribers: p.subscribers ?? prev.subscribers,
           reputation: p.reputation ?? prev.reputation,

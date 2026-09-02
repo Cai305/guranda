@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi, API_BASE_URL } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import VideoCard, { VideoMeta, VIDEO_TYPE_META } from '../../components/VideoCard';
 import GiftButton from '../../components/gifts/GiftButton';
 import { GiftCatalogItem } from '../../components/gifts/GiftSheet';
@@ -22,6 +23,7 @@ interface ResolvedMedia {
 export default function VideoPlayerScreen({ navigation, route }: any) {
   const { videoId } = route.params;
   const { user } = useAuth();
+  const { setActivity } = useSocket();
   const { theme } = useTheme();
   const { COLORS } = theme;
   const [video, setVideo] = useState<any>(null);
@@ -74,6 +76,16 @@ export default function VideoPlayerScreen({ navigation, route }: any) {
   }, [videoId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Presence reads "Busy" (or the actual video title, if the viewer has
+  // opted into sharing live activity) for as long as this screen is open —
+  // cleared automatically on unmount, whichever way it's left (back, swipe,
+  // navigating to a related video).
+  useEffect(() => {
+    setActivity({ type: 'video', label: 'Watching a video' });
+    return () => setActivity(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId]);
 
   // Flushes the real playback position to the server. Shared by the
   // heartbeat interval below and the player's onEnded callback, so the

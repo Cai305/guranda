@@ -105,4 +105,52 @@ export class ChatController {
       this.chatGateway.joinUserSockets(member.userId, chat.id);
     return chat;
   }
+
+  // ── Relationship-partner shared chats ──────────────────────────────────
+  // Explicit per-chat opt-in — the owner shares one of their own direct
+  // chats with their active relationship partner, who then reads/replies
+  // appearing as the owner. The chat's other participant is never told.
+
+  @Post(':id/share')
+  async shareChat(
+    @Param('id') chatId: string,
+    @Request() req: any,
+    @Body()
+    body: {
+      delegateId: string;
+      canRead?: boolean;
+      canWrite?: boolean;
+      canUpdateMessages?: boolean;
+      canDeleteMessages?: boolean;
+    },
+  ) {
+    const ownerId = req.user.userId;
+    if (!body?.delegateId) throw new BadRequestException('Missing delegateId');
+    const share = await this.chatService.shareChat(ownerId, chatId, body.delegateId, {
+      canRead: body.canRead,
+      canWrite: body.canWrite,
+      canUpdateMessages: body.canUpdateMessages,
+      canDeleteMessages: body.canDeleteMessages,
+    });
+    // The delegate needs to be in this chat's room immediately, not just on
+    // their next reconnect — same reasoning as createDirectChat above.
+    this.chatGateway.joinUserSockets(body.delegateId, chatId);
+    return share;
+  }
+
+  @Post(':id/unshare')
+  async unshareChat(
+    @Param('id') chatId: string,
+    @Request() req: any,
+    @Body('delegateId') delegateId: string,
+  ) {
+    const ownerId = req.user.userId;
+    if (!delegateId) throw new BadRequestException('Missing delegateId');
+    return this.chatService.unshareChat(ownerId, chatId, delegateId);
+  }
+
+  @Get(':id/shares')
+  async getChatShares(@Param('id') chatId: string, @Request() req: any) {
+    return this.chatService.getChatShares(chatId, req.user.userId);
+  }
 }

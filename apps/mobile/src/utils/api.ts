@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { startUpload, updateUploadProgress, finishUpload, failUpload } from './uploadStatusStore';
+import { startUpload, updateUploadProgress, markUploadFinishing, finishUpload, failUpload } from './uploadStatusStore';
 import { getCachedResponse, setCachedResponse } from './apiCache';
 
 const LOCAL_API_BASE_URL = 'http://localhost:3001';
@@ -133,13 +133,31 @@ export function xhrUploadFormData(
   formData: FormData,
   token: string | null,
   onProgress: (percent: number) => void,
+  // Fired once every byte has left the device — the request is still open,
+  // waiting on the server (Supabase round-trip on our end can take well
+  // over a minute for a large video), so callers can swap the "N%" label
+  // for a "finishing up" one instead of leaving the UI looking frozen.
+  onSent?: () => void,
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    // Without this, a dropped response (a proxy that silently kills the
+    // connection, a server that never replies) leaves the promise pending
+    // forever — onload/onerror simply never fire, so nothing left the
+    // "uploading" state and the progress UI sat stuck at 100% indefinitely.
+    xhr.timeout = 180000;
+    let sent = false;
     xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        onProgress(percent);
+        if (percent >= 100 && !sent) {
+          sent = true;
+          onSent?.();
+        }
+      }
     };
     xhr.onload = () => {
       let parsed: any = null;
@@ -151,6 +169,8 @@ export function xhrUploadFormData(
       }
     };
     xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.ontimeout = () => reject(new Error('Upload timed out. Check your connection and try again.'));
+    xhr.onabort = () => reject(new Error('Upload was cancelled'));
     xhr.send(formData);
   });
 }
@@ -205,6 +225,7 @@ export async function uploadMedia(
       formData,
       token,
       (percent) => updateUploadProgress(uploadId, percent),
+      () => markUploadFinishing(uploadId),
     );
     if (!data.url) throw new Error('Upload failed');
     const url = /^https?:\/\//.test(data.url) ? data.url : `${API_BASE_URL}${data.url}`;

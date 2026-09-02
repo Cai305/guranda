@@ -9,6 +9,8 @@ import { MentionsService, MentionRef } from '../mentions/mentions.service';
 import { PostsGateway } from './posts.gateway';
 import { BadgeService } from '../profile/badge.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BlocksService } from '../blocks/blocks.service';
+import { AchievementsService } from '../achievements/achievements.service';
 
 export type PostMediaInput = { url: string; type: string; thumbnailUrl?: string };
 
@@ -67,6 +69,8 @@ export class PostsService {
     private postsGateway: PostsGateway,
     private badgeService: BadgeService,
     private notifications: NotificationsService,
+    private blocks: BlocksService,
+    private achievements: AchievementsService,
   ) {}
 
   // TEMPORARY (see schema.prisma note on Post.mediaUrl/mediaType): copies
@@ -130,13 +134,30 @@ export class PostsService {
     this.postsGateway.broadcastNewPost(post);
     // Best-effort — a first-500 scarcity check should never block posting.
     this.badgeService.tryMintScarce(userId, 'OG_CREATOR').catch(() => {});
+    this.achievements.evaluatePlatformAchievementsForUser(userId).catch(() => {});
     return { ...post, author: toPostAuthor(post.author) };
   }
 
   // Shared by both feed variants — resolves the viewer's private bookmark
   // state and per-author follow state, and normalizes author shape, without
   // leaking who else bookmarked each post.
+  // Mutual invisibility: a block in either direction hides that person's
+  // posts from the feed entirely, and their comments off of anyone else's
+  // posts too — matches the confirmed "full feed/profile invisibility"
+  // blocking scope, not just chat/calls/friend-requests.
   private async hydrate(posts: any[], viewerId?: string) {
+    const blockedIds = viewerId
+      ? await this.blocks.getBlockedEitherDirection(viewerId)
+      : new Set<string>();
+    if (blockedIds.size > 0) {
+      posts = posts
+        .filter((p) => !blockedIds.has(p.authorId))
+        .map((p) => ({
+          ...p,
+          comments: p.comments.filter((c: any) => !blockedIds.has(c.authorId)),
+        }));
+    }
+
     const [bookmarkedIds, followedAuthorIds] = await Promise.all([
       viewerId
         ? this.prisma.postBookmark

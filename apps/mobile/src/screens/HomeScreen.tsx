@@ -77,6 +77,8 @@ export default function HomeScreen({ navigation }: any) {
   const [chats, setChats] = useState<any[]>([]);
   const [communities, setCommunities] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [myAchievements, setMyAchievements] = useState<any[]>([]);
+  const [achievementsTotal, setAchievementsTotal] = useState(0);
   const [realRooms, setRealRooms] = useState<RealLiveStream[]>([]);
   const homeLiveStreams = React.useMemo(() => [...realRooms, ...MOCK_STREAMS].slice(0, 6), [realRooms]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -123,6 +125,14 @@ export default function HomeScreen({ navigation }: any) {
       fetchApi('/notifications/unread-count')
         .then(res => (res.ok ? res.json() : 0))
         .then(n => setUnreadCount(typeof n === 'number' ? n : 0))
+        .catch(() => {});
+      fetchApi('/achievements/mine', { headers: { 'Cache-Control': 'no-cache' } })
+        .then(res => (res.ok ? res.json() : []))
+        .then(data => Array.isArray(data) && setMyAchievements(data))
+        .catch(() => {});
+      fetchApi('/achievements')
+        .then(res => (res.ok ? res.json() : []))
+        .then(data => Array.isArray(data) && setAchievementsTotal(data.length))
         .catch(() => {});
     }, [])
   );
@@ -513,9 +523,6 @@ export default function HomeScreen({ navigation }: any) {
       flexDirection: 'row',
       gap: 2,
     },
-    achievementEmoji: {
-      fontSize: 22,
-    },
     missionFooter: {
       alignItems: 'center',
       marginTop: SPACING.xxl,
@@ -798,19 +805,30 @@ export default function HomeScreen({ navigation }: any) {
         </View>
 
         {/* ===== Achievements ===== */}
-        <SectionHeader title="Achievements" onSeeAll={() => navigation.navigate('Profile')} seeAllLabel="Profile" />
+        <SectionHeader title="Achievements" onSeeAll={() => navigation.navigate('Achievements')} seeAllLabel="See All" />
         <View style={{ paddingHorizontal: SPACING.lg }}>
-          <View style={styles.achievementCard}>
+          <TouchableOpacity
+            style={styles.achievementCard}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('Achievements')}
+          >
             <View style={styles.achievementBadges}>
-              <Text style={styles.achievementEmoji}>🏆</Text>
-              <Text style={styles.achievementEmoji}>💎</Text>
-              <Text style={styles.achievementEmoji}>🎮</Text>
+              {myAchievements.length > 0 ? (
+                <Ionicons name="ribbon" size={26} color={COLORS.gold} />
+              ) : (
+                <Ionicons name="ribbon-outline" size={26} color={COLORS.textMuted} />
+              )}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.eventTitle}>Guranda Pioneer</Text>
-              <Text style={styles.eventWhen}>3 badges earned · Level 2 · 340 XP</Text>
+              <Text style={styles.eventTitle}>
+                {myAchievements.length > 0 ? myAchievements[0].achievement.name : 'No achievements yet'}
+              </Text>
+              <Text style={styles.eventWhen}>
+                {achievementsTotal > 0 ? `${myAchievements.length} of ${achievementsTotal} unlocked` : 'Start exploring to earn your first one'}
+              </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* ===== Explore Mini Apps ===== */}

@@ -10,6 +10,7 @@ import { useAudioPlayer } from 'expo-audio';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { useShoppingCart } from '../context/ShoppingCartContext';
+import { useSocket } from '../context/SocketContext';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
 import { fetchApi } from '../utils/api';
 
@@ -33,6 +34,16 @@ export default function StoryViewerScreen({ route, navigation }: any) {
   const { addItem } = useShoppingCart();
   const { theme } = useTheme();
   const { GRADIENTS } = theme;
+  const { setActivity } = useSocket();
+
+  // Presence reads "Busy" (or "Viewing a story", if the viewer opted into
+  // sharing live activity) for as long as the story viewer is open —
+  // covers the whole session across groups/stories, cleared on close.
+  useEffect(() => {
+    setActivity({ type: 'story', label: 'Viewing a story' });
+    return () => setActivity(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
     dimOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.2)' },
     progressContainer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },

@@ -23,4 +23,8 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   autoStatusEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  shareLiveActivity?: boolean;
 }

@@ -34,7 +34,10 @@ export async function fulfillDeviceTool(toolName: string, input: any): Promise<a
   }
 }
 
-async function searchContacts(query: string) {
+// Exported for direct reuse by the "share contact" flow in ChatScreen.tsx —
+// same underlying Contacts API call the AI companion's contacts tool uses,
+// just invoked directly instead of via the AI pending-action flow.
+export async function searchContacts(query: string) {
   const perm = await Contacts.requestPermissionsAsync();
   if (!perm.granted) return { contacts: [], permissionDenied: true };
 

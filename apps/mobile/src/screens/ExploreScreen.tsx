@@ -456,8 +456,6 @@ export default function ExploreScreen({ navigation }: any) {
       backgroundColor: COLORS.surface,
       padding: 16,
       borderRadius: 16,
-      borderWidth: 1,
-      borderColor: COLORS.border,
       marginBottom: 12,
     },
     postHeader: {

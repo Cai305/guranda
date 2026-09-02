@@ -53,6 +53,16 @@ export function updateUploadProgress(id: string, percent: number) {
   emit();
 }
 
+// All bytes are sent once upload progress hits 100%, but the request is
+// still waiting on the server's response (which itself waits on the
+// slower, more variable Supabase round-trip) — without this the overlay
+// sits at a static "100%" with no sign anything is still happening, which
+// reads as a hang even when the upload is genuinely still in flight.
+export function markUploadFinishing(id: string, label = 'Finishing up…') {
+  items = items.map((i) => (i.id === id ? { ...i, label, percent: 100 } : i));
+  emit();
+}
+
 function removeAfter(id: string, delayMs: number) {
   clearTimer(id);
   timers.set(

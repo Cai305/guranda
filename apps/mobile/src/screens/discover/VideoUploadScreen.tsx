@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, fetchApi, xhrUploadFormData } from '../../utils/api';
-import { startUpload, updateUploadProgress, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
+import { startUpload, updateUploadProgress, markUploadFinishing, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
 import { generateVideoThumbnail } from '../../utils/videoThumbnail';
 
 const CATEGORIES = ['Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
@@ -188,6 +188,7 @@ export default function VideoUploadScreen({ navigation }: any) {
         form,
         token,
         (percent) => updateUploadProgress(uploadId, percent),
+        () => markUploadFinishing(uploadId, 'Processing video…'),
       );
       finishUpload(uploadId, 'Video uploaded successfully');
 

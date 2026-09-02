@@ -23,6 +23,7 @@ export default function EditProfileScreen({ navigation, route }: any) {
   const [bio, setBio] = useState(user?.bio || '');
   const [statusMessage, setStatusMessage] = useState(user?.statusMessage || '');
   const [autoStatusEnabled, setAutoStatusEnabled] = useState(user?.autoStatusEnabled ?? true);
+  const [shareLiveActivity, setShareLiveActivity] = useState(user?.shareLiveActivity ?? false);
   const [avatarUri, setAvatarUri] = useState(user?.avatarUrl || '');
   const [relationshipStatus, setRelationshipStatus] = useState(user?.relationshipStatus || null);
   const [loading, setLoading] = useState(false);
@@ -93,6 +94,7 @@ export default function EditProfileScreen({ navigation, route }: any) {
           statusMessage,
           avatarUrl,
           autoStatusEnabled,
+          shareLiveActivity,
         }),
       });
 
@@ -324,6 +326,20 @@ export default function EditProfileScreen({ navigation, route }: any) {
           <Switch
             value={autoStatusEnabled}
             onValueChange={setAutoStatusEnabled}
+            trackColor={{ false: COLORS.border, true: COLORS.primary }}
+          />
+        </View>
+
+        <View style={styles.toggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Share live activity</Text>
+            <Text style={styles.toggleHint}>
+              Let others see what you're doing right now — e.g. "Watching a live stream" or "Viewing a story" — instead of just a "Busy" dot.
+            </Text>
+          </View>
+          <Switch
+            value={shareLiveActivity}
+            onValueChange={setShareLiveActivity}
             trackColor={{ false: COLORS.border, true: COLORS.primary }}
           />
         </View>

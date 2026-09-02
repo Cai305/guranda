@@ -8,6 +8,12 @@
 // crashing again.
 export const NATIVE_MAPS_AVAILABLE = true;
 
+// Same key wired into app.json/AndroidManifest.xml for the native Maps SDK —
+// reused here for the Static Maps HTTP API (location-share previews in
+// chat), which works identically on web and native since it's just an
+// <Image> of a rendered map tile, no native module required.
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyDUMGescJdT-p5d457Ac4I5cCW-BzkZih4';
+
 // Shared dark Google-Maps style for every native (react-native-maps) MapView
 // in the Ride mini-app — previously duplicated verbatim between RiderView
 // and DriverView. Business POI icons/labels are hidden on top of the

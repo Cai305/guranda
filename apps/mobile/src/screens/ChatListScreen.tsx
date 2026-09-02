@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchApi } from '../utils/api';
+import { formatLastSeen } from '../utils/format';
 import { AI_ENABLED } from '../config/featureFlags';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 
@@ -19,7 +20,7 @@ export default function ChatListScreen({ navigation }: any) {
   const { COLORS } = theme;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { onlineUsers, socket } = useSocket();
+  const { onlineUsers, activityLabels, socket } = useSocket();
   const [sections, setSections] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   // Distinct from `loading` (which also drives the pull-to-refresh spinner,
@@ -263,10 +264,10 @@ export default function ChatListScreen({ navigation }: any) {
 
   const getStatusColor = (s: string) => {
     switch (s) {
-      case 'online': return '#00FF00';
-      case 'away': return '#FFA500';
-      case 'busy': return '#FF0000';
-      default: return '#00FF00'; // Default online for now
+      case 'online': return '#22C55E';
+      case 'away': return '#F59E0B';
+      case 'busy': return '#F59E0B';
+      default: return '#6B7280'; // offline (or unknown) — was wrongly defaulting to green
     }
   };
 
@@ -290,6 +291,11 @@ export default function ChatListScreen({ navigation }: any) {
           roomType: item.type,
           targetUserId: item.targetUserId,
           avatarUrl: item.avatarUrl,
+          // Set only for a chat a relationship partner shared with this
+          // user (see ChatShare) — ChatScreen uses this to hide the
+          // "share this chat" action from the delegate's own view (only
+          // the real owner can share/unshare it).
+          sharedByUserId: item.sharedByUserId,
         });
       }}
     >
@@ -347,11 +353,14 @@ export default function ChatListScreen({ navigation }: any) {
         <Text style={styles.chatType} numberOfLines={1}>
           {item.type === 'COMMUNITY'
             ? `${item.memberCount} members`
-            : item.effectiveStatus ||
-              (item.targetUserId
-                ? onlineUsers[item.targetUserId] || 'offline'
-                : item.status) ||
-              item.type}
+            : (() => {
+                const presence = item.targetUserId ? onlineUsers[item.targetUserId] : item.status;
+                if (presence === 'online') return item.effectiveStatus || 'online';
+                if (presence === 'busy' || presence === 'away') {
+                  return (item.targetUserId && activityLabels[item.targetUserId]) || 'busy';
+                }
+                return item.targetUserId ? formatLastSeen(item.lastSeenAt ?? null) : (item.status || item.type);
+              })()}
         </Text>
       </View>
 

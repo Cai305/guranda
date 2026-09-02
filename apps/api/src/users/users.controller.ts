@@ -104,8 +104,8 @@ export class UsersController {
   // on GET /users/me, so a booked car wash/flight/etc. shows up here too.
   @UseGuards(JwtAuthGuard)
   @Get(':id/public-profile')
-  async publicProfile(@Param('id') id: string) {
-    return this.usersService.getPublicProfile(id);
+  async publicProfile(@Param('id') id: string, @Request() req: any) {
+    return this.usersService.getPublicProfile(id, req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)

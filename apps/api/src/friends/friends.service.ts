@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { sendPushNotification } from '../common/push';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BlocksService } from '../blocks/blocks.service';
 
 @Injectable()
 export class FriendsService {
@@ -10,11 +11,15 @@ export class FriendsService {
     private prisma: PrismaService,
     private usersService: UsersService,
     private notifications: NotificationsService,
+    private blocks: BlocksService,
   ) {}
 
   async sendRequest(requesterId: string, addresseeId: string) {
     if (requesterId === addresseeId) {
       throw new BadRequestException('You cannot friend yourself');
+    }
+    if (await this.blocks.isBlockedEitherDirection(requesterId, addresseeId)) {
+      throw new ForbiddenException('You cannot friend this user');
     }
     const existing = await this.prisma.friendship.findFirst({
       where: {

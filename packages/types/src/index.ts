@@ -49,6 +49,11 @@ export interface ChatMessageDto {
   id?: string;
   chatId: string;
   senderId: string;
+  // Set only when this message was sent by a relationship-partner delegate
+  // "as" senderId — see chat.service.ts resolveSender. Only ever present
+  // for the owner/delegate pair themselves; stripped server-side for
+  // anyone else reading the chat.
+  actualSenderId?: string;
   content: string;
   mediaUrl?: string;
   isAiGenerated?: boolean;
@@ -56,6 +61,8 @@ export interface ChatMessageDto {
   replyToId?: string;
   replyTo?: ChatMessageReplyPreview;
   createdAt?: Date;
+  editedAt?: Date;
+  deletedAt?: Date;
 }
 
 // Guranda's custom hand-drawn emoji set ("Vemoji"), rendered as SVGs on
@@ -63,7 +70,8 @@ export interface ChatMessageDto {
 // message carrying one is just its content string encoded with this prefix
 // — no schema change needed, and it round-trips through the same
 // ChatMessageDto.content field as regular text.
-export type VemojiType = 'laugh' | 'cry' | 'fire' | 'clap' | 'love' | 'shocked' | 'blush' | 'inlove';
+export type VemojiType = 'laugh' | 'cry' | 'fire' | 'clap' | 'love' | 'shocked' | 'blush' | 'inlove'
+  | 'wink' | 'angry' | 'cool' | 'kiss' | 'sleepy' | 'party';
 
 export interface VemojiDef {
   type: VemojiType;
@@ -81,6 +89,12 @@ export const VEMOJI_CATALOG: VemojiDef[] = [
   { type: 'shocked', label: 'Wow', fallbackEmoji: '😲' },
   { type: 'blush', label: 'Blush', fallbackEmoji: '😊' },
   { type: 'inlove', label: 'In love', fallbackEmoji: '😍' },
+  { type: 'wink', label: 'Wink', fallbackEmoji: '😉' },
+  { type: 'angry', label: 'Angry', fallbackEmoji: '😠' },
+  { type: 'cool', label: 'Cool', fallbackEmoji: '😎' },
+  { type: 'kiss', label: 'Kiss', fallbackEmoji: '😘' },
+  { type: 'sleepy', label: 'Sleepy', fallbackEmoji: '😴' },
+  { type: 'party', label: 'Party', fallbackEmoji: '🥳' },
 ];
 
 const VEMOJI_PREFIX = 'vemoji:';
@@ -101,6 +115,11 @@ export type UserStatus = 'online' | 'away' | 'busy' | 'offline';
 export interface PresenceEvent {
   userId: string;
   status: UserStatus;
+  // What this user is doing right now (e.g. "Watching a live stream",
+  // "Viewing a story") — only ever present when the user has opted into
+  // sharing live activity (User.shareLiveActivity); otherwise omitted so
+  // 'busy' just reads as generic "Busy" to everyone else.
+  activityLabel?: string | null;
 }
 
 // Post/comment author shape — a UserProfile plus the fields only exposed on
