@@ -1,6 +1,12 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchApi } from '../utils/api';
+
+// Newly-published external-developer apps not yet verified inside a native
+// WebView — kept web-only until confirmed working there, then removed from
+// this list. Match by name since StoreApp has no per-platform flag.
+const WEB_ONLY_APP_NAMES = new Set(['Thuma']);
 
 export interface CommunityAppEntry {
   id: string;
@@ -42,6 +48,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setCommunityApps(
           apps
             .filter(a => !a.isNative && a.sourceUrl)
+            .filter(a => Platform.OS === 'web' || !WEB_ONLY_APP_NAMES.has(a.name))
             .map(a => ({
               id: a.id,
               name: a.name,

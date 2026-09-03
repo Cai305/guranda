@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Modal, Share, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
@@ -146,7 +147,15 @@ export default function DiscoverScreen({ navigation }: any) {
     else loadFeed(true);
   }, [tab, loadTrending, loadFeed]);
 
-  useEffect(() => { load(); }, [tab]);
+  // Refetches on every focus, not just mount — a stack `navigate()` back
+  // from VideoUpload (or VideoPlayer) doesn't unmount this screen, so a
+  // plain mount-only effect would leave a just-uploaded video invisible
+  // until the app fully reloaded.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   // Category chip changes on the 'feed' tab reset + refetch server-side
   // (via `category`) rather than filtering the already-fetched list — see

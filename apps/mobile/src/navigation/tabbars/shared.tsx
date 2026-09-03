@@ -61,6 +61,20 @@ export function RouteIcon({ routeName, size, color, focused }: RouteIconProps) {
   return <Ionicons name={ROUTE_ICONS[routeName] ?? 'ellipse-outline'} size={size} color={color} />;
 }
 
+// Tabs backed by their own stack navigator (see BottomTabNavigator.tsx) —
+// pressing the tab always resets to this root screen, the same "tap the tab
+// to go home" convention WhatsApp/Instagram use. Without this, a stack that
+// was left deep on some screen (e.g. Chat left open on an individual
+// conversation) just silently resumes there on the next tab press instead
+// of showing that tab's default list/home UI — and worse, pressing an
+// ALREADY-focused tab did nothing at all, since the plain
+// `!isFocused && navigation.navigate(...)` guard below never even ran.
+// Explore/Profile have no nested stack (single screen), so they're left out.
+const TAB_ROOT_SCREEN: Record<string, string> = {
+  Home: 'Dashboard',
+  Chat: 'ChatList',
+};
+
 export function makeOnPress(
   route: BottomTabBarProps['state']['routes'][number],
   isFocused: boolean,
@@ -68,7 +82,13 @@ export function makeOnPress(
 ) {
   return () => {
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-    if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
+    if (event.defaultPrevented) return;
+    const rootScreen = TAB_ROOT_SCREEN[route.name];
+    if (rootScreen) {
+      navigation.navigate(route.name, { screen: rootScreen });
+    } else if (!isFocused) {
+      navigation.navigate(route.name);
+    }
   };
 }
 

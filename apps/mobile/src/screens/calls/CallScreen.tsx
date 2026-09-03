@@ -47,7 +47,7 @@ function FloatingVemoji({ type, left }: { type: VemojiType; left: number }) {
 // (b) the callee, immediately after tapping Accept in IncomingCallOverlay,
 //     already holding a token and connecting right away for lower latency.
 export default function CallScreen({ navigation, route }: any) {
-  const { callId, wsUrl, token, video, peerName, isCaller } = route.params || {};
+  const { callId, wsUrl, token, video, peerName, peerAvatarUrl, isCaller } = route.params || {};
   const { socket } = useSocket();
   const { width } = useWindowDimensions();
 
@@ -240,7 +240,7 @@ export default function CallScreen({ navigation, route }: any) {
         <LiveVideoView track={remoteVideoTrack} muted={false} />
       ) : (
         <View style={styles.avatarWrap}>
-          <Image source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${peerName}` }} style={styles.avatar} />
+          <Image source={{ uri: peerAvatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${peerName}` }} style={styles.avatar} />
           <Text style={styles.peerName}>{peerName}</Text>
           <Text style={styles.statusText}>
             {status === 'ringing' ? 'Ringing…' : status === 'connecting' ? 'Connecting…' : status === 'connected' ? formatDuration(elapsedSeconds) : endReason || 'Call ended'}

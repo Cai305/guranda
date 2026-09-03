@@ -253,11 +253,12 @@ export default function ChatScreen({ route, navigation }: any) {
   // failed, e.g. the other user being offline — see call_failed below).
   useEffect(() => {
     if (!socket) return;
-    const onRinging = (data: { callId: string; roomName: string; wsUrl: string; token: string }) => {
+    const onRinging = (data: { callId: string; roomName: string; wsUrl: string; token: string; calleeAvatarUrl?: string | null }) => {
       navigation.navigate('CallScreen', {
         ...data,
         video: pendingCallVideo.current,
         peerName: roomName,
+        peerAvatarUrl: data.calleeAvatarUrl ?? targetProfile?.avatarUrl ?? null,
         isCaller: true,
       });
     };

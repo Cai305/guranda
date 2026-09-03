@@ -400,10 +400,20 @@ export class ChatGateway implements OnGatewayDisconnect {
       return;
     }
 
-    const callee = await this.prisma.user.findUnique({
-      where: { id: data.targetUserId },
-      select: { username: true, expoPushToken: true, profile: { select: { displayName: true } } },
-    });
+    const [callee, caller] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: data.targetUserId },
+        select: {
+          username: true,
+          expoPushToken: true,
+          profile: { select: { displayName: true, avatarUrl: true } },
+        },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: data.callerId },
+        select: { profile: { select: { avatarUrl: true } } },
+      }),
+    ]);
     if (!callee) {
       client.emit('call_failed', { reason: 'That user could not be found.' });
       return;
@@ -484,6 +494,7 @@ export class ChatGateway implements OnGatewayDisconnect {
       token: calleeToken,
       callerId: data.callerId,
       callerName: data.callerName,
+      callerAvatarUrl: caller?.profile?.avatarUrl ?? null,
       video: data.video,
     });
     client.emit('call_ringing', {
@@ -491,6 +502,7 @@ export class ChatGateway implements OnGatewayDisconnect {
       roomName,
       wsUrl,
       token: callerToken,
+      calleeAvatarUrl: callee.profile?.avatarUrl ?? null,
     });
 
     // Push notification alongside the live socket emit above — this is what

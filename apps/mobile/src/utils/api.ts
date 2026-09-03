@@ -199,7 +199,6 @@ export async function uploadMedia(
   if (Platform.OS === 'web') {
     try { token = localStorage.getItem('userToken'); } catch {}
   } else {
-    const { default: SecureStore } = await import('expo-secure-store');
     token = await SecureStore.getItemAsync('userToken');
   }
 

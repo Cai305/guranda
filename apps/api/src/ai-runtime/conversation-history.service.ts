@@ -39,6 +39,30 @@ export class ConversationHistoryService {
     return rows.reverse(); // oldest first, ready to render top-to-bottom
   }
 
+  /**
+   * Most recent message timestamp per companion, for this user — lets the
+   * chat list sort a fixed companion's row by real conversation activity
+   * instead of a fabricated constant offset (companionId => Date | null,
+   * null when the user has never messaged that companion).
+   */
+  async getLastMessageTimes(
+    userId: string,
+    companionIds: string[],
+  ): Promise<Record<string, Date | null>> {
+    const rows = await this.prisma.aiConversationMessage.groupBy({
+      by: ['companionId'],
+      where: { userId, companionId: { in: companionIds } },
+      _max: { createdAt: true },
+    });
+    const result: Record<string, Date | null> = Object.fromEntries(
+      companionIds.map((id) => [id, null]),
+    );
+    for (const row of rows) {
+      if (row.companionId) result[row.companionId] = row._max.createdAt;
+    }
+    return result;
+  }
+
   /** Compact text block for the system prompt — real continuity without replaying full history as live turns. */
   async getRecentSummary(
     userId: string,

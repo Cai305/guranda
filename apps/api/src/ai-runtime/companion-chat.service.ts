@@ -16,11 +16,16 @@ export class CompanionChatService {
     private conversationHistory: ConversationHistoryService,
   ) {}
 
-  listCompanions() {
+  async listCompanions(userId?: string) {
+    const ids = FIXED_COMPANIONS.map((c) => c.id);
+    const lastMessageTimes = userId
+      ? await this.conversationHistory.getLastMessageTimes(userId, ids)
+      : {};
     return FIXED_COMPANIONS.map((c) => ({
       id: c.id,
       name: c.name,
       tagline: c.tagline,
+      lastMessageAt: lastMessageTimes[c.id] ?? null,
     }));
   }
 

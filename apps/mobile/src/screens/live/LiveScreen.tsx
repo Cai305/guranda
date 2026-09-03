@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { LIVE_CATEGORIES, openLiveCategory } from '../../config/liveCategories';
-import { streamsForTag, LiveStream } from '../../data/mockLiveStreams';
+import { LiveStream } from '../../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../../data/liveApi';
 import LiveStreamCard from '../../components/LiveStreamCard';
 import LiveCategoryCard from '../../components/LiveCategoryCard';
@@ -136,9 +136,7 @@ export default function LiveScreen({ navigation }: any) {
   );
 
   const streams = useMemo(() => {
-    const realFiltered = activeTag === 'All' ? realRooms : realRooms.filter(r => r.tags.includes(activeTag));
-    const mockFiltered = streamsForTag(activeTag);
-    const base = [...realFiltered, ...mockFiltered];
+    const base = activeTag === 'All' ? realRooms : realRooms.filter(r => r.tags.includes(activeTag));
     if (!query.trim()) return base;
     const q = query.toLowerCase();
     return base.filter(s => s.title.toLowerCase().includes(q) || s.creator.name.toLowerCase().includes(q));

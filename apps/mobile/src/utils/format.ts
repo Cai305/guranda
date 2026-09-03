@@ -1,6 +1,6 @@
-// "Last seen 5m ago" / "yesterday" / a plain date once it's more than a
-// week old — mirrors the informal granularity most chat apps use rather
-// than an exact timestamp.
+// "Last seen 5m ago" / "yesterday" / "3mo ago" / a plain date once it's
+// over a year old — mirrors the informal granularity most chat apps use
+// rather than an exact timestamp.
 export function formatLastSeen(iso: string | null): string {
   if (!iso) return 'Offline';
   const then = new Date(iso).getTime();
@@ -12,7 +12,9 @@ export function formatLastSeen(iso: string | null): string {
   if (hours < 24) return `Last seen ${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days === 1) return 'Last seen yesterday';
-  if (days < 7) return `Last seen ${days}d ago`;
+  if (days < 30) return `Last seen ${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Last seen ${months}mo ago`;
   return `Last seen ${new Date(iso).toLocaleDateString()}`;
 }
 

@@ -220,9 +220,10 @@ export default function ChatListScreen({ navigation }: any) {
   const fetchChats = async () => {
     try {
       setLoading(true);
-      const [res, publicRes] = await Promise.all([
+      const [res, publicRes, companionsRes] = await Promise.all([
         fetchApi('/chats'),
         fetchApi('/chats/public'),
+        AI_ENABLED ? fetchApi('/ai/companions') : Promise.resolve(null),
       ]);
       if (res.ok) {
         const chats = await res.json();
@@ -231,27 +232,37 @@ export default function ChatListScreen({ navigation }: any) {
         // authenticated user can read/post, no membership row required.
         const publicChannels = publicRes.ok ? await publicRes.json() : [];
 
-        // Inject Custom Groups
-        const customGroups = [
-          { id: 'group-dev', name: 'Guranda Dev Team', type: 'Group', status: 'online' },
-          { id: 'group-weekend', name: 'Weekend Vibes', type: 'Group', status: 'away' },
-          ...chats.filter((c: any) => c.type === 'GROUP')
-        ];
+        const groups = chats.filter((c: any) => c.type === 'GROUP');
 
-        // Inject AI Users alongside real direct chats
+        // Sipho/Thandi/Guranda Assistant — fixed, always-available companions
+        // (see fixedCompanions.ts), sorted by their real last-message time
+        // (null when never messaged, so a fresh companion doesn't jump above
+        // an actual recent conversation).
+        const companionsRaw = companionsRes?.ok ? await companionsRes.json() : [];
+        const idByBackendId = Object.fromEntries(
+          Object.entries(FIXED_COMPANION_IDS).map(([localId, backendId]) => [backendId, localId]),
+        );
+        const companions = companionsRaw.map((c: any) => ({
+          id: idByBackendId[c.id] ?? `ai-${c.id}`,
+          name: c.name,
+          type: 'AI',
+          status: 'online',
+          hasNewMessage: false,
+          unreadCount: 0,
+          lastMessageAt: c.lastMessageAt,
+        }));
+
         const privateContacts = [
-          { id: 'ai-assistant', name: 'Guranda AI Assistant', type: 'AI', status: 'online', hasNewMessage: false, unreadCount: 0, lastMessageAt: new Date(Date.now() + 10000).toISOString() },
-          { id: 'ai-sipho', name: 'Sipho', type: 'AI', status: 'online', hasNewMessage: false, unreadCount: 0, lastMessageAt: new Date(Date.now() - 50000).toISOString() },
-          { id: 'ai-thandi', name: 'Thandi', type: 'AI', status: 'busy', hasNewMessage: false, unreadCount: 0, lastMessageAt: new Date(Date.now() - 100000).toISOString() },
-          ...chats.filter((c: any) => c.type === 'DIRECT')
+          ...companions,
+          ...chats.filter((c: any) => c.type === 'DIRECT'),
         ].sort((a: any, b: any) => new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime());
 
         const grouped = [
           { title: 'Private Contacts', data: privateContacts },
           { title: 'Public Channels', data: publicChannels },
-          { title: 'Custom Groups', data: customGroups }
+          { title: 'Custom Groups', data: groups },
         ];
-        
+
         setSections(grouped.filter(g => g.data.length > 0));
       }
     } catch (e) {

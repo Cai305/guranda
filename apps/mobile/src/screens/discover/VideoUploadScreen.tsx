@@ -3,6 +3,7 @@ import { View, Text, Image, ScrollView, TouchableOpacity, TextInput, ActivityInd
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, fetchApi, xhrUploadFormData } from '../../utils/api';
@@ -160,7 +161,6 @@ export default function VideoUploadScreen({ navigation }: any) {
     if (Platform.OS === 'web') {
       try { token = localStorage.getItem('userToken'); } catch {}
     } else {
-      const { default: SecureStore } = await import('expo-secure-store');
       token = await SecureStore.getItemAsync('userToken');
     }
 

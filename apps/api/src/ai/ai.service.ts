@@ -52,8 +52,8 @@ export class AiService {
     private interactionEngine: InteractionEngineService,
   ) {}
 
-  listCompanions() {
-    return this.companionChatService.listCompanions();
+  listCompanions(userId?: string) {
+    return this.companionChatService.listCompanions(userId);
   }
 
   async getCompanionHistory(userId: string, companionId: string) {

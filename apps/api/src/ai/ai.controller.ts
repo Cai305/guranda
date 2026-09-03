@@ -76,8 +76,8 @@ export class AiController {
   // Sipho, Thandi, Guranda AI Assistant — fixed, no-setup-required personas,
   // distinct from the user's own personal AiAgent above.
   @Get('companions')
-  listCompanions() {
-    return this.aiService.listCompanions();
+  listCompanions(@Request() req: any) {
+    return this.aiService.listCompanions(req.user.userId);
   }
 
   @Get('companions/:id/history')

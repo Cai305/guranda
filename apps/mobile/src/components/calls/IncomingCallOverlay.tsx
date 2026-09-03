@@ -12,6 +12,7 @@ interface IncomingCall {
   token: string;
   callerId: string;
   callerName: string;
+  callerAvatarUrl?: string | null;
   video: boolean;
 }
 
@@ -72,6 +73,7 @@ export default function IncomingCallOverlay() {
       token: incoming.token,
       video: incoming.video,
       peerName: incoming.callerName,
+      peerAvatarUrl: incoming.callerAvatarUrl,
       isCaller: false,
     });
     setIncoming(null);
@@ -86,7 +88,7 @@ export default function IncomingCallOverlay() {
     <View style={styles.overlay}>
       <View style={styles.card}>
         <Image
-          source={{ uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${incoming.callerName}` }}
+          source={{ uri: incoming.callerAvatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${incoming.callerName}` }}
           style={styles.avatar}
         />
         <Text style={styles.name}>{incoming.callerName}</Text>

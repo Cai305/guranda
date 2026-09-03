@@ -20,7 +20,6 @@ import { useSocket } from '../context/SocketContext';
 import { useStore } from '../context/StoreContext';
 import { fetchApi } from '../utils/api';
 import { formatCurrency } from '../utils/format';
-import { MOCK_STREAMS } from '../data/mockLiveStreams';
 import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../data/liveApi';
 import { GAMES } from './hub/GamesScreen';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
@@ -80,7 +79,7 @@ export default function HomeScreen({ navigation }: any) {
   const [myAchievements, setMyAchievements] = useState<any[]>([]);
   const [achievementsTotal, setAchievementsTotal] = useState(0);
   const [realRooms, setRealRooms] = useState<RealLiveStream[]>([]);
-  const homeLiveStreams = React.useMemo(() => [...realRooms, ...MOCK_STREAMS].slice(0, 6), [realRooms]);
+  const homeLiveStreams = React.useMemo(() => realRooms.slice(0, 6), [realRooms]);
   const [unreadCount, setUnreadCount] = useState(0);
   const aiChecked = React.useRef(false);
 
