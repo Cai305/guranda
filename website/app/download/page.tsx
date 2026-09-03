@@ -25,6 +25,7 @@ const REQUIREMENTS = [
 ]
 
 const CHANGELOG = [
+  { version: 'v1.1.0 (Beta)', date: 'Sep 2026', changes: ['Discovery — YouTube-style video feed with watch-to-earn', 'Scan to Pay & wallet activity dashboard', 'Real achievements with unlockable badges', 'Live presence — see who’s online, busy or on a call', 'Redesigned chat actions tray & 14 custom Vemojis', 'Shareable profiles with QR codes and league rankings'] },
   { version: 'v1.0.0 (Beta)', date: 'Aug 2026', changes: ['Initial beta release', 'Full service suite live', 'MSH wallet & payments', 'AI Companion onboarding'] },
 ]
 
@@ -166,13 +167,30 @@ export default function DownloadPage() {
           {/* Alt downloads */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
             className="glass-frosted rounded-2xl p-7 border-white/10 mb-10 text-center">
-            <h2 className="text-xl font-black text-white mb-5">Other Download Options</h2>
+            <h2 className="text-xl font-black text-white mb-5">Other Ways In</h2>
             <div className="flex flex-wrap justify-center gap-3">
-              {['Email Download Link', 'Direct APK', 'Web Install (Beta)'].map((opt, i) => (
-                <motion.button key={i} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                  className="button-secondary px-6 py-2.5 text-sm">{opt}</motion.button>
-              ))}
+              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="https://drive.google.com/file/d/1WHMTHDPWlbnlVxEFy5g5mgPUBQo_251T/view?usp=drive_link"
+                  target="_blank" rel="noopener noreferrer"
+                  className="button-secondary flex items-center gap-2 px-6 py-2.5 text-sm"
+                >
+                  <FaDownload className="text-xs" /> Direct APK
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="https://guranda-frontend.vercel.app"
+                  target="_blank" rel="noopener noreferrer"
+                  className="button-secondary flex items-center gap-2 px-6 py-2.5 text-sm"
+                >
+                  <FaRocket className="text-xs" /> Use Guranda on Web (Beta)
+                </Link>
+              </motion.div>
             </div>
+            <p className="text-gray-600 text-xs mt-4">
+              No install needed — the web version runs the same Guranda in your browser, right now.
+            </p>
           </motion.div>
 
           <div className="text-center">

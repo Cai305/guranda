@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import {
   FaStore, FaCar, FaUtensils, FaHome, FaWallet, FaBook,
   FaPlane, FaHospital, FaRobot, FaBriefcase, FaGamepad, FaBroadcastTower,
-  FaCut, FaCalendarAlt, FaChartLine, FaBolt
+  FaCut, FaCalendarAlt, FaChartLine, FaBolt, FaPlay, FaQrcode, FaTrophy,
 } from 'react-icons/fa'
 
 const SERVICES = [
@@ -24,6 +24,9 @@ const SERVICES = [
   { icon: FaCalendarAlt,     label: 'Events',          desc: 'Create and manage RSVPs for any occasion',                     color: 'from-blue-500 to-indigo-600' },
   { icon: FaChartLine,       label: 'Creator Tools',   desc: 'Detailed post analytics and engagement metrics',               color: 'from-emerald-500 to-teal-600' },
   { icon: FaBolt,            label: 'Instant UI',      desc: 'Zero-latency persistent offline caching architecture',         color: 'from-yellow-400 to-amber-500' },
+  { icon: FaPlay,            label: 'Discovery',       desc: 'YouTube-style video feed — watch and earn as you go',          color: 'from-red-500 to-rose-600' },
+  { icon: FaQrcode,          label: 'Scan to Pay',     desc: 'Pay any merchant instantly by scanning a QR code',              color: 'from-teal-500 to-cyan-600' },
+  { icon: FaTrophy,          label: 'Achievements',    desc: 'Real badges that unlock as you use the app',                    color: 'from-amber-400 to-yellow-500' },
 ]
 
 const containerVariants = {

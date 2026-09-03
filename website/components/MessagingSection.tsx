@@ -2,7 +2,7 @@
 
 import {
   FaComment, FaPhone, FaVideo, FaUsers,
-  FaUserFriends, FaComments, FaHeart, FaLock,
+  FaUserFriends, FaComments, FaSmile, FaLock,
 } from 'react-icons/fa'
 import FeatureShowcase from './FeatureShowcase'
 
@@ -13,7 +13,7 @@ const FEATURES = [
   { icon: <FaUsers />,        label: 'Communities' },
   { icon: <FaUserFriends />,  label: 'Groups' },
   { icon: <FaComments />,     label: 'Threads' },
-  { icon: <FaHeart />,        label: 'Reactions' },
+  { icon: <FaSmile />,        label: 'Custom Vemojis' },
   { icon: <FaLock />,         label: 'Private Chats' },
 ]
 
