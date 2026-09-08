@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -121,6 +121,7 @@ export default function ExploreScreen({ navigation }: any) {
   const [newPostCount, setNewPostCount] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
   // The single post currently most-visible in the viewport — gates which
   // carousel (if any) is allowed to mount/play a video, so scrolled-off posts
   // never keep decoding video in the background.
@@ -452,10 +453,22 @@ export default function ExploreScreen({ navigation }: any) {
       paddingVertical: 10,
       fontSize: 14,
     },
+    // RN-web collapses a horizontal FlatList's own scroll container to a
+    // near-zero height when it has no explicit `style` height of its own —
+    // contentContainerStyle's padding alone doesn't establish it. Without
+    // this, the pill chips get clipped down to a sliver and whatever
+    // renders next overlaps them. Applied via the FlatList's `style` prop,
+    // not contentContainerStyle.
+    filterChipsScroll: {
+      height: 44,
+      flexGrow: 0,
+      flexShrink: 0,
+    },
     filterRow: {
       paddingHorizontal: 20,
       paddingBottom: 14,
       gap: 8,
+      alignItems: 'center',
     },
     filterChip: {
       paddingHorizontal: 16,
@@ -482,10 +495,16 @@ export default function ExploreScreen({ navigation }: any) {
       paddingBottom: 80,
       gap: 12,
     },
+    categoryChipsScroll: {
+      height: 40,
+      flexGrow: 0,
+      flexShrink: 0,
+    },
     categoryRow: {
       paddingHorizontal: 20,
       paddingBottom: 12,
       gap: 8,
+      alignItems: 'center',
     },
     categoryChip: {
       paddingHorizontal: 14,
@@ -672,6 +691,62 @@ export default function ExploreScreen({ navigation }: any) {
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 4,
+    },
+
+    // ── Create-post action sheet ────────────────────────────
+    sheetBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    sheetCard: {
+      backgroundColor: COLORS.surfaceElevated,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: 8,
+      paddingBottom: 36,
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: COLORS.border,
+      alignSelf: 'center',
+      marginVertical: 10,
+    },
+    sheetTitle: {
+      ...TYPOGRAPHY.h3,
+      paddingHorizontal: 20,
+      paddingBottom: 10,
+      marginBottom: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    sheetRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingHorizontal: 20,
+      paddingVertical: 13,
+    },
+    sheetIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sheetRowText: {
+      flex: 1,
+    },
+    sheetRowLabel: {
+      ...TYPOGRAPHY.body1,
+      fontWeight: '700',
+    },
+    sheetRowHint: {
+      color: COLORS.textMuted,
+      fontSize: 12.5,
+      marginTop: 1,
     },
 
     // ── Challenge sub-tabs ──────────────────────────────────
@@ -862,6 +937,12 @@ export default function ExploreScreen({ navigation }: any) {
       fontWeight: '700',
       fontSize: 13,
     },
+    trendChipsScroll: {
+      height: 42,
+      flexGrow: 0,
+      flexShrink: 0,
+      marginBottom: 12,
+    },
     trendChip: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -881,6 +962,12 @@ export default function ExploreScreen({ navigation }: any) {
     trendChipCount: {
       color: COLORS.textMuted,
       fontSize: 12,
+    },
+    trendCardsScroll: {
+      height: 196,
+      flexGrow: 0,
+      flexShrink: 0,
+      marginBottom: 16,
     },
     trendCard: {
       width: 130,
@@ -1119,6 +1206,7 @@ export default function ExploreScreen({ navigation }: any) {
     <FlatList
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.filterChipsScroll}
       data={FILTERS}
       keyExtractor={(item) => item}
       contentContainerStyle={styles.filterRow}
@@ -1209,6 +1297,7 @@ export default function ExploreScreen({ navigation }: any) {
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                style={styles.categoryChipsScroll}
                 data={[{ key: null, label: 'All' }, ...CHALLENGE_CATEGORIES.map((c) => ({ key: c, label: c.charAt(0) + c.slice(1).toLowerCase() }))]}
                 keyExtractor={(item) => item.key ?? 'all'}
                 contentContainerStyle={styles.categoryRow}
@@ -1393,9 +1482,10 @@ export default function ExploreScreen({ navigation }: any) {
                   <FlatList
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    style={styles.trendChipsScroll}
                     data={trending.trendLabels}
                     keyExtractor={(item) => item.label}
-                    contentContainerStyle={{ gap: 8, marginBottom: 12 }}
+                    contentContainerStyle={{ gap: 8, alignItems: 'center' }}
                     renderItem={({ item }) => (
                       <TouchableOpacity style={styles.trendChip} activeOpacity={0.8} onPress={() => uploadTrend(item.label)}>
                         <Text style={styles.trendChipText}>#{item.label}</Text>
@@ -1408,9 +1498,10 @@ export default function ExploreScreen({ navigation }: any) {
                   <FlatList
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    style={styles.trendCardsScroll}
                     data={trending.trends}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ gap: 12, marginBottom: 4 }}
+                    contentContainerStyle={{ gap: 12 }}
                     renderItem={({ item }) => (
                       <TouchableOpacity style={styles.trendCard} activeOpacity={0.85} onPress={() => openTrendStory(item)}>
                         {item.mediaUrl ? (
@@ -1426,7 +1517,6 @@ export default function ExploreScreen({ navigation }: any) {
                         <Text style={styles.trendCardAuthor} numberOfLines={1}>{item.author?.displayName || item.author?.username}</Text>
                       </TouchableOpacity>
                     )}
-                    style={{ marginBottom: 16 }}
                   />
                 ) : (
                   !trendingLoading && (
@@ -1450,15 +1540,52 @@ export default function ExploreScreen({ navigation }: any) {
         />
       )}
 
-      {(filter === 'All' || filter === 'Posts') ? (
+      {filter !== 'Mini Apps' ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 76 }]}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate('CreatePost')}
+          onPress={() => setCreateSheetOpen(true)}
         >
           <Ionicons name="add" size={30} color={COLORS.surface} />
         </TouchableOpacity>
       ) : null}
+
+      <Modal
+        visible={createSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateSheetOpen(false)}
+      >
+        <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={() => setCreateSheetOpen(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.sheetCard} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Create</Text>
+            {[
+              { icon: 'create-outline', color: '#6366F1', label: 'Post', hint: 'Text, photos or a short video', onPress: () => navigation.navigate('CreatePost') },
+              { icon: 'play-circle-outline', color: '#EF4444', label: 'Long Video', hint: 'Upload to Discovery — over 45 seconds', onPress: () => navigation.navigate('VideoUpload') },
+              { icon: 'sparkles-outline', color: '#EC4899', label: 'Trend / Story', hint: '24-hour story, tag it to a trend', onPress: () => uploadTrend() },
+              { icon: 'radio-outline', color: '#F43F5E', label: 'Go Live', hint: 'Start a live stream right now', onPress: () => navigation.navigate('GoLive') },
+              { icon: 'trophy-outline', color: '#F59E0B', label: 'Enter a Challenge', hint: 'Pick a challenge to submit an entry', onPress: () => { setFilter('Challenges'); setChallengeSubTab('browse'); } },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.label}
+                style={styles.sheetRow}
+                activeOpacity={0.7}
+                onPress={() => { setCreateSheetOpen(false); opt.onPress(); }}
+              >
+                <View style={[styles.sheetIcon, { backgroundColor: `${opt.color}22` }]}>
+                  <Ionicons name={opt.icon as any} size={22} color={opt.color} />
+                </View>
+                <View style={styles.sheetRowText}>
+                  <Text style={styles.sheetRowLabel}>{opt.label}</Text>
+                  <Text style={styles.sheetRowHint}>{opt.hint}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
