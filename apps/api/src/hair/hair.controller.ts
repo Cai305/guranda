@@ -83,6 +83,12 @@ export class HairController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('mine/bookings-as-customer')
+  myBookingsAsCustomer(@Req() req: any) {
+    return this.hairService.myBookingsAsCustomer(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('search')
   searchHairdressers(
     @Query('lat') lat: string,

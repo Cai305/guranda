@@ -157,6 +157,9 @@ export default function HairHomeScreen({ navigation }: any) {
           }}
         />
         <Text style={TYPOGRAPHY.h2}>Hair & Beauty</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('MyHairBookings')} style={{ marginRight: 12 }}>
+          <Ionicons name="calendar-outline" size={22} color={COLORS.text} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={seedDatabase}>
           <Ionicons name="flask-outline" size={24} color={COLORS.primary} />
         </TouchableOpacity>

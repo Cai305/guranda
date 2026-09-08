@@ -74,6 +74,9 @@ export default function MyCarWashesScreen({ navigation }: any) {
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Car Washes</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('ManageCarWashBookings')} style={{ marginRight: 12 }}>
+          <Ionicons name="calendar-outline" size={22} color={COLORS.text} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('ManageCarWash', {})}>
           <Ionicons name="add-circle-outline" size={24} color={COLORS.text} />
         </TouchableOpacity>

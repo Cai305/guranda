@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { formatCurrency } from '../../utils/format';
+import RateSellerModal from '../../components/reviews/RateSellerModal';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#F59E0B',
@@ -20,6 +21,8 @@ export default function MyCarWashBookingsScreen({ navigation }: any) {
   const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rateTarget, setRateTarget] = useState<any>(null);
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
     root: { flex: 1, backgroundColor: COLORS.background },
@@ -61,13 +64,22 @@ export default function MyCarWashBookingsScreen({ navigation }: any) {
     emptyText: { color: COLORS.textMuted, fontSize: 14 },
   }));
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    fetchApi('/carwash/mine/bookings')
-      .then(res => (res.ok ? res.json() : []))
-      .then(data => Array.isArray(data) && setBookings(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const res = await fetchApi('/carwash/mine/bookings');
+      const data = res.ok ? await res.json() : [];
+      if (Array.isArray(data)) setBookings(data);
+      const completed = data.filter((b: any) => b.status === 'COMPLETED');
+      const checks = await Promise.all(
+        completed.map((b: any) => fetchApi(`/reviews/check?transactionType=carwash_booking&transactionId=${b.id}`).then(r => r.ok ? r.json() : { reviewed: false })),
+      );
+      setReviewedIds(new Set(completed.filter((_: any, i: number) => checks[i]?.reviewed).map((b: any) => b.id)));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -95,6 +107,19 @@ export default function MyCarWashBookingsScreen({ navigation }: any) {
         <Text style={styles.metaText} numberOfLines={1}>{item.carWash?.address}</Text>
       </View>
       <Text style={styles.amount}>{formatCurrency(item.totalAmount)}</Text>
+      {item.status === 'COMPLETED' && (
+        reviewedIds.has(item.id) ? (
+          <Text style={{ color: '#10B981', fontSize: 11.5, fontWeight: '600', marginTop: 8 }}>✓ You rated this</Text>
+        ) : (
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 8, marginTop: 8 }}
+            onPress={() => setRateTarget(item)}
+          >
+            <Ionicons name="star" size={14} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Rate this car wash</Text>
+          </TouchableOpacity>
+        )
+      )}
     </TouchableOpacity>
   );
 
@@ -120,6 +145,18 @@ export default function MyCarWashBookingsScreen({ navigation }: any) {
             {loading ? <ActivityIndicator color={COLORS.primary} /> : <Text style={styles.emptyText}>No bookings yet.</Text>}
           </View>
         }
+      />
+
+      <RateSellerModal
+        visible={!!rateTarget}
+        title={rateTarget?.carWash?.name ?? ''}
+        onClose={() => setRateTarget(null)}
+        onSubmitted={() => {
+          if (rateTarget) setReviewedIds(prev => new Set(prev).add(rateTarget.id));
+          setRateTarget(null);
+        }}
+        transactionType="carwash_booking"
+        transactionId={rateTarget?.id ?? ''}
       />
     </SafeAreaView>
   );

@@ -224,6 +224,21 @@ export class HairService {
     });
   }
 
+  // Customer-side "my bookings" — was missing entirely. Profile's "My
+  // Bookings" zone (profile.service.ts) deliberately excludes COMPLETED
+  // hair bookings (it's an "upcoming" view), so a customer had no way to
+  // ever see a completed booking again — including to rate it.
+  async myBookingsAsCustomer(userId: string) {
+    return this.prisma.hairBooking.findMany({
+      where: { customerId: userId },
+      include: {
+        hairdresser: { select: { id: true, businessName: true } },
+        service: { select: { title: true } },
+      },
+      orderBy: { appointmentAt: 'desc' },
+    });
+  }
+
   async searchHairdressers(
     lat: number,
     lng: number,

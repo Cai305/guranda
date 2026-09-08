@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { formatCurrency } from '../../utils/format';
+import RateSellerModal from '../../components/reviews/RateSellerModal';
 
 const STATUS_STEPS = [
   { key: 'PLACED', label: 'Placed', icon: 'receipt-outline' },
@@ -61,6 +62,8 @@ export default function ShoppingOrderTrackingScreen({ navigation, route }: any) 
   const { orderId } = route.params;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showRating, setShowRating] = useState(false);
+  const [alreadyRated, setAlreadyRated] = useState(false);
 
   const load = useCallback(() => {
     fetchApi(`/shopping/orders/${orderId}`)
@@ -68,6 +71,10 @@ export default function ShoppingOrderTrackingScreen({ navigation, route }: any) 
       .then(setOrder)
       .catch(() => {})
       .finally(() => setLoading(false));
+    fetchApi(`/reviews/check?transactionType=shopping_order&transactionId=${orderId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setAlreadyRated(d.reviewed))
+      .catch(() => {});
   }, [orderId]);
 
   useEffect(() => { load(); }, [load]);
@@ -148,7 +155,30 @@ export default function ShoppingOrderTrackingScreen({ navigation, route }: any) 
             </View>
           )}
         </View>
+
+        {order.status === 'DELIVERED' && (
+          alreadyRated ? (
+            <Text style={{ color: '#22c55e', fontSize: 12.5, fontWeight: '600', textAlign: 'center', marginTop: 16 }}>✓ You rated this order</Text>
+          ) : (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#8B5CF6', borderRadius: 10, paddingVertical: 12, marginTop: 16 }}
+              onPress={() => setShowRating(true)}
+            >
+              <Ionicons name="star" size={15} color="#fff" />
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Rate this store</Text>
+            </TouchableOpacity>
+          )
+        )}
       </ScrollView>
+
+      <RateSellerModal
+        visible={showRating}
+        title={order?.store?.name ?? ''}
+        transactionType="shopping_order"
+        transactionId={orderId}
+        onClose={() => setShowRating(false)}
+        onSubmitted={() => { setShowRating(false); setAlreadyRated(true); }}
+      />
     </SafeAreaView>
   );
 }

@@ -203,6 +203,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [myCommunities, setMyCommunities] = useState<any[]>([]);
   const [accountTypeOverride, setAccountTypeOverride] = useState<AccountType | null>(null);
   const [myCampaigns, setMyCampaigns] = useState<{ id: string; status: string; impressions: number; clicks: number; completions: number; budget: number }[] | null>(null);
+  const [reputation, setReputation] = useState<{ score: number | null; avgRating: number | null; reviewCount: number; completionRate: number | null; completedCount: number; cancelledCount: number } | null>(null);
 
   useEffect(() => {
     fetchApi('/wallets/me')
@@ -264,6 +265,11 @@ export default function DashboardScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : []))
       .then(d => setMyCampaigns(Array.isArray(d) ? d : []))
       .catch(() => setMyCampaigns([]));
+
+    fetchApi('/reviews/mine/reputation')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setReputation(d))
+      .catch(() => {});
   }, []);
 
   const installedManageApps = MINI_APP_MANAGE_REGISTRY.filter(e => isInstalled(e.id));
@@ -469,6 +475,26 @@ export default function DashboardScreen({ navigation }: any) {
               ]}
             />
           </TouchableOpacity>
+        )}
+
+        {/* Business Reputation — product decision (2026-09): real customer
+            ratings combined with a completion-rate reliability signal,
+            across every mini-app with a real seller/host (Eat, Shopping,
+            Hair, Carwash, Travel Stay, Travel Car). Only renders once
+            there's a real score — no reviews AND no resolved transactions
+            yet means null, and this card simply doesn't show, rather than
+            displaying a fake "0" to someone who's never sold anything. */}
+        {reputation && reputation.score !== null && (
+          <AnalyticsCard
+            icon="ribbon"
+            iconColor="#FBBF24"
+            title="Business Reputation"
+            stats={[
+              { value: reputation.score, label: 'Score' },
+              { value: reputation.avgRating !== null ? `${reputation.avgRating.toFixed(1)}★` : '—', label: `${reputation.reviewCount} review${reputation.reviewCount === 1 ? '' : 's'}` },
+              { value: reputation.completionRate !== null ? `${reputation.completionRate}%` : '—', label: 'Completion rate' },
+            ]}
+          />
         )}
 
         {/* My Analytics — platform-wide engagement, separate from mini-app

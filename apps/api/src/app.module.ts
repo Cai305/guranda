@@ -80,6 +80,7 @@ import { VotingModule } from './voting/voting.module';
 import { DeviceModule } from './device/device.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { BlocksModule } from './blocks/blocks.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -171,6 +172,7 @@ import { BlocksModule } from './blocks/blocks.module';
     DeviceModule,
     IntegrationsModule,
     BlocksModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [

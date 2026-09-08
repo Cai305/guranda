@@ -193,6 +193,8 @@ model User {
   reportsFiled                 PlayerReport[]             @relation("reportsFiled")
   reportsReceived              PlayerReport[]             @relation("reportsReceived")
   contentReportsFiled          ContentReport[]            @relation("contentReportsFiled")
+  reviewsFiled                 Review[]                   @relation("reviewsFiled")
+  reviewsReceived              Review[]                   @relation("reviewsReceived")
   liveStreamReportsFiled       LiveStreamReport[]         @relation("LiveStreamReportsFiled")
   liveStreamReportsReceived    LiveStreamReport[]         @relation("LiveStreamReportsReceived")
   liveStreamReportsReviewed    LiveStreamReport[]         @relation("LiveStreamReportsReviewed")
@@ -3586,6 +3588,46 @@ model ContentReport {
 
   @@index([postId])
   @@index([commentId])
+}
+
+// Product decision (2026-09): Business Reputation = real customer ratings
+// combined with a reliability signal (completion rate), not an invented
+// number. One Review per completed transaction, across every mini-app that
+// has a real individual seller/host — Eat, Shopping, Hair, Carwash, Travel
+// Stay, Travel Car. Deliberately excludes Flight/Package (curated catalog,
+// no individual operator — see travel.service.ts's own comment on this)
+// and Property (no completed-transaction lifecycle to hang a rating on).
+// transactionType + transactionId together identify which real booking/
+// order this reviews — sellerId is resolved server-side per type (never
+// trusted from the client) so a review can't be spoofed against the wrong
+// seller. No enforced relation on transactionId (it points at a different
+// table per transactionType) — same loose-reference style PlayerReport.gameId
+// and ContentReport.postId already use.
+model Review {
+  id              String   @id @default(uuid())
+  reviewerId      String
+  reviewer        User     @relation("reviewsFiled", fields: [reviewerId], references: [id])
+  sellerId        String
+  seller          User     @relation("reviewsReceived", fields: [sellerId], references: [id])
+  rating          Int // 1-5
+  comment         String?
+  transactionType String // 'eat_order' | 'shopping_order' | 'hair_booking' | 'carwash_booking' | 'travel_stay' | 'travel_car'
+  transactionId   String
+  // The specific store/profile/listing this reviews (EatStore.id,
+  // ShoppingStore.id, HairdresserProfile.id, CarWash.id, TravelStay.id,
+  // TravelCar.id) — distinct from sellerId (the person) because a seller
+  // can run more than one listing. Used to keep each listing's own
+  // `rating` column (EatStore.rating etc. — every one of these already
+  // existed in the schema, default 0, NEVER written anywhere, but already
+  // displayed to customers on 9 real screens as if it were real) in sync
+  // with real reviews for THAT listing specifically, not blended across
+  // a seller's other businesses.
+  listingId       String
+  createdAt       DateTime @default(now())
+
+  @@unique([transactionType, transactionId])
+  @@index([sellerId])
+  @@index([transactionType, listingId])
 }
 
 // ============================================================

@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 
@@ -751,5 +752,28 @@ export class TravelService {
 
     const [booking] = await this.prisma.$transaction(ops);
     return booking;
+  }
+
+  // Stay/car bookings never transitioned past CONFIRMED anywhere in this
+  // service — every booking that exists is permanently "CONFIRMED", with no
+  // real "the trip actually happened" signal to gate a review on. Payment
+  // already happens upfront at booking time (payAndBook above), so this
+  // cron only marks the trip concluded once its real end date has passed —
+  // same daily-cron pattern as ProfileService/CampaignsService's snapshot
+  // crons.
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async completePastBookings() {
+    const now = new Date();
+    const [stays, cars] = await Promise.all([
+      this.prisma.travelStayBooking.updateMany({
+        where: { status: 'CONFIRMED', checkOut: { lt: now } },
+        data: { status: 'COMPLETED' },
+      }),
+      this.prisma.travelCarBooking.updateMany({
+        where: { status: 'CONFIRMED', returnDate: { lt: now } },
+        data: { status: 'COMPLETED' },
+      }),
+    ]);
+    return { stays: stays.count, cars: cars.count };
   }
 }

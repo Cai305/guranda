@@ -58,6 +58,21 @@ export class CarwashService {
     });
   }
 
+  // Was missing entirely — no way for an owner to see bookings ACROSS their
+  // car washes (getMyBookings above is the customer-side, filtered to
+  // userId). Mirrors HairService.getMyProfile's include-bookings shape.
+  async myBookingsAsOwner(userId: string) {
+    return this.prisma.carWashBooking.findMany({
+      where: { carWash: { ownerId: userId } },
+      include: {
+        carWash: { select: { id: true, name: true } },
+        service: { select: { name: true } },
+        user: { select: { id: true, username: true, profile: { select: { displayName: true, avatarUrl: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async updateCarWash(id: string, userId: string, data: any) {
     const cw = await this.prisma.carWash.findUnique({ where: { id } });
     if (!cw) throw new NotFoundException('Car wash not found');
@@ -106,6 +121,29 @@ export class CarwashService {
       where: { userId },
       include: { carWash: true, service: true },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Was entirely missing — a carwash booking had no way to ever leave
+  // PENDING. Mirrors HairService.updateBookingStatus's exact pattern
+  // (owner-only, status allowlist).
+  async updateBookingStatus(
+    userId: string,
+    bookingId: string,
+    status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED',
+  ) {
+    const booking = await this.prisma.carWashBooking.findUnique({
+      where: { id: bookingId },
+      include: { carWash: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.carWash.ownerId !== userId) throw new ForbiddenException('Not your booking');
+    if (!['CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      throw new BadRequestException('Invalid status');
+    }
+    return this.prisma.carWashBooking.update({
+      where: { id: bookingId },
+      data: { status },
     });
   }
 }

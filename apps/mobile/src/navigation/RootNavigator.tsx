@@ -102,6 +102,7 @@ import AddEditTravelStayScreen from '../screens/profile/travel/AddEditTravelStay
 import AddEditTravelCarScreen from '../screens/profile/travel/AddEditTravelCarScreen';
 import MyCarWashesScreen from '../screens/carwash/MyCarWashesScreen';
 import ManageCarWashScreen from '../screens/carwash/ManageCarWashScreen';
+import ManageCarWashBookingsScreen from '../screens/carwash/ManageCarWashBookingsScreen';
 import MyCompanyScreen from '../screens/profile/work/MyCompanyScreen';
 import AddEditWorkCompanyScreen from '../screens/profile/work/AddEditWorkCompanyScreen';
 import AddEditWorkJobScreen from '../screens/profile/work/AddEditWorkJobScreen';
@@ -136,6 +137,7 @@ import LanguageScreen from '../screens/profile/LanguageScreen';
 import HelpSupportScreen from '../screens/profile/HelpSupportScreen';
 import ContentEarningsScreen from '../screens/ContentEarningsScreen';
 import MyGrowthScreen from '../screens/MyGrowthScreen';
+import MyHairBookingsScreen from '../screens/MyHairBookingsScreen';
 import HairHomeScreen from '../screens/hub/hair/HairHomeScreen';
 import HairdresserProfileScreen from '../screens/hub/hair/HairdresserProfileScreen';
 import HairServiceScreen from '../screens/hub/hair/HairServiceScreen';
@@ -265,6 +267,7 @@ export default function RootNavigator() {
           <Stack.Screen name="AddEditTravelCar" component={AddEditTravelCarScreen} />
           <Stack.Screen name="MyCarWashes" component={MyCarWashesScreen} />
           <Stack.Screen name="ManageCarWash" component={ManageCarWashScreen} />
+          <Stack.Screen name="ManageCarWashBookings" component={ManageCarWashBookingsScreen} />
           <Stack.Screen name="MyCompany" component={MyCompanyScreen} />
           <Stack.Screen name="AddEditWorkCompany" component={AddEditWorkCompanyScreen} />
           <Stack.Screen name="AddEditWorkJob" component={AddEditWorkJobScreen} />
@@ -299,6 +302,7 @@ export default function RootNavigator() {
           <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
           <Stack.Screen name="ContentEarnings" component={ContentEarningsScreen} />
           <Stack.Screen name="MyGrowth" component={MyGrowthScreen} />
+          <Stack.Screen name="MyHairBookings" component={MyHairBookingsScreen} />
           <Stack.Screen name="CreateStory" component={CreateStoryScreen} />
           <Stack.Screen name="StoryViewer" component={StoryViewerScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="StatusViewers" component={StatusViewersScreen} />

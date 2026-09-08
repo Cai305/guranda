@@ -7,6 +7,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { rideSocket } from '../../services/RideSocketService';
 import { fetchApi } from '../../utils/api';
 import { NATIVE_MAPS_AVAILABLE } from '../../theme/mapStyle';
+import RateSellerModal from '../../components/reviews/RateSellerModal';
 
 // See theme/mapStyle.ts — react-native-maps' Android provider needs a
 // configured Google Maps API key or mounting it is a fatal native crash;
@@ -47,6 +48,8 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [liveDriverCoord, setLiveDriverCoord] = useState<{ lat: number; lng: number } | null>(null);
+  const [showRating, setShowRating] = useState(false);
+  const [alreadyRated, setAlreadyRated] = useState(false);
   const mapRef = useRef<any>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, SPACING }) => ({
@@ -147,6 +150,10 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
       .then(setOrder)
       .catch(() => {})
       .finally(() => setLoading(false));
+    fetchApi(`/reviews/check?transactionType=eat_order&transactionId=${orderId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => d && setAlreadyRated(d.reviewed))
+      .catch(() => {});
   }, [orderId]);
 
   useEffect(() => {
@@ -310,7 +317,30 @@ export default function EatOrderTrackingScreen({ navigation, route }: any) {
             </View>
           </View>
         )}
+
+        {order?.status === 'DELIVERED' && (
+          alreadyRated ? (
+            <Text style={{ color: COLORS.success, fontSize: 12.5, fontWeight: '600', textAlign: 'center' }}>✓ You rated this order</Text>
+          ) : (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: 10, paddingVertical: 10 }}
+              onPress={() => setShowRating(true)}
+            >
+              <Ionicons name="star" size={15} color="#fff" />
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Rate this restaurant</Text>
+            </TouchableOpacity>
+          )
+        )}
       </View>
+
+      <RateSellerModal
+        visible={showRating}
+        title={order?.store?.name ?? ''}
+        transactionType="eat_order"
+        transactionId={orderId}
+        onClose={() => setShowRating(false)}
+        onSubmitted={() => { setShowRating(false); setAlreadyRated(true); }}
+      />
     </View>
   );
 }

@@ -22,6 +22,20 @@ export class CarwashController {
     return this.carwashService.getMyBookings(req.user.userId);
   }
 
+  @Get('mine/owner-bookings')
+  async getMyBookingsAsOwner(@Request() req: any) {
+    return this.carwashService.myBookingsAsOwner(req.user.userId);
+  }
+
+  @Patch('mine/bookings/:id')
+  async updateBookingStatus(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' },
+  ) {
+    return this.carwashService.updateBookingStatus(req.user.userId, id, body.status);
+  }
+
   @Get(':id')
   async getCarWash(@Param('id') id: string) {
     return this.carwashService.getCarWash(id);
