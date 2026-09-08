@@ -43,6 +43,14 @@ services:
       - NODE_ENV=production
       - WEBHOOK_URL=http://localhost:5678/
       - GENERIC_TIMEZONE=UTC
+      # Set in the (gitignored) root .env — same value as apps/api/.env's
+      # ADMIN_API_KEY. Lets n8n workflows call admin-key-gated API endpoints
+      # (e.g. POST /home/briefing/refresh-all) via {{$env.ADMIN_API_KEY}}
+      # without the key ever being typed into or stored in a workflow.
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      # n8n blocks $env access in expressions by default — needed for the
+      # line above to actually resolve.
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
     volumes:
       - mxit2_n8n_data:/home/node/.n8n
     restart: unless-stopped
