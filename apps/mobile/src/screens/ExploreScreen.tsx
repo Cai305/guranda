@@ -59,6 +59,13 @@ type StreamItem =
   | { kind: 'live'; key: string; data: RealLiveStream }
   | { kind: 'miniapp'; key: string; data: LifeModule };
 
+// Interleaves 4 already-independently-ranked sources (each ranked by its
+// own momentum signal server-side — trending.service.ts's own comment
+// explains why: "independently-ranked lists... not one merged/score-
+// normalized list") in a fixed round-robin, NOT a cross-type ranking by
+// momentum. Keep the subtitle copy honest about that — "each ranked by
+// what's moving, all in one stream" — rather than implying a single
+// global rank across types.
 function buildAllStream(
   posts: PostDto[],
   challenges: ChallengeSummary[],
@@ -1128,7 +1135,7 @@ export default function ExploreScreen({ navigation }: any) {
           </View>
         </View>
         <Text style={styles.subtitle}>
-          What's possible for you — posts, challenges, live streams and mini apps, ranked by what's moving right now.
+          What's possible for you — posts, challenges, live streams and mini apps, each ranked by what's moving, all in one stream.
         </Text>
         {searchOpen && (
           <View style={styles.searchBar}>
