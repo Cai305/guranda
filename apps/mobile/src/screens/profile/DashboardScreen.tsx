@@ -202,6 +202,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [creatorFunds, setCreatorFunds] = useState<{ accumulatedThisMonth: number; nextPayoutDate: string } | null>(null);
   const [myCommunities, setMyCommunities] = useState<any[]>([]);
   const [accountTypeOverride, setAccountTypeOverride] = useState<AccountType | null>(null);
+  const [myCampaigns, setMyCampaigns] = useState<{ id: string; status: string; impressions: number; clicks: number; completions: number; budget: number }[] | null>(null);
 
   useEffect(() => {
     fetchApi('/wallets/me')
@@ -258,6 +259,11 @@ export default function DashboardScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => d && setAccountTypeOverride(d.override))
       .catch(() => {});
+
+    fetchApi('/campaigns/mine')
+      .then(r => (r.ok ? r.json() : []))
+      .then(d => setMyCampaigns(Array.isArray(d) ? d : []))
+      .catch(() => setMyCampaigns([]));
   }, []);
 
   const installedManageApps = MINI_APP_MANAGE_REGISTRY.filter(e => isInstalled(e.id));
@@ -440,6 +446,29 @@ export default function DashboardScreen({ navigation }: any) {
               }}
             />
           </>
+        )}
+
+        {/* Campaign Performance — real GET /campaigns/mine data, was
+            previously only reachable from Profile > Business Campaigns, so
+            a business owner had to leave the dashboard to see how their
+            sponsored campaigns are doing. Only renders once campaigns have
+            actually loaded and there's at least one, so this never shows a
+            fake "0 campaigns" card to a personal account. */}
+        {!!myCampaigns?.length && (
+          <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('MyCampaigns')}>
+            <AnalyticsCard
+              icon="megaphone"
+              iconColor="#F472B6"
+              title="Campaign Performance"
+              stats={[
+                { value: myCampaigns.filter(c => c.status === 'ACTIVE').length, label: 'Active' },
+                { value: myCampaigns.reduce((sum, c) => sum + c.impressions, 0), label: 'Impressions' },
+                { value: myCampaigns.reduce((sum, c) => sum + c.clicks, 0), label: 'Clicks' },
+                { value: myCampaigns.reduce((sum, c) => sum + c.completions, 0), label: 'Completions' },
+                { value: formatCurrency(myCampaigns.reduce((sum, c) => sum + c.budget, 0)), label: 'Spent' },
+              ]}
+            />
+          </TouchableOpacity>
         )}
 
         {/* My Analytics — platform-wide engagement, separate from mini-app
