@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,46 +61,75 @@ type StreamItem =
   | { kind: 'video'; key: string; data: VideoMeta }
   | { kind: 'miniapp'; key: string; data: LifeModule };
 
-// Interleaves 5 already-independently-ranked sources (each ranked by its
-// own momentum signal server-side — trending.service.ts's own comment
-// explains why: "independently-ranked lists... not one merged/score-
-// normalized list") in a fixed round-robin, NOT a cross-type ranking by
-// momentum. Keep the subtitle copy honest about that — "each ranked by
-// what's moving, all in one stream" — rather than implying a single
-// global rank across types.
+// ── The mixing algorithm ─────────────────────────────────────────────────
+// Each source (posts, challenges, live, videos) arrives already ranked by
+// its own real momentum signal server-side — trending.service.ts's own
+// comment explains why they're independently-ranked lists, not one merged/
+// score-normalized list. This function's only job is deciding *how often*
+// each type gets a turn, never re-ordering within a type (that would throw
+// away real signal for nothing).
+//
+// SLOT_PATTERN is a fixed-length "menu" of 12 turns: mostly posts (the
+// deep, ever-renewing backbone of the feed) with challenge/video/live/
+// mini-app "spice" spread through it at irregular gaps (2, 3, 4, 2 slots
+// apart) rather than one evenly-spaced type per N — an evenly-spaced
+// pattern reads as robotic within a couple of screens; irregular gaps
+// don't, even though the algorithm itself is still fully deterministic.
+// Deterministic matters here: the function is a pure map from the 5 input
+// arrays to a stream, called fresh on every render (see the allStream
+// useMemo below) — as long as items are only ever appended to the *end*
+// of a source array (never reordered/removed), re-running it after a
+// pagination fetch reproduces the exact same prefix plus new items tacked
+// on, so nothing already on screen ever jumps around under the user.
+const SLOT_PATTERN: StreamItem['kind'][] = [
+  'post', 'post', 'challenge', 'post', 'video', 'post',
+  'post', 'live', 'post', 'miniapp', 'post', 'post',
+];
+
+interface AllStreamResult {
+  items: StreamItem[];
+  // Which types ran out of supply before the pattern did — the caller uses
+  // this to decide which pools loadMoreAll should actually go fetch more
+  // of, instead of blindly re-fetching every type on every scroll.
+  exhausted: Set<StreamItem['kind']>;
+}
+
 function buildAllStream(
   posts: PostDto[],
   challenges: ChallengeSummary[],
   live: RealLiveStream[],
   videos: VideoMeta[],
   miniApps: LifeModule[],
-): StreamItem[] {
+): AllStreamResult {
   const items: StreamItem[] = [];
+  const exhausted = new Set<StreamItem['kind']>();
   let pi = 0, ci = 0, li = 0, vi = 0, ai = 0;
   const cappedApps = miniApps.slice(0, 4);
-  const order: StreamItem['kind'][] = ['post', 'challenge', 'video', 'miniapp', 'live'];
-  let step = 0;
-  const remaining = () => pi < posts.length || ci < challenges.length || li < live.length || vi < videos.length || ai < cappedApps.length;
-  while (remaining()) {
-    const slot = order[step % order.length];
-    let placed = false;
-    if (slot === 'post' && pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; placed = true; }
-    else if (slot === 'challenge' && ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; placed = true; }
-    else if (slot === 'video' && vi < videos.length) { items.push({ kind: 'video', key: `v-${videos[vi].id}`, data: videos[vi] }); vi++; placed = true; }
-    else if (slot === 'miniapp' && ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; placed = true; }
-    else if (slot === 'live' && li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; placed = true; }
-    if (!placed) {
-      // This slot's source ran dry — fill from whatever's left instead of
-      // stalling the loop, so no type gets stranded behind an empty one.
-      if (pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; }
-      else if (ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; }
-      else if (vi < videos.length) { items.push({ kind: 'video', key: `v-${videos[vi].id}`, data: videos[vi] }); vi++; }
-      else if (li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; }
-      else if (ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; }
+
+  const tryPlace = (kind: StreamItem['kind']): boolean => {
+    switch (kind) {
+      case 'post': if (pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; return true; } return false;
+      case 'challenge': if (ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; return true; } return false;
+      case 'video': if (vi < videos.length) { items.push({ kind: 'video', key: `v-${videos[vi].id}`, data: videos[vi] }); vi++; return true; } return false;
+      case 'live': if (li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; return true; } return false;
+      case 'miniapp': if (ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; return true; } return false;
     }
-    step++;
+  };
+
+  const remaining = () => pi < posts.length || ci < challenges.length || vi < videos.length || li < live.length || ai < cappedApps.length;
+  let slot = 0;
+  while (remaining()) {
+    const want = SLOT_PATTERN[slot % SLOT_PATTERN.length];
+    if (!tryPlace(want)) {
+      exhausted.add(want);
+      // That type's pool ran dry for now — fall through to whichever type
+      // still has supply, in the same priority order every time, so the
+      // stream never stalls just because one source is temporarily out.
+      (['post', 'challenge', 'video', 'live', 'miniapp'] as const).some((k) => tryPlace(k));
+    }
+    slot++;
   }
-  return items;
+  return { items, exhausted };
 }
 
 export default function ExploreScreen({ navigation }: any) {
@@ -135,25 +164,44 @@ export default function ExploreScreen({ navigation }: any) {
   // ── "All" stream's own infinite scroll ──────────────────────────────────
   // The initial All stream is a curated round-robin from /trending's fixed
   // snapshot (top ~15 posts, ~10 challenges/live/videos) — a real but finite
-  // page. Once the user scrolls past it, keep the stream going with more
-  // posts from the real paginated /posts feed (same cursor semantics as the
-  // Posts tab, tracked separately so switching tabs never cross-contaminates
-  // cursors), de-duped against whatever the trending snapshot already showed.
+  // page. buildAllStream's SLOT_PATTERN reports back *which* types actually
+  // ran dry while laying out the current stream (allStreamExhaustedRef,
+  // set below); loadMoreAll only bothers fetching more of those, each from
+  // its own real paginated source, each independent of the type-specific
+  // tabs' own cursors so switching tabs never cross-contaminates them:
+  //  - posts: /posts (For You, reranked) — the deep, ever-renewing backbone
+  //  - challenges: /challenges skip/take (listActive's own ordering)
+  //  - videos: /videos/feed cursor (the same real feed VideoFeedScreen uses)
+  //  - live: /live/rooms, the full uncapped listing
+  // Each of these draws from a DIFFERENT ranking than what seeded the
+  // initial trending snapshot for that type (momentum/views/viewer-count
+  // vs. these sources' own ordering), so results can legitimately overlap —
+  // every one is de-duped against a per-type "seen id" set rather than
+  // assumed disjoint.
   const [allExtraPosts, setAllExtraPosts] = useState<PostDto[]>([]);
   const [allHasMore, setAllHasMore] = useState(true);
-  const [allLoadingMore, setAllLoadingMore] = useState(false);
   const allPostsCursorRef = useRef<string | null>(null);
   const allSeenPostIds = useRef<Set<string>>(new Set());
 
-  // ── Videos tab's own infinite scroll ────────────────────────────────────
-  // Independent of the "All" stream's curated top-10 trending videos — this
-  // is the real, fully paginated personalized feed (/videos/feed, same
-  // endpoint and cursor pattern DiscoverScreen's own feed tab already uses).
-  const [videoFeed, setVideoFeed] = useState<VideoMeta[]>([]);
-  const [videoFeedLoading, setVideoFeedLoading] = useState(false);
-  const [videoFeedLoadingMore, setVideoFeedLoadingMore] = useState(false);
-  const [videoFeedHasMore, setVideoFeedHasMore] = useState(true);
-  const videoFeedCursorRef = useRef<string | null>(null);
+  const [allExtraChallenges, setAllExtraChallenges] = useState<ChallengeSummary[]>([]);
+  const [allChallengesHasMore, setAllChallengesHasMore] = useState(true);
+  const allChallengesSkipRef = useRef(0);
+  const allSeenChallengeIds = useRef<Set<string>>(new Set());
+
+  const [allExtraVideos, setAllExtraVideos] = useState<VideoMeta[]>([]);
+  const [allVideosHasMore, setAllVideosHasMore] = useState(true);
+  const allVideosCursorRef = useRef<string | null>(null);
+  const allSeenVideoIds = useRef<Set<string>>(new Set());
+
+  const [allExtraLive, setAllExtraLive] = useState<RealLiveStream[]>([]);
+  const [allLiveHasMore, setAllLiveHasMore] = useState(true);
+  const allSeenLiveIds = useRef<Set<string>>(new Set());
+
+  const [allLoadingMore, setAllLoadingMore] = useState(false);
+  // Populated after every allStream recompute (see the useEffect near the
+  // allStream useMemo) — read by loadMoreAll to decide which of the 4
+  // sources above are actually worth fetching more of right now.
+  const allStreamExhaustedRef = useRef<Set<StreamItem['kind']>>(new Set());
 
   // ── Challenges "Browse" tab's own infinite scroll ───────────────────────
   // GET /challenges already supports real skip/take pagination server-side —
@@ -189,14 +237,14 @@ export default function ExploreScreen({ navigation }: any) {
         fetchTrending();
       } else if (filter === 'Live') {
         fetchLiveRoomsForExplore();
-      } else if (filter === 'Videos') {
-        fetchVideoFeed(true);
       } else if (filter === 'Posts') {
         fetchFeed();
       } else if (filter === 'Challenges') {
         fetchChallenges();
       }
-      // Mini Apps needs no fetch — the registry is already loaded client-side.
+      // Videos is never a real tab state — tapping its chip navigates
+      // straight to VideoFeedScreen (see filterChips below). Mini Apps
+      // needs no fetch — the registry is already loaded client-side.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filter, feedMode, challengeCategory])
   );
@@ -269,11 +317,23 @@ export default function ExploreScreen({ navigation }: any) {
           trendLabels: data.trendLabels ?? [],
         });
         // Reset the "All" stream's own continuation pagination — a fresh
-        // trending snapshot means a fresh curated prefix to de-dupe against.
+        // trending snapshot means a fresh curated prefix to de-dupe against,
+        // for all 4 independently-continued sources.
         allSeenPostIds.current = new Set((data.posts as PostDto[]).map((p) => p.id));
         allPostsCursorRef.current = null;
         setAllExtraPosts([]);
         setAllHasMore(true);
+        allSeenChallengeIds.current = new Set((data.challenges as ChallengeSummary[]).map((c) => c.id));
+        allChallengesSkipRef.current = 0;
+        setAllExtraChallenges([]);
+        setAllChallengesHasMore(true);
+        allSeenVideoIds.current = new Set(((data.videos ?? []) as VideoMeta[]).map((v) => v.id));
+        allVideosCursorRef.current = null;
+        setAllExtraVideos([]);
+        setAllVideosHasMore(true);
+        allSeenLiveIds.current = new Set((data.live as any[]).map((l) => l.id));
+        setAllExtraLive([]);
+        setAllLiveHasMore(true);
       }
     } catch (e) {
       console.error(e);
@@ -282,22 +342,66 @@ export default function ExploreScreen({ navigation }: any) {
     }
   };
 
+  const loadMorePostsForAll = async () => {
+    const qs = allPostsCursorRef.current
+      ? `?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(allPostsCursorRef.current)}`
+      : `?take=${FEED_PAGE_SIZE}`;
+    const res = await fetchApi(`/posts${qs}`);
+    if (!res.ok) return;
+    const data: { posts: PostDto[]; nextCursor: string | null } = await res.json();
+    const fresh = data.posts.filter((p) => !allSeenPostIds.current.has(p.id));
+    fresh.forEach((p) => allSeenPostIds.current.add(p.id));
+    setAllExtraPosts((prev) => [...prev, ...fresh]);
+    allPostsCursorRef.current = data.nextCursor;
+    setAllHasMore(data.nextCursor !== null);
+  };
+
+  const loadMoreChallengesForAll = async () => {
+    const res = await fetchApi(`/challenges?take=${CHALLENGES_PAGE_SIZE}&skip=${allChallengesSkipRef.current}`);
+    if (!res.ok) return;
+    const data: ChallengeSummary[] = await res.json();
+    allChallengesSkipRef.current += data.length;
+    const fresh = data.filter((c) => !allSeenChallengeIds.current.has(c.id));
+    fresh.forEach((c) => allSeenChallengeIds.current.add(c.id));
+    setAllExtraChallenges((prev) => [...prev, ...fresh]);
+    setAllChallengesHasMore(data.length === CHALLENGES_PAGE_SIZE);
+  };
+
+  const loadMoreVideosForAll = async () => {
+    const qs = allVideosCursorRef.current ? `?take=20&cursor=${encodeURIComponent(allVideosCursorRef.current)}` : '?take=20';
+    const res = await fetchApi(`/videos/feed${qs}`);
+    if (!res.ok) return;
+    const data: { videos: VideoMeta[]; nextCursor: string | null } = await res.json();
+    const fresh = data.videos.filter((v) => !allSeenVideoIds.current.has(v.id));
+    fresh.forEach((v) => allSeenVideoIds.current.add(v.id));
+    setAllExtraVideos((prev) => [...prev, ...fresh]);
+    allVideosCursorRef.current = data.nextCursor;
+    setAllVideosHasMore(data.nextCursor !== null);
+  };
+
+  // /live/rooms is already the full, uncapped listing (see the Live tab's
+  // own fetch above) — "loading more" here just means re-pulling it and
+  // revealing whatever wasn't already shown, not real cursor pagination.
+  const loadMoreLiveForAll = async () => {
+    const rooms = await fetchLiveRooms();
+    const fresh = rooms.filter((l) => !allSeenLiveIds.current.has(l.id));
+    fresh.forEach((l) => allSeenLiveIds.current.add(l.id));
+    setAllExtraLive((prev) => [...prev, ...fresh]);
+    setAllLiveHasMore(fresh.length > 0);
+  };
+
   const loadMoreAll = async () => {
-    if (filter !== 'All' || allLoadingMore || !allHasMore) return;
+    if (filter !== 'All' || allLoadingMore) return;
+    const exhausted = allStreamExhaustedRef.current;
+    const jobs: Promise<void>[] = [];
+    if (exhausted.has('post') && allHasMore) jobs.push(loadMorePostsForAll());
+    if (exhausted.has('challenge') && allChallengesHasMore) jobs.push(loadMoreChallengesForAll());
+    if (exhausted.has('video') && allVideosHasMore) jobs.push(loadMoreVideosForAll());
+    if (exhausted.has('live') && allLiveHasMore) jobs.push(loadMoreLiveForAll());
+    if (jobs.length === 0) return;
     try {
       setAllLoadingMore(true);
-      const qs = allPostsCursorRef.current
-        ? `?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(allPostsCursorRef.current)}`
-        : `?take=${FEED_PAGE_SIZE}`;
-      const res = await fetchApi(`/posts${qs}`);
-      if (res.ok) {
-        const data: { posts: PostDto[]; nextCursor: string | null } = await res.json();
-        const fresh = data.posts.filter((p) => !allSeenPostIds.current.has(p.id));
-        fresh.forEach((p) => allSeenPostIds.current.add(p.id));
-        setAllExtraPosts((prev) => [...prev, ...fresh]);
-        allPostsCursorRef.current = data.nextCursor;
-        setAllHasMore(data.nextCursor !== null);
-      }
+      await Promise.all(jobs);
     } catch (e) {
       console.error(e);
     } finally {
@@ -313,46 +417,6 @@ export default function ExploreScreen({ navigation }: any) {
       console.error(e);
     } finally {
       setLiveRoomsLoading(false);
-    }
-  };
-
-  // /videos/feed is real cursor pagination — { videos, nextCursor } — same
-  // endpoint and shape DiscoverScreen's own feed tab already uses.
-  const fetchVideoFeed = async (reset: boolean) => {
-    try {
-      if (reset) {
-        setVideoFeedLoading(true);
-        videoFeedCursorRef.current = null;
-      }
-      const res = await fetchApi(`/videos/feed?take=20`);
-      if (res.ok) {
-        const data: { videos: VideoMeta[]; nextCursor: string | null } = await res.json();
-        setVideoFeed(data.videos);
-        videoFeedCursorRef.current = data.nextCursor;
-        setVideoFeedHasMore(data.nextCursor !== null);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setVideoFeedLoading(false);
-    }
-  };
-
-  const loadMoreVideoFeed = async () => {
-    if (videoFeedLoadingMore || !videoFeedHasMore || !videoFeedCursorRef.current) return;
-    try {
-      setVideoFeedLoadingMore(true);
-      const res = await fetchApi(`/videos/feed?take=20&cursor=${encodeURIComponent(videoFeedCursorRef.current)}`);
-      if (res.ok) {
-        const data: { videos: VideoMeta[]; nextCursor: string | null } = await res.json();
-        setVideoFeed((prev) => [...prev, ...data.videos]);
-        videoFeedCursorRef.current = data.nextCursor;
-        setVideoFeedHasMore(data.nextCursor !== null);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setVideoFeedLoadingMore(false);
     }
   };
 
@@ -1180,13 +1244,30 @@ export default function ExploreScreen({ navigation }: any) {
   const matchesSearch = (text: string | null | undefined) =>
     !searchLower || (text ?? '').toLowerCase().includes(searchLower);
 
+  // Extras feed straight into buildAllStream alongside the trending base,
+  // not appended after it — so as more challenges/videos/live load in while
+  // scrolling, SLOT_PATTERN interleaves them properly through the stream
+  // instead of dumping them as an unmixed tail of whatever ran out last.
+  const allStreamResult = useMemo(
+    () => buildAllStream(
+      [...(trending?.posts ?? []), ...allExtraPosts],
+      [...(trending?.challenges ?? []), ...allExtraChallenges],
+      [...(trending?.live ?? []), ...allExtraLive],
+      [...(trending?.videos ?? []), ...allExtraVideos],
+      discoverableApps,
+    ),
+    [trending, discoverableApps, allExtraPosts, allExtraChallenges, allExtraLive, allExtraVideos],
+  );
+
+  // Runs after render (not during buildAllStream's own memo) so loadMoreAll
+  // — an imperative callback triggered later by user scroll — always reads
+  // the exhausted-set that matches what's actually on screen right now.
+  useEffect(() => {
+    allStreamExhaustedRef.current = allStreamResult.exhausted;
+  }, [allStreamResult]);
+
   const allStream = useMemo(() => {
-    const base = buildAllStream(trending?.posts ?? [], trending?.challenges ?? [], trending?.live ?? [], trending?.videos ?? [], discoverableApps);
-    // Past the curated round-robin prefix, the stream continues as plain
-    // posts from the real paginated /posts feed (loadMoreAll) — genuine
-    // infinite depth instead of dead-ending at the trending snapshot.
-    const extra: StreamItem[] = allExtraPosts.map((p) => ({ kind: 'post', key: `ap-${p.id}`, data: p }));
-    const items = [...base, ...extra];
+    const items = allStreamResult.items;
     if (!searchLower) return items;
     return items.filter((item) => {
       if (item.kind === 'post') return matchesSearch(item.data.content) || matchesSearch(item.data.author?.displayName);
@@ -1196,7 +1277,7 @@ export default function ExploreScreen({ navigation }: any) {
       return matchesSearch(item.data.name) || matchesSearch(item.data.tagline);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trending, discoverableApps, searchLower, allExtraPosts]);
+  }, [allStreamResult, searchLower]);
 
   const visiblePosts = useMemo(
     () => (searchLower ? posts.filter((p) => matchesSearch(p.content) || matchesSearch(p.author?.displayName)) : posts),
@@ -1212,11 +1293,6 @@ export default function ExploreScreen({ navigation }: any) {
     () => (searchLower ? liveRooms.filter((l) => matchesSearch(l.title)) : liveRooms),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [liveRooms, searchLower],
-  );
-  const visibleVideos = useMemo(
-    () => (searchLower ? videoFeed.filter((v) => matchesSearch(v.title)) : videoFeed),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [videoFeed, searchLower],
   );
   const visibleApps = useMemo(
     () => (searchLower ? discoverableApps.filter((m) => matchesSearch(m.name) || matchesSearch(m.tagline)) : discoverableApps),
@@ -1346,7 +1422,10 @@ export default function ExploreScreen({ navigation }: any) {
     </View>
   );
 
-  const openVideo = (v: VideoMeta) => navigation.navigate('VideoPlayer', { videoId: v.id });
+  // TikTok-style full-screen swipe feed, not the old YouTube-style detail
+  // page — the curated top-10 trending videos already on screen become the
+  // swipe order, starting at whichever card was actually tapped.
+  const openVideo = (v: VideoMeta) => navigation.navigate('VideoFeed', { videoId: v.id, videos: trending?.videos ?? [v] });
 
   const renderStreamItem = ({ item }: { item: StreamItem }) => {
     if (item.kind === 'post') return renderPost(item.data);
@@ -1367,7 +1446,7 @@ export default function ExploreScreen({ navigation }: any) {
       renderItem={({ item }) => (
         <TouchableOpacity
           style={[styles.filterChip, filter === item && styles.filterChipActive]}
-          onPress={() => setFilter(item)}
+          onPress={() => (item === 'Videos' ? navigation.navigate('VideoFeed') : setFilter(item))}
         >
           <Text style={[styles.filterChipText, filter === item && styles.filterChipTextActive]}>{item}</Text>
         </TouchableOpacity>
@@ -1479,7 +1558,7 @@ export default function ExploreScreen({ navigation }: any) {
                 refreshing={loading}
                 onRefresh={fetchChallenges}
                 onEndReached={loadMoreChallenges}
-                onEndReachedThreshold={0.6}
+                onEndReachedThreshold={2.5}
                 ListFooterComponent={
                   challengesLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
                 }
@@ -1509,7 +1588,7 @@ export default function ExploreScreen({ navigation }: any) {
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60, minimumViewTime: 500 }}
           onEndReached={loadMorePosts}
-          onEndReachedThreshold={0.6}
+          onEndReachedThreshold={2.5}
           initialNumToRender={6}
           maxToRenderPerBatch={6}
           windowSize={7}
@@ -1583,30 +1662,6 @@ export default function ExploreScreen({ navigation }: any) {
             ) : null
           }
         />
-      ) : filter === 'Videos' ? (
-        <FlatList
-          key="videos-flatlist"
-          data={visibleVideos}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <VideoCard video={item} onPress={openVideo} />}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshing={videoFeedLoading}
-          onRefresh={() => fetchVideoFeed(true)}
-          onEndReached={loadMoreVideoFeed}
-          onEndReachedThreshold={0.6}
-          ListFooterComponent={
-            videoFeedLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
-          }
-          ListEmptyComponent={
-            !videoFeedLoading ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="play-circle-outline" size={48} color={COLORS.textMuted} />
-                <Text style={styles.emptyText}>No videos trending right now — check back soon.</Text>
-              </View>
-            ) : null
-          }
-        />
       ) : filter === 'Mini Apps' ? (
         <FlatList
           key="miniapps-flatlist"
@@ -1633,7 +1688,7 @@ export default function ExploreScreen({ navigation }: any) {
           refreshing={trendingLoading}
           onRefresh={fetchTrending}
           onEndReached={loadMoreAll}
-          onEndReachedThreshold={0.6}
+          onEndReachedThreshold={2.5}
           ListFooterComponent={
             allLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
           }

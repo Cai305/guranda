@@ -52,6 +52,7 @@ import AddEditProductScreen from '../screens/profile/eat/AddEditProductScreen';
 import StoreOrdersScreen from '../screens/profile/eat/StoreOrdersScreen';
 import DiscoverScreen from '../screens/discover/DiscoverScreen';
 import VideoPlayerScreen from '../screens/discover/VideoPlayerScreen';
+import VideoFeedScreen from '../screens/discover/VideoFeedScreen';
 import VideoUploadScreen from '../screens/discover/VideoUploadScreen';
 import WatchLaterScreen from '../screens/discover/WatchLaterScreen';
 import PlaylistsScreen from '../screens/discover/PlaylistsScreen';
@@ -223,6 +224,7 @@ export default function RootNavigator() {
           <Stack.Screen name="StoreOrders" component={StoreOrdersScreen} />
           <Stack.Screen name="Discovery" component={DiscoverScreen} />
           <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
+          <Stack.Screen name="VideoFeed" component={VideoFeedScreen} />
           <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
           <Stack.Screen name="WatchLater" component={WatchLaterScreen} />
           <Stack.Screen name="MyPlaylists" component={PlaylistsScreen} />
