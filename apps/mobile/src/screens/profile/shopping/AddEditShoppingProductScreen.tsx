@@ -161,7 +161,7 @@ export default function AddEditShoppingProductScreen({ navigation, route }: any)
 
         <View>
           <Text style={styles.label}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
             {PRODUCT_CATS.map(cat => (
               <TouchableOpacity
                 key={cat}

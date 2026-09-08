@@ -468,7 +468,7 @@ export default function ChallengesFeedScreen({ navigation }: any) {
           <TextInput style={{ flex: 1, color: COLORS.text, fontSize: 14, paddingVertical: 9 }} placeholder="Search challenges, users…" placeholderTextColor={COLORS.textMuted} value={search} onChangeText={onSearchChange} returnKeyType="search" />
           {!!search && <TouchableOpacity onPress={() => onSearchChange('')}><Ionicons name="close-circle" size={17} color={COLORS.textMuted} /></TouchableOpacity>}
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 6 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 40, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: 6 }}>
           {SCOPES.map((s) => (
             <TouchableOpacity key={s} onPress={() => setActiveScope(s)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.pill, backgroundColor: activeScope === s ? COLORS.primary : COLORS.surface, borderWidth: 1, borderColor: activeScope === s ? COLORS.primary : COLORS.border }}>
               <Ionicons name={(SCOPE_ICON[s] ?? 'earth') as any} size={12} color={activeScope === s ? '#fff' : COLORS.textMuted} />
@@ -476,7 +476,7 @@ export default function ChallengesFeedScreen({ navigation }: any) {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 40, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity key={cat} onPress={() => setActiveCategory(cat)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.pill, backgroundColor: activeCategory === cat ? COLORS.primary : COLORS.surface, borderWidth: 1, borderColor: activeCategory === cat ? COLORS.primary : COLORS.border }}>
               {cat !== 'ALL' && <Ionicons name={(CATEGORY_ICON[cat] ?? 'star') as any} size={12} color={activeCategory === cat ? '#fff' : COLORS.textMuted} />}

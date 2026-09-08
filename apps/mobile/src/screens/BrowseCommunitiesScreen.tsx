@@ -115,7 +115,7 @@ export default function BrowseCommunitiesScreen({ navigation }: any) {
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.chipRow}>
         {CATEGORIES.map((c) => (
           <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
             <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>

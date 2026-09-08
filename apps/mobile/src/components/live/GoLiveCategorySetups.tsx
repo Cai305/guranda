@@ -44,7 +44,7 @@ function ShoppingSetupPanel({ value, onChange }: GoLiveSetupProps<ShoppingSetup>
   return (
     <View>
       <Text style={styles.hint}>Pick up to 10 products to showcase the moment you go live (optional — you can also do this later).</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: SPACING.sm }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginBottom: SPACING.sm }} contentContainerStyle={{ gap: 8 }}>
         {products.map(p => {
           const active = value.productIds.includes(p.id);
           return (
@@ -90,7 +90,7 @@ function FoodSetupPanel({ value, onChange }: GoLiveSetupProps<FoodSetup>) {
   return (
     <View>
       <Text style={styles.hint}>Pin a menu item viewers can order the moment you go live (optional).</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
         {products.map(p => (
           <TouchableOpacity
             key={p.id}
@@ -223,7 +223,7 @@ function GamingSetupPanel({ value, onChange }: GoLiveSetupProps<GamingSetup>) {
   return (
     <View>
       <Text style={styles.hint}>What are you playing?</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: SPACING.sm }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginBottom: SPACING.sm }} contentContainerStyle={{ gap: 8 }}>
         {GAME_TYPES.map(g => (
           <TouchableOpacity key={g.id} style={[styles.chip, value.gameType === g.id && styles.chipActive]} onPress={() => onChange({ gameType: g.id, opponentId: null })}>
             <Text style={[styles.chipText, value.gameType === g.id && styles.chipTextActive]}>{g.label}</Text>
@@ -236,7 +236,7 @@ function GamingSetupPanel({ value, onChange }: GoLiveSetupProps<GamingSetup>) {
         ) : (
           <>
             <Text style={styles.hint}>Challenge a friend now (optional):</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
               {friends.map(f => (
                 <TouchableOpacity key={f.id} style={[styles.chip, value.opponentId === f.id && styles.chipActive]} onPress={() => onChange({ ...value, opponentId: value.opponentId === f.id ? null : f.id })}>
                   <Text style={[styles.chipText, value.opponentId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>

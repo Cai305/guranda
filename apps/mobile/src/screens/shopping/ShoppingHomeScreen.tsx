@@ -64,7 +64,7 @@ export default function ShoppingHomeScreen({ navigation }: any) {
     heroIcon: { position: 'absolute', right: 16, top: 12 },
     heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
     heroSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-    catScroll: { marginBottom: 16 },
+    catScroll: { maxHeight: 48, flexGrow: 0, flexShrink: 0, marginBottom: 16 },
     catContent: { paddingHorizontal: SPACING.lg, gap: 8 },
     catChip: {
       flexDirection: 'row', alignItems: 'center', gap: 6,

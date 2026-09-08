@@ -77,7 +77,7 @@ export default function AddCommunityScreen({ navigation }: any) {
 
         <View>
           <Text style={styles.label}>Topic</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
             {COURSE_CATEGORIES.map(cat => (
               <TouchableOpacity key={cat} style={[styles.chip, topic === cat && styles.chipActive]} onPress={() => setTopic(cat)}>
                 <Text style={[styles.chipText, topic === cat && styles.chipTextActive]}>{cat}</Text>

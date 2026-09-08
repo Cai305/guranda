@@ -41,7 +41,7 @@ export default function FinanceHomeScreen({ navigation }: any) {
     tabChipActive: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
     tabLabel: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
     tabLabelActive: { color: '#fff' },
-    filterScroll: { marginBottom: 12 },
+    filterScroll: { maxHeight: 44, flexGrow: 0, flexShrink: 0, marginBottom: 12 },
     filterContent: { paddingHorizontal: SPACING.lg, gap: 8 },
     filterChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
     filterChipActive: { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' },

@@ -142,7 +142,7 @@ export default function AddEditTravelCarScreen({ navigation, route }: any) {
 
         <View>
           <Text style={styles.label}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
             {CAR_CATEGORIES.map(cat => (
               <TouchableOpacity key={cat} style={[styles.chip, category === cat && styles.chipActive]} onPress={() => setCategory(cat)}>
                 <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>{cat}</Text>

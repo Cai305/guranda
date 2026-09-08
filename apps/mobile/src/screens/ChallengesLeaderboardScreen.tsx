@@ -70,6 +70,7 @@ export default function ChallengesLeaderboardScreen({ navigation }: any) {
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }}
         data={CATEGORIES}
         keyExtractor={(item) => item ?? 'all'}
         contentContainerStyle={styles.categoryRow}

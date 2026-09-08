@@ -117,7 +117,7 @@ export default function ElectionDetailScreen({ route, navigation }: any) {
       </View>
 
       {structures.length > 1 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.switcherRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.switcherRow}>
           {structures.map((s: any) => (
             <TouchableOpacity
               key={s.id}

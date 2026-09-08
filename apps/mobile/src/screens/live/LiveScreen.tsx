@@ -188,6 +188,7 @@ export default function LiveScreen({ navigation }: any) {
           data={['All', 'Following', 'Trending', 'Nearby', 'Gaming', 'Shopping', 'Education', 'Business', 'Entertainment', 'Sports', 'Music', 'Food', 'Technology', 'News']}
           keyExtractor={t => t}
           showsHorizontalScrollIndicator={false}
+          style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }}
           contentContainerStyle={styles.chipRow}
           renderItem={({ item }) => (
             <TouchableOpacity

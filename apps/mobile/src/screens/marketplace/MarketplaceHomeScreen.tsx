@@ -191,7 +191,7 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
         data={CATEGORIES}
         keyExtractor={c => c}
         contentContainerStyle={{ paddingHorizontal: SPACING.lg, gap: 8 }}
-        style={{ flexGrow: 0, marginTop: SPACING.sm }}
+        style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginTop: SPACING.sm }}
         renderItem={({ item: c }) => (
           <TouchableOpacity
             style={[styles.catChip, category === c && styles.catChipActive]}

@@ -175,6 +175,7 @@ export default function CardRoomScreen({ route, navigation }: any) {
         data={room?.participants ?? []}
         keyExtractor={(p) => p.userId}
         horizontal
+        style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }}
         contentContainerStyle={{ paddingHorizontal: SPACING.lg, gap: SPACING.sm }}
         renderItem={({ item }) => (
           <View style={styles.participantChip}>

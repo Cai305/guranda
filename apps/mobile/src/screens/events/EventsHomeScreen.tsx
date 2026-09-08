@@ -219,6 +219,7 @@ export default function EventsHomeScreen({ navigation }: any) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }}
           contentContainerStyle={styles.chipRow}
         >
           {CATEGORIES.map(cat => (

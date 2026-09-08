@@ -205,7 +205,7 @@ function ShoppingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn
       {products.length === 0 ? (
         <Text style={styles.hint}>You don't have any products yet — add some in My Shop first.</Text>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
           {products.map(p => {
             const active = selected.some(x => x.id === p.id);
             return (
@@ -272,7 +272,7 @@ function FoodHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; er
       {products.length === 0 ? (
         <Text style={styles.hint}>You don't have any menu items yet — add some in My Store first.</Text>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ gap: 8 }}>
           {products.map(p => (
             <TouchableOpacity
               key={p.id}
@@ -322,7 +322,7 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
 
   return (
     <Panel title="Link a live game">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 10 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginBottom: 10 }} contentContainerStyle={{ gap: 8 }}>
         {GAME_TYPES.map(g => (
           <TouchableOpacity key={g.id} style={[styles.chip, gameType === g.id && styles.chipActive]} onPress={() => setGameType(g.id)}>
             <Ionicons name={g.icon as any} size={13} color={gameType === g.id ? '#fff' : COLORS.textMuted} />
@@ -349,7 +349,7 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
             ) : chessMode === 'HOST_PLAYS' ? (
               <>
                 <Text style={styles.hint}>Pick your opponent</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginVertical: 6 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginVertical: 6 }} contentContainerStyle={{ gap: 8 }}>
                   {friends.map(f => (
                     <TouchableOpacity key={f.id} style={[styles.chip, opponentId === f.id && styles.chipActive]} onPress={() => setOpponentId(f.id)}>
                       <Text style={[styles.chipText, opponentId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>
@@ -360,7 +360,7 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
             ) : (
               <>
                 <Text style={styles.hint}>Pick Player 1 (White)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginVertical: 6 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginVertical: 6 }} contentContainerStyle={{ gap: 8 }}>
                   {friends.map(f => (
                     <TouchableOpacity key={f.id} style={[styles.chip, whiteId === f.id && styles.chipActive]} onPress={() => setWhiteId(f.id)}>
                       <Text style={[styles.chipText, whiteId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>
@@ -368,7 +368,7 @@ function GamingHost({ roomId, run, error, busy }: { roomId: string; run: RunFn; 
                   ))}
                 </ScrollView>
                 <Text style={styles.hint}>Pick Player 2 (Black)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginVertical: 6 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0, marginVertical: 6 }} contentContainerStyle={{ gap: 8 }}>
                   {friends.map(f => (
                     <TouchableOpacity key={f.id} style={[styles.chip, blackId === f.id && styles.chipActive]} onPress={() => setBlackId(f.id)}>
                       <Text style={[styles.chipText, blackId === f.id && styles.chipTextActive]}>{f.profile?.displayName || f.username}</Text>

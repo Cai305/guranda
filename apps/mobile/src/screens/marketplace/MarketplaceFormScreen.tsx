@@ -179,7 +179,7 @@ export default function MarketplaceFormScreen({ navigation }: any) {
         <TextInput style={styles.input} placeholder="What are you selling?" placeholderTextColor={COLORS.textMuted} value={title} onChangeText={setTitle} />
 
         <Text style={styles.label}>CATEGORY</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.chipRow}>
           {CATEGORIES.map(c => (
             <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
               <Text style={[styles.chipText, category === c && { color: '#1A0B33' }]}>{c}</Text>

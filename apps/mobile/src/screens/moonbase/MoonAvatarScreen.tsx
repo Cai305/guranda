@@ -139,7 +139,7 @@ export default function MoonAvatarScreen({ navigation }: any) {
   ) => (
     <>
       <Text style={styles.sectionLabel}>{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.chipRow}>
         {items.map(i => (
           <TouchableOpacity
             key={i.key}
