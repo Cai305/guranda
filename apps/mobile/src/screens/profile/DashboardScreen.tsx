@@ -362,11 +362,11 @@ export default function DashboardScreen({ navigation }: any) {
             </Text>
 
             <View style={dash.heroActions}>
-              <TouchableOpacity style={dash.heroBtn} onPress={() => navigation.navigate('Send')} activeOpacity={0.85}>
+              <TouchableOpacity style={dash.heroBtn} onPress={() => navigation.navigate('Main', { screen: 'Home', params: { screen: 'Send' } })} activeOpacity={0.85}>
                 <Ionicons name="send" size={14} color="#fff" />
                 <Text style={dash.heroBtnText}>SEND</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={dash.heroBtn} onPress={() => navigation.navigate('WalletHome')} activeOpacity={0.85}>
+              <TouchableOpacity style={dash.heroBtn} onPress={() => navigation.navigate('Main', { screen: 'Home', params: { screen: 'WalletHome' } })} activeOpacity={0.85}>
                 <Ionicons name="stats-chart" size={14} color="#fff" />
                 <Text style={dash.heroBtnText}>ACTIVITY</Text>
               </TouchableOpacity>
