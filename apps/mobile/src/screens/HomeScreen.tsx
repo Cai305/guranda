@@ -24,6 +24,7 @@ import { fetchLiveRooms, RealLiveStream, enterLiveStream } from '../data/liveApi
 import { GAMES } from './hub/GamesScreen';
 import { FIXED_COMPANION_IDS } from '../config/fixedCompanions';
 import OpportunitiesCarousel from '../components/opportunities/OpportunitiesCarousel';
+import HomeBriefingCard from '../components/HomeBriefingCard';
 
 const EVENT_CATEGORY_ICONS: Record<string, string> = {
   Festival: 'musical-notes',
@@ -570,6 +571,8 @@ export default function HomeScreen({ navigation }: any) {
         </View>
 
         <ResumeSessionBanner navigation={navigation} />
+
+        <HomeBriefingCard navigation={navigation} />
 
         {/* ===== Wallet hero ===== */}
         <TouchableOpacity

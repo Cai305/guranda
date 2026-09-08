@@ -74,6 +74,7 @@ import { BusinessInsightsModule } from './business-insights/business-insights.mo
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
+import { HomeModule } from './home/home.module';
 import { CapabilitiesModule } from './capabilities/capabilities.module';
 import { VotingModule } from './voting/voting.module';
 import { DeviceModule } from './device/device.module';
@@ -165,6 +166,7 @@ import { BlocksModule } from './blocks/blocks.module';
     CampaignsModule,
     AnnouncementsModule,
     OpportunitiesModule,
+    HomeModule,
     CapabilitiesModule,
     DeviceModule,
     IntegrationsModule,

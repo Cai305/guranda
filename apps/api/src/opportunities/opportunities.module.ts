@@ -8,5 +8,6 @@ import { ChallengesModule } from '../challenges/challenges.module';
   imports: [ChallengesModule],
   controllers: [OpportunitiesController],
   providers: [OpportunitiesService, PrismaService],
+  exports: [OpportunitiesService],
 })
 export class OpportunitiesModule {}

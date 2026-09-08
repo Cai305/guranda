@@ -102,6 +102,7 @@ model User {
   aiAgent                      AiAgent?
   aiMemories                   AiMemory[]
   notificationPreference       NotificationPreference?
+  homeBriefing                 HomeBriefing?
   stories                      Story[]
   storyViews                   StoryView[]
   propertiesManaged            Property[]                 @relation("propertiesManaged")
@@ -1667,6 +1668,21 @@ model NotificationPreference {
   games        Boolean  @default(true) // card-room invites
   soundEnabled Boolean  @default(true)
   updatedAt    DateTime @updatedAt
+}
+
+// Home's AI briefing (Phase 7) — one row per user, real narrated text
+// computed from real low-risk reads (wallet, achievements, notifications,
+// Opportunities), never a fabricated template. Cheap to read (Home just
+// GETs the cached row), refreshed either lazily on a stale GET or in bulk
+// by an n8n-scheduled call to POST /home/briefing/refresh-all — see
+// home.service.ts's generateBriefing/refreshAllActive.
+model HomeBriefing {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  text        String
+  state       String   @default("personalized") // 'personalized' | 'cold_start' | 'empty'
+  generatedAt DateTime @default(now())
 }
 
 model AiReminder {
