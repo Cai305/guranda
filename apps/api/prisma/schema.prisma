@@ -100,6 +100,7 @@ model User {
   watchHistory                 WatchHistory[]
   interests                    UserInterest[]
   aiAgent                      AiAgent?
+  aiMemories                   AiMemory[]
   stories                      Story[]
   storyViews                   StoryView[]
   propertiesManaged            Property[]                 @relation("propertiesManaged")
@@ -1622,6 +1623,25 @@ model AiAgent {
   handsFreeMode Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// A fact the user (or, later, the agent itself) has explicitly saved for the
+// agent to keep in mind — Settings > AI Memory's real store, per architecture
+// Phase 15.2/16. `source` distinguishes a user-added note from anything a
+// future agent tool writes autonomously; `enabled` lets a memory be paused
+// without deleting it (Phase 15.2 asks for both, not just delete).
+model AiMemory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  label     String
+  detail    String
+  source    String   @default("user") // 'user' | 'ai'
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model AiReminder {

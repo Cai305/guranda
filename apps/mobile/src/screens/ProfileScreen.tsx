@@ -182,26 +182,64 @@ export default function ProfileScreen({ navigation }: any) {
     ]);
   };
 
-  const menuItems = [
-    { icon: 'grid-outline', label: 'Dashboard', onPress: () => navigation.navigate('Dashboard') },
-    { icon: 'code-working-outline', label: 'Developer Hub (Publish App)', onPress: () => setDevModalVisible(true) },
-    { icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
-    { icon: 'heart-outline', label: 'Relationship Requests', onPress: () => navigation.navigate('RelationshipRequests') },
-    { icon: 'call-outline', label: 'Call History', onPress: () => navigation.navigate('CallLog') },
-    { icon: 'ribbon-outline', label: 'Achievements', onPress: () => navigation.navigate('Achievements') },
-    ...(canSponsor ? [{ icon: 'ribbon-outline', label: 'Sponsor a Challenge', onPress: () => navigation.navigate('SponsorChallenge') }] : []),
-    // Not gated on canSponsor — CREATOR_PROMO/REVIEWER_RECOMMENDATION campaign
-    // types are open to any user, only BUSINESS/MINI_APP_LAUNCH need a
-    // verified business (enforced server-side in campaigns.service.ts).
-    { icon: 'megaphone-outline', label: 'Business Campaigns', onPress: () => navigation.navigate('MyCampaigns') },
-    { icon: 'shield-checkmark-outline', label: 'Security & Privacy', onPress: () => navigation.navigate('SecurityPrivacy') },
-    { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
-    { icon: 'shield-checkmark-outline', label: 'External Approvals', onPress: () => navigation.navigate('McpApprovals') },
-    { icon: 'link-outline', label: 'External Apps', onPress: () => navigation.navigate('ConnectedApps') },
-    { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('NotificationsSettings') },
-    { icon: 'color-palette-outline', label: 'Theme', onPress: () => navigation.navigate('Appearance') },
-    { icon: 'language-outline', label: 'Language', onPress: () => navigation.navigate('Language') },
-    { icon: 'help-circle-outline', label: 'Help & Support', onPress: () => navigation.navigate('HelpSupport') },
+  // Grouped per architecture Phase 16 ("Control Center", not a 16-item flat
+  // list) — Dashboard itself is deliberately absent here since it now lives
+  // in My Zones > My Business, not duplicated in both places.
+  const settingsGroups: { label: string; items: { icon: string; label: string; onPress: () => void }[] }[] = [
+    {
+      label: 'Account',
+      items: [
+        { icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
+        { icon: 'shield-checkmark-outline', label: 'Security & Privacy', onPress: () => navigation.navigate('SecurityPrivacy') },
+      ],
+    },
+    {
+      label: 'AI & Permissions',
+      items: [
+        { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
+        { icon: 'bulb-outline', label: 'AI Memory', onPress: () => navigation.navigate('AiMemory') },
+        { icon: 'shield-checkmark-outline', label: 'External Approvals', onPress: () => navigation.navigate('McpApprovals') },
+        { icon: 'link-outline', label: 'External Apps', onPress: () => navigation.navigate('ConnectedApps') },
+      ],
+    },
+    {
+      label: 'Activity',
+      items: [
+        { icon: 'heart-outline', label: 'Relationship Requests', onPress: () => navigation.navigate('RelationshipRequests') },
+        { icon: 'call-outline', label: 'Call History', onPress: () => navigation.navigate('CallLog') },
+        { icon: 'ribbon-outline', label: 'Achievements', onPress: () => navigation.navigate('Achievements') },
+        // Not gated on canSponsor — CREATOR_PROMO/REVIEWER_RECOMMENDATION
+        // campaign types are open to any user, only BUSINESS/MINI_APP_LAUNCH
+        // need a verified business (enforced server-side in campaigns.service.ts).
+        ...(canSponsor ? [{ icon: 'ribbon-outline', label: 'Sponsor a Challenge', onPress: () => navigation.navigate('SponsorChallenge') }] : []),
+      ],
+    },
+    {
+      label: 'Business Tools',
+      items: [
+        { icon: 'code-working-outline', label: 'Developer Hub (Publish App)', onPress: () => setDevModalVisible(true) },
+        { icon: 'megaphone-outline', label: 'Business Campaigns', onPress: () => navigation.navigate('MyCampaigns') },
+      ],
+    },
+    {
+      label: 'Notifications',
+      items: [
+        { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('NotificationsSettings') },
+      ],
+    },
+    {
+      label: 'Appearance & Language',
+      items: [
+        { icon: 'color-palette-outline', label: 'Theme', onPress: () => navigation.navigate('Appearance') },
+        { icon: 'language-outline', label: 'Language', onPress: () => navigation.navigate('Language') },
+      ],
+    },
+    {
+      label: 'Support',
+      items: [
+        { icon: 'help-circle-outline', label: 'Help & Support', onPress: () => navigation.navigate('HelpSupport') },
+      ],
+    },
   ];
 
   const styles = useThemedStyles(({ COLORS, SPACING, RADIUS, TYPOGRAPHY }) => ({
@@ -778,22 +816,27 @@ export default function ProfileScreen({ navigation }: any) {
           )}
         </View>
 
-        {/* ===== Settings menu ===== */}
-        <Text style={styles.sectionLabel}>SETTINGS</Text>
-        <View style={styles.card}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.cardRow, index < menuItems.length - 1 && styles.rowBorder]}
-              onPress={item.onPress}
-              activeOpacity={0.6}
-            >
-              <Ionicons name={item.icon as any} size={22} color={COLORS.text} />
-              <Text style={[styles.rowTitle, { flex: 1, marginLeft: SPACING.md }]}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* ===== Settings — grouped, per Phase 16 ===== */}
+        <Text style={[styles.sectionLabel, styles.zonesHeaderLabel]}>SETTINGS</Text>
+        {settingsGroups.map((group) => (
+          <View key={group.label}>
+            <Text style={styles.zoneSubLabel}>{group.label}</Text>
+            <View style={styles.card}>
+              {group.items.map((item, index) => (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[styles.cardRow, index < group.items.length - 1 && styles.rowBorder]}
+                  onPress={item.onPress}
+                  activeOpacity={0.6}
+                >
+                  <Ionicons name={item.icon as any} size={22} color={COLORS.text} />
+                  <Text style={[styles.rowTitle, { flex: 1, marginLeft: SPACING.md }]}>{item.label}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
 
         {/* ===== Logout ===== */}
         <TouchableOpacity style={styles.logoutButton} activeOpacity={0.6} onPress={handleLogout}>

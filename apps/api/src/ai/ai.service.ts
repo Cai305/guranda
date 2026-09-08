@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { AgentRuntimeService } from '../ai-runtime/agent-runtime.service';
@@ -224,5 +224,56 @@ export class AiService {
       widgets: result.widgets,
       activeAgent: result.activeAgent,
     };
+  }
+
+  // ── AI Memory (Phase 15.2/16) — facts the agent should keep in mind ──────
+  // User-managed for now (no tool writes to this yet — a future agent
+  // capability, not built here); the view/edit/delete/disable controls
+  // themselves are real regardless of who created the row.
+
+  async listMemories(userId: string) {
+    return this.prisma.aiMemory.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createMemory(userId: string, label: string, detail: string) {
+    const trimmedLabel = (label || '').trim().slice(0, 60);
+    const trimmedDetail = (detail || '').trim().slice(0, 280);
+    if (!trimmedLabel || !trimmedDetail) {
+      throw new BadRequestException('A memory needs both a label and a detail.');
+    }
+    return this.prisma.aiMemory.create({
+      data: { userId, label: trimmedLabel, detail: trimmedDetail, source: 'user' },
+    });
+  }
+
+  async updateMemory(
+    userId: string,
+    id: string,
+    data: { label?: string; detail?: string; enabled?: boolean },
+  ) {
+    const existing = await this.prisma.aiMemory.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      throw new NotFoundException('Memory not found');
+    }
+    return this.prisma.aiMemory.update({
+      where: { id },
+      data: {
+        ...(data.label !== undefined ? { label: data.label.trim().slice(0, 60) } : {}),
+        ...(data.detail !== undefined ? { detail: data.detail.trim().slice(0, 280) } : {}),
+        ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+      },
+    });
+  }
+
+  async deleteMemory(userId: string, id: string) {
+    const existing = await this.prisma.aiMemory.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      throw new NotFoundException('Memory not found');
+    }
+    await this.prisma.aiMemory.delete({ where: { id } });
+    return { ok: true };
   }
 }

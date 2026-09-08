@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   Request,
@@ -96,5 +98,30 @@ export class AiController {
       id,
       body.message || '',
     );
+  }
+
+  // Settings > AI Memory (Phase 15.2/16) — view/edit/delete/disable.
+  @Get('memories')
+  async listMemories(@Request() req: any) {
+    return this.aiService.listMemories(req.user.userId);
+  }
+
+  @Post('memories')
+  async createMemory(@Request() req: any, @Body() body: { label: string; detail: string }) {
+    return this.aiService.createMemory(req.user.userId, body.label, body.detail);
+  }
+
+  @Patch('memories/:id')
+  async updateMemory(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { label?: string; detail?: string; enabled?: boolean },
+  ) {
+    return this.aiService.updateMemory(req.user.userId, id, body);
+  }
+
+  @Delete('memories/:id')
+  async deleteMemory(@Request() req: any, @Param('id') id: string) {
+    return this.aiService.deleteMemory(req.user.userId, id);
   }
 }

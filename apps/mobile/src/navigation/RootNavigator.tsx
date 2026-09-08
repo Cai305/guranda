@@ -59,6 +59,7 @@ import PlaylistDetailScreen from '../screens/discover/PlaylistDetailScreen';
 import InterestPickerScreen from '../screens/discover/InterestPickerScreen';
 import AiSetupScreen from '../screens/ai/AiSetupScreen';
 import AiAccessScreen from '../screens/ai/AiAccessScreen';
+import AiMemoryScreen from '../screens/ai/AiMemoryScreen';
 import AiChatScreen from '../screens/ai/AiChatScreen';
 import AiTourScreen from '../screens/ai/AiTourScreen';
 import McpApprovalsScreen from '../screens/ai/McpApprovalsScreen';
@@ -225,6 +226,7 @@ export default function RootNavigator() {
           <Stack.Screen name="InterestPicker" component={InterestPickerScreen} />
           <Stack.Screen name="AiSetup" component={AiSetupScreen} />
           <Stack.Screen name="AiAccess" component={AiAccessScreen} />
+          <Stack.Screen name="AiMemory" component={AiMemoryScreen} />
           <Stack.Screen name="AiChat" component={AiChatScreen} />
           <Stack.Screen name="AiTour" component={AiTourScreen} />
           <Stack.Screen name="McpApprovals" component={McpApprovalsScreen} />
