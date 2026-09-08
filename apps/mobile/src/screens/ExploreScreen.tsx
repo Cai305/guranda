@@ -132,6 +132,37 @@ export default function ExploreScreen({ navigation }: any) {
   // a real feed refetch (mode switch or pull-to-refresh), not on scroll.
   const viewedIds = useRef(new Set<string>());
 
+  // ── "All" stream's own infinite scroll ──────────────────────────────────
+  // The initial All stream is a curated round-robin from /trending's fixed
+  // snapshot (top ~15 posts, ~10 challenges/live/videos) — a real but finite
+  // page. Once the user scrolls past it, keep the stream going with more
+  // posts from the real paginated /posts feed (same cursor semantics as the
+  // Posts tab, tracked separately so switching tabs never cross-contaminates
+  // cursors), de-duped against whatever the trending snapshot already showed.
+  const [allExtraPosts, setAllExtraPosts] = useState<PostDto[]>([]);
+  const [allHasMore, setAllHasMore] = useState(true);
+  const [allLoadingMore, setAllLoadingMore] = useState(false);
+  const allPostsCursorRef = useRef<string | null>(null);
+  const allSeenPostIds = useRef<Set<string>>(new Set());
+
+  // ── Videos tab's own infinite scroll ────────────────────────────────────
+  // Independent of the "All" stream's curated top-10 trending videos — this
+  // is the real, fully paginated personalized feed (/videos/feed, same
+  // endpoint and cursor pattern DiscoverScreen's own feed tab already uses).
+  const [videoFeed, setVideoFeed] = useState<VideoMeta[]>([]);
+  const [videoFeedLoading, setVideoFeedLoading] = useState(false);
+  const [videoFeedLoadingMore, setVideoFeedLoadingMore] = useState(false);
+  const [videoFeedHasMore, setVideoFeedHasMore] = useState(true);
+  const videoFeedCursorRef = useRef<string | null>(null);
+
+  // ── Challenges "Browse" tab's own infinite scroll ───────────────────────
+  // GET /challenges already supports real skip/take pagination server-side —
+  // the screen just never used it before, always fetching one flat page.
+  const [challengesHasMore, setChallengesHasMore] = useState(true);
+  const [challengesLoadingMore, setChallengesLoadingMore] = useState(false);
+  const challengesSkipRef = useRef(0);
+  const CHALLENGES_PAGE_SIZE = 20;
+
   const effectiveModules = useEffectiveModules();
   // Real "discoverable" set — apps not yet installed from the store, per the
   // same registry the Home rail and the Mini Apps store already use. No
@@ -143,8 +174,10 @@ export default function ExploreScreen({ navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      if (filter === 'All' || filter === 'Live' || filter === 'Videos') {
+      if (filter === 'All' || filter === 'Live') {
         fetchTrending();
+      } else if (filter === 'Videos') {
+        fetchVideoFeed(true);
       } else if (filter === 'Posts') {
         fetchFeed();
       } else if (filter === 'Challenges') {
@@ -173,15 +206,38 @@ export default function ExploreScreen({ navigation }: any) {
   const fetchChallenges = async () => {
     try {
       setLoading(true);
-      const qs = challengeCategory ? `?category=${challengeCategory}` : '';
-      const res = await fetchApi(`/challenges${qs}`);
+      challengesSkipRef.current = 0;
+      const cat = challengeCategory ? `&category=${challengeCategory}` : '';
+      const res = await fetchApi(`/challenges?take=${CHALLENGES_PAGE_SIZE}${cat}`);
       if (res.ok) {
-        setChallenges(await res.json());
+        const data: ChallengeSummary[] = await res.json();
+        setChallenges(data);
+        challengesSkipRef.current = data.length;
+        setChallengesHasMore(data.length === CHALLENGES_PAGE_SIZE);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreChallenges = async () => {
+    if (challengesLoadingMore || !challengesHasMore) return;
+    try {
+      setChallengesLoadingMore(true);
+      const cat = challengeCategory ? `&category=${challengeCategory}` : '';
+      const res = await fetchApi(`/challenges?take=${CHALLENGES_PAGE_SIZE}&skip=${challengesSkipRef.current}${cat}`);
+      if (res.ok) {
+        const data: ChallengeSummary[] = await res.json();
+        setChallenges((prev) => [...prev, ...data]);
+        challengesSkipRef.current += data.length;
+        setChallengesHasMore(data.length === CHALLENGES_PAGE_SIZE);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setChallengesLoadingMore(false);
     }
   };
 
@@ -199,11 +255,80 @@ export default function ExploreScreen({ navigation }: any) {
           trends: data.trends ?? [],
           trendLabels: data.trendLabels ?? [],
         });
+        // Reset the "All" stream's own continuation pagination — a fresh
+        // trending snapshot means a fresh curated prefix to de-dupe against.
+        allSeenPostIds.current = new Set((data.posts as PostDto[]).map((p) => p.id));
+        allPostsCursorRef.current = null;
+        setAllExtraPosts([]);
+        setAllHasMore(true);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setTrendingLoading(false);
+    }
+  };
+
+  const loadMoreAll = async () => {
+    if (filter !== 'All' || allLoadingMore || !allHasMore) return;
+    try {
+      setAllLoadingMore(true);
+      const qs = allPostsCursorRef.current
+        ? `?take=${FEED_PAGE_SIZE}&cursor=${encodeURIComponent(allPostsCursorRef.current)}`
+        : `?take=${FEED_PAGE_SIZE}`;
+      const res = await fetchApi(`/posts${qs}`);
+      if (res.ok) {
+        const data: { posts: PostDto[]; nextCursor: string | null } = await res.json();
+        const fresh = data.posts.filter((p) => !allSeenPostIds.current.has(p.id));
+        fresh.forEach((p) => allSeenPostIds.current.add(p.id));
+        setAllExtraPosts((prev) => [...prev, ...fresh]);
+        allPostsCursorRef.current = data.nextCursor;
+        setAllHasMore(data.nextCursor !== null);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAllLoadingMore(false);
+    }
+  };
+
+  // /videos/feed is real cursor pagination — { videos, nextCursor } — same
+  // endpoint and shape DiscoverScreen's own feed tab already uses.
+  const fetchVideoFeed = async (reset: boolean) => {
+    try {
+      if (reset) {
+        setVideoFeedLoading(true);
+        videoFeedCursorRef.current = null;
+      }
+      const res = await fetchApi(`/videos/feed?take=20`);
+      if (res.ok) {
+        const data: { videos: VideoMeta[]; nextCursor: string | null } = await res.json();
+        setVideoFeed(data.videos);
+        videoFeedCursorRef.current = data.nextCursor;
+        setVideoFeedHasMore(data.nextCursor !== null);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setVideoFeedLoading(false);
+    }
+  };
+
+  const loadMoreVideoFeed = async () => {
+    if (videoFeedLoadingMore || !videoFeedHasMore || !videoFeedCursorRef.current) return;
+    try {
+      setVideoFeedLoadingMore(true);
+      const res = await fetchApi(`/videos/feed?take=20&cursor=${encodeURIComponent(videoFeedCursorRef.current)}`);
+      if (res.ok) {
+        const data: { videos: VideoMeta[]; nextCursor: string | null } = await res.json();
+        setVideoFeed((prev) => [...prev, ...data.videos]);
+        videoFeedCursorRef.current = data.nextCursor;
+        setVideoFeedHasMore(data.nextCursor !== null);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setVideoFeedLoadingMore(false);
     }
   };
 
@@ -1032,7 +1157,12 @@ export default function ExploreScreen({ navigation }: any) {
     !searchLower || (text ?? '').toLowerCase().includes(searchLower);
 
   const allStream = useMemo(() => {
-    const items = buildAllStream(trending?.posts ?? [], trending?.challenges ?? [], trending?.live ?? [], trending?.videos ?? [], discoverableApps);
+    const base = buildAllStream(trending?.posts ?? [], trending?.challenges ?? [], trending?.live ?? [], trending?.videos ?? [], discoverableApps);
+    // Past the curated round-robin prefix, the stream continues as plain
+    // posts from the real paginated /posts feed (loadMoreAll) — genuine
+    // infinite depth instead of dead-ending at the trending snapshot.
+    const extra: StreamItem[] = allExtraPosts.map((p) => ({ kind: 'post', key: `ap-${p.id}`, data: p }));
+    const items = [...base, ...extra];
     if (!searchLower) return items;
     return items.filter((item) => {
       if (item.kind === 'post') return matchesSearch(item.data.content) || matchesSearch(item.data.author?.displayName);
@@ -1042,7 +1172,7 @@ export default function ExploreScreen({ navigation }: any) {
       return matchesSearch(item.data.name) || matchesSearch(item.data.tagline);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trending, discoverableApps, searchLower]);
+  }, [trending, discoverableApps, searchLower, allExtraPosts]);
 
   const visiblePosts = useMemo(
     () => (searchLower ? posts.filter((p) => matchesSearch(p.content) || matchesSearch(p.author?.displayName)) : posts),
@@ -1060,9 +1190,9 @@ export default function ExploreScreen({ navigation }: any) {
     [trending, searchLower],
   );
   const visibleVideos = useMemo(
-    () => (searchLower ? (trending?.videos ?? []).filter((v) => matchesSearch(v.title)) : (trending?.videos ?? [])),
+    () => (searchLower ? videoFeed.filter((v) => matchesSearch(v.title)) : videoFeed),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trending, searchLower],
+    [videoFeed, searchLower],
   );
   const visibleApps = useMemo(
     () => (searchLower ? discoverableApps.filter((m) => matchesSearch(m.name) || matchesSearch(m.tagline)) : discoverableApps),
@@ -1324,6 +1454,11 @@ export default function ExploreScreen({ navigation }: any) {
                 showsVerticalScrollIndicator={false}
                 refreshing={loading}
                 onRefresh={fetchChallenges}
+                onEndReached={loadMoreChallenges}
+                onEndReachedThreshold={0.6}
+                ListFooterComponent={
+                  challengesLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
+                }
                 ListEmptyComponent={
                   !loading ? (
                     <View style={styles.emptyState}>
@@ -1432,10 +1567,15 @@ export default function ExploreScreen({ navigation }: any) {
           renderItem={({ item }) => <VideoCard video={item} onPress={openVideo} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          refreshing={trendingLoading}
-          onRefresh={fetchTrending}
+          refreshing={videoFeedLoading}
+          onRefresh={() => fetchVideoFeed(true)}
+          onEndReached={loadMoreVideoFeed}
+          onEndReachedThreshold={0.6}
+          ListFooterComponent={
+            videoFeedLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
+          }
           ListEmptyComponent={
-            !trendingLoading ? (
+            !videoFeedLoading ? (
               <View style={styles.emptyState}>
                 <Ionicons name="play-circle-outline" size={48} color={COLORS.textMuted} />
                 <Text style={styles.emptyText}>No videos trending right now — check back soon.</Text>
@@ -1468,6 +1608,11 @@ export default function ExploreScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
           refreshing={trendingLoading}
           onRefresh={fetchTrending}
+          onEndReached={loadMoreAll}
+          onEndReachedThreshold={0.6}
+          ListFooterComponent={
+            allLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
+          }
           ListHeaderComponent={
             !searchLower ? (
               <View>
