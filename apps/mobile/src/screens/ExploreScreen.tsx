@@ -15,6 +15,7 @@ import { useSocket } from '../context/SocketContext';
 import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import LiveStreamCard from '../components/LiveStreamCard';
+import VideoCard, { VideoMeta } from '../components/VideoCard';
 import { toLiveStream, enterLiveStream, RealLiveStream } from '../data/liveApi';
 import { useEffectiveModules, openModule, LifeModule } from '../config/modules';
 
@@ -24,7 +25,7 @@ const CHALLENGE_CATEGORIES = [
 ];
 
 const FEED_PAGE_SIZE = 20;
-const FILTERS = ['All', 'Posts', 'Challenges', 'Live', 'Mini Apps'] as const;
+const FILTERS = ['All', 'Posts', 'Videos', 'Challenges', 'Live', 'Mini Apps'] as const;
 type ExploreFilter = typeof FILTERS[number];
 
 // Compact X-style relative time — "13h", "3d", "just now" — instead of a
@@ -57,9 +58,10 @@ type StreamItem =
   | { kind: 'post'; key: string; data: PostDto }
   | { kind: 'challenge'; key: string; data: ChallengeSummary }
   | { kind: 'live'; key: string; data: RealLiveStream }
+  | { kind: 'video'; key: string; data: VideoMeta }
   | { kind: 'miniapp'; key: string; data: LifeModule };
 
-// Interleaves 4 already-independently-ranked sources (each ranked by its
+// Interleaves 5 already-independently-ranked sources (each ranked by its
 // own momentum signal server-side — trending.service.ts's own comment
 // explains why: "independently-ranked lists... not one merged/score-
 // normalized list") in a fixed round-robin, NOT a cross-type ranking by
@@ -70,19 +72,21 @@ function buildAllStream(
   posts: PostDto[],
   challenges: ChallengeSummary[],
   live: RealLiveStream[],
+  videos: VideoMeta[],
   miniApps: LifeModule[],
 ): StreamItem[] {
   const items: StreamItem[] = [];
-  let pi = 0, ci = 0, li = 0, ai = 0;
+  let pi = 0, ci = 0, li = 0, vi = 0, ai = 0;
   const cappedApps = miniApps.slice(0, 4);
-  const order: StreamItem['kind'][] = ['post', 'challenge', 'miniapp', 'live'];
+  const order: StreamItem['kind'][] = ['post', 'challenge', 'video', 'miniapp', 'live'];
   let step = 0;
-  const remaining = () => pi < posts.length || ci < challenges.length || li < live.length || ai < cappedApps.length;
+  const remaining = () => pi < posts.length || ci < challenges.length || li < live.length || vi < videos.length || ai < cappedApps.length;
   while (remaining()) {
     const slot = order[step % order.length];
     let placed = false;
     if (slot === 'post' && pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; placed = true; }
     else if (slot === 'challenge' && ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; placed = true; }
+    else if (slot === 'video' && vi < videos.length) { items.push({ kind: 'video', key: `v-${videos[vi].id}`, data: videos[vi] }); vi++; placed = true; }
     else if (slot === 'miniapp' && ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; placed = true; }
     else if (slot === 'live' && li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; placed = true; }
     if (!placed) {
@@ -90,6 +94,7 @@ function buildAllStream(
       // stalling the loop, so no type gets stranded behind an empty one.
       if (pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; }
       else if (ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; }
+      else if (vi < videos.length) { items.push({ kind: 'video', key: `v-${videos[vi].id}`, data: videos[vi] }); vi++; }
       else if (li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; }
       else if (ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; }
     }
@@ -108,7 +113,7 @@ export default function ExploreScreen({ navigation }: any) {
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [challengeCategory, setChallengeCategory] = useState<string | null>(null);
   const [challengeSubTab, setChallengeSubTab] = useState<'feed' | 'browse'>('feed');
-  const [trending, setTrending] = useState<{ posts: PostDto[]; challenges: ChallengeSummary[]; live: RealLiveStream[]; trends: any[]; trendLabels: { label: string; count: number }[] } | null>(null);
+  const [trending, setTrending] = useState<{ posts: PostDto[]; challenges: ChallengeSummary[]; live: RealLiveStream[]; videos: VideoMeta[]; trends: any[]; trendLabels: { label: string; count: number }[] } | null>(null);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -137,7 +142,7 @@ export default function ExploreScreen({ navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      if (filter === 'All' || filter === 'Live') {
+      if (filter === 'All' || filter === 'Live' || filter === 'Videos') {
         fetchTrending();
       } else if (filter === 'Posts') {
         fetchFeed();
@@ -189,6 +194,7 @@ export default function ExploreScreen({ navigation }: any) {
           posts: data.posts,
           challenges: data.challenges,
           live: (data.live as any[]).map(toLiveStream),
+          videos: data.videos ?? [],
           trends: data.trends ?? [],
           trendLabels: data.trendLabels ?? [],
         });
@@ -939,12 +945,13 @@ export default function ExploreScreen({ navigation }: any) {
     !searchLower || (text ?? '').toLowerCase().includes(searchLower);
 
   const allStream = useMemo(() => {
-    const items = buildAllStream(trending?.posts ?? [], trending?.challenges ?? [], trending?.live ?? [], discoverableApps);
+    const items = buildAllStream(trending?.posts ?? [], trending?.challenges ?? [], trending?.live ?? [], trending?.videos ?? [], discoverableApps);
     if (!searchLower) return items;
     return items.filter((item) => {
       if (item.kind === 'post') return matchesSearch(item.data.content) || matchesSearch(item.data.author?.displayName);
       if (item.kind === 'challenge') return matchesSearch(item.data.title);
       if (item.kind === 'live') return matchesSearch(item.data.title);
+      if (item.kind === 'video') return matchesSearch(item.data.title);
       return matchesSearch(item.data.name) || matchesSearch(item.data.tagline);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -962,6 +969,11 @@ export default function ExploreScreen({ navigation }: any) {
   );
   const visibleLive = useMemo(
     () => (searchLower ? (trending?.live ?? []).filter((l) => matchesSearch(l.title)) : (trending?.live ?? [])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trending, searchLower],
+  );
+  const visibleVideos = useMemo(
+    () => (searchLower ? (trending?.videos ?? []).filter((v) => matchesSearch(v.title)) : (trending?.videos ?? [])),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [trending, searchLower],
   );
@@ -1093,10 +1105,13 @@ export default function ExploreScreen({ navigation }: any) {
     </View>
   );
 
+  const openVideo = (v: VideoMeta) => navigation.navigate('VideoPlayer', { videoId: v.id });
+
   const renderStreamItem = ({ item }: { item: StreamItem }) => {
     if (item.kind === 'post') return renderPost(item.data);
     if (item.kind === 'challenge') return renderHeroChallenge(item.data);
     if (item.kind === 'live') return renderHeroLive(item.data);
+    if (item.kind === 'video') return <VideoCard video={item.data} onPress={openVideo} />;
     return renderMiniAppCard(item.data);
   };
 
@@ -1135,7 +1150,7 @@ export default function ExploreScreen({ navigation }: any) {
           </View>
         </View>
         <Text style={styles.subtitle}>
-          What's possible for you — posts, challenges, live streams and mini apps, each ranked by what's moving, all in one stream.
+          What's possible for you — posts, challenges, videos, live streams and mini apps, each ranked by what's moving, all in one stream.
         </Text>
         {searchOpen && (
           <View style={styles.searchBar}>
@@ -1316,6 +1331,25 @@ export default function ExploreScreen({ navigation }: any) {
               <View style={styles.emptyState}>
                 <Ionicons name="radio-outline" size={48} color={COLORS.textMuted} />
                 <Text style={styles.emptyText}>Nothing live right now — check back soon.</Text>
+              </View>
+            ) : null
+          }
+        />
+      ) : filter === 'Videos' ? (
+        <FlatList
+          key="videos-flatlist"
+          data={visibleVideos}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <VideoCard video={item} onPress={openVideo} />}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshing={trendingLoading}
+          onRefresh={fetchTrending}
+          ListEmptyComponent={
+            !trendingLoading ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="play-circle-outline" size={48} color={COLORS.textMuted} />
+                <Text style={styles.emptyText}>No videos trending right now — check back soon.</Text>
               </View>
             ) : null
           }

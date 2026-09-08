@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import { TrendingService } from './trending.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
 
@@ -8,7 +8,7 @@ export class TrendingController {
   constructor(private readonly trendingService: TrendingService) {}
 
   @Get()
-  async getTrending() {
-    return this.trendingService.getTrendingFeed();
+  async getTrending(@Request() req: any) {
+    return this.trendingService.getTrendingFeed(req.user.userId);
   }
 }

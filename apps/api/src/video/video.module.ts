@@ -19,5 +19,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
     VideoTranscodeService,
     VideoRewardService,
   ],
+  exports: [VideoService],
 })
 export class VideoModule {}

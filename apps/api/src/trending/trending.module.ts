@@ -5,9 +5,10 @@ import { PostsModule } from '../posts/posts.module';
 import { ChallengesModule } from '../challenges/challenges.module';
 import { LiveModule } from '../live/live.module';
 import { StoryModule } from '../story/story.module';
+import { VideoModule } from '../video/video.module';
 
 @Module({
-  imports: [PostsModule, ChallengesModule, LiveModule, StoryModule],
+  imports: [PostsModule, ChallengesModule, LiveModule, StoryModule, VideoModule],
   controllers: [TrendingController],
   providers: [TrendingService],
 })
