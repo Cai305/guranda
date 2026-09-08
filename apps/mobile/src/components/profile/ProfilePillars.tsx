@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { formatCount } from '../../utils/format';
+import LeagueCard from './LeagueCard';
 
 export interface ProfilePillarsData {
   reputation: { value: number; deltaWeek: number | null };
@@ -13,6 +14,10 @@ export interface ProfilePillarsData {
     nextLevel: string | null;
     subscribersNeeded: number | null;
     ladder: { level: string; min: number }[];
+    league: string;
+    leagueRating: number;
+    leaguePosition: number;
+    leagueSize: number;
   };
   impact: { value: number; deltaWeek: number | null };
 }
@@ -68,6 +73,7 @@ export default function ProfilePillars({ data }: { data: ProfilePillarsData }) {
       backgroundColor: COLORS.border,
     },
     ladderDotDone: { backgroundColor: COLORS.gold },
+    leagueWrap: { paddingHorizontal: SPACING.lg, marginTop: SPACING.md },
   }));
 
   const rankLadderIdx = data.rank.ladder.findIndex((t) => t.level === data.rank.level);
@@ -115,6 +121,7 @@ export default function ProfilePillars({ data }: { data: ProfilePillarsData }) {
   ];
 
   return (
+    <>
     <View style={styles.grid}>
       {pillars.map((p) => (
         <View key={p.key} style={styles.card}>
@@ -142,5 +149,16 @@ export default function ProfilePillars({ data }: { data: ProfilePillarsData }) {
         </View>
       ))}
     </View>
+    <View style={styles.leagueWrap}>
+      <LeagueCard
+        data={{
+          rating: data.rank.leagueRating,
+          league: data.rank.league,
+          leaguePosition: data.rank.leaguePosition,
+          leagueSize: data.rank.leagueSize,
+        }}
+      />
+    </View>
+    </>
   );
 }

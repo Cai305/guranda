@@ -22,6 +22,7 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
 import { formatLastSeen } from '../utils/format';
 import { encodeProfileCard } from '../components/cards/ProfileMiniCard';
+import LeagueCard from '../components/profile/LeagueCard';
 
 interface RelationshipInfo {
   status: string;
@@ -42,19 +43,6 @@ interface PublicProfile {
   leagueSize: number;
   relationship: RelationshipInfo | null;
 }
-
-// Bronze/Silver/Gold/Platinum/Diamond/Legendary — same names as the Couples
-// rank tiers (relationships.service.ts), applied to individual reputation.
-// "Unranked" is the floor tier (reputation.util.ts leagueForReputation).
-const LEAGUE_COLORS: Record<string, string> = {
-  'Legendary League': '#F472B6',
-  'Diamond League': '#22D3EE',
-  'Platinum League': '#A78BFA',
-  'Gold League': '#FBBF24',
-  'Silver League': '#9CA3AF',
-  'Bronze League': '#CD7F32',
-  Unranked: '#6B7280',
-};
 
 
 interface FollowStats {
@@ -419,45 +407,6 @@ export default function UserProfileScreen({ route, navigation }: any) {
       fontSize: 12,
       fontWeight: '700',
       color: COLORS.text,
-    },
-    leagueCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: SPACING.sm,
-      backgroundColor: 'rgba(255,255,255,0.06)',
-      borderRadius: RADIUS.md,
-      paddingVertical: SPACING.sm + 2,
-      paddingHorizontal: SPACING.md,
-      width: '100%',
-    },
-    leagueItem: {
-      flex: 1,
-    },
-    leagueLabel: {
-      color: 'rgba(255,255,255,0.55)',
-      fontSize: 10,
-      marginBottom: 2,
-    },
-    leagueDivider: {
-      width: 1,
-      height: 26,
-      backgroundColor: 'rgba(255,255,255,0.12)',
-      marginHorizontal: SPACING.sm,
-    },
-    leagueNameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-    },
-    leagueNameText: {
-      fontSize: 11.5,
-      fontWeight: '800',
-      flexShrink: 1,
-    },
-    leaguePositionText: {
-      color: COLORS.text,
-      fontSize: 13,
-      fontWeight: '800',
     },
     loadingBox: {
       flex: 1,
@@ -850,29 +799,8 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
               {/* League + rating */}
               {!!profile && (
-                <View style={styles.leagueCard}>
-                  <View style={styles.leagueItem}>
-                    <Text style={styles.leagueLabel}>Rating</Text>
-                    <View style={styles.leagueNameRow}>
-                      <Ionicons name="star" size={13} color={COLORS.gold} />
-                      <Text style={[styles.leagueNameText, { color: COLORS.gold }]}>{profile.rating}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.leagueDivider} />
-                  <View style={styles.leagueItem}>
-                    <Text style={styles.leagueLabel}>League</Text>
-                    <View style={styles.leagueNameRow}>
-                      <Ionicons name="trophy" size={13} color={LEAGUE_COLORS[profile.league] || COLORS.textMuted} />
-                      <Text style={[styles.leagueNameText, { color: LEAGUE_COLORS[profile.league] || COLORS.textMuted }]} numberOfLines={1}>
-                        {profile.league}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.leagueDivider} />
-                  <View style={styles.leagueItem}>
-                    <Text style={styles.leagueLabel}>Position</Text>
-                    <Text style={styles.leaguePositionText}>#{profile.leaguePosition} of {profile.leagueSize}</Text>
-                  </View>
+                <View style={{ marginTop: 8, width: '100%' }}>
+                  <LeagueCard data={profile} />
                 </View>
               )}
             </LinearGradient>

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
-import { getDisplayedReputation, nextLevelThreshold, levelLadder } from '../users/reputation.util';
+import { getDisplayedReputation, getLeagueStanding, nextLevelThreshold, levelLadder } from '../users/reputation.util';
 
 @Injectable()
 export class ProfileService {
@@ -16,10 +16,11 @@ export class ProfileService {
    * the "this week" delta stays consistent with what's actually stored.
    */
   async computePillars(userId: string) {
-    const [{ live, subscribers, reputation, level }, profile, challengesCompleted] = await Promise.all([
+    const [{ live, subscribers, reputation, level }, profile, challengesCompleted, leagueStanding] = await Promise.all([
       getDisplayedReputation(this.prisma, userId),
       this.prisma.userProfile.findUnique({ where: { userId } }),
       this.prisma.challengeEntry.count({ where: { userId } }),
+      getLeagueStanding(this.prisma, userId),
     ]);
 
     const xp = profile?.xp ?? 0;
@@ -49,6 +50,16 @@ export class ProfileService {
         nextLevel: next?.nextLevel ?? null,
         subscribersNeeded: next ? Math.max(0, Math.round(next.subscribersNeeded)) : null,
         ladder: levelLadder(),
+        // Distinct from `level` above (Nano..Mega influence ladder) — this
+        // is the competitive league bracket, same one UserProfileScreen
+        // already shows for OTHER users (users.service.ts's getPublicProfile).
+        // Ranked against the active Username's frozen reputationScore
+        // snapshot, not live activity — see getLeagueStanding's own comment
+        // for why (same tradeoff the leaderboard already makes).
+        league: leagueStanding.league,
+        leagueRating: leagueStanding.rating,
+        leaguePosition: leagueStanding.leaguePosition,
+        leagueSize: leagueStanding.leagueSize,
       },
       impact: {
         value: impactValue,
