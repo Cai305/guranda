@@ -119,6 +119,7 @@ export async function computeLiveActivity(prisma: PrismaService, userId: string)
     gamesCount,
     liveStreamsHosted,
     giftsReceived,
+    videoViews,
     subscribers,
     reputation,
   };

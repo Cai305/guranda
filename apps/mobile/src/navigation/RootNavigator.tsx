@@ -135,6 +135,7 @@ import AppearanceScreen from '../screens/profile/AppearanceScreen';
 import LanguageScreen from '../screens/profile/LanguageScreen';
 import HelpSupportScreen from '../screens/profile/HelpSupportScreen';
 import ContentEarningsScreen from '../screens/ContentEarningsScreen';
+import MyGrowthScreen from '../screens/MyGrowthScreen';
 import HairHomeScreen from '../screens/hub/hair/HairHomeScreen';
 import HairdresserProfileScreen from '../screens/hub/hair/HairdresserProfileScreen';
 import HairServiceScreen from '../screens/hub/hair/HairServiceScreen';
@@ -297,6 +298,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Language" component={LanguageScreen} />
           <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
           <Stack.Screen name="ContentEarnings" component={ContentEarningsScreen} />
+          <Stack.Screen name="MyGrowth" component={MyGrowthScreen} />
           <Stack.Screen name="CreateStory" component={CreateStoryScreen} />
           <Stack.Screen name="StoryViewer" component={StoryViewerScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="StatusViewers" component={StatusViewersScreen} />

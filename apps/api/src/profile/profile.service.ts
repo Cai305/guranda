@@ -286,6 +286,53 @@ export class ProfileService {
     return items;
   }
 
+  /**
+   * "My Growth" — a creator's real trend, not a static number (Dashboard
+   * used to show reputation/subscribers as flat pills with no history).
+   * Reuses the exact ProfileMetricsSnapshot rows the Reputation pillar
+   * already diffs against, so this never drifts from what Profile shows.
+   * Engagement rate has no historical trend — nothing snapshots raw
+   * likes/comments counts — so it's reported as a current live ratio only,
+   * not faked as a week-over-week delta.
+   */
+  async getMyGrowth(userId: string) {
+    const [{ live, subscribers, reputation }, history, postAgg] = await Promise.all([
+      getDisplayedReputation(this.prisma, userId),
+      this.prisma.profileMetricsSnapshot.findMany({
+        where: { userId },
+        orderBy: { capturedAt: 'desc' },
+        take: 14,
+      }),
+      this.prisma.post.aggregate({
+        where: { authorId: userId },
+        _count: true,
+      }),
+    ]);
+    const [likesReceived, commentsReceived] = await Promise.all([
+      this.prisma.postLike.count({ where: { post: { authorId: userId } } }),
+      this.prisma.comment.count({ where: { post: { authorId: userId } } }),
+    ]);
+
+    const weekAgo = history.find((s) => s.capturedAt.getTime() <= Date.now() - 7 * 24 * 60 * 60 * 1000) ?? null;
+    const postCount = postAgg._count;
+    const engagementRate = postCount > 0 ? Math.round(((likesReceived + commentsReceived) / postCount) * 10) / 10 : 0;
+
+    const metric = (current: number, key: 'reputation' | 'subscribers' | 'videoViews') => ({
+      current: Math.round(current),
+      deltaWeek: weekAgo ? Math.round(current - weekAgo[key]) : null,
+      // Oldest-first, capped to the last 14 days of snapshots — enough for
+      // a simple sparkline without pulling unbounded history.
+      history: [...history].reverse().map((s) => ({ value: Math.round(s[key]), when: s.capturedAt.toISOString() })),
+    });
+
+    return {
+      reputation: metric(reputation, 'reputation'),
+      subscribers: metric(subscribers, 'subscribers'),
+      videoViews: metric(live.videoViews, 'videoViews'),
+      engagementRate: { current: engagementRate, postCount, likesReceived, commentsReceived },
+    };
+  }
+
   // Runs once a day so pillar cards can diff against "the value ~7 days
   // ago" — same pattern as the CCR/daily-challenge crons elsewhere.
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
@@ -315,6 +362,7 @@ export class ProfileService {
           xp: profile?.xp ?? 0,
           challengesCompleted,
           giftsReceived: live.giftsReceived,
+          videoViews: live.videoViews,
         },
       });
     }

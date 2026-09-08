@@ -3462,6 +3462,12 @@ model ProfileMetricsSnapshot {
   xp                  Int
   challengesCompleted Int
   giftsReceived       Int
+  // Added for Creator Growth (Profile's "My Growth" screen) — video views
+  // is the one reach metric with a clean real aggregate (Video.aggregate
+  // sum(views), already used by computeLiveActivity); story views has no
+  // equivalent aggregate today so it's deliberately left out rather than
+  // faked.
+  videoViews          Int      @default(0)
   capturedAt          DateTime @default(now())
 
   @@index([userId, capturedAt])

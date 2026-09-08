@@ -737,6 +737,22 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.card, { marginTop: SPACING.sm }]}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('MyGrowth')}
+        >
+          <View style={styles.cardRow}>
+            <View style={[styles.rowIcon, { backgroundColor: 'rgba(52, 211, 153, 0.15)' }]}>
+              <Ionicons name="trending-up" size={20} color={COLORS.success} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>My Growth</Text>
+              <Text style={styles.rowDetail}>Reputation, subscribers and reach over time</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </View>
+        </TouchableOpacity>
 
         {/* My Business — Dashboard / Listings / Properties */}
         <Text style={styles.zoneSubLabel}>My Business</Text>

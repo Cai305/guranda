@@ -33,4 +33,10 @@ export class ProfileController {
   async getMyGameStats(@Request() req: any) {
     return this.profileService.getMyGameStats(req.user.userId);
   }
+
+  // Creator Growth — real trend over time, not a static number.
+  @Get('me/growth')
+  async getMyGrowth(@Request() req: any) {
+    return this.profileService.getMyGrowth(req.user.userId);
+  }
 }
