@@ -227,9 +227,9 @@ export class AiService {
   }
 
   // ── AI Memory (Phase 15.2/16) — facts the agent should keep in mind ──────
-  // User-managed for now (no tool writes to this yet — a future agent
-  // capability, not built here); the view/edit/delete/disable controls
-  // themselves are real regardless of who created the row.
+  // Written by the user (Settings > AI Memory) or by the agent itself via
+  // memory-ai-tools.provider.ts's memory.remember tool (source: 'ai'); read
+  // into every conversation's system prompt in agent-runtime.service.ts.
 
   async listMemories(userId: string) {
     return this.prisma.aiMemory.findMany({
@@ -238,14 +238,14 @@ export class AiService {
     });
   }
 
-  async createMemory(userId: string, label: string, detail: string) {
+  async createMemory(userId: string, label: string, detail: string, source: 'user' | 'ai' = 'user') {
     const trimmedLabel = (label || '').trim().slice(0, 60);
     const trimmedDetail = (detail || '').trim().slice(0, 280);
     if (!trimmedLabel || !trimmedDetail) {
       throw new BadRequestException('A memory needs both a label and a detail.');
     }
     return this.prisma.aiMemory.create({
-      data: { userId, label: trimmedLabel, detail: trimmedDetail, source: 'user' },
+      data: { userId, label: trimmedLabel, detail: trimmedDetail, source },
     });
   }
 

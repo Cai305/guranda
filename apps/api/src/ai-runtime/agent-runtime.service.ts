@@ -121,6 +121,11 @@ export class AgentRuntimeService {
     const session = await this.contextManager.get(userId);
     const recentHistory =
       await this.conversationHistory.getRecentSummary(userId);
+    const memories = await this.prisma.aiMemory.findMany({
+      where: { userId, enabled: true },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    });
     // Read access defaults open like every other pure-read capability
     // (wallet.read, travel.read, etc.) — only explicit `false` turns it off.
     const internetAccessGranted = perms['internet.search'] !== false;
@@ -147,6 +152,7 @@ export class AgentRuntimeService {
           availableTools,
           session,
           recentHistory,
+          memories,
         );
       }
     } else {
@@ -158,6 +164,7 @@ export class AgentRuntimeService {
         availableTools,
         session,
         recentHistory,
+        memories,
       );
     }
     const runtimeTools: RuntimeTool[] = availableTools.map((t) => ({
@@ -348,6 +355,7 @@ export class AgentRuntimeService {
       taskSummary?: string | null;
     } | null,
     recentHistory: string | null,
+    memories: { label: string; detail: string }[],
   ): string {
     const byModule = new Map<string, string[]>();
     for (const t of tools) {
@@ -369,6 +377,16 @@ export class AgentRuntimeService {
     const historyBlock = recentHistory
       ? `\nRECENT CONVERSATION HISTORY (earlier sessions, oldest first — you have real memory, use it naturally, don't say "I don't have access to past conversations"):\n${recentHistory}\n`
       : '';
+
+    const canRemember = tools.some((t) => t.name === 'memory.remember');
+    const rememberInstruction = canRemember
+      ? " When you learn a new durable fact worth keeping past this conversation, call memory.remember to save it — don't just mention it and let it evaporate."
+      : '';
+    const memoriesBlock = memories.length
+      ? `\nTHINGS YOU REMEMBER ABOUT ${userName.toUpperCase()} (saved by them or by you in an earlier session — use naturally, don't recite this list back verbatim):\n${memories.map((m) => `- ${m.label}: ${m.detail}`).join('\n')}\n${rememberInstruction}\n`
+      : canRemember
+        ? `\nYou have no saved memories about ${userName} yet.${rememberInstruction}\n`
+        : '';
 
     // Baked-in product knowledge, not a permission-gated capability — you
     // already know what every mini app does and why it exists, whether or
@@ -397,7 +415,7 @@ HOW A GOOD HUMAN ASSISTANT THINKS (this is the actual difference between you and
 Capabilities you currently have access to (only these — the user grants more in AI settings):
 ${capabilities || '(none granted yet)'}
 ${focusLine}
-${historyBlock}
+${historyBlock}${memoriesBlock}
 MINI APPS IN GURANDA — you already know these exist and what they're for, regardless of whether miniapps.* tools are in your capability list above (that only gates checking/changing THIS user's install state, not your knowledge of the product):
 ${miniAppsKnowledge}
 
