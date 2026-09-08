@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma.service';
 import { FriendsService } from '../friends/friends.service';
 
-// CCR = "creator support rate" — the flat MSH cost of each paid interaction
+// CCR = "creator support rate" — the flat Rand cost of each paid interaction
 // (like/comment/rank) on a labeled story, paid straight to its author. Server
 // is authoritative; the client only displays this for UX.
 const CCR_RATE = 0.58;
@@ -267,7 +267,7 @@ export class StoryService {
     if (!wallet) throw new BadRequestException('Wallet not found');
     if (Number(wallet.balanceMasheleni) < CCR_RATE) {
       throw new BadRequestException(
-        `Not enough MSH — balance is ${wallet.balanceMasheleni}`,
+        `Not enough Rand — balance is R${wallet.balanceMasheleni}`,
       );
     }
 
@@ -440,7 +440,7 @@ export class StoryService {
     if (!buyerWallet) throw new BadRequestException('Wallet not found');
     if (Number(buyerWallet.balanceMasheleni) < price) {
       throw new BadRequestException(
-        `Not enough MSH — balance is ${buyerWallet.balanceMasheleni}`,
+        `Not enough Rand — balance is R${buyerWallet.balanceMasheleni}`,
       );
     }
     const sellerWallet = await this.prisma.wallet.findUnique({

@@ -82,6 +82,11 @@ export class WalletsController {
     return this.walletsService.getCreatorFundsSummary(req.user.userId);
   }
 
+  @Get('creator-funds/breakdown')
+  async getContentEarningsBreakdown(@Request() req: any) {
+    return this.walletsService.getContentEarningsBreakdown(req.user.userId);
+  }
+
   @Post('requests')
   async requestPayment(@Request() req: any, @Body() body: RequestPaymentDto) {
     return this.financialEngine.requestPayment(

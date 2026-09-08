@@ -695,7 +695,7 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
-          <View style={styles.cardRow}>
+          <TouchableOpacity style={styles.cardRow} activeOpacity={0.7} onPress={() => navigation.navigate('ContentEarnings')}>
             <View style={[styles.rowIcon, { backgroundColor: 'rgba(251, 191, 36, 0.12)' }]}>
               <Ionicons name="ribbon-outline" size={20} color={COLORS.gold} />
             </View>
@@ -705,7 +705,8 @@ export default function ProfileScreen({ navigation }: any) {
                 {creatorFunds ? `${formatCurrency(creatorFunds.pendingBalance)} pending — next payout ${new Date(creatorFunds.nextPayoutDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}` : 'Earned from likes, comments, and ranks on your "of the Day" stories'}
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* My Content — post performance */}

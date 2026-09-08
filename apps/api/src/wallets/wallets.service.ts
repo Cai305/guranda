@@ -403,6 +403,101 @@ export class WalletsService {
     };
   }
 
+  /**
+   * Real per-item breakdown behind Profile's "Content Earnings" row (was a
+   * dead-end summary line before). Three genuinely real income sources —
+   * checked against actual call sites, not just the Transaction.type enum
+   * comment: CCR (story likes/comments/ranks, tracked as pending-until-
+   * payout Transaction rows, same ones payoutCreatorFunds() batches),
+   * story item sales (Transaction rows, seller side only — amount > 0),
+   * and video gifts (Gift.context === 'video', the only Gift context a
+   * real screen actually wires up; 'story' gifting is typed but never
+   * used by any screen, so it's deliberately left out rather than shown
+   * as an always-empty fake category).
+   */
+  async getContentEarningsBreakdown(userId: string) {
+    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) throw new NotFoundException('Wallet not found');
+
+    const CCR_TYPES = ['STORY_LIKE', 'STORY_COMMENT', 'STORY_RANK'];
+    const CCR_LABEL: Record<string, string> = {
+      STORY_LIKE: 'Story like',
+      STORY_COMMENT: 'Story comment',
+      STORY_RANK: 'Story rank bonus',
+    };
+
+    // CCR transactions come in debit/credit pairs on two different wallets
+    // (see story.service.ts's chargeInteraction: the interactor's wallet
+    // gets a negative row, the creator's wallet gets a positive one) — so
+    // amount > 0 is required here too, or a creator who also likes other
+    // people's stories would see their own outgoing CCR payments counted
+    // as earnings.
+    const ccrWhere = { walletId: wallet.id, type: { in: CCR_TYPES }, amount: { gt: 0 } };
+    const storySalesWhere = { walletId: wallet.id, type: 'STORY_ITEM_SALE', amount: { gt: 0 } };
+
+    const [ccrTx, storySales, videoGifts, allTimeCcr, allTimeSales, allTimeGifts] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: ccrWhere,
+        orderBy: { timestamp: 'desc' },
+        take: 30,
+      }),
+      this.prisma.transaction.findMany({
+        where: storySalesWhere,
+        orderBy: { timestamp: 'desc' },
+        take: 30,
+      }),
+      this.prisma.gift.findMany({
+        where: { recipientId: userId, context: 'video' },
+        include: { sender: { select: { username: true, profile: { select: { displayName: true } } } } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      this.prisma.transaction.aggregate({ where: ccrWhere, _sum: { amount: true } }),
+      this.prisma.transaction.aggregate({ where: storySalesWhere, _sum: { amount: true } }),
+      this.prisma.gift.aggregate({ where: { recipientId: userId, context: 'video' }, _sum: { amount: true } }),
+    ]);
+
+    type Item = { id: string; source: 'ccr' | 'story_sale' | 'video_gift'; label: string; amount: number; status: string; when: string };
+    const items: Item[] = [
+      ...ccrTx.map((t) => ({
+        id: t.id,
+        source: 'ccr' as const,
+        label: CCR_LABEL[t.type] ?? t.type,
+        amount: Number(t.amount),
+        status: t.status,
+        when: t.timestamp.toISOString(),
+      })),
+      ...storySales.map((t) => ({
+        id: t.id,
+        source: 'story_sale' as const,
+        label: 'Story item sold',
+        amount: Number(t.amount),
+        status: t.status,
+        when: t.timestamp.toISOString(),
+      })),
+      ...videoGifts.map((g) => ({
+        id: g.id,
+        source: 'video_gift' as const,
+        label: `${g.giftType} from ${g.sender.profile?.displayName || g.sender.username}`,
+        amount: g.amount,
+        status: 'SUCCESS',
+        when: g.createdAt.toISOString(),
+      })),
+    ].sort((a, b) => b.when.localeCompare(a.when));
+
+    return {
+      summary: {
+        pendingThisMonth: wallet.pendingCreatorFunds,
+        nextPayoutDate: getNextPayoutDate().toISOString(),
+        totalAllTime:
+          Number(allTimeCcr._sum.amount ?? 0) +
+          Number(allTimeSales._sum.amount ?? 0) +
+          Number(allTimeGifts._sum.amount ?? 0),
+      },
+      items: items.slice(0, 50),
+    };
+  }
+
   // Batches every user's accrued Content Contribution Remuneration
   // (from story likes/comments/ranks — see StoryService) into their
   // spendable balance in one lump sum, matching getNextPayoutDate() above.
