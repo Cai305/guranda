@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BlocksService } from '../blocks/blocks.service';
@@ -46,7 +46,7 @@ export class FriendsService {
     const friendship = await this.prisma.friendship.create({ data: { requesterId, addresseeId, status: 'pending' } });
     const addressee = await this.prisma.user.findUnique({ where: { id: addresseeId } });
     if (addressee?.expoPushToken) {
-      await sendPushNotification(addressee.expoPushToken, 'New friend request', 'Someone wants to add you as a friend on Guranda');
+      await sendCategorizedPush(this.prisma, addresseeId, 'social', addressee.expoPushToken, 'New friend request', 'Someone wants to add you as a friend on Guranda');
     }
     await this.notifications.create(
       addresseeId,

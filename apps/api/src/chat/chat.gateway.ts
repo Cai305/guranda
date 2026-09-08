@@ -10,7 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma.service';
 import { ChatService } from './chat.service';
 import { CallService } from '../calls/call.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BlocksService } from '../blocks/blocks.service';
 import {
@@ -405,7 +405,7 @@ export class ChatGateway implements OnGatewayDisconnect {
       const isMuted = !!member.mutedUntil && member.mutedUntil > new Date();
       const token = member.user.expoPushToken;
       if (token && !isMuted) {
-        await sendPushNotification(token, senderName, body, {
+        await sendCategorizedPush(this.prisma, member.userId, 'messages', token, senderName, body, {
           type: 'chat_message',
           chatId,
         });
@@ -418,7 +418,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     for (const share of delegates) {
       const token = share.delegate.expoPushToken;
       if (token) {
-        await sendPushNotification(token, senderName, body, { type: 'chat_message', chatId });
+        await sendCategorizedPush(this.prisma, share.delegateId, 'messages', token, senderName, body, { type: 'chat_message', chatId });
       }
       await this.notifications.create(share.delegateId, 'chat.message', senderName, body, { chatId });
     }
@@ -634,7 +634,10 @@ export class ChatGateway implements OnGatewayDisconnect {
     // today (see docs/plan: Phase 6 layers native CallKit/ConnectionService
     // ringing on top of this same Call record + push).
     if (callee.expoPushToken) {
-      sendPushNotification(
+      sendCategorizedPush(
+        this.prisma,
+        data.targetUserId,
+        'calls',
         callee.expoPushToken,
         `Incoming ${data.video ? 'video' : 'voice'} call`,
         `${data.callerName} is calling you`,
@@ -837,7 +840,10 @@ export class ChatGateway implements OnGatewayDisconnect {
         video: data.video,
       });
       if (m.pushToken) {
-        sendPushNotification(
+        sendCategorizedPush(
+          this.prisma,
+          m.id,
+          'calls',
           m.pushToken,
           `Incoming group ${data.video ? 'video' : 'voice'} call`,
           `${data.callerName} started a call in ${chat.name || 'a group chat'}`,

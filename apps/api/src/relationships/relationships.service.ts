@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import type { RelationshipStatusType } from '@prisma/client';
@@ -69,7 +69,10 @@ export class RelationshipsService {
     });
     const partner = await this.prisma.user.findUnique({ where: { id: partnerId } });
     if (partner?.expoPushToken) {
-      await sendPushNotification(
+      await sendCategorizedPush(
+        this.prisma,
+        partnerId,
+        'social',
         partner.expoPushToken,
         'New relationship request',
         'Someone wants to link up as a couple on Guranda',

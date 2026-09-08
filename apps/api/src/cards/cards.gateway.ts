@@ -10,7 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { CardsService, CardGameMode } from './cards.service';
 import { PrismaService } from '../prisma.service';
 import { FriendsService } from '../friends/friends.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Card, CassinoMatchMode } from '@mxit2/types';
 
@@ -273,7 +273,10 @@ export class CardsGateway implements OnGatewayDisconnect {
     const room = await this.cards.getRoom(data.roomId);
     if (room) {
       if (friend?.expoPushToken) {
-        await sendPushNotification(
+        await sendCategorizedPush(
+          this.prisma,
+          data.friendUserId,
+          'games',
           friend.expoPushToken,
           'Game invite',
           `You've been invited to a ${room.mode === 'FIVE_CARDS' ? '5 Cards' : 'Cassino'} room`,

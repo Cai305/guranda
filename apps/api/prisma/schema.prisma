@@ -101,6 +101,7 @@ model User {
   interests                    UserInterest[]
   aiAgent                      AiAgent?
   aiMemories                   AiMemory[]
+  notificationPreference       NotificationPreference?
   stories                      Story[]
   storyViews                   StoryView[]
   propertiesManaged            Property[]                 @relation("propertiesManaged")
@@ -1642,6 +1643,30 @@ model AiMemory {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+// Real, server-enforced push preferences — Settings > Notifications
+// (architecture Phase 16: "per-category control... not a single on/off
+// switch"). One row per user; a missing row means "everything on" (the same
+// defaults as every column here), so a user who never opens Settings still
+// gets pushes as before. Category names match the actual push call sites
+// (see common/push.ts's sendCategorizedPush), not an invented taxonomy —
+// there's no `communityUpdates` here because nothing currently pushes for
+// community activity.
+model NotificationPreference {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  pushEnabled  Boolean  @default(true) // master kill switch
+  messages     Boolean  @default(true) // chat messages
+  calls        Boolean  @default(true) // incoming 1:1 / group calls
+  social       Boolean  @default(true) // friend/relationship requests, couple challenges
+  achievements Boolean  @default(true)
+  reminders    Boolean  @default(true) // AI-scheduled reminders
+  approvals    Boolean  @default(true) // MCP/AI pending high-risk actions
+  games        Boolean  @default(true) // card-room invites
+  soundEnabled Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
 }
 
 model AiReminder {

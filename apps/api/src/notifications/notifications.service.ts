@@ -50,4 +50,36 @@ export class NotificationsService {
       data: { readAt: new Date() },
     });
   }
+
+  // ── Push preferences (Settings > Notifications) ──────────────────────────
+  // Real per-category control every sendCategorizedPush call site (see
+  // common/push.ts) actually checks — not the AsyncStorage-only screen this
+  // replaces. A missing row reads as "everything on", so returning the
+  // schema defaults here for a user with no row keeps the mobile screen's
+  // initial state honest without needing a row to exist yet.
+
+  private static readonly DEFAULTS = {
+    pushEnabled: true,
+    messages: true,
+    calls: true,
+    social: true,
+    achievements: true,
+    reminders: true,
+    approvals: true,
+    games: true,
+    soundEnabled: true,
+  };
+
+  async getPreferences(userId: string) {
+    const row = await this.prisma.notificationPreference.findUnique({ where: { userId } });
+    return row ?? { userId, ...NotificationsService.DEFAULTS };
+  }
+
+  async updatePreferences(userId: string, patch: Partial<typeof NotificationsService.DEFAULTS>) {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      create: { userId, ...NotificationsService.DEFAULTS, ...patch },
+      update: patch,
+    });
+  }
 }

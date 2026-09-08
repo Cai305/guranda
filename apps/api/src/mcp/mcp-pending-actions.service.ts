@@ -3,7 +3,7 @@ import { PendingMcpAction } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { ActionExecutorService } from '../ai-runtime/action-executor.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { ToolDefinition } from '../tool-registry/tool-registry.types';
 
 const PENDING_TTL_MS = 10 * 60 * 1000;
@@ -48,7 +48,10 @@ export class McpPendingActionsService {
     );
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (user?.expoPushToken) {
-      await sendPushNotification(
+      await sendCategorizedPush(
+        this.prisma,
+        userId,
+        'approvals',
         user.expoPushToken,
         'Approval needed',
         summary,

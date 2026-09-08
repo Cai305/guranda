@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
 import { rankForXp } from '../relationships/relationships.service';
 import { LLM_ADAPTER } from '../ai-runtime/llm-adapter.token';
@@ -328,9 +328,9 @@ export class CouplesService implements OnModuleInit {
       },
     });
     for (const r of relationships) {
-      for (const token of [r.userA.expoPushToken, r.userB.expoPushToken]) {
+      for (const [userId, token] of [[r.userAId, r.userA.expoPushToken], [r.userBId, r.userB.expoPushToken]] as const) {
         if (token) {
-          await sendPushNotification(token, 'Your Couple Challenge is Ready ❤️', "Tonight's challenge is waiting for you both.");
+          await sendCategorizedPush(this.prisma, userId, 'social', token, 'Your Couple Challenge is Ready ❤️', "Tonight's challenge is waiting for you both.");
         }
       }
       for (const userId of [r.userAId, r.userBId]) {

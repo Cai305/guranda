@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { BadgeService } from '../profile/badge.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -90,7 +90,7 @@ export class AchievementsService implements OnModuleInit {
     await this.mintLinkedBadge(userId, achievement.code);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (user?.expoPushToken) {
-      await sendPushNotification(user.expoPushToken, 'Achievement unlocked!', achievement.name);
+      await sendCategorizedPush(this.prisma, userId, 'achievements', user.expoPushToken, 'Achievement unlocked!', achievement.name);
     }
     await this.notifications.create(
       userId,

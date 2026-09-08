@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
-import { sendPushNotification } from '../common/push';
+import { sendCategorizedPush } from '../common/push';
 import { NotificationsService } from '../notifications/notifications.service';
 
 // Polls for reminders/wake-ups the AI companion has scheduled and delivers
@@ -29,7 +29,10 @@ export class AiReminderScheduler {
         where: { id: reminder.userId },
       });
       if (user?.expoPushToken) {
-        const delivered = await sendPushNotification(
+        const delivered = await sendCategorizedPush(
+          this.prisma,
+          reminder.userId,
+          'reminders',
           user.expoPushToken,
           reminder.title,
           reminder.prepNote ||
