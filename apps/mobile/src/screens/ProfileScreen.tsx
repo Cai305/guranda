@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import ProfilePillars, { ProfilePillarsData } from '../components/profile/ProfilePillars';
 import CompanionCard, { CompanionData } from '../components/profile/CompanionCard';
 import BadgesGrid, { BadgesData } from '../components/profile/BadgesGrid';
-import { useEffectiveModules } from '../config/modules';
+import { useStore } from '../context/StoreContext';
 
 interface MyBooking {
   id: string;
@@ -42,11 +42,16 @@ interface ProfileHQ {
   badges: BadgesData;
 }
 
-const GAME_HISTORY = [
-  { id: 'chess', name: 'Chess', detail: '12 matches · 7 wins', icon: 'extension-puzzle' },
-  { id: 'trivia', name: 'Trivia Arcade', detail: 'High score: 500', icon: 'help-circle' },
-  { id: 'cards', name: '5 Cards & Cassino', detail: 'View match history & stats', icon: 'albums' },
-];
+interface GameStat {
+  id: string;
+  name: string;
+  detail: string;
+}
+
+const GAME_ICON: Record<string, string> = {
+  chess: 'extension-puzzle',
+  cards: 'albums',
+};
 
 const DIGITAL_LIFE_SECTIONS = [
   { routeName: 'Dashboard', label: 'Jobs & Businesses', icon: 'briefcase-outline', color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.15)' },
@@ -76,8 +81,9 @@ export default function ProfileScreen({ navigation }: any) {
   const [postStats, setPostStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number; totalViews: number } | null>(null);
   const [followStats, setFollowStats] = useState<{ followerCount: number; followingCount: number } | null>(null);
   const [bookings, setBookings] = useState<MyBooking[] | null>(null);
-  const effectiveModules = useEffectiveModules();
-  const installedAppsCount = effectiveModules.filter((m) => m.status === 'live').length;
+  const [gameStats, setGameStats] = useState<GameStat[] | null>(null);
+  const { installedApps } = useStore();
+  const installedAppsCount = installedApps.length;
 
   const loadHQ = () => {
     fetchApi('/profile/me/hq')
@@ -107,6 +113,10 @@ export default function ProfileScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => setBookings(Array.isArray(d) ? d : []))
       .catch(() => setBookings([]));
+    fetchApi('/profile/me/game-stats')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setGameStats(Array.isArray(d) ? d : []))
+      .catch(() => setGameStats([]));
     if (user?.userId) {
       fetchApi(`/users/${user.userId}/follow-stats`)
         .then(r => (r.ok ? r.json() : null))
@@ -765,23 +775,39 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
         <View style={styles.card}>
-          {GAME_HISTORY.map((g, i) => (
-            <TouchableOpacity
-              key={g.id}
-              style={[styles.cardRow, i < GAME_HISTORY.length - 1 && styles.rowBorder]}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('Life', { screen: 'Games' })}
-            >
-              <View style={[styles.rowIcon, { backgroundColor: 'rgba(34, 211, 238, 0.12)' }]}>
-                <Ionicons name={g.icon as any} size={20} color={COLORS.secondary} />
+          {gameStats === null ? (
+            <View style={styles.cardRow}>
+              <Text style={styles.rowDetail}>Loading…</Text>
+            </View>
+          ) : gameStats.length === 0 ? (
+            <View style={styles.cardRow}>
+              <View style={[styles.rowIcon, { backgroundColor: 'rgba(148,148,171,0.12)' }]}>
+                <Ionicons name="game-controller-outline" size={20} color={COLORS.textMuted} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{g.name}</Text>
-                <Text style={styles.rowDetail}>{g.detail}</Text>
+                <Text style={styles.rowTitle}>No games played yet</Text>
+                <Text style={styles.rowDetail}>Play Chess or Cards to see your stats here</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          ))}
+            </View>
+          ) : (
+            gameStats.map((g, i) => (
+              <TouchableOpacity
+                key={g.id}
+                style={[styles.cardRow, i < gameStats.length - 1 && styles.rowBorder]}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('Life', { screen: 'Games' })}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: 'rgba(34, 211, 238, 0.12)' }]}>
+                  <Ionicons name={(GAME_ICON[g.id] ?? 'game-controller-outline') as any} size={20} color={COLORS.secondary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle}>{g.name}</Text>
+                  <Text style={styles.rowDetail}>{g.detail}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* My Bookings — real, aggregated across every mini app that takes a booking */}

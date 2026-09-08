@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput, Alert } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -376,6 +376,27 @@ export default function ExploreScreen({ navigation }: any) {
     }
   };
 
+  const submitPostReport = async (postId: string, reason: string) => {
+    try {
+      const res = await fetchApi(`/posts/${postId}/report`, { method: 'POST', body: JSON.stringify({ reason }) });
+      if (!res.ok) throw new Error();
+      Alert.alert('Reported', 'Thanks — our team will review this post.');
+    } catch {
+      Alert.alert('Couldn\'t send report', 'Please try again.');
+    }
+  };
+
+  const handleReportPost = (postId: string) => {
+    Alert.alert('Report post', 'Why are you reporting this?', [
+      { text: 'Spam', onPress: () => submitPostReport(postId, 'spam') },
+      { text: 'Harassment', onPress: () => submitPostReport(postId, 'harassment') },
+      { text: 'Nudity or sexual content', onPress: () => submitPostReport(postId, 'nudity') },
+      { text: 'Violence', onPress: () => submitPostReport(postId, 'violence') },
+      { text: 'Misinformation', onPress: () => submitPostReport(postId, 'misinformation') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY } = theme;
 
@@ -493,6 +514,11 @@ export default function ExploreScreen({ navigation }: any) {
       color: COLORS.background,
       fontWeight: '700',
       fontSize: 12,
+    },
+    postMoreBtn: {
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+      marginLeft: 4,
     },
     feedModeRow: {
       flexDirection: 'row',
@@ -972,6 +998,9 @@ export default function ExploreScreen({ navigation }: any) {
                 <Text style={styles.followBtnText}>Follow</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity style={styles.postMoreBtn} onPress={() => handleReportPost(item.id)} hitSlop={8}>
+              <Ionicons name="ellipsis-vertical" size={16} color={COLORS.textMuted} />
+            </TouchableOpacity>
           </View>
           {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
           {item.media?.length ? (

@@ -278,6 +278,22 @@ export class AdminService {
     return this.prisma.playerReport.update({ where: { id }, data: { status, reviewedById } });
   }
 
+  // ---- Social content moderation (posts/comments) ----
+
+  async getContentReports(status: string = 'open') {
+    return this.prisma.contentReport.findMany({
+      where: { status },
+      include: {
+        reporter: { select: { id: true, username: true, profile: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async resolveContentReport(id: string, status: 'reviewed' | 'actioned' | 'dismissed', reviewedById: string) {
+    return this.prisma.contentReport.update({ where: { id }, data: { status, reviewedById } });
+  }
+
   async getCardTournaments() {
     return this.prisma.cardTournament.findMany({
       include: { entries: true, rounds: true },

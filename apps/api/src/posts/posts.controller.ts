@@ -116,4 +116,22 @@ export class PostsController {
   likeComment(@Request() req: any, @Param('commentId') commentId: string) {
     return this.postsService.likeComment(req.user.userId, commentId);
   }
+
+  @Post(':id/report')
+  reportPost(
+    @Request() req: any,
+    @Param('id') postId: string,
+    @Body() body: { reason: string; details?: string },
+  ) {
+    return this.postsService.reportPost(req.user.userId, postId, body.reason, body.details);
+  }
+
+  @Post('comments/:commentId/report')
+  reportComment(
+    @Request() req: any,
+    @Param('commentId') commentId: string,
+    @Body() body: { reason: string; details?: string },
+  ) {
+    return this.postsService.reportComment(req.user.userId, commentId, body.reason, body.details);
+  }
 }

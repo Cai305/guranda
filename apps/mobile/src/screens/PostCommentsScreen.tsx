@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, Image, Share, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, Image, Share, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -106,6 +106,27 @@ export default function PostCommentsScreen({ route, navigation }: any) {
     await fetchApi(`/posts/comments/${commentId}/like`, { method: 'POST' }).catch(() => fetchPost());
   };
 
+  const submitCommentReport = async (commentId: string, reason: string) => {
+    try {
+      const res = await fetchApi(`/posts/comments/${commentId}/report`, { method: 'POST', body: JSON.stringify({ reason }) });
+      if (!res.ok) throw new Error();
+      Alert.alert('Reported', 'Thanks — our team will review this comment.');
+    } catch {
+      Alert.alert('Couldn\'t send report', 'Please try again.');
+    }
+  };
+
+  const handleReportComment = (commentId: string) => {
+    Alert.alert('Report comment', 'Why are you reporting this?', [
+      { text: 'Spam', onPress: () => submitCommentReport(commentId, 'spam') },
+      { text: 'Harassment', onPress: () => submitCommentReport(commentId, 'harassment') },
+      { text: 'Nudity or sexual content', onPress: () => submitCommentReport(commentId, 'nudity') },
+      { text: 'Violence', onPress: () => submitCommentReport(commentId, 'violence') },
+      { text: 'Misinformation', onPress: () => submitCommentReport(commentId, 'misinformation') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const handlePostComment = async () => {
     if (!content.trim() || posting) return;
     setPosting(true);
@@ -165,6 +186,9 @@ export default function PostCommentsScreen({ route, navigation }: any) {
                 <Text style={styles.commentActionText}>Reply</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleReportComment(item.id)}>
+              <Ionicons name="flag-outline" size={14} color={COLORS.textMuted} />
+            </TouchableOpacity>
           </View>
         </View>
       </View>

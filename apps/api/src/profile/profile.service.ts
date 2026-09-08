@@ -240,6 +240,41 @@ export class ProfileService {
     return items.slice(0, 20);
   }
 
+  /**
+   * Real per-game history for Profile's "My Mini Apps" section — was a
+   * hardcoded fake array before ("12 matches · 7 wins" for every user).
+   * Chess has no denormalized win counter, so it's derived here from
+   * ChessGame.status; Cards/Cassino already has one (CardGameStats),
+   * already used by achievements.service.ts. Only returns entries the
+   * user has actually played — no "0 games" filler rows.
+   */
+  async getMyGameStats(userId: string) {
+    const [chessGames, cardStats] = await Promise.all([
+      this.prisma.chessGame.findMany({
+        where: { OR: [{ whiteId: userId }, { blackId: userId }], status: { not: 'active' } },
+        select: { whiteId: true, status: true },
+      }),
+      this.prisma.cardGameStats.findMany({ where: { userId } }),
+    ]);
+
+    const items: { id: string; name: string; detail: string }[] = [];
+
+    if (chessGames.length > 0) {
+      const wins = chessGames.filter(
+        (g) => (g.status === 'white_won' && g.whiteId === userId) || (g.status === 'black_won' && g.whiteId !== userId),
+      ).length;
+      items.push({ id: 'chess', name: 'Chess', detail: `${chessGames.length} match${chessGames.length === 1 ? '' : 'es'} · ${wins} win${wins === 1 ? '' : 's'}` });
+    }
+
+    const cardTotals = cardStats.reduce((sum, s) => sum + s.gamesPlayed, 0);
+    if (cardTotals > 0) {
+      const cardWins = cardStats.reduce((sum, s) => sum + s.wins, 0);
+      items.push({ id: 'cards', name: '5 Cards & Cassino', detail: `${cardTotals} match${cardTotals === 1 ? '' : 'es'} · ${cardWins} win${cardWins === 1 ? '' : 's'}` });
+    }
+
+    return items;
+  }
+
   // Runs once a day so pillar cards can diff against "the value ~7 days
   // ago" — same pattern as the CCR/daily-challenge crons elsewhere.
   @Cron(CronExpression.EVERY_DAY_AT_1AM)

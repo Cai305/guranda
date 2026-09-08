@@ -26,4 +26,11 @@ export class ProfileController {
   async getMyBookings(@Request() req: any) {
     return this.profileService.getMyBookings(req.user.userId);
   }
+
+  // Real per-game history for the "My Mini Apps" zone — was a hardcoded
+  // fake array before.
+  @Get('me/game-stats')
+  async getMyGameStats(@Request() req: any) {
+    return this.profileService.getMyGameStats(req.user.userId);
+  }
 }

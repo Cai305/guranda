@@ -192,6 +192,7 @@ model User {
   referredBy                   Referral?                  @relation("referredBy")
   reportsFiled                 PlayerReport[]             @relation("reportsFiled")
   reportsReceived              PlayerReport[]             @relation("reportsReceived")
+  contentReportsFiled          ContentReport[]            @relation("contentReportsFiled")
   liveStreamReportsFiled       LiveStreamReport[]         @relation("LiveStreamReportsFiled")
   liveStreamReportsReceived    LiveStreamReport[]         @relation("LiveStreamReportsReceived")
   liveStreamReportsReviewed    LiveStreamReport[]         @relation("LiveStreamReportsReviewed")
@@ -3555,6 +3556,30 @@ model PlayerReport {
   reviewedById   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+// Social's missing piece per docs/16 §37 ("content reporting") — a normal
+// user flagging a post/comment for human review. Deliberately separate from
+// PlayerReport (that one's scoped to in-game player behavior, reason enum
+// is game-specific) rather than overloading it. postId/commentId are plain
+// unenforced references (no @relation), same loose-reference style
+// PlayerReport.gameId already uses — exactly one of the two is set, checked
+// in ContentReportsService, not at the DB level.
+model ContentReport {
+  id           String   @id @default(uuid())
+  reporterId   String
+  reporter     User     @relation("contentReportsFiled", fields: [reporterId], references: [id])
+  postId       String?
+  commentId    String?
+  reason       String // 'spam' | 'harassment' | 'nudity' | 'violence' | 'misinformation' | 'other'
+  details      String?
+  status       String   @default("open") // open | reviewed | actioned | dismissed
+  reviewedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([postId])
+  @@index([commentId])
 }
 
 // ============================================================

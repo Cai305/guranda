@@ -87,6 +87,22 @@ export class AdminController {
     return this.adminService.getCardTournaments();
   }
 
+  @Get('content-reports')
+  getContentReports(@Query('status') status?: string) {
+    return this.adminService.getContentReports(status ?? 'open');
+  }
+
+  @Post('content-reports/:id/resolve')
+  async resolveContentReport(
+    @Param('id') id: string,
+    @Body() body: { status?: 'reviewed' | 'actioned' | 'dismissed' },
+    @Request() req: any,
+  ) {
+    const result = await this.adminService.resolveContentReport(id, body.status ?? 'reviewed', req.admin?.adminId ?? null);
+    await this.audit.log(req.admin, 'content-reports.resolve', { type: 'ContentReport', id });
+    return result;
+  }
+
   @Get('cards/analytics')
   getCardsAnalytics() {
     return this.adminService.getCardsAnalytics();

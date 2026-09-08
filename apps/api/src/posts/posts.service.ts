@@ -561,4 +561,25 @@ export class PostsService {
       return { status: 'unliked' };
     }
   }
+
+  // Social's missing content-reporting flow (docs/16 §37) — a normal user
+  // flagging a post/comment for human review. Reuses the same shape as
+  // users.service.ts's reportUser rather than a bespoke one.
+  async reportPost(reporterId: string, postId: string, reason: string, details?: string) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
+    if (!post) throw new NotFoundException('Post not found');
+    await this.prisma.contentReport.create({
+      data: { reporterId, postId, reason, details },
+    });
+    return { ok: true };
+  }
+
+  async reportComment(reporterId: string, commentId: string, reason: string, details?: string) {
+    const comment = await this.prisma.comment.findUnique({ where: { id: commentId }, select: { id: true } });
+    if (!comment) throw new NotFoundException('Comment not found');
+    await this.prisma.contentReport.create({
+      data: { reporterId, commentId, reason, details },
+    });
+    return { ok: true };
+  }
 }
