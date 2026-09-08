@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../auth/auth.guard';
 import { PrismaService } from '../prisma.service';
 import { PoolService } from './pool.service';
 
-// 8-Ball Pool wagers: stake MSH before a vs-AI match, double back on a win.
+// 8-Ball Pool wagers: stake Rand before a vs-AI match, double back on a win.
 // Ledger-only (balanceMasheleni), recorded as wallet transactions.
 
 @Controller('pool')
@@ -51,7 +51,7 @@ export class PoolController {
     if (body.action === 'stake') {
       if (Number(wallet.balanceMasheleni) < amount) {
         throw new BadRequestException(
-          `Not enough MSH — balance is ${wallet.balanceMasheleni}`,
+          `Not enough Rand — balance is R${wallet.balanceMasheleni}`,
         );
       }
       await this.prisma.$transaction([

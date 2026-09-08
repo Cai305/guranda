@@ -7,6 +7,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 export default function CardsMatchHistoryScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -56,7 +57,7 @@ export default function CardsMatchHistoryScreen({ navigation }: any) {
       <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('CardsReplayViewer', { gameId: item.id })}>
         <View style={{ flex: 1 }}>
           <Text style={styles.mode}>{item.mode === 'FIVE_CARDS' ? '5 Cards' : 'Cassino'} vs {opponents}</Text>
-          <Text style={styles.meta}>{new Date(item.updatedAt).toLocaleString()}{item.wager > 0 ? ` · ${item.wager} MSH` : ''}</Text>
+          <Text style={styles.meta}>{new Date(item.updatedAt).toLocaleString()}{item.wager > 0 ? ` · ${formatCurrency(item.wager)}` : ''}</Text>
         </View>
         <View style={[styles.resultBadge, won ? styles.wonBadge : styles.lostBadge]}>
           <Text style={styles.resultText}>{won ? 'WIN' : 'LOSS'}</Text>

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function TravelPackageDetailScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
@@ -161,8 +162,8 @@ export default function TravelPackageDetailScreen({ navigation, route }: any) {
 
           {total && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{pkg.price.toFixed(0)} MSH × {travelers} traveler{travelers > 1 ? 's' : ''}</Text>
-              <Text style={styles.totalValue}>{total} MSH</Text>
+              <Text style={styles.totalLabel}>{formatCurrency(pkg.price)} × {travelers} traveler{travelers > 1 ? 's' : ''}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(Number(total))}</Text>
             </View>
           )}
 
@@ -172,7 +173,7 @@ export default function TravelPackageDetailScreen({ navigation, route }: any) {
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${total} MSH` : 'Book Holiday'}</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${formatCurrency(Number(total))}` : 'Book Holiday'}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

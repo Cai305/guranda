@@ -14,7 +14,7 @@ export interface MiniAppManageSummary {
   // single-resource module like a restaurant profile with no per-item dates).
   dates: string[];
   raw: any;
-  // Total MSH earned by this module's owner, computed from real backend
+  // Total Rand earned by this module's owner, computed from real backend
   // data (sold listings, paid orders, rent payments, etc). Left undefined
   // for modules without clean dated-revenue data to draw from.
   revenue?: number;

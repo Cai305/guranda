@@ -43,7 +43,7 @@ export class WordBattleAiToolsProvider implements OnModuleInit {
         {
           name: 'create',
           description:
-            'Create a new Word Battle game (Wordle Duel, Boggle, or Scrabble mode), optionally with an MSH wager. Requires approval since a wager may be at stake.',
+            'Create a new Word Battle game (Wordle Duel, Boggle, or Scrabble mode), optionally with a Rand wager. Requires approval since a wager may be at stake.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -65,7 +65,7 @@ export class WordBattleAiToolsProvider implements OnModuleInit {
             ),
           describeAction: (input) =>
             input.wager > 0
-              ? `Create a Word Battle game with a ${input.wager} MSH wager`
+              ? `Create a Word Battle game with a R${input.wager} wager`
               : 'Create a Word Battle game',
           describeResult: () => 'Word Battle game created.',
         },

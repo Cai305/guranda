@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_STEPS = [
   { key: 'PLACED', label: 'Placed', icon: 'receipt-outline' },
@@ -138,12 +139,12 @@ export default function ShoppingOrderTrackingScreen({ navigation, route }: any) 
           <View style={styles.divider} />
           <View style={styles.row}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{order.total?.toFixed(2)} MSH</Text>
+            <Text style={styles.totalValue}>{formatCurrency(order.total)}</Text>
           </View>
           {order.rewardEarned > 0 && (
             <View style={styles.row}>
               <Text style={styles.rewardLabel}>Cashback earned</Text>
-              <Text style={styles.rewardValue}>+{order.rewardEarned.toFixed(2)} MSH</Text>
+              <Text style={styles.rewardValue}>+{formatCurrency(order.rewardEarned)}</Text>
             </View>
           )}
         </View>

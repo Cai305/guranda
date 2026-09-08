@@ -242,7 +242,7 @@ export default function AddEditStoreScreen({ navigation, route }: any) {
 
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={18} color="#3b82f6" />
-          <Text style={styles.infoText}>Delivery fee: R20 per order · Service fee: 1.5% of subtotal · Payment via Guranda Wallet (MSH)</Text>
+          <Text style={styles.infoText}>Delivery fee: R20 per order · Service fee: 1.5% of subtotal · Payment via Guranda Wallet (Rand)</Text>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

@@ -599,7 +599,7 @@ export class AdminService {
 
   /**
    * Platform revenue snapshot.
-   * "Revenue" here means MSH that flowed through the platform as fees/payments
+   * "Revenue" here means Rand that flowed through the platform as fees/payments
    * rather than peer-to-peer sends. We track it via Transaction.type:
    *   PAYMENT             — in-app purchases (entertainment, eat, shopping, …)
    *   EAT_ORDER_PAYOUT    — food orders (platform takes a cut of the gross)

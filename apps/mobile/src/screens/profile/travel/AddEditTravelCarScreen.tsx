@@ -157,7 +157,7 @@ export default function AddEditTravelCarScreen({ navigation, route }: any) {
         </View>
 
         <View>
-          <Text style={styles.label}>Price/day (MSH) *</Text>
+          <Text style={styles.label}>Price/day (Rand) *</Text>
           <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={pricePerDay} onChangeText={setPricePerDay} keyboardType="decimal-pad" />
         </View>
 

@@ -21,6 +21,7 @@ import {
 } from '../../games/pool/rules';
 import { chooseShot, PoolDifficulty } from '../../games/pool/ai';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import GiftButton from '../../components/gifts/GiftButton';
 
 type Mode = 'ai' | 'local' | 'online';
@@ -238,7 +239,7 @@ export default function PoolGameScreen({ navigation, route }: any) {
             const d = await res.json().catch(() => ({}));
             throw new Error(d.message || 'Could not place wager');
           }
-          setWagerNote(`${wager} MSH staked — win to double it`);
+          setWagerNote(`${formatCurrency(wager)} staked — win to double it`);
         })
         .catch(e => {
           Alert.alert('Wager failed', e.message, [
@@ -263,10 +264,10 @@ export default function PoolGameScreen({ navigation, route }: any) {
           method: 'POST',
           body: JSON.stringify({ action: 'win', amount: wager }),
         })
-          .then(res => res.ok && setWagerNote(`You won ${wager * 2} MSH! 🎉`))
+          .then(res => res.ok && setWagerNote(`You won ${formatCurrency(wager * 2)}! 🎉`))
           .catch(() => {});
       } else {
-        setWagerNote(`${wager} MSH lost to the house`);
+        setWagerNote(`${formatCurrency(wager)} lost to the house`);
       }
     }
   }, [state.winner, wager, mode]);

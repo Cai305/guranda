@@ -82,7 +82,7 @@ export class TurboRacingAiToolsProvider implements OnModuleInit {
         {
           name: 'buyUpgrade',
           description:
-            'Buy a Turbo Racing car upgrade (spends MSH). Requires approval.',
+            'Buy a Turbo Racing car upgrade (spends R). Requires approval.',
           inputSchema: {
             type: 'object',
             properties: { stat: { type: 'string' } },

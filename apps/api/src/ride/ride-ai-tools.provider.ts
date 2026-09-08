@@ -70,7 +70,7 @@ export class RideAiToolsProvider implements OnModuleInit {
           describeAction: (input) =>
             `Request a ride from "${input.pickupAddress}" to "${input.dropoffAddress}"`,
           describeResult: (input, output) =>
-            `Ride requested (id ${output.id.slice(0, 8)}), fare ${output.fare} MSH. Status: ${output.status} — from "${input.pickupAddress}" to "${input.dropoffAddress}". The user can track it in the Ride module.`,
+            `Ride requested (id ${output.id.slice(0, 8)}), fare ${output.fare} R. Status: ${output.status} — from "${input.pickupAddress}" to "${input.dropoffAddress}". The user can track it in the Ride module.`,
         },
         {
           name: 'status',

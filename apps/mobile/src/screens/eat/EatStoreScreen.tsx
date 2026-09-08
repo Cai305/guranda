@@ -229,7 +229,7 @@ export default function EatStoreScreen({ navigation, route }: any) {
             <View style={styles.feeDivider} />
             <View style={styles.feeItem}>
               <Ionicons name="wallet-outline" size={16} color="#ef4444" />
-              <Text style={styles.feeLabel}>Pay with MSH</Text>
+              <Text style={styles.feeLabel}>Pay with Rand</Text>
             </View>
           </View>
         </View>

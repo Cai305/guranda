@@ -165,13 +165,13 @@ export class BusinessInsightsService {
     engagementScore: number,
     engagementDeltaPct: number | null,
   ): Omit<NarrationResult, 'generatedByAi'> {
-    const overallText = deltaSentence('Total earnings across your mini apps are', revenueDeltaPct, `${totalRevenue.toFixed(2)} MSH`);
+    const overallText = deltaSentence('Total earnings across your mini apps are', revenueDeltaPct, `R${totalRevenue.toFixed(2)}`);
     const apps: AppInsight[] = appDeltas.map((a) => ({
       id: a.id,
       label: a.label,
       revenue: a.revenue,
       deltaPct: a.deltaPct,
-      text: deltaSentence(`Your ${a.label} earnings are`, a.deltaPct, `${a.revenue.toFixed(2)} MSH`),
+      text: deltaSentence(`Your ${a.label} earnings are`, a.deltaPct, `R${a.revenue.toFixed(2)}`),
     }));
     const engagement = hasEngagementData
       ? { text: deltaSentence('Your overall engagement is', engagementDeltaPct, `${engagementScore} touchpoints`), deltaPct: engagementDeltaPct }
@@ -192,8 +192,8 @@ export class BusinessInsightsService {
 
     const fmtDelta = (d: number | null) => (d === null ? 'no history yet — do not state a percentage, just the value' : `${d > 0 ? '+' : ''}${d}%`);
     const lines: string[] = [
-      `Total mini-app earnings: ${totalRevenue.toFixed(2)} MSH (week-over-week: ${fmtDelta(revenueDeltaPct)})`,
-      ...appDeltas.map((a) => `${a.label} (id="${a.id}") earnings: ${a.revenue.toFixed(2)} MSH (week-over-week: ${fmtDelta(a.deltaPct)})`),
+      `Total mini-app earnings: R${totalRevenue.toFixed(2)} (week-over-week: ${fmtDelta(revenueDeltaPct)})`,
+      ...appDeltas.map((a) => `${a.label} (id="${a.id}") earnings: R${a.revenue.toFixed(2)} (week-over-week: ${fmtDelta(a.deltaPct)})`),
     ];
     if (hasEngagementData) {
       lines.push(`Overall engagement score (posts + video views + story engagement): ${engagementScore} (week-over-week: ${fmtDelta(engagementDeltaPct)})`);

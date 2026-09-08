@@ -191,7 +191,7 @@ export class ShoppingService {
     });
     if (!wallet) throw new BadRequestException('No wallet found');
     if (wallet.balanceMasheleni < total)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient R balance');
 
     const [order] = await this.prisma.$transaction([
       this.prisma.shoppingOrder.create({

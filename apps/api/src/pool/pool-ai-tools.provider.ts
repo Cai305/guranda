@@ -29,7 +29,7 @@ export class PoolAiToolsProvider implements OnModuleInit {
         {
           name: 'create',
           description:
-            'Create a new 8-ball pool game, optionally with an MSH wager. Requires approval since a wager may be at stake.',
+            'Create a new 8-ball pool game, optionally with an R wager. Requires approval since a wager may be at stake.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -59,7 +59,7 @@ export class PoolAiToolsProvider implements OnModuleInit {
             ),
           describeAction: (input) =>
             input.wager > 0
-              ? `Create a pool game with a ${input.wager} MSH wager`
+              ? `Create a pool game with a ${input.wager} R wager`
               : 'Create a pool game',
           describeResult: () => 'Pool game created.',
         },

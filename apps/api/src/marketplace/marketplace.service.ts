@@ -10,7 +10,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 // Guranda Marketplace: any user can list an item for a fixed price or run
 // an auction. Fixed-price sales settle instantly; auctions accumulate
 // bids and settle (lazily, on next read) once they expire. Everything
-// is paid straight from the MSH wallet ledger.
+// is paid straight from the Rand wallet ledger.
 
 @Injectable()
 export class MarketplaceService {
@@ -250,7 +250,7 @@ export class MarketplaceService {
       if (!buyerWallet) throw new BadRequestException('Wallet not found');
       if (Number(buyerWallet.balanceMasheleni) < listing.price) {
         throw new BadRequestException(
-          `Not enough MSH — balance is ${buyerWallet.balanceMasheleni}`,
+          `Not enough Rand — balance is ${buyerWallet.balanceMasheleni}`,
         );
       }
       const sellerWallet = await tx.wallet.findUnique({
@@ -323,7 +323,7 @@ export class MarketplaceService {
     const minValid = listing.currentBid ? floor + 0.01 : floor;
     if (!(amount >= minValid)) {
       throw new BadRequestException(
-        `Bid must be at least ${minValid.toFixed(2)} MSH`,
+        `Bid must be at least R${minValid.toFixed(2)}`,
       );
     }
 
@@ -333,7 +333,7 @@ export class MarketplaceService {
     if (!wallet) throw new BadRequestException('Wallet not found');
     if (Number(wallet.balanceMasheleni) < amount) {
       throw new BadRequestException(
-        `Not enough MSH — balance is ${wallet.balanceMasheleni}`,
+        `Not enough Rand — balance is ${wallet.balanceMasheleni}`,
       );
     }
 
@@ -473,7 +473,7 @@ export class MarketplaceService {
         listing.sellerId,
         'marketplace.item_sold',
         'Your item sold!',
-        `"${sold.title}" sold at auction for ${Number(listing.currentBid)} MSH`,
+        `"${sold.title}" sold at auction for R${Number(listing.currentBid)}`,
         { listingId: listing.id, amount: Number(listing.currentBid) },
       );
     } catch {

@@ -87,7 +87,7 @@ export class EntertainmentAiToolsProvider implements OnModuleInit {
         {
           name: 'bookMovie',
           description:
-            'Book seats for a movie showtime. Deducts MSH from the wallet. Requires approval.',
+            'Book seats for a movie showtime. Deducts Rand from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -112,7 +112,7 @@ export class EntertainmentAiToolsProvider implements OnModuleInit {
         {
           name: 'bookConcert',
           description:
-            'Book tickets for a concert. Deducts MSH from the wallet. Requires approval.',
+            'Book tickets for a concert. Deducts Rand from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -133,7 +133,7 @@ export class EntertainmentAiToolsProvider implements OnModuleInit {
         {
           name: 'bookEvent',
           description:
-            'Book tickets for a live event. Deducts MSH from the wallet. Requires approval.',
+            'Book tickets for a live event. Deducts Rand from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {

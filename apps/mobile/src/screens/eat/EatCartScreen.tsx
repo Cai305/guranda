@@ -151,7 +151,7 @@ export default function EatCartScreen({ navigation }: any) {
       clearCart();
       navigation.replace('EatOrders');
     } catch (e: any) {
-      setError(e.message || 'Could not place order. Check your MSH balance.');
+      setError(e.message || 'Could not place order. Check your Rand balance.');
     } finally {
       setPlacing(false);
     }
@@ -267,7 +267,7 @@ export default function EatCartScreen({ navigation }: any) {
         {/* Payment method */}
         <View style={[styles.section, styles.paymentCard]}>
           <Ionicons name="wallet" size={20} color="#f59e0b" />
-          <Text style={styles.paymentText}>Paying from Guranda Wallet (MSH)</Text>
+          <Text style={styles.paymentText}>Paying from Guranda Wallet (Rand)</Text>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

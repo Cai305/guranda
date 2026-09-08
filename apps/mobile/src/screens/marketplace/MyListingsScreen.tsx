@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE: '#A78BFA', SOLD: '#10B981', EXPIRED: '#6B7280', CANCELLED: '#F87171',
@@ -70,7 +71,7 @@ export default function MyListingsScreen({ navigation }: any) {
       <View style={{ flex: 1 }}>
         <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.meta}>
-          {item.listingType === 'AUCTION' ? `${item.bids?.length || 0} bids · ${item.currentBid ?? item.price} MSH` : `${item.price} MSH`}
+          {item.listingType === 'AUCTION' ? `${item.bids?.length || 0} bids · ${formatCurrency(item.currentBid ?? item.price)}` : formatCurrency(item.price)}
         </Text>
       </View>
       <View style={[styles.statusPill, { borderColor: STATUS_COLOR[item.status] + '88', backgroundColor: STATUS_COLOR[item.status] + '22' }]}>

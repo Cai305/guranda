@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -223,7 +224,7 @@ export default function TravelHomeScreen({ navigation }: any) {
                     <Text style={styles.cardMeta}>{stay.rating?.toFixed(1) || '5.0'}</Text>
                     <Text style={styles.cardMeta}>· up to {stay.maxGuests} guests</Text>
                   </View>
-                  <Text style={styles.cardPrice}>{stay.pricePerNight.toFixed(0)} MSH<Text style={styles.cardPriceUnit}>/night</Text></Text>
+                  <Text style={styles.cardPrice}>{formatCurrency(stay.pricePerNight)}<Text style={styles.cardPriceUnit}>/night</Text></Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -246,7 +247,7 @@ export default function TravelHomeScreen({ navigation }: any) {
                     <Ionicons name="star" size={11} color="#f59e0b" />
                     <Text style={styles.cardMeta}>{car.rating?.toFixed(1) || '5.0'}</Text>
                   </View>
-                  <Text style={styles.cardPrice}>{car.pricePerDay.toFixed(0)} MSH<Text style={styles.cardPriceUnit}>/day</Text></Text>
+                  <Text style={styles.cardPrice}>{formatCurrency(car.pricePerDay)}<Text style={styles.cardPriceUnit}>/day</Text></Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -263,7 +264,7 @@ export default function TravelHomeScreen({ navigation }: any) {
                   <Text style={styles.flightMeta}>{flight.airline} {flight.flightNumber} · {dateStr(flight.departureTime)}</Text>
                   <Text style={styles.flightMeta}>{flight.seatsAvailable} seats left</Text>
                 </View>
-                <Text style={styles.flightPrice}>{flight.price.toFixed(0)} MSH</Text>
+                <Text style={styles.flightPrice}>{formatCurrency(flight.price)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -282,7 +283,7 @@ export default function TravelHomeScreen({ navigation }: any) {
                   <Text style={styles.packageTitle}>{pkg.title}</Text>
                   <Text style={styles.packageDest}>{pkg.destination} · {pkg.durationDays} days</Text>
                   {pkg.description && <Text style={styles.packageDesc} numberOfLines={2}>{pkg.description}</Text>}
-                  <Text style={styles.packagePrice}>{pkg.price.toFixed(0)} MSH <Text style={styles.cardPriceUnit}>pp</Text></Text>
+                  <Text style={styles.packagePrice}>{formatCurrency(pkg.price)} <Text style={styles.cardPriceUnit}>pp</Text></Text>
                 </View>
               </TouchableOpacity>
             ))}

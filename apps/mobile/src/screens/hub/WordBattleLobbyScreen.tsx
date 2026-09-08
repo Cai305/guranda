@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
 const MODES: { key: WordBattleMode; label: string; emoji: string; blurb: string; screen: string; gradient: [string, string] }[] = [
@@ -191,7 +192,7 @@ export default function WordBattleLobbyScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.sectionLabel}>
-          WAGER {balance !== null ? `· BALANCE ${balance} MSH` : ''}
+          WAGER {balance !== null ? `· BALANCE ${formatCurrency(balance)}` : ''}
         </Text>
         <View style={styles.wagerRow}>
           {WAGERS.map(w => (
@@ -202,7 +203,7 @@ export default function WordBattleLobbyScreen({ navigation }: any) {
               disabled={busy}
             >
               <Text style={[styles.wagerText, wager === w && { color: '#1A1200' }]}>
-                {w === 0 ? 'For fun' : `${w} MSH`}
+                {w === 0 ? 'For fun' : formatCurrency(w)}
               </Text>
             </TouchableOpacity>
           ))}

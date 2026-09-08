@@ -13,7 +13,7 @@ import { NotificationsService } from '../notifications/notifications.service';
  * directly) or a genuinely new primitive that didn't exist before
  * (requestPayment/respondToPaymentRequest/purchase).
  *
- * Rail strategy (product decision, 2026-08-13): MSH stays a pure internal
+ * Rail strategy (product decision, 2026-08-13): Rand stays a pure internal
  * ledger — no XRPL settlement here. withdraw() is deliberately NOT built
  * yet; it would need the same manual/admin-reviewed shape as deposit
  * (requestDeposit → admin confirmDeposit/rejectDeposit) once there's a real
@@ -54,7 +54,7 @@ export class FinancialEngineService {
   }
 
   /**
-   * One-sided "AI/mini-app wants to spend N MSH, no peer recipient"
+   * One-sided "AI/mini-app wants to spend N Rand, no peer recipient"
    * primitive — reserves via holdFunds (which checks availableBalance,
    * i.e. accounts for any other concurrent holds) then immediately
    * captures. A convenience wrapper for future purchase-shaped AI tools;
@@ -88,7 +88,7 @@ export class FinancialEngineService {
       throw new NotFoundException('User not found — use a Guranda username');
     }
     if (payer.id === requesterId) {
-      throw new BadRequestException('You cannot request MSH from yourself');
+      throw new BadRequestException('You cannot request Rand from yourself');
     }
 
     const requester = await this.prisma.user.findUnique({
@@ -112,8 +112,8 @@ export class FinancialEngineService {
     await this.notifications.create(
       payer.id,
       'payment.request',
-      `${requesterName} requested ${value} MSH`,
-      memo ? `"${memo}"` : `Requested ${value} MSH from you.`,
+      `${requesterName} requested R${value}`,
+      memo ? `"${memo}"` : `Requested R${value} from you.`,
       { paymentRequestId: request.id, amount: value, requesterId },
     );
 
@@ -159,7 +159,7 @@ export class FinancialEngineService {
     }
 
     // Accepting just triggers the normal transfer — same ledger path,
-    // same balance checks, same event, as any other sendMasheleni call.
+    // same balance checks, same event, as any other Rand send call.
     const requesterUser = await this.prisma.user.findUnique({ where: { id: request.requesterId }, select: { username: true } });
     if (!requesterUser) throw new NotFoundException('Requester no longer exists');
 
@@ -177,7 +177,7 @@ export class FinancialEngineService {
       request.requesterId,
       'payment.request.paid',
       'Payment request paid',
-      `Your request for ${request.amount} MSH was paid.`,
+      `Your request for R${request.amount} was paid.`,
       { paymentRequestId: request.id, amount: request.amount },
     );
 

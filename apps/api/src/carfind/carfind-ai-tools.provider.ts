@@ -62,7 +62,7 @@ export class CarFindAiToolsProvider implements OnModuleInit {
               .slice(0, 8)
               .map(
                 (c) =>
-                  `${c.id}: ${c.year} ${c.make} ${c.model} — ${c.mileage}km, ${c.transmission}, ${c.fuelType}, ${c.condition} — ${c.price} MSH — ${c.location} — seller ${c.seller?.username}`,
+                  `${c.id}: ${c.year} ${c.make} ${c.model} — ${c.mileage}km, ${c.transmission}, ${c.fuelType}, ${c.condition} — R${c.price} — ${c.location} — seller ${c.seller?.username}`,
               )
               .join('\n');
             return `Found ${output.length} car(s): ${yearTally}.\n${rows}`;
@@ -129,9 +129,9 @@ export class CarFindAiToolsProvider implements OnModuleInit {
           handler: (ctx, input) =>
             this.carFind.createListing(ctx.userId, input),
           describeAction: (input) =>
-            `Publish a car listing: ${input.year} ${input.make} ${input.model} for ${input.price} MSH`,
+            `Publish a car listing: ${input.year} ${input.make} ${input.model} for R${input.price}`,
           describeResult: (input) =>
-            `Published listing: ${input.year} ${input.make} ${input.model} for ${input.price} MSH.`,
+            `Published listing: ${input.year} ${input.make} ${input.model} for R${input.price}.`,
         },
         {
           name: 'enquire',

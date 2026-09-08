@@ -50,7 +50,7 @@ export class WordBattleController {
     if (body.action === 'stake') {
       if (Number(wallet.balanceMasheleni) < amount) {
         throw new BadRequestException(
-          `Not enough MSH — balance is ${wallet.balanceMasheleni}`,
+          `Not enough Rand — balance is ${wallet.balanceMasheleni}`,
         );
       }
       await this.prisma.$transaction([

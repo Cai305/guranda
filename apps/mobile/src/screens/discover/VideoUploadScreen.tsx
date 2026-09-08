@@ -9,6 +9,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, fetchApi, xhrUploadFormData } from '../../utils/api';
 import { startUpload, updateUploadProgress, markUploadFinishing, finishUpload, failUpload, notify } from '../../utils/uploadStatusStore';
 import { generateVideoThumbnail } from '../../utils/videoThumbnail';
+import { formatCurrency } from '../../utils/format';
 
 const CATEGORIES = ['Gaming', 'Music', 'Education', 'Cooking', 'Sports', 'Comedy', 'Technology', 'Fashion', 'Travel', 'Fitness', 'Art', 'Science', 'News', 'DIY', 'Finance'];
 const MIN_DURATION_S = 45;
@@ -151,8 +152,8 @@ export default function VideoUploadScreen({ navigation }: any) {
       return;
     }
     if (rewardEnabled) {
-      if (!rewardValid) { notify('warning', 'Enter a valid MSH amount and total budget'); return; }
-      if (rewardExceedsBalance) { notify('warning', `Your budget exceeds your wallet balance (${walletBalance} MSH)`); return; }
+      if (!rewardValid) { notify('warning', 'Enter a valid Rand amount and total budget'); return; }
+      if (rewardExceedsBalance) { notify('warning', `Your budget exceeds your wallet balance (${formatCurrency(walletBalance ?? 0)})`); return; }
     }
 
     setUploading(true);
@@ -206,7 +207,7 @@ export default function VideoUploadScreen({ navigation }: any) {
           });
           const rewardData = await res.json();
           if (!res.ok) throw new Error(rewardData.message || 'Could not fund the reward');
-          notify('success', 'Reward funded — viewers can now earn MSH watching this video');
+          notify('success', 'Reward funded — viewers can now earn Rand watching this video');
         } catch (e: any) {
           notify('warning', `Video uploaded, but the reward wasn't funded: ${e.message || 'unknown error'}`);
         }
@@ -391,7 +392,7 @@ export default function VideoUploadScreen({ navigation }: any) {
           <TouchableOpacity style={styles.rewardHeader} onPress={() => toggleReward(!rewardEnabled)} activeOpacity={0.8}>
             <View>
               <Text style={styles.rewardHeaderText}>Fund a reward for this video 💰</Text>
-              <Text style={styles.rewardHeaderHint}>Pay viewers MSH for watching</Text>
+              <Text style={styles.rewardHeaderHint}>Pay viewers Rand for watching</Text>
             </View>
             <View style={[styles.toggle, rewardEnabled && styles.toggleOn]}>
               <View style={[styles.toggleKnob, rewardEnabled && styles.toggleKnobOn]} />
@@ -420,7 +421,7 @@ export default function VideoUploadScreen({ navigation }: any) {
 
               <View style={styles.rewardRow}>
                 <View style={styles.rewardField}>
-                  <Text style={styles.label}>MSH per {selectedPayoutMode.unit}</Text>
+                  <Text style={styles.label}>Rand per {selectedPayoutMode.unit}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="e.g. 5"
@@ -431,7 +432,7 @@ export default function VideoUploadScreen({ navigation }: any) {
                   />
                 </View>
                 <View style={styles.rewardField}>
-                  <Text style={styles.label}>Total budget (MSH)</Text>
+                  <Text style={styles.label}>Total budget (Rand)</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="e.g. 500"
@@ -448,7 +449,7 @@ export default function VideoUploadScreen({ navigation }: any) {
                   <ActivityIndicator size="small" color={COLORS.textMuted} />
                 ) : walletBalance !== null ? (
                   <Text style={rewardExceedsBalance ? styles.balanceWarning : styles.balanceText}>
-                    Wallet balance: {walletBalance} MSH
+                    Wallet balance: {formatCurrency(walletBalance)}
                     {rewardExceedsBalance ? ' — budget exceeds your balance' : ''}
                   </Text>
                 ) : null}

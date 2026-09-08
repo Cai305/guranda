@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 function nightsBetween(a: string, b: string) {
   const d1 = new Date(a).getTime();
@@ -187,8 +188,8 @@ export default function TravelStayDetailScreen({ navigation, route }: any) {
 
           {total && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{stay.pricePerNight.toFixed(0)} MSH × {nights} night{nights > 1 ? 's' : ''}</Text>
-              <Text style={styles.totalValue}>{total} MSH</Text>
+              <Text style={styles.totalLabel}>{formatCurrency(stay.pricePerNight)} × {nights} night{nights > 1 ? 's' : ''}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(Number(total))}</Text>
             </View>
           )}
 
@@ -198,7 +199,7 @@ export default function TravelStayDetailScreen({ navigation, route }: any) {
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${total} MSH` : 'Book Stay'}</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${formatCurrency(Number(total))}` : 'Book Stay'}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

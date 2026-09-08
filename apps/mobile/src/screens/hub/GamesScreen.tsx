@@ -100,7 +100,7 @@ export const GAMES: GameEntry[] = [
   {
     id: 'pool',
     name: '8-Ball Pool',
-    blurb: 'Classic 8-ball with MSH wagers — vs AI or a friend on one device.',
+    blurb: 'Classic 8-ball with Rand wagers — vs AI or a friend on one device.',
     icon: 'ellipse',
     gradient: ['#10B981', '#22D3EE'],
     live: true,
@@ -110,7 +110,7 @@ export const GAMES: GameEntry[] = [
   {
     id: 'wordbattle',
     name: 'Word Battle',
-    blurb: 'Wordle Duel, Boggle or Scrabble — vs AI or a friend, with MSH wagers.',
+    blurb: 'Wordle Duel, Boggle or Scrabble — vs AI or a friend, with Rand wagers.',
     icon: 'text',
     gradient: ['#F472B6', '#FB923C'],
     live: true,
@@ -125,7 +125,7 @@ export const GAMES: GameEntry[] = [
     gradient: ['#F87171', '#F472B6'],
     live: true,
     route: 'TurboRacingLobby',
-    features: ['Real-time online races', 'Car upgrades', 'MSH rewards'],
+    features: ['Real-time online races', 'Car upgrades', 'Rand rewards'],
   },
 ];
 

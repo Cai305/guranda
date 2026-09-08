@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi } from '../utils/api';
+import { formatCurrency } from '../utils/format';
 import PlatformWidget from '../components/widgets/PlatformWidget';
 import { decodePlatformWidget } from '../components/widgets/platformWidget';
 import { useAuth } from '../context/AuthContext';
@@ -154,7 +155,7 @@ function BoostModal({ comment, onClose, onBoosted }: { comment: Comment | null; 
         const updated = await res.json();
         onBoosted(updated);
         onClose();
-        Alert.alert('Boosted! 🚀', `Comment pinned with ${mshAmount} MSH`);
+        Alert.alert('Boosted! 🚀', `Comment pinned with ${formatCurrency(mshAmount)}`);
       } else {
         const d = await res.json().catch(() => ({}));
         Alert.alert('Failed', (d as any).message || 'Please try again');
@@ -171,14 +172,14 @@ function BoostModal({ comment, onClose, onBoosted }: { comment: Comment | null; 
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}>
         <View style={{ backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.xl, padding: SPACING.lg }}>
           <Text style={{ color: COLORS.text, fontWeight: '800', fontSize: 16, marginBottom: 4 }}>Boost Comment 🚀</Text>
-          <Text style={{ color: COLORS.textMuted, fontSize: 12, marginBottom: 16 }}>Pay MSH to pin this comment to the top. More boost = higher position.</Text>
-          <TextInput style={{ backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 16, marginBottom: 16 }} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} placeholder="MSH amount" placeholderTextColor={COLORS.textMuted} />
+          <Text style={{ color: COLORS.textMuted, fontSize: 12, marginBottom: 16 }}>Pay Rand to pin this comment to the top. More boost = higher position.</Text>
+          <TextInput style={{ backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: 12, color: COLORS.text, fontSize: 16, marginBottom: 16 }} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} placeholder="Rand amount" placeholderTextColor={COLORS.textMuted} />
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity style={{ flex: 1, padding: 13, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' }} onPress={onClose}>
               <Text style={{ color: COLORS.textMuted, fontWeight: '700' }}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={{ flex: 1, padding: 13, borderRadius: RADIUS.pill, backgroundColor: COLORS.gold, alignItems: 'center' }} onPress={submit} disabled={busy}>
-              {busy ? <ActivityIndicator color="#000" /> : <Text style={{ color: '#000', fontWeight: '800' }}>Boost · {amount} MSH</Text>}
+              {busy ? <ActivityIndicator color="#000" /> : <Text style={{ color: '#000', fontWeight: '800' }}>Boost · {formatCurrency(Number(amount) || 0)}</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -307,7 +308,7 @@ function CommentSheet({ entry, onClose, currentUserId }: { entry: FeedEntry | nu
                             {isPaid && (
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(251,191,36,0.15)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
                                 <Ionicons name="rocket" size={9} color={COLORS.gold} />
-                                <Text style={{ color: COLORS.gold, fontSize: 9, fontWeight: '800' }}>{item.boostAmount} MSH</Text>
+                                <Text style={{ color: COLORS.gold, fontSize: 9, fontWeight: '800' }}>{formatCurrency(item.boostAmount)}</Text>
                               </View>
                             )}
                           </View>

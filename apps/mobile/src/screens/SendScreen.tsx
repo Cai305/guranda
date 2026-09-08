@@ -178,7 +178,7 @@ export default function SendScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={TYPOGRAPHY.h2}>Send Masheleni</Text>
+          <Text style={TYPOGRAPHY.h2}>Send Money</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.form}>
@@ -256,7 +256,7 @@ export default function SendScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={TYPOGRAPHY.h2}>Send Masheleni</Text>
+        <Text style={TYPOGRAPHY.h2}>Send Money</Text>
         <View style={{ width: 24 }} />
       </View>
 

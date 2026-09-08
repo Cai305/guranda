@@ -192,7 +192,7 @@ export default function AddEditShoppingStoreScreen({ navigation, route }: any) {
 
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={18} color="#8B5CF6" />
-          <Text style={styles.infoText}>Customers pay with their Guranda Wallet (MSH) and earn 3% cashback on every order — no fees to you.</Text>
+          <Text style={styles.infoText}>Customers pay with their Guranda Wallet (Rand) and earn 3% cashback on every order — no fees to you.</Text>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

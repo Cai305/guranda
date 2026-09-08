@@ -120,7 +120,7 @@ export class LiveAiToolsProvider implements OnModuleInit {
         {
           name: 'buyPinnedProduct',
           description:
-            'Buy whatever shopping product is currently pinned in a live stream (spends MSH). Requires approval.',
+            'Buy whatever shopping product is currently pinned in a live stream (spends Rand). Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -144,7 +144,7 @@ export class LiveAiToolsProvider implements OnModuleInit {
         {
           name: 'orderPinnedFood',
           description:
-            'Order whatever food item is currently pinned in a live stream (spends MSH). Requires approval.',
+            'Order whatever food item is currently pinned in a live stream (spends Rand). Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -168,7 +168,7 @@ export class LiveAiToolsProvider implements OnModuleInit {
         {
           name: 'placeBet',
           description:
-            'Place a bet (spends MSH) on a live stream prediction. Requires approval.',
+            'Place a bet (spends Rand) on a live stream prediction. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -186,7 +186,7 @@ export class LiveAiToolsProvider implements OnModuleInit {
               pick: input.pick,
               amount: Number(input.amount),
             }),
-          describeAction: (input) => `Bet ${input.amount} MSH on ${input.pick}`,
+          describeAction: (input) => `Bet R${input.amount} on ${input.pick}`,
           describeResult: () => 'Bet placed.',
         },
       ]),

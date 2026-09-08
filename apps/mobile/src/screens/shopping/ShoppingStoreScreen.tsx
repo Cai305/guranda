@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 
 export default function ShoppingStoreScreen({ navigation, route }: any) {
@@ -151,7 +152,7 @@ export default function ShoppingStoreScreen({ navigation, route }: any) {
             <View style={styles.feeDivider} />
             <View style={styles.feeItem}>
               <Ionicons name="wallet-outline" size={16} color="#8B5CF6" />
-              <Text style={styles.feeLabel}>Pay with MSH</Text>
+              <Text style={styles.feeLabel}>Pay with Rand</Text>
             </View>
           </View>
         </View>
@@ -168,7 +169,7 @@ export default function ShoppingStoreScreen({ navigation, route }: any) {
                     {product.description && (
                       <Text style={styles.productDesc} numberOfLines={2}>{product.description}</Text>
                     )}
-                    <Text style={styles.productPrice}>{product.price.toFixed(2)} MSH</Text>
+                    <Text style={styles.productPrice}>{formatCurrency(product.price)}</Text>
                   </View>
                   <View style={styles.productActions}>
                     <View style={styles.productThumb}>
@@ -213,7 +214,7 @@ export default function ShoppingStoreScreen({ navigation, route }: any) {
           <TouchableOpacity style={styles.cartBarBtn} onPress={() => navigation.navigate('ShoppingCart')}>
             <View style={styles.cartBarBadge}><Text style={styles.cartBarBadgeText}>{itemCount}</Text></View>
             <Text style={styles.cartBarLabel}>View Cart</Text>
-            <Text style={styles.cartBarTotal}>{total.toFixed(2)} MSH</Text>
+            <Text style={styles.cartBarTotal}>{formatCurrency(total)}</Text>
           </TouchableOpacity>
         </View>
       )}

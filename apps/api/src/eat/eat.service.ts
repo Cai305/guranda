@@ -142,7 +142,7 @@ export class EatService {
     });
     if (!wallet) throw new BadRequestException('No wallet found');
     if (wallet.balanceMasheleni < total)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient R balance');
 
     // Deduct from wallet and create order atomically
     const [order] = await this.prisma.$transaction([

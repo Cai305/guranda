@@ -254,7 +254,7 @@ export const MODULES: LifeModule[] = [
     status: 'live',
     tagline: 'Book live events near you',
     description: 'Discover concerts, festivals, comedy shows, sports and more. Buy tickets with your Guranda wallet, manage your own events, and check in guests on the door.',
-    features: ['Browse & filter events', 'Book tickets with MSH', 'Create & manage events', 'Invite team members', 'QR ticket check-in'],
+    features: ['Browse & filter events', 'Book tickets with Rand', 'Create & manage events', 'Invite team members', 'QR ticket check-in'],
     route: { name: 'Main', params: { screen: 'Life', params: { screen: 'EventsHome' } } },
   },
   {

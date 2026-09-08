@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import GiftButton from '../../components/gifts/GiftButton';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -235,7 +236,7 @@ export default function WordleDuelScreen({ navigation, route }: any) {
           <Text style={styles.resultWord}>The word was {state.revealWord}</Text>
           {wager > 0 && (
             <Text style={styles.resultWager}>
-              {game.winnerSeat === mySeat ? `+${wager * 2} MSH` : game.winnerSeat === null ? 'Wager refunded' : `-${wager} MSH`}
+              {game.winnerSeat === mySeat ? `+${formatCurrency(wager * 2)}` : game.winnerSeat === null ? 'Wager refunded' : `-${formatCurrency(wager)}`}
             </Text>
           )}
           <TouchableOpacity style={styles.backToLobbyBtn} onPress={() => navigation.navigate('WordBattleLobby')}>

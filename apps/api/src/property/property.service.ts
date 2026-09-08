@@ -266,7 +266,7 @@ export class PropertyService {
       throw new BadRequestException('Wallet not found');
     if (Number(tenantWallet.balanceMasheleni) < amount) {
       throw new BadRequestException(
-        `Not enough MSH — rent is ${amount}, balance is ${tenantWallet.balanceMasheleni}`,
+        `Not enough R — rent is ${amount}, balance is ${tenantWallet.balanceMasheleni}`,
       );
     }
 

@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import {
   UpgradeStat, MAX_UPGRADE_LEVEL, costForLevel, accelFor, handlingFor,
   engineNameFor, CAR_COLORS, DEFAULT_CAR_COLOR,
@@ -213,7 +214,7 @@ export default function TurboRacingLobbyScreen({ navigation }: any) {
           <Text style={styles.heroTitle}>Arcade Street Racing</Text>
           <Text style={styles.heroSub}>
             Dodge traffic, grab boosts, race a real opponent to the finish line.
-            Collect coins and win to earn MSH.
+            Collect coins and win to earn Rand.
           </Text>
         </LinearGradient>
 
@@ -232,7 +233,7 @@ export default function TurboRacingLobbyScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.sectionLabel}>
-          GARAGE {balance !== null ? `· BALANCE ${balance} MSH` : ''}
+          GARAGE {balance !== null ? `· BALANCE ${formatCurrency(balance)}` : ''}
         </Text>
         <View style={styles.garage}>
           {STATS.map(s => {
@@ -259,7 +260,7 @@ export default function TurboRacingLobbyScreen({ navigation }: any) {
                   {buying === s.key ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.buyBtnText}>{maxed ? 'MAX' : `${cost} MSH`}</Text>
+                    <Text style={styles.buyBtnText}>{maxed ? 'MAX' : formatCurrency(cost)}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -290,8 +291,8 @@ export default function TurboRacingLobbyScreen({ navigation }: any) {
           {[
             'Tap the left/right edges of the track to switch lanes.',
             'Dodge oncoming traffic — hitting one slows you down hard.',
-            'Grab coins for MSH and lightning bolts for a speed boost.',
-            'First to the finish line wins — coins + placement pay out in MSH.',
+            'Grab coins for Rand and lightning bolts for a speed boost.',
+            'First to the finish line wins — coins + placement pay out in Rand.',
             'Every car starts on a plain 1.0 TSI Turbo — upgrade the engine, acceleration and handling in the Garage, and repaint it any color for free.',
           ].map((r, i) => (
             <View key={i} style={styles.ruleRow}>

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 
@@ -40,7 +41,7 @@ export default function ShoppingCartScreen({ navigation }: any) {
       clearCart();
       navigation.replace('ShoppingOrders');
     } catch (e: any) {
-      setError(e.message || 'Could not place order. Check your MSH balance.');
+      setError(e.message || 'Could not place order. Check your Rand balance.');
     } finally {
       setPlacing(false);
     }
@@ -148,7 +149,7 @@ export default function ShoppingCartScreen({ navigation }: any) {
             <View key={item.product.id} style={styles.itemRow}>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.product.name}</Text>
-                <Text style={styles.itemPrice}>{(item.product.price * item.quantity).toFixed(2)} MSH</Text>
+                <Text style={styles.itemPrice}>{formatCurrency(item.product.price * item.quantity)}</Text>
               </View>
               <View style={styles.qtyRow}>
                 <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQty(item.product.id, item.quantity - 1)}>
@@ -190,22 +191,22 @@ export default function ShoppingCartScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.feeRow}>
             <Text style={styles.feeLabel}>Subtotal</Text>
-            <Text style={styles.feeValue}>{subtotal.toFixed(2)} MSH</Text>
+            <Text style={styles.feeValue}>{formatCurrency(subtotal)}</Text>
           </View>
           <View style={[styles.feeRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{total.toFixed(2)} MSH</Text>
+            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
 
         <View style={styles.rewardCard}>
           <Ionicons name="gift" size={20} color="#8B5CF6" />
-          <Text style={styles.rewardText}>You'll earn <Text style={{ fontWeight: '800' }}>{rewardEarned.toFixed(2)} MSH</Text> cashback on this order</Text>
+          <Text style={styles.rewardText}>You'll earn <Text style={{ fontWeight: '800' }}>{formatCurrency(rewardEarned)}</Text> cashback on this order</Text>
         </View>
 
         <View style={[styles.section, styles.paymentCard]}>
           <Ionicons name="wallet" size={20} color="#f59e0b" />
-          <Text style={styles.paymentText}>Paying from Guranda Wallet (MSH)</Text>
+          <Text style={styles.paymentText}>Paying from Guranda Wallet (Rand)</Text>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -219,7 +220,7 @@ export default function ShoppingCartScreen({ navigation }: any) {
             ) : (
               <>
                 <Ionicons name="flash" size={20} color="#fff" />
-                <Text style={styles.orderBtnText}>Checkout · {total.toFixed(2)} MSH</Text>
+                <Text style={styles.orderBtnText}>Checkout · {formatCurrency(total)}</Text>
               </>
             )}
           </LinearGradient>

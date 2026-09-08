@@ -39,7 +39,7 @@ export class TravelAiToolsProvider implements OnModuleInit {
                   .slice(0, 8)
                   .map(
                     (s) =>
-                      `${s.title} — ${s.location} — ${s.pricePerNight} MSH/night`,
+                      `${s.title} — ${s.location} — ${s.pricePerNight} R/night`,
                   )
                   .join('\n'),
         },
@@ -57,7 +57,7 @@ export class TravelAiToolsProvider implements OnModuleInit {
               ? 'No booked trips yet.'
               : output
                   .slice(0, 10)
-                  .map((t) => `${t.type}: ${t.title} — ${t.subtitle} — ${t.dateLabel} — ${t.totalPrice} MSH — ${t.status}`)
+                  .map((t) => `${t.type}: ${t.title} — ${t.subtitle} — ${t.dateLabel} — ${t.totalPrice} R — ${t.status}`)
                   .join('\n'),
         },
         {
@@ -109,14 +109,14 @@ export class TravelAiToolsProvider implements OnModuleInit {
                   .slice(0, 8)
                   .map(
                     (f) =>
-                      `${f.id}: ${f.airline} ${f.flightNumber} ${f.origin}→${f.destination}, departs ${new Date(f.departureTime).toISOString()}, arrives ${new Date(f.arrivalTime).toISOString()}, ${f.price} MSH, ${f.seatsAvailable} seats left`,
+                      `${f.id}: ${f.airline} ${f.flightNumber} ${f.origin}→${f.destination}, departs ${new Date(f.departureTime).toISOString()}, arrives ${new Date(f.arrivalTime).toISOString()}, ${f.price} R, ${f.seatsAvailable} seats left`,
                   )
                   .join('\n'),
         },
         {
           name: 'bookFlight',
           description:
-            'Book a flight for the user. Deducts MSH from their wallet. Requires approval.',
+            'Book a flight for the user. Deducts R from their wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -138,7 +138,7 @@ export class TravelAiToolsProvider implements OnModuleInit {
           describeAction: (input) =>
             `Book flight ${input.flightId}${input.passengers ? ` for ${input.passengers} passenger(s)` : ''}`,
           describeResult: (input, output: any) =>
-            `Booked flight ${input.flightId} — total ${output?.totalPrice ?? '?'} MSH.`,
+            `Booked flight ${input.flightId} — total ${output?.totalPrice ?? '?'} R.`,
         },
         {
           name: 'searchCars',
@@ -170,14 +170,14 @@ export class TravelAiToolsProvider implements OnModuleInit {
                   .slice(0, 8)
                   .map(
                     (c) =>
-                      `${c.id}: ${c.make} ${c.model} (${c.category}) — ${c.location} — ${c.pricePerDay} MSH/day`,
+                      `${c.id}: ${c.make} ${c.model} (${c.category}) — ${c.location} — ${c.pricePerDay} R/day`,
                   )
                   .join('\n'),
         },
         {
           name: 'bookCar',
           description:
-            'Book a rental car for the user. Deducts MSH from their wallet. Requires approval.',
+            'Book a rental car for the user. Deducts R from their wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -197,7 +197,7 @@ export class TravelAiToolsProvider implements OnModuleInit {
           describeAction: (input) =>
             `Book rental car ${input.carId} from ${input.pickupDate} to ${input.returnDate}`,
           describeResult: (input, output: any) =>
-            `Booked car ${input.carId} from ${input.pickupDate} to ${input.returnDate} — total ${output?.totalPrice ?? '?'} MSH.`,
+            `Booked car ${input.carId} from ${input.pickupDate} to ${input.returnDate} — total ${output?.totalPrice ?? '?'} R.`,
         },
       ]),
     );

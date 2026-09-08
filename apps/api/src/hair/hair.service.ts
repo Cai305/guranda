@@ -325,7 +325,7 @@ export class HairService {
     });
     if (!customerWallet) throw new BadRequestException('No wallet found');
     if (customerWallet.balanceMasheleni < totalPrice) {
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient Rand balance');
     }
     const ownerWallet = await this.prisma.wallet.findUnique({
       where: { userId: hairdresser.userId },

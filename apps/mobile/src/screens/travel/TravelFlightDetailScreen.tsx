@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 
@@ -147,8 +148,8 @@ export default function TravelFlightDetailScreen({ navigation, route }: any) {
 
         {total && (
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{flight.price.toFixed(0)} MSH × {pax} passenger{pax > 1 ? 's' : ''}</Text>
-            <Text style={styles.totalValue}>{total} MSH</Text>
+            <Text style={styles.totalLabel}>{formatCurrency(flight.price)} × {pax} passenger{pax > 1 ? 's' : ''}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(Number(total))}</Text>
           </View>
         )}
 
@@ -157,7 +158,7 @@ export default function TravelFlightDetailScreen({ navigation, route }: any) {
 
       <View style={[styles.actionBar, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <TouchableOpacity style={styles.bookBtn} onPress={book} disabled={booking}>
-          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${total} MSH` : 'Book Flight'}</Text>}
+          {booking ? <ActivityIndicator color="#fff" /> : <Text style={styles.bookBtnText}>{total ? `Book · ${formatCurrency(Number(total))}` : 'Book Flight'}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

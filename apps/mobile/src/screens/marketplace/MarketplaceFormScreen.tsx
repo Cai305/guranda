@@ -206,7 +206,7 @@ export default function MarketplaceFormScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>{listingType === 'AUCTION' ? 'STARTING BID (MSH)' : 'PRICE (MSH)'}</Text>
+        <Text style={styles.label}>{listingType === 'AUCTION' ? 'STARTING BID (R)' : 'PRICE (R)'}</Text>
         <TextInput style={styles.input} placeholder="e.g. 50" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} keyboardType="numeric" />
 
         {listingType === 'AUCTION' && (

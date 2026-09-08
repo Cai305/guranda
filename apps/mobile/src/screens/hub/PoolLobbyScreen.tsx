@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import type { PoolDifficulty } from '../../games/pool/ai';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -162,7 +163,7 @@ export default function PoolLobbyScreen({ navigation }: any) {
           <Text style={styles.heroTitle}>Rack 'em up</Text>
           <Text style={styles.heroSub}>
             Classic 8-ball: pot your group, sink the eight, don't scratch.
-            Wager MSH from your wallet for double-or-nothing stakes.
+            Wager Rand from your wallet for double-or-nothing stakes.
           </Text>
         </LinearGradient>
 
@@ -181,7 +182,7 @@ export default function PoolLobbyScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.sectionLabel}>
-          WAGER {balance !== null ? `· BALANCE ${balance} MSH` : ''}
+          WAGER {balance !== null ? `· BALANCE ${formatCurrency(balance)}` : ''}
         </Text>
         <View style={styles.wagerRow}>
           {WAGERS.map(w => (
@@ -191,14 +192,14 @@ export default function PoolLobbyScreen({ navigation }: any) {
               onPress={() => setWager(w)}
             >
               <Text style={[styles.wagerText, wager === w && { color: '#04291B' }]}>
-                {w === 0 ? 'For fun' : `${w} MSH`}
+                {w === 0 ? 'For fun' : formatCurrency(w)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
         <Text style={styles.wagerHint}>
           {wager > 0
-            ? `Win to take ${wager * 2} MSH back — lose and the house keeps your stake.`
+            ? `Win to take ${formatCurrency(wager * 2)} back — lose and the house keeps your stake.`
             : 'No stakes — just bragging rights.'}
         </Text>
 

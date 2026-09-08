@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = { PENDING: '#F59E0B', CONFIRMED: '#0EA5E9', COMPLETED: '#22c55e', CANCELLED: '#ef4444' };
 
@@ -173,7 +174,7 @@ export default function MySalonScreen({ navigation }: any) {
             <View key={s.id} style={styles.itemRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemTitle}>{s.title}</Text>
-                <Text style={styles.itemSub}>{s.price.toFixed(0)} MSH · {s.duration} min</Text>
+                <Text style={styles.itemSub}>{formatCurrency(s.price)} · {s.duration} min</Text>
               </View>
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AddEditSalonService', { service: s })}>
                 <Ionicons name="create-outline" size={18} color={COLORS.textMuted} />
@@ -204,7 +205,7 @@ export default function MySalonScreen({ navigation }: any) {
               {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={styles.itemImage} /> : <View style={styles.itemImage} />}
               <View style={{ flex: 1 }}>
                 <Text style={styles.itemTitle}>{p.name}</Text>
-                <Text style={styles.itemSub}>{p.price.toFixed(0)} MSH · {p.inStock ? 'In stock' : 'Out of stock'}</Text>
+                <Text style={styles.itemSub}>{formatCurrency(p.price)} · {p.inStock ? 'In stock' : 'Out of stock'}</Text>
               </View>
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AddEditSalonProduct', { product: p })}>
                 <Ionicons name="create-outline" size={18} color={COLORS.textMuted} />
@@ -234,7 +235,7 @@ export default function MySalonScreen({ navigation }: any) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.apptDate}>{new Date(b.appointmentAt).toLocaleString()}</Text>
                 <Text style={styles.apptSub}>
-                  {b.service?.title} · {b.customer?.profile?.displayName || b.customer?.username} · {b.totalPrice.toFixed(0)} MSH
+                  {b.service?.title} · {b.customer?.profile?.displayName || b.customer?.username} · {formatCurrency(b.totalPrice)}
                 </Text>
                 <View style={[styles.statusPill, { backgroundColor: `${STATUS_COLOR[b.status]}22` }]}>
                   <Text style={[styles.statusText, { color: STATUS_COLOR[b.status] }]}>{b.status}</Text>

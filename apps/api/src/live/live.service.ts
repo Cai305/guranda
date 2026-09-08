@@ -612,7 +612,7 @@ export class LiveService {
         where: { userId: hostId },
       });
       if (!wallet || wallet.balanceMasheleni < prizePool)
-        throw new BadRequestException('Insufficient MSH to fund this prize');
+        throw new BadRequestException('Insufficient Rand to fund this prize');
     }
     await this.prisma.liveQuiz.updateMany({
       where: { roomId, status: 'OPEN' },
@@ -833,7 +833,7 @@ export class LiveService {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new BadRequestException('No wallet found');
     if (wallet.balanceMasheleni < amount)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient Rand balance');
 
     const [bet] = await this.prisma.$transaction([
       this.prisma.livePredictionBet.create({

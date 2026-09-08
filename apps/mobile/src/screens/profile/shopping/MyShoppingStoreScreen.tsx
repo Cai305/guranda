@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 export default function MyShoppingStoreScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -201,7 +202,7 @@ export default function MyShoppingStoreScreen({ navigation }: any) {
                   <View style={styles.productInfo}>
                     <Text style={styles.productName}>{p.name}</Text>
                     {p.description && <Text style={styles.productDesc} numberOfLines={1}>{p.description}</Text>}
-                    <Text style={styles.productPrice}>{p.price.toFixed(2)} MSH</Text>
+                    <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
                   </View>
                   <View style={styles.productActions}>
                     <TouchableOpacity

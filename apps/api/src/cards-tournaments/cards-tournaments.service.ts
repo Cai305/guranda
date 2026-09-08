@@ -68,7 +68,7 @@ export class CardsTournamentsService {
     if (tournament.entryFee > 0) {
       const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
       if (!wallet || Number(wallet.balanceMasheleni) < tournament.entryFee) {
-        throw new BadRequestException('Not enough MSH for the entry fee');
+        throw new BadRequestException('Not enough Rand for the entry fee');
       }
       await this.prisma.$transaction([
         this.prisma.wallet.update({
@@ -255,7 +255,7 @@ export class CardsTournamentsService {
         'tournament.won',
         'Tournament champion!',
         tournament.prizePool > 0
-          ? `You won the tournament and ${tournament.prizePool} MSH!`
+          ? `You won the tournament and R${tournament.prizePool}!`
           : "You won the tournament!",
         { tournamentId: tournament.id },
       );

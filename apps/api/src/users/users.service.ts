@@ -112,7 +112,7 @@ export class UsersService {
         this.fundXrplWallet(newWallet).catch(console.error);
       }
 
-      // 3. Create the Masheleni Wallet with the Guranda welcome bonus
+      // 3. Create the Rand Wallet with the Guranda welcome bonus
       const wallet = await tx.wallet.create({
         data: {
           userId: user.id,

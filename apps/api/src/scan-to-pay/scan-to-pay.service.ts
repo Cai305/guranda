@@ -260,7 +260,7 @@ export class ScanToPayService {
       return fail('Wallet not found');
     }
     if (Number(customerWallet.balanceMasheleni) < total) {
-      return fail(`Not enough MSH — balance is ${customerWallet.balanceMasheleni}`);
+      return fail(`Not enough R — balance is ${customerWallet.balanceMasheleni}`);
     }
 
     await this.prisma.$transaction([

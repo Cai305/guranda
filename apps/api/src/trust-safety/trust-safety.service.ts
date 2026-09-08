@@ -37,7 +37,7 @@ export class TrustSafetyService {
           data: {
             eventType: event.type,
             aggregateId: event.aggregateId,
-            reason: `Transfer of ${payload.amount} MSH exceeds the ${LARGE_TRANSFER_THRESHOLD_MSH} MSH review threshold`,
+            reason: `Transfer of R${payload.amount} exceeds the R${LARGE_TRANSFER_THRESHOLD_MSH} review threshold`,
             severity: payload.amount! >= LARGE_TRANSFER_THRESHOLD_MSH * 4 ? 'HIGH' : 'MEDIUM',
           },
         });

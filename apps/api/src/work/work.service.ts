@@ -384,7 +384,7 @@ export class WorkService {
     if (!wallet) throw new BadRequestException('No wallet found');
     if (wallet.balanceMasheleni < amount)
       throw new BadRequestException(
-        'Insufficient MSH balance to fund this gig',
+        'Insufficient Rand balance to fund this gig',
       );
 
     const [gig] = await this.prisma.$transaction([

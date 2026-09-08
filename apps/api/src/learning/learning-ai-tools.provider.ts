@@ -34,7 +34,7 @@ export class LearningAiToolsProvider implements OnModuleInit {
               ? 'No courses found.'
               : output
                   .slice(0, 8)
-                  .map((c) => `${c.id}: ${c.title} — ${c.price ?? 0} MSH`)
+                  .map((c) => `${c.id}: ${c.title} — R${c.price ?? 0}`)
                   .join('\n'),
         },
         {
@@ -79,7 +79,7 @@ export class LearningAiToolsProvider implements OnModuleInit {
         {
           name: 'enroll',
           description:
-            'Enroll the user in a course. May deduct MSH from the wallet. Requires approval.',
+            'Enroll the user in a course. May deduct Rand from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: { courseId: { type: 'string' } },

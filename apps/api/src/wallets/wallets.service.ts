@@ -27,7 +27,7 @@ function getNextPayoutDate(from = new Date()): Date {
 }
 
 // ONE WALLET · ONE ECONOMY.
-// The Masheleni (MSH) ledger balance is the single source of truth for every
+// The Rand (R) ledger balance is the single source of truth for every
 // balance shown and every spend in Guranda — sends, pool wagers, AI transfers,
 // purchases. The XRPL address remains the wallet's public identity for future
 // on-chain settlement, but balances never come from the chain.
@@ -87,7 +87,7 @@ export class WalletsService {
   // Month-to-date totals for the Activity dashboard, computed over ALL of
   // this month's transactions (not just the latest 20 getMyWallet returns) —
   // "money in" matches the exact set of types the transaction list already
-  // renders in green (isPositive in WalletScreen/WalletTransactionsScreen),
+  // renders in green (isPositive in WalletDashboardScreen/WalletTransactionsScreen),
   // so the dashboard's total never disagrees with what the list shows.
   async getWalletSummary(userId: string) {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
@@ -128,7 +128,7 @@ export class WalletsService {
   }
 
   /**
-   * Transfer MSH between Guranda users on the ledger.
+   * Transfer Rand between Guranda users on the ledger.
    * `destination` accepts a Guranda username or a wallet's XRPL address.
    */
   async sendMasheleni(
@@ -136,7 +136,7 @@ export class WalletsService {
     destination: string,
     amount: string,
   ) {
-    await this.verificationService.assertVerified(senderUserId, 'Sending MSH');
+    await this.verificationService.assertVerified(senderUserId, 'Sending Rand');
 
     const value = parseFloat(amount);
     if (!(value > 0)) {
@@ -151,7 +151,7 @@ export class WalletsService {
     }
     if (Number(senderWallet.balanceMasheleni) < value) {
       throw new BadRequestException(
-        `Not enough MSH — balance is ${senderWallet.balanceMasheleni}`,
+        `Not enough Rand — balance is ${senderWallet.balanceMasheleni}`,
       );
     }
 
@@ -172,7 +172,7 @@ export class WalletsService {
       );
     }
     if (recipientWallet.id === senderWallet.id) {
-      throw new BadRequestException('You cannot send MSH to yourself');
+      throw new BadRequestException('You cannot send Rand to yourself');
     }
 
     const [, , transaction] = await this.prisma.$transaction([
@@ -241,7 +241,7 @@ export class WalletsService {
     if (!(amount > 0)) throw new BadRequestException('Invalid hold amount');
     const available = await this.availableBalance(walletId);
     if (available < amount) {
-      throw new BadRequestException(`Not enough available balance — ${available} MSH free`);
+      throw new BadRequestException(`Not enough available balance — R${available} free`);
     }
     return this.prisma.walletHold.create({
       data: {
@@ -292,7 +292,7 @@ export class WalletsService {
 
   /**
    * Start a deposit: real-world money (currently PayShap only) coming onto the
-   * MSH ledger. No live PSP is wired in yet, so this returns payment
+   * Rand ledger. No live PSP is wired in yet, so this returns payment
    * instructions against a fixed reference and leaves the request PENDING —
    * an admin confirms it once the money actually lands (or, later, a PSP
    * webhook can call confirmDeposit() directly instead of a human).
@@ -323,7 +323,7 @@ export class WalletsService {
     return {
       ...deposit,
       payShapId: '0860 000 000',
-      instructions: `Send R${value.toFixed(2)} via PayShap to 0860 000 000 using reference ${reference}. Your MSH balance updates once it's confirmed.`,
+      instructions: `Send R${value.toFixed(2)} via PayShap to 0860 000 000 using reference ${reference}. Your Rand balance updates once it's confirmed.`,
     };
   }
 

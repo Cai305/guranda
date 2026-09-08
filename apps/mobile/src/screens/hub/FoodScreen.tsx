@@ -217,7 +217,7 @@ export default function FoodScreen({ navigation }: any) {
             Your food is being prepared. Estimated delivery: 25-35 min.
           </Text>
           <Text style={[TYPOGRAPHY.body1, { marginTop: 20, color: COLORS.secondary }]}>
-            Paid with Masheleni Wallet 💰
+            Paid with Rand Wallet 💰
           </Text>
           <TouchableOpacity
             style={styles.backToHubBtn}

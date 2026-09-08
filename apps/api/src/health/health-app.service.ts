@@ -162,7 +162,7 @@ export class HealthAppService {
     });
     if (!patientWallet) throw new BadRequestException('No wallet found');
     if (patientWallet.balanceMasheleni < fee)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient Rand balance');
     const practitionerWallet = await this.prisma.wallet.findUnique({
       where: { userId: practitioner.ownerId },
     });
@@ -415,7 +415,7 @@ export class HealthAppService {
     });
     if (!wallet) throw new BadRequestException('No wallet found');
     if (wallet.balanceMasheleni < total)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient Rand balance');
 
     const [order] = await this.prisma.$transaction([
       this.prisma.healthPharmacyOrder.create({

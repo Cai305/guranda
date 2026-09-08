@@ -66,7 +66,7 @@ export class VideoRewardService {
     return this.prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({ where: { userId: creatorId } });
       if (!wallet || Number(wallet.balanceMasheleni) < totalBudgetMsh) {
-        throw new BadRequestException('Not enough MSH balance to fund this reward budget');
+        throw new BadRequestException('Not enough Rand balance to fund this reward budget');
       }
       await tx.wallet.update({
         where: { id: wallet.id },
@@ -185,8 +185,8 @@ export class VideoRewardService {
       .create(
         userId,
         'video.reward_earned',
-        'You earned MSH for watching!',
-        `+${payout.toFixed(2)} MSH credited to your wallet`,
+        'You earned Rand for watching!',
+        `+R${payout.toFixed(2)} credited to your wallet`,
         { videoId },
       )
       .catch(() => {});

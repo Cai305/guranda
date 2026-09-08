@@ -96,7 +96,7 @@ export class ReactionsService implements OnModuleInit {
     const senderWallet = await this.prisma.wallet.findUnique({ where: { userId: senderId } });
     if (!senderWallet) throw new BadRequestException('Wallet not found');
     if (Number(senderWallet.balanceMasheleni) < type.amount) {
-      throw new BadRequestException(`Not enough MSH — balance is ${senderWallet.balanceMasheleni}`);
+      throw new BadRequestException(`Not enough R — balance is ${senderWallet.balanceMasheleni}`);
     }
     const recipientWallet = await this.prisma.wallet.findUnique({ where: { userId: recipientId } });
     if (!recipientWallet) throw new NotFoundException('Recipient wallet not found');

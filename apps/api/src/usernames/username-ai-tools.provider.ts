@@ -73,14 +73,14 @@ export class UsernameAiToolsProvider implements OnModuleInit {
               : output
                   .map(
                     (u) =>
-                      `@${u.label} — ${u.saleStatus === 'AUCTION' ? `bid ${u.currentBid ?? u.price}` : `${u.price} MSH`}`,
+                      `@${u.label} — ${u.saleStatus === 'AUCTION' ? `bid R${u.currentBid ?? u.price}` : `R${u.price}`}`,
                   )
                   .join('\n'),
         },
         {
           name: 'mint',
           description:
-            'Mint (claim) a brand-new, never-before-claimed username for a flat MSH fee, beyond the free one from registration. Requires approval.',
+            'Mint (claim) a brand-new, never-before-claimed username for a flat Rand fee, beyond the free one from registration. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: { label: { type: 'string' } },
@@ -92,7 +92,7 @@ export class UsernameAiToolsProvider implements OnModuleInit {
           handler: (ctx, input) =>
             this.usernames.claimAdditional(ctx.userId, input.label),
           describeAction: (input) =>
-            `Mint the username @${input.label} for 50 MSH`,
+            `Mint the username @${input.label} for R50`,
           describeResult: (input) => `Minted @${input.label}.`,
         },
         {
@@ -138,7 +138,7 @@ export class UsernameAiToolsProvider implements OnModuleInit {
           handler: (ctx, input) =>
             this.usernames.createListing(ctx.userId, input.usernameId, input),
           describeAction: (input) =>
-            `List username for ${input.listingType === 'AUCTION' ? 'auction' : 'sale'} at ${input.price} MSH`,
+            `List username for ${input.listingType === 'AUCTION' ? 'auction' : 'sale'} at R${input.price}`,
           describeResult: (_i, output: any) =>
             `@${output.label} is now listed (${output.saleStatus}).`,
         },
@@ -199,9 +199,9 @@ export class UsernameAiToolsProvider implements OnModuleInit {
               Number(input.amount),
             ),
           describeAction: (input) =>
-            `Bid ${input.amount} MSH on this username auction`,
+            `Bid R${input.amount} on this username auction`,
           describeResult: (_i, output: any) =>
-            `Bid placed — current bid is now ${output.currentBid} MSH.`,
+            `Bid placed — current bid is now R${output.currentBid}.`,
         },
       ]),
     );

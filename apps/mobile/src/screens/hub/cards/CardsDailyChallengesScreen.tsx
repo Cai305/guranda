@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 export default function CardsDailyChallengesScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -53,7 +54,7 @@ export default function CardsDailyChallengesScreen({ navigation }: any) {
       const res = await fetchApi(`/daily-challenges/${challengeId}/claim`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to claim');
       const data = await res.json();
-      Alert.alert('Reward claimed', `+${data.rewarded} MSH`);
+      Alert.alert('Reward claimed', `+${formatCurrency(data.rewarded)}`);
       load();
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -89,7 +90,7 @@ export default function CardsDailyChallengesScreen({ navigation }: any) {
               </View>
               <View style={styles.footerRow}>
                 <Text style={styles.progressText}>{progress}/{criteria.target}</Text>
-                <Text style={styles.reward}>+{item.challenge.rewardMasheleni} MSH</Text>
+                <Text style={styles.reward}>+{formatCurrency(item.challenge.rewardMasheleni)}</Text>
               </View>
               {completed && !claimed && (
                 <TouchableOpacity style={styles.claimBtn} onPress={() => claim(item.challenge.id)} disabled={claiming === item.challenge.id}>

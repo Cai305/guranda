@@ -109,7 +109,7 @@ export class LearningService {
       });
       if (!studentWallet) throw new BadRequestException('No wallet found');
       if (studentWallet.balanceMasheleni < course.price)
-        throw new BadRequestException('Insufficient MSH balance');
+        throw new BadRequestException('Insufficient Rand balance');
       const creatorWallet = await this.prisma.wallet.findUnique({
         where: { userId: course.creatorId },
       });
@@ -329,7 +329,7 @@ export class LearningService {
     });
     if (!studentWallet) throw new BadRequestException('No wallet found');
     if (studentWallet.balanceMasheleni < fee)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient Rand balance');
     const tutorWallet = await this.prisma.wallet.findUnique({
       where: { userId: tutor.ownerId },
     });

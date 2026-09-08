@@ -91,7 +91,7 @@ export class RideService {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId: riderId } });
     if (!wallet || Number(wallet.balanceMasheleni) < fare) {
       throw new BadRequestException(
-        `Not enough MSH for this ride — fare is ${fare}, balance is ${wallet ? wallet.balanceMasheleni : 0}`,
+        `Not enough R for this ride — fare is ${fare}, balance is ${wallet ? wallet.balanceMasheleni : 0}`,
       );
     }
 

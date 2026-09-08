@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
   stay: { icon: 'bed', color: '#8B5CF6', label: 'Stay' },
@@ -96,7 +97,7 @@ export default function TravelTripsScreen({ navigation }: any) {
                     <Text style={styles.tripSub} numberOfLines={1}>{trip.subtitle}</Text>
                     <Text style={styles.tripDate}>{trip.dateLabel}</Text>
                   </View>
-                  <Text style={styles.tripPrice}>{trip.totalPrice.toFixed(0)} MSH</Text>
+                  <Text style={styles.tripPrice}>{formatCurrency(trip.totalPrice)}</Text>
                 </View>
               );
             })

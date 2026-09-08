@@ -139,7 +139,7 @@ export class ChallengesService {
     const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new BadRequestException('Wallet not found');
     if (Number(wallet.balanceMasheleni) < mshAmount) {
-      throw new BadRequestException(`Not enough MSH — balance is ${wallet.balanceMasheleni}`);
+      throw new BadRequestException(`Not enough Rand — balance is ${wallet.balanceMasheleni}`);
     }
 
     const [, , updatedComment] = await this.prisma.$transaction([

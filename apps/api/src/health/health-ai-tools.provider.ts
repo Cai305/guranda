@@ -89,7 +89,7 @@ export class HealthAiToolsProvider implements OnModuleInit {
               ? 'No pharmacy products found.'
               : output
                   .slice(0, 8)
-                  .map((p: any) => `${p.id}: ${p.name} — ${p.price} MSH`)
+                  .map((p: any) => `${p.id}: ${p.name} — R${p.price}`)
                   .join('\n'),
         },
         {
@@ -130,7 +130,7 @@ export class HealthAiToolsProvider implements OnModuleInit {
         {
           name: 'orderMedicine',
           description:
-            'Place a pharmacy order for delivery. Deducts MSH from the wallet. Requires approval.',
+            'Place a pharmacy order for delivery. Deducts Rand from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {

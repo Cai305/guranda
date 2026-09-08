@@ -153,7 +153,7 @@ export class TurboRacingService {
     }
   }
 
-  // ---- Car upgrades (bought with MSH) ----
+  // ---- Car upgrades (bought with Rand) ----
 
   async getUpgrades(userId: string) {
     const existing = await this.prisma.turboCarUpgrades.findUnique({
@@ -206,7 +206,7 @@ export class TurboRacingService {
     if (!wallet) throw new BadRequestException('Wallet not found');
     if (Number(wallet.balanceMasheleni) < cost) {
       throw new BadRequestException(
-        `Not enough MSH — need ${cost}, have ${wallet.balanceMasheleni}`,
+        `Not enough R — need ${cost}, have ${wallet.balanceMasheleni}`,
       );
     }
 

@@ -34,7 +34,7 @@ export class ShoppingAiToolsProvider implements OnModuleInit {
               ? 'No products found.'
               : output
                   .slice(0, 8)
-                  .map((p) => `${p.id}: ${p.name} — ${p.price} MSH`)
+                  .map((p) => `${p.id}: ${p.name} — ${p.price} R`)
                   .join('\n'),
         },
         {
@@ -49,7 +49,7 @@ export class ShoppingAiToolsProvider implements OnModuleInit {
         {
           name: 'placeOrder',
           description:
-            'Place a shopping order for products from one store. Deducts MSH from the wallet. Requires approval.',
+            'Place a shopping order for products from one store. Deducts R from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {

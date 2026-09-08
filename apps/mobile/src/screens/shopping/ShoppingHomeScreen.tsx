@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import { useTheme } from '../../context/ThemeContext';
@@ -213,7 +214,7 @@ export default function ShoppingHomeScreen({ navigation }: any) {
                 </View>
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardName} numberOfLines={2}>{product.name}</Text>
-                  <Text style={styles.cardPrice}>{product.price.toFixed(2)} MSH</Text>
+                  <Text style={styles.cardPrice}>{formatCurrency(product.price)}</Text>
                   <View style={styles.cardMetaRow}>
                     <Ionicons name="star" size={11} color="#f59e0b" />
                     <Text style={styles.cardRating}>{product.store?.rating?.toFixed(1) || '5.0'}</Text>

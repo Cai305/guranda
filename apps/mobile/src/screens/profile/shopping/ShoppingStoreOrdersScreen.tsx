@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = {
   PLACED: '#f59e0b',
@@ -145,7 +146,7 @@ export default function ShoppingStoreOrdersScreen({ navigation }: any) {
                   <View style={styles.itemList}>
                     {(order.items || []).map((item: any) => (
                       <Text key={item.id} style={styles.itemText}>
-                        {item.quantity}× {item.product?.name} — {(item.price * item.quantity).toFixed(2)} MSH
+                        {item.quantity}× {item.product?.name} — {formatCurrency(item.price * item.quantity)}
                       </Text>
                     ))}
                   </View>
@@ -160,7 +161,7 @@ export default function ShoppingStoreOrdersScreen({ navigation }: any) {
                   <View style={styles.orderFooter}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.addrText} numberOfLines={1}>{order.shippingAddress}</Text>
-                      <Text style={styles.totalText}>Total: {order.total?.toFixed(2)} MSH</Text>
+                      <Text style={styles.totalText}>Total: {formatCurrency(order.total)}</Text>
                     </View>
                     <View style={styles.orderActions}>
                       {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (

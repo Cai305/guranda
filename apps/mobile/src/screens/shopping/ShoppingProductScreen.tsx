@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import { useShoppingCart } from '../../context/ShoppingCartContext';
 
 export default function ShoppingProductScreen({ navigation, route }: any) {
@@ -131,7 +132,7 @@ export default function ShoppingProductScreen({ navigation, route }: any) {
             <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <Text style={styles.price}>{product.price.toFixed(2)} MSH</Text>
+          <Text style={styles.price}>{formatCurrency(product.price)}</Text>
 
           <View style={styles.badgeRow}>
             <View style={styles.badge}>
@@ -140,7 +141,7 @@ export default function ShoppingProductScreen({ navigation, route }: any) {
             </View>
             <View style={styles.badge}>
               <Ionicons name="gift-outline" size={13} color="#8B5CF6" />
-              <Text style={[styles.badgeText, { color: '#8B5CF6' }]}>Earn {rewardEstimate} MSH cashback</Text>
+              <Text style={[styles.badgeText, { color: '#8B5CF6' }]}>Earn {formatCurrency(Number(rewardEstimate))} cashback</Text>
             </View>
           </View>
 

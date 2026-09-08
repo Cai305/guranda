@@ -182,7 +182,7 @@ export default function EatHomeScreen({ navigation }: any) {
       <LinearGradient colors={GRADIENTS.crimson} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.hero}>
         <Ionicons name="restaurant" size={40} color="rgba(255,255,255,0.3)" style={styles.heroIcon} />
         <Text style={styles.heroTitle}>Hungry?</Text>
-        <Text style={styles.heroSub}>Order from local restaurants, pay with MSH</Text>
+        <Text style={styles.heroSub}>Order from local restaurants, pay with Rand</Text>
       </LinearGradient>
 
       {/* Categories */}

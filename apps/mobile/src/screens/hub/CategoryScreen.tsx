@@ -13,7 +13,7 @@ const CATEGORY_APPS: Record<string, { id: string; name: string; icon: string; co
     { id: 'g3', name: 'Card Clash', icon: 'copy', color: '#FB5607', description: 'Turn-based card strategy' },
   ],
   Finance: [
-    { id: 'f1', name: 'Masheleni Savings', icon: 'cash', color: '#2D6A4F', description: 'Set savings goals with Masheleni' },
+    { id: 'f1', name: 'Rand Savings', icon: 'cash', color: '#2D6A4F', description: 'Set savings goals with Rand' },
     { id: 'f2', name: 'Airtime Exchange', icon: 'swap-horizontal', color: '#3A86FF', description: 'Buy and sell airtime' },
     { id: 'f3', name: 'Bill Payments', icon: 'receipt', color: '#F4A261', description: 'Pay electricity, water & TV' },
   ],

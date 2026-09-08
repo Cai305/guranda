@@ -124,7 +124,6 @@ export default function WalletDashboardScreen({ navigation }: any) {
     heroIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
     heroActions: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.lg, flexWrap: 'wrap' },
     heroBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill },
-    heroBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.07)', opacity: 0.55 },
     heroBtnText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
     sectionLabel: { fontSize: 13, fontWeight: '600', letterSpacing: 0.3, color: COLORS.textMuted, paddingHorizontal: SPACING.lg, marginTop: SPACING.xl },
     statRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginTop: SPACING.sm },
@@ -210,14 +209,13 @@ export default function WalletDashboardScreen({ navigation }: any) {
               <Ionicons name="download-outline" size={14} color="#FFF" />
               <Text style={styles.heroBtnText}>Request</Text>
             </TouchableOpacity>
-            <View
-              style={[styles.heroBtn, styles.heroBtnDisabled]}
-              accessibilityState={{ disabled: true }}
-              accessibilityLabel="Scan — coming soon"
+            <TouchableOpacity
+              style={styles.heroBtn}
+              onPress={() => navigation.navigate('Main', { screen: 'Life', params: { screen: 'ScanToPayLobby' } })}
             >
               <Ionicons name="qr-code-outline" size={14} color="#FFF" />
               <Text style={styles.heroBtnText}>Scan</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 

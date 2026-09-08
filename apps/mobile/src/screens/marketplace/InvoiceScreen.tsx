@@ -7,6 +7,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 export default function InvoiceScreen({ navigation, route }: any) {
   const { theme } = useTheme();
@@ -148,7 +149,7 @@ export default function InvoiceScreen({ navigation, route }: any) {
 
           <View style={styles.row}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{invoice.amount} MSH</Text>
+            <Text style={styles.totalValue}>{formatCurrency(invoice.amount)}</Text>
           </View>
         </View>
       </ScrollView>

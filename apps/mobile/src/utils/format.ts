@@ -24,9 +24,9 @@ export function formatCount(n: number): string {
   return `${n}`;
 }
 
-// User-facing amounts are always shown in Rand — Masheleni/MSH stays the
-// backend/technical name only (it's an XRPL stablecoin pegged 1:1 to the
-// Rand, per docs/01_PRD.md), never surfaced to users. Mirrors the "R" the
+// User-facing amounts are always shown in Rand — the backend settles on an
+// XRPL stablecoin pegged 1:1 to the Rand (per docs/01_PRD.md), but that's an
+// implementation detail never surfaced to users. Mirrors the "R" the
 // PayShap deposit flow already uses (wallets.service.ts) so the app has one
 // currency convention, not two.
 export function formatCurrency(amount: number): string {

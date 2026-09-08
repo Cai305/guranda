@@ -148,7 +148,7 @@ export default function AddEditTravelStayScreen({ navigation, route }: any) {
 
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Price/night (MSH) *</Text>
+            <Text style={styles.label}>Price/night (Rand) *</Text>
             <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={pricePerNight} onChangeText={setPricePerNight} keyboardType="decimal-pad" />
           </View>
           <View style={{ flex: 1 }}>

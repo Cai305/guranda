@@ -113,7 +113,7 @@ export default function AddEditSalonProductScreen({ navigation, route }: any) {
           <TextInput style={styles.input} placeholder="e.g. X-Pression Ultra Braid" placeholderTextColor={COLORS.textMuted} value={name} onChangeText={setName} />
         </View>
         <View>
-          <Text style={styles.label}>Price (MSH) *</Text>
+          <Text style={styles.label}>Price (R) *</Text>
           <TextInput style={styles.input} placeholder="0.00" placeholderTextColor={COLORS.textMuted} value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
         </View>
         <View>

@@ -11,9 +11,9 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AchievementsService } from '../achievements/achievements.service';
 
 // The one gift catalog shared across every surface — Live streams and
-// every game screen. Amounts are MSH, debited from the sender's wallet
+// every game screen. Amounts are Rand, debited from the sender's wallet
 // and credited to the recipient's, same ledger pattern as everything else.
-// Spans 1 MSH to 10,000 MSH. The original 6 keys (rose/heart/confetti/
+// Spans R1 to R10,000. The original 6 keys (rose/heart/confetti/
 // trophy/diamond/rocket) keep their exact key/icon/amount — they're
 // referenced by historical Gift rows and a couple of hardcoded emoji
 // fallback maps, so renaming or reordering them would misrender old data.
@@ -47,9 +47,9 @@ export const GIFT_CATALOG = [
 // Badge utility (vision §12: badges unlock real access, not just display).
 // The three supply-capped, genuinely scarce badges — not the uncapped
 // achievement-linked ones — earn their holder a standing discount on the
-// MSH cost of SENDING a gift. The recipient still receives the full
+// Rand cost of SENDING a gift. The recipient still receives the full
 // catalog amount; the platform absorbs the difference, same pattern as
-// the registration welcome bonus and CCR payouts (both already credit MSH
+// the registration welcome bonus and CCR payouts (both already credit Rand
 // with no matching debit elsewhere in the ledger).
 export const GIFT_DISCOUNT_BADGE_CODES = ['FOUNDER', 'OG_CREATOR', 'EARLY_LIVE_HOST'] as const;
 export const GIFT_DISCOUNT_RATE = 0.1;
@@ -181,7 +181,7 @@ export class GiftsService {
 
     if (Number(senderWallet.balanceMasheleni) < cost) {
       throw new BadRequestException(
-        `Not enough MSH — balance is ${senderWallet.balanceMasheleni}`,
+        `Not enough Rand — balance is ${senderWallet.balanceMasheleni}`,
       );
     }
     const recipientWallet = await this.prisma.wallet.findUnique({

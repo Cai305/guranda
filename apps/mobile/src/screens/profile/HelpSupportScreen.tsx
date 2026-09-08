@@ -7,12 +7,12 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 
 const FAQS = [
   {
-    question: 'What is Masheleni (MSH)?',
-    answer: 'Masheleni is the digital currency of Guranda. It is used across the entire ecosystem for transactions, payments, games, and content contribution rewards.',
+    question: 'How does money work in Guranda?',
+    answer: 'Guranda\'s wallet works in South African Rand. You earn, send, and spend real Rand across the entire ecosystem — transactions, payments, games, and content contribution rewards all use the same balance.',
   },
   {
-    question: 'How do I earn MSH?',
-    answer: 'You can earn MSH by sharing "of the Day" stories (OOTD, COTD — any label you like), having users rate/comment on your creations, winning game tournaments, or participating in the community.',
+    question: 'How do I earn money?',
+    answer: 'You can earn money by sharing "of the Day" stories (OOTD, COTD — any label you like), having users rate/comment on your creations, winning game tournaments, or participating in the community.',
   },
   {
     question: 'How do I verify my account?',

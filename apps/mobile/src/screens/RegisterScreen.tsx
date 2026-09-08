@@ -218,7 +218,7 @@ export default function RegisterScreen({ navigation }: any) {
         <View style={styles.custodyCard}>
           <Text style={[TYPOGRAPHY.body1, { fontWeight: '600' }]}>Wallet Custody Preference</Text>
           <Text style={[TYPOGRAPHY.body2, { marginTop: 5, marginBottom: 15 }]}>
-            How would you like us to handle your Masheleni 2.0 wallet?
+            How would you like us to handle your Guranda wallet?
           </Text>
 
           <TouchableOpacity

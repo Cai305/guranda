@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE: '#A78BFA', SOLD: '#10B981', EXPIRED: '#6B7280', CANCELLED: '#F87171',
@@ -86,7 +87,7 @@ export default function MyBidsScreen({ navigation }: any) {
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.meta}>
-            {item.listingType === 'AUCTION' ? `Bid: ${item.currentBid ?? item.price} MSH` : `${item.price} MSH`}
+            {item.listingType === 'AUCTION' ? `Bid: ${formatCurrency(item.currentBid ?? item.price)}` : formatCurrency(item.price)}
             {winning ? ' · Winning' : won ? ' · You won!' : ''}
           </Text>
           {won && invoiceId && (

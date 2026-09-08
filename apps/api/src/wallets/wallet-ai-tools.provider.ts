@@ -18,7 +18,7 @@ export class WalletAiToolsProvider implements OnModuleInit {
         {
           name: 'read',
           description:
-            "Read the user's Masheleni (MSH) wallet balance and recent transactions.",
+            "Read the user's Rand (R) wallet balance and recent transactions.",
           inputSchema: { type: 'object', properties: {} },
           permissionKey: 'wallet.read',
           legacyAliases: ['walletRead'],
@@ -28,15 +28,15 @@ export class WalletAiToolsProvider implements OnModuleInit {
           describeResult: (_i, output) => {
             const tx = (output.transactions || [])
               .slice(0, 5)
-              .map((t: any) => `${t.type} ${t.amount} MSH`)
+              .map((t: any) => `${t.type} R${t.amount}`)
               .join('; ');
-            return `Balance: ${output.balanceMasheleni} MSH. Recent transactions: ${tx || 'none'}.`;
+            return `Balance: R${output.balanceMasheleni}. Recent transactions: ${tx || 'none'}.`;
           },
         },
         {
           name: 'send',
           description:
-            "Send Masheleni (MSH) from the user's wallet to another user by username or wallet address. Requires approval.",
+            "Send Rand (R) from the user's wallet to another user by username or wallet address. Requires approval.",
           inputSchema: {
             type: 'object',
             properties: {
@@ -44,7 +44,7 @@ export class WalletAiToolsProvider implements OnModuleInit {
                 type: 'string',
                 description: 'Recipient username or wallet address',
               },
-              amount: { type: 'string', description: 'Amount of MSH to send' },
+              amount: { type: 'string', description: 'Amount of Rand to send' },
             },
             required: ['destination', 'amount'],
           },
@@ -59,22 +59,22 @@ export class WalletAiToolsProvider implements OnModuleInit {
               input.amount,
             ),
           describeAction: (input) =>
-            `Send ${input.amount} MSH to ${input.destination}`,
+            `Send R${input.amount} to ${input.destination}`,
           describeResult: (input) =>
-            `Sent ${input.amount} MSH to ${input.destination}.`,
+            `Sent R${input.amount} to ${input.destination}.`,
         },
         {
           name: 'requestPayment',
           description:
-            'Ask another Guranda user to pay the user some Masheleni (MSH), by username. Sends them a notification; nothing is transferred unless they accept. Requires approval.',
+            'Ask another Guranda user to pay the user some Rand (R), by username. Sends them a notification; nothing is transferred unless they accept. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {
               destination: {
                 type: 'string',
-                description: 'Username of the person to request MSH from',
+                description: 'Username of the person to request Rand from',
               },
-              amount: { type: 'string', description: 'Amount of MSH to request' },
+              amount: { type: 'string', description: 'Amount of Rand to request' },
               memo: { type: 'string', description: 'Optional note explaining what the request is for' },
             },
             required: ['destination', 'amount'],
@@ -90,9 +90,9 @@ export class WalletAiToolsProvider implements OnModuleInit {
               input.memo,
             ),
           describeAction: (input) =>
-            `Request ${input.amount} MSH from ${input.destination}`,
+            `Request R${input.amount} from ${input.destination}`,
           describeResult: (input) =>
-            `Requested ${input.amount} MSH from ${input.destination}.`,
+            `Requested R${input.amount} from ${input.destination}.`,
         },
       ]),
     );

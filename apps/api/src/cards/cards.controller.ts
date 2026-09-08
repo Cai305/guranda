@@ -88,7 +88,7 @@ export class CardsController {
 
     if (body.action === 'stake') {
       if (Number(wallet.balanceMasheleni) < amount) {
-        throw new BadRequestException(`Not enough MSH — balance is ${wallet.balanceMasheleni}`);
+        throw new BadRequestException(`Not enough Rand — balance is ${wallet.balanceMasheleni}`);
       }
       await this.prisma.$transaction([
         this.prisma.wallet.update({

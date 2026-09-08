@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL, fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import GiftButton from '../../components/gifts/GiftButton';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 
@@ -287,7 +288,7 @@ export default function BoggleScreen({ navigation, route }: any) {
             <Text style={styles.resultSub}>{state.scores[mySeat]} — {state.scores[oppSeat]}</Text>
             {wager > 0 && (
               <Text style={styles.resultWager}>
-                {game.winnerSeat === mySeat ? `+${wager * 2} MSH` : game.winnerSeat === null ? 'Wager refunded' : `-${wager} MSH`}
+                {game.winnerSeat === mySeat ? `+${formatCurrency(wager * 2)}` : game.winnerSeat === null ? 'Wager refunded' : `-${formatCurrency(wager)}`}
               </Text>
             )}
             <View style={styles.revealList}>

@@ -9,10 +9,10 @@ import { useAuth } from '../context/AuthContext';
 import { fetchApi } from '../utils/api';
 import { formatCurrency } from '../utils/format';
 
-// Adds real-world money onto the MSH ledger. No live PSP is wired in yet —
-// requesting a deposit returns PayShap payment instructions against a
+// Adds real-world money onto the Rand wallet ledger. No live PSP is wired in
+// yet — requesting a deposit returns PayShap payment instructions against a
 // reference, and the request sits PENDING until an admin confirms the money
-// actually landed (mirrors how Stokvel contributions and other MSH-affecting
+// actually landed (mirrors how Stokvel contributions and other balance-affecting
 // actions in this app already work: real ledger state, manually confirmed).
 export default function DepositScreen({ navigation }: any) {
   const { theme } = useTheme();
@@ -267,7 +267,7 @@ export default function DepositScreen({ navigation }: any) {
                 <View style={styles.infoCard}>
                   <Ionicons name="information-circle-outline" size={20} color={COLORS.secondary} />
                   <Text style={[TYPOGRAPHY.body2, { flex: 1, marginLeft: 10 }]}>
-                    Deposit via PayShap. You'll get a reference to pay against — your MSH balance updates once it's confirmed.
+                    Deposit via PayShap. You'll get a reference to pay against — your Rand balance updates once it's confirmed.
                   </Text>
                 </View>
 

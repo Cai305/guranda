@@ -46,7 +46,7 @@ export class EatAiToolsProvider implements OnModuleInit {
         {
           name: 'placeOrder',
           description:
-            'Place a food order for delivery from one store. Deducts MSH from the wallet. Requires approval.',
+            'Place a food order for delivery from one store. Deducts R from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: {

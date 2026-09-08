@@ -188,7 +188,7 @@ export default function RequestMoneyScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={TYPOGRAPHY.h2}>Request Masheleni</Text>
+        <Text style={TYPOGRAPHY.h2}>Request Money</Text>
         <View style={{ width: 24 }} />
       </View>
 

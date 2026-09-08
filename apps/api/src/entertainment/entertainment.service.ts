@@ -722,7 +722,7 @@ export class EntertainmentService {
     });
     if (!wallet) throw new BadRequestException('No wallet found');
     if (wallet.balanceMasheleni < opts.totalPrice)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient Rand balance');
 
     const ops: any[] = [
       opts.create(),

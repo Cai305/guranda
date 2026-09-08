@@ -38,7 +38,7 @@ export class PropertyAiToolsProvider implements OnModuleInit {
                   .slice(0, 8)
                   .map(
                     (p) =>
-                      `${p.id}: ${p.title} — ${p.price} MSH${p.listingType === 'RENT' ? '/month' : ''} — ${p.address}`,
+                      `${p.id}: ${p.title} — ${p.price} R${p.listingType === 'RENT' ? '/month' : ''} — ${p.address}`,
                   )
                   .join('\n'),
         },

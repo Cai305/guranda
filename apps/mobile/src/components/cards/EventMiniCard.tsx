@@ -18,7 +18,7 @@ export interface EventCardData {
   venue: string;
   city: string;
   startsAt: string;           // ISO string
-  price: number;              // MSH
+  price: number;              // Rand
   ticketsAvailable: number;
   posterUrl?: string | null;
   description?: string | null;

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useThemedStyles } from '../../../theme/useThemedStyles';
 import { fetchApi } from '../../../utils/api';
+import { formatCurrency } from '../../../utils/format';
 
 type Tab = 'stays' | 'cars';
 
@@ -133,7 +134,7 @@ export default function MyTravelListingsScreen({ navigation }: any) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{stay.title}</Text>
-                  <Text style={styles.cardSub}>{stay.location} · {stay.pricePerNight.toFixed(0)} MSH/night</Text>
+                  <Text style={styles.cardSub}>{stay.location} · {formatCurrency(stay.pricePerNight)}/night</Text>
                   <Text style={styles.cardMeta}>{stay.bookings?.length ?? 0} booking{stay.bookings?.length === 1 ? '' : 's'}</Text>
                 </View>
                 <View style={styles.cardActions}>
@@ -158,7 +159,7 @@ export default function MyTravelListingsScreen({ navigation }: any) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{car.make} {car.model}</Text>
-                  <Text style={styles.cardSub}>{car.location} · {car.pricePerDay.toFixed(0)} MSH/day</Text>
+                  <Text style={styles.cardSub}>{car.location} · {formatCurrency(car.pricePerDay)}/day</Text>
                   <Text style={styles.cardMeta}>{car.bookings?.length ?? 0} booking{car.bookings?.length === 1 ? '' : 's'}</Text>
                 </View>
                 <View style={styles.cardActions}>

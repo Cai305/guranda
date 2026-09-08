@@ -707,7 +707,7 @@ export class TravelService {
     });
     if (!guestWallet) throw new BadRequestException('No wallet found');
     if (guestWallet.balanceMasheleni < opts.totalPrice)
-      throw new BadRequestException('Insufficient MSH balance');
+      throw new BadRequestException('Insufficient R balance');
 
     const ops: any[] = [
       opts.create(),

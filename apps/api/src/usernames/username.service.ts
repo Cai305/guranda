@@ -56,7 +56,7 @@ export class UsernameService {
       if (!wallet) throw new BadRequestException('Wallet not found');
       if (Number(wallet.balanceMasheleni) < MINT_PRICE_MSH) {
         throw new BadRequestException(
-          `Not enough MSH — minting a username costs ${MINT_PRICE_MSH}`,
+          `Not enough Rand — minting a username costs R${MINT_PRICE_MSH}`,
         );
       }
       await tx.wallet.update({
@@ -281,7 +281,7 @@ export class UsernameService {
       const price = Number(username.price);
       if (Number(buyerWallet.balanceMasheleni) < price) {
         throw new BadRequestException(
-          `Not enough MSH — balance is ${buyerWallet.balanceMasheleni}`,
+          `Not enough R — balance is ${buyerWallet.balanceMasheleni}`,
         );
       }
       const sellerWallet = await tx.wallet.findUnique({
@@ -361,7 +361,7 @@ export class UsernameService {
     const minValid = username.currentBid ? floor + 0.01 : floor;
     if (!(amount >= minValid)) {
       throw new BadRequestException(
-        `Bid must be at least ${minValid.toFixed(2)} MSH`,
+        `Bid must be at least ${minValid.toFixed(2)} R`,
       );
     }
 
@@ -371,7 +371,7 @@ export class UsernameService {
     if (!wallet) throw new BadRequestException('Wallet not found');
     if (Number(wallet.balanceMasheleni) < amount) {
       throw new BadRequestException(
-        `Not enough MSH — balance is ${wallet.balanceMasheleni}`,
+        `Not enough R — balance is ${wallet.balanceMasheleni}`,
       );
     }
 

@@ -40,7 +40,7 @@ export class MarketplaceAiToolsProvider implements OnModuleInit {
                   .slice(0, 8)
                   .map(
                     (l) =>
-                      `${l.id}: ${l.title} — ${l.currentBid ?? l.price} MSH${l.currentBid ? ' (current bid)' : ''} — ${l.category}`,
+                      `${l.id}: ${l.title} — R${l.currentBid ?? l.price}${l.currentBid ? ' (current bid)' : ''} — ${l.category}`,
                   )
                   .join('\n'),
         },
@@ -65,7 +65,7 @@ export class MarketplaceAiToolsProvider implements OnModuleInit {
         {
           name: 'buyNow',
           description:
-            'Buy a fixed-price marketplace listing immediately. Deducts MSH from the wallet. Requires approval.',
+            'Buy a fixed-price marketplace listing immediately. Deducts Rand from the wallet. Requires approval.',
           inputSchema: {
             type: 'object',
             properties: { listingId: { type: 'string' } },
@@ -102,9 +102,9 @@ export class MarketplaceAiToolsProvider implements OnModuleInit {
               Number(input.amount),
             ),
           describeAction: (input) =>
-            `Bid ${input.amount} MSH on listing ${input.listingId}`,
+            `Bid R${input.amount} on listing ${input.listingId}`,
           describeResult: (input) =>
-            `Bid ${input.amount} MSH placed on listing ${input.listingId}.`,
+            `Bid R${input.amount} placed on listing ${input.listingId}.`,
         },
       ]),
     );

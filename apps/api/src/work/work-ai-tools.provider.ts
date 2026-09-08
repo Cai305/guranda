@@ -67,7 +67,7 @@ export class WorkAiToolsProvider implements OnModuleInit {
               ? 'No gigs found.'
               : output
                   .slice(0, 8)
-                  .map((g) => `${g.id}: ${g.title} — ${g.budget ?? '?'} MSH`)
+                  .map((g) => `${g.id}: ${g.title} — R${g.budget ?? '?'}`)
                   .join('\n'),
         },
         {

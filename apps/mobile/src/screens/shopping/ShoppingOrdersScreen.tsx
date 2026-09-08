@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 
 const STATUS_COLOR: Record<string, string> = {
   PLACED: '#f59e0b',
@@ -95,11 +96,11 @@ export default function ShoppingOrdersScreen({ navigation }: any) {
         <Text style={styles.orderAddr} numberOfLines={1}>
           <Ionicons name="location-outline" size={12} /> {order.shippingAddress}
         </Text>
-        <Text style={styles.orderTotal}>{order.total?.toFixed(2)} MSH</Text>
+        <Text style={styles.orderTotal}>{formatCurrency(order.total)}</Text>
       </View>
       {order.rewardEarned > 0 && (
         <Text style={styles.rewardText}>
-          <Ionicons name="gift-outline" size={11} color="#8B5CF6" /> +{order.rewardEarned.toFixed(2)} MSH cashback earned
+          <Ionicons name="gift-outline" size={11} color="#8B5CF6" /> +{formatCurrency(order.rewardEarned)} cashback earned
         </Text>
       )}
       {isTrackable(order.status) && (

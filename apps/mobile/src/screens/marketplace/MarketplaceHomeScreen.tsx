@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import { formatCurrency } from '../../utils/format';
 import SessionHeaderActions from '../../components/SessionHeaderActions';
 import EmptyState from '../../components/EmptyState';
 
@@ -133,7 +134,7 @@ export default function MarketplaceHomeScreen({ navigation }: any) {
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.cardPrice}>
-            {isAuction ? (item.currentBid ? 'Current bid ' : 'Starting ') : ''}{displayPrice} MSH
+            {isAuction ? (item.currentBid ? 'Current bid ' : 'Starting ') : ''}{formatCurrency(displayPrice)}
           </Text>
           <Text style={styles.cardMeta} numberOfLines={1}>
             {item.category} · {item.condition.replace('_', ' ')}
