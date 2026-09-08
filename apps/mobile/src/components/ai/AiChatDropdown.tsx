@@ -1,14 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, FlatList, ActivityIndicator,
+  View, Text, TouchableOpacity, FlatList, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { navigate } from '../../navigation/navigationRef';
+import { fetchApi } from '../../utils/api';
+import { FIXED_COMPANION_IDS } from '../../config/fixedCompanions';
 import AiWidgetRenderer from '../ai-widgets/AiWidgetRenderer';
 import { useAiConversation, AiBubble } from '../../context/AiConversationContext';
 import ChatComposer from '../chat/ChatComposer';
+
+interface Companion {
+  localId: string;
+  name: string;
+}
 
 interface Props {
   onClose: () => void;
@@ -22,10 +29,37 @@ export default function AiChatDropdown({ onClose, fill }: Props) {
     sendMessage, resolveAction,
   } = useAiConversation();
   const [input, setInput] = useState('');
+  const [companions, setCompanions] = useState<Companion[]>([]);
   const listRef = useRef<FlatList>(null);
 
   const { theme } = useTheme();
   const { COLORS, SPACING } = theme;
+
+  // One entry point, several personas (vision §3 / architecture Phase 4.1):
+  // the orb tray now surfaces the fixed companions (Sipho/Thandi/Guranda
+  // Assistant) alongside the user's own agent, rather than those three only
+  // being reachable by scrolling to find them in the chat list. Picking one
+  // hands off to CompanionChatScreen — the real, already-working screen for
+  // them — instead of reimplementing their conversation state in here.
+  useEffect(() => {
+    let cancelled = false;
+    fetchApi('/ai/companions').then(async (res) => {
+      if (!res.ok || cancelled) return;
+      const raw: { id: string; name: string }[] = await res.json();
+      const idByBackendId = Object.fromEntries(
+        Object.entries(FIXED_COMPANION_IDS).map(([localId, backendId]) => [backendId, localId]),
+      );
+      if (!cancelled) {
+        setCompanions(raw.map((c) => ({ localId: idByBackendId[c.id] ?? `ai-${c.id}`, name: c.name })));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const openCompanion = (companion: Companion) => {
+    onClose();
+    navigate('CompanionChat', { companionId: companion.localId, companionName: companion.name });
+  };
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOW }) => ({
     // Note: `maxHeight` is intentionally only set here, not overridden in
@@ -75,6 +109,26 @@ export default function AiChatDropdown({ onClose, fill }: Props) {
       justifyContent: 'center', alignItems: 'center',
     },
     headerName: { color: COLORS.text, fontWeight: '800', fontSize: 13 },
+    personaRow: {
+      flexDirection: 'row', gap: 6,
+      paddingHorizontal: SPACING.md, paddingVertical: 8,
+      borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder,
+    },
+    personaChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 10, paddingVertical: 5,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1, borderColor: COLORS.glassBorder,
+    },
+    personaChipActive: {
+      backgroundColor: COLORS.primary + '26',
+      borderColor: COLORS.primary,
+    },
+    personaChipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.textMuted },
+    personaChipDotActive: { backgroundColor: COLORS.primary },
+    personaChipText: { color: COLORS.textMuted, fontSize: 11.5, fontWeight: '700' },
+    personaChipTextActive: { color: COLORS.text },
     headerStatus: { color: COLORS.success, fontSize: 10 },
     iconBtn: {
       width: 30, height: 30, borderRadius: RADIUS.pill,
@@ -213,6 +267,21 @@ export default function AiChatDropdown({ onClose, fill }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {!!companions.length && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.personaRow} contentContainerStyle={{ gap: 6 }}>
+          <View style={[styles.personaChip, styles.personaChipActive]}>
+            <View style={[styles.personaChipDot, styles.personaChipDotActive]} />
+            <Text style={[styles.personaChipText, styles.personaChipTextActive]}>{agentName}</Text>
+          </View>
+          {companions.map((c) => (
+            <TouchableOpacity key={c.localId} style={styles.personaChip} activeOpacity={0.8} onPress={() => openCompanion(c)}>
+              <View style={styles.personaChipDot} />
+              <Text style={styles.personaChipText}>{c.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {agentExists === false ? (
         <View style={styles.setupCard}>
