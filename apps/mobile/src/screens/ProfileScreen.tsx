@@ -11,6 +11,30 @@ import { useAuth } from '../context/AuthContext';
 import ProfilePillars, { ProfilePillarsData } from '../components/profile/ProfilePillars';
 import CompanionCard, { CompanionData } from '../components/profile/CompanionCard';
 import BadgesGrid, { BadgesData } from '../components/profile/BadgesGrid';
+import { useEffectiveModules } from '../config/modules';
+
+interface MyBooking {
+  id: string;
+  kind: string;
+  title: string;
+  subtitle: string;
+  when: string | null;
+  amount: number;
+  status: string;
+}
+
+const BOOKING_KIND_ICON: Record<string, string> = {
+  stay: 'bed-outline', car: 'car-sport-outline', flight: 'airplane-outline',
+  package: 'briefcase-outline', hair: 'cut-outline', movie: 'film-outline',
+  concert: 'musical-notes-outline', event: 'ticket-outline', carwash: 'water-outline',
+};
+
+function formatBookingWhen(iso: string | null): string {
+  if (!iso) return 'Date to be confirmed';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })
+    + ' · ' + d.toLocaleTimeString('en-ZA', { hour: 'numeric', minute: '2-digit' });
+}
 
 interface ProfileHQ {
   pillars: ProfilePillarsData;
@@ -51,6 +75,9 @@ export default function ProfileScreen({ navigation }: any) {
   const [hq, setHq] = useState<ProfileHQ | null>(null);
   const [postStats, setPostStats] = useState<{ postCount: number; likesReceived: number; commentsReceived: number; totalViews: number } | null>(null);
   const [followStats, setFollowStats] = useState<{ followerCount: number; followingCount: number } | null>(null);
+  const [bookings, setBookings] = useState<MyBooking[] | null>(null);
+  const effectiveModules = useEffectiveModules();
+  const installedAppsCount = effectiveModules.filter((m) => m.status === 'live').length;
 
   const loadHQ = () => {
     fetchApi('/profile/me/hq')
@@ -76,6 +103,10 @@ export default function ProfileScreen({ navigation }: any) {
       .then(r => (r.ok ? r.json() : null))
       .then(d => d && setPostStats(d))
       .catch(() => {});
+    fetchApi('/profile/me/bookings')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setBookings(Array.isArray(d) ? d : []))
+      .catch(() => setBookings([]));
     if (user?.userId) {
       fetchApi(`/users/${user.userId}/follow-stats`)
         .then(r => (r.ok ? r.json() : null))
@@ -322,6 +353,24 @@ export default function ProfileScreen({ navigation }: any) {
       marginTop: SPACING.lg,
       marginBottom: SPACING.sm,
     },
+    // "MY ZONES" reads as a real section header (Phase 12.4's "what you've
+    // built") one size up from the sub-labels underneath it, which stay the
+    // same small caption weight as every other sectionLabel in this file.
+    zonesHeaderLabel: {
+      fontSize: 13,
+      fontWeight: '800',
+      letterSpacing: 0.6,
+      color: COLORS.text,
+      marginTop: SPACING.xl,
+    },
+    zoneSubLabel: {
+      ...TYPOGRAPHY.label,
+      fontSize: 11,
+      paddingHorizontal: SPACING.lg,
+      marginTop: SPACING.lg,
+      marginBottom: SPACING.sm,
+      color: COLORS.textMuted,
+    },
     badgeRow: {
       paddingHorizontal: SPACING.lg,
       gap: SPACING.md,
@@ -564,8 +613,11 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
 
-        {/* ===== Wallet ===== */}
-        <Text style={styles.sectionLabel}>WALLET</Text>
+        {/* ===== My Zones — what you've built, per Phase 12.4 ===== */}
+        <Text style={[styles.sectionLabel, styles.zonesHeaderLabel]}>MY ZONES</Text>
+
+        {/* My Money — wallet, referrals, and content earnings together */}
+        <Text style={styles.zoneSubLabel}>My Money</Text>
         <TouchableOpacity
           style={styles.card}
           activeOpacity={0.8}
@@ -584,11 +636,8 @@ export default function ProfileScreen({ navigation }: any) {
             <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
           </View>
         </TouchableOpacity>
-
-        {/* ===== Referrals ===== */}
-        <Text style={styles.sectionLabel}>REFERRALS</Text>
-        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={shareReferralCode}>
-          <View style={styles.cardRow}>
+        <View style={[styles.card, { marginTop: SPACING.sm }]}>
+          <TouchableOpacity style={[styles.cardRow, styles.rowBorder]} activeOpacity={0.7} onPress={shareReferralCode}>
             <View style={[styles.rowIcon, { backgroundColor: 'rgba(52, 211, 153, 0.15)' }]}>
               <Ionicons name="gift" size={20} color={COLORS.success} />
             </View>
@@ -597,36 +646,25 @@ export default function ProfileScreen({ navigation }: any) {
               <Text style={styles.rowDetail}>Share your referral code — get rewarded when they play</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+          <View style={styles.cardRow}>
+            <View style={[styles.rowIcon, { backgroundColor: 'rgba(251, 191, 36, 0.12)' }]}>
+              <Ionicons name="ribbon-outline" size={20} color={COLORS.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Content Earnings</Text>
+              <Text style={styles.rowDetail}>
+                {creatorFunds ? `${formatCurrency(creatorFunds.pendingBalance)} pending — next payout ${new Date(creatorFunds.nextPayoutDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}` : 'Earned from likes, comments, and ranks on your "of the Day" stories'}
+              </Text>
+            </View>
           </View>
-        </TouchableOpacity>
-
-        {/* ===== Gaming history ===== */}
-        <Text style={styles.sectionLabel}>GAMING</Text>
-        <View style={styles.card}>
-          {GAME_HISTORY.map((g, i) => (
-            <TouchableOpacity
-              key={g.id}
-              style={[styles.cardRow, i < GAME_HISTORY.length - 1 && styles.rowBorder]}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('Life', { screen: 'Games' })}
-            >
-              <View style={[styles.rowIcon, { backgroundColor: 'rgba(34, 211, 238, 0.12)' }]}>
-                <Ionicons name={g.icon as any} size={20} color={COLORS.secondary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{g.name}</Text>
-                <Text style={styles.rowDetail}>{g.detail}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          ))}
         </View>
 
-        {/* ===== Post Performance ===== */}
-        <Text style={styles.sectionLabel}>POST PERFORMANCE</Text>
-        <TouchableOpacity 
-          style={styles.card} 
-          activeOpacity={0.8} 
+        {/* My Content — post performance */}
+        <Text style={styles.zoneSubLabel}>My Content</Text>
+        <TouchableOpacity
+          style={styles.card}
+          activeOpacity={0.8}
           onPress={() => navigation.navigate('UserPosts', { userId: user?.userId, title: 'My Posts' })}
         >
           <View style={[styles.cardRow, styles.rowBorder, { paddingVertical: 16 }]}>
@@ -651,43 +689,8 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </TouchableOpacity>
 
-        {/* ===== Content Earnings (CCR) ===== */}
-        {(() => {
-          const nextPayoutDate = creatorFunds
-            ? new Date(creatorFunds.nextPayoutDate).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-            : '—';
-          return (
-            <>
-              <Text style={styles.sectionLabel}>CONTENT EARNINGS</Text>
-              <View style={styles.card}>
-                <View style={styles.cardRow}>
-                  <View style={[styles.rowIcon, { backgroundColor: 'rgba(251, 191, 36, 0.12)' }]}>
-                    <Ionicons name="ribbon-outline" size={20} color={COLORS.gold} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rowTitle}>Content Contribution Remuneration</Text>
-                    <Text style={styles.rowDetail}>Earned when others like, comment, or rank your "of the Day" stories ({formatCurrency(0.58)} each) — paid out in one lump sum on your next payout date</Text>
-                  </View>
-                </View>
-                <View style={[styles.cardRow, styles.rowBorder]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowDetail, { marginBottom: 2 }]}>Pending balance</Text>
-                    <Text style={[styles.rowTitle, { color: COLORS.gold, fontSize: 20, fontWeight: '800' }]}>
-                      {creatorFunds ? formatCurrency(creatorFunds.pendingBalance) : '—'}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.rowDetail, { marginBottom: 2 }]}>Next payout</Text>
-                    <Text style={[styles.rowDetail, { color: COLORS.text, fontWeight: '600' }]}>{nextPayoutDate}</Text>
-                  </View>
-                </View>
-              </View>
-            </>
-          );
-        })()}
-
-        {/* ===== Digital Life sections ===== */}
-        <Text style={styles.sectionLabel}>YOUR DIGITAL LIFE</Text>
+        {/* My Business — Dashboard / Listings / Properties */}
+        <Text style={styles.zoneSubLabel}>My Business</Text>
         <View style={styles.card}>
           {DIGITAL_LIFE_SECTIONS.map((s, i) => (
             <TouchableOpacity
@@ -703,6 +706,76 @@ export default function ProfileScreen({ navigation }: any) {
               <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* My Mini Apps — games + everything else installed, real counts */}
+        <Text style={styles.zoneSubLabel}>My Mini Apps</Text>
+        <TouchableOpacity
+          style={[styles.card, { marginBottom: SPACING.sm }]}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('Main', { screen: 'Explore' })}
+        >
+          <View style={styles.cardRow}>
+            <View style={[styles.rowIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <Ionicons name="apps" size={20} color={COLORS.success} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>{installedAppsCount} apps in use</Text>
+              <Text style={styles.rowDetail}>Find more in Explore</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+          </View>
+        </TouchableOpacity>
+        <View style={styles.card}>
+          {GAME_HISTORY.map((g, i) => (
+            <TouchableOpacity
+              key={g.id}
+              style={[styles.cardRow, i < GAME_HISTORY.length - 1 && styles.rowBorder]}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('Life', { screen: 'Games' })}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: 'rgba(34, 211, 238, 0.12)' }]}>
+                <Ionicons name={g.icon as any} size={20} color={COLORS.secondary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{g.name}</Text>
+                <Text style={styles.rowDetail}>{g.detail}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* My Bookings — real, aggregated across every mini app that takes a booking */}
+        <Text style={styles.zoneSubLabel}>My Bookings</Text>
+        <View style={styles.card}>
+          {bookings === null ? (
+            <View style={styles.cardRow}>
+              <Text style={styles.rowDetail}>Loading…</Text>
+            </View>
+          ) : bookings.length === 0 ? (
+            <View style={styles.cardRow}>
+              <View style={[styles.rowIcon, { backgroundColor: 'rgba(148,148,171,0.12)' }]}>
+                <Ionicons name="calendar-outline" size={20} color={COLORS.textMuted} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>Nothing booked yet</Text>
+                <Text style={styles.rowDetail}>Flights, stays, tickets, and appointments will show up here</Text>
+              </View>
+            </View>
+          ) : (
+            bookings.slice(0, 4).map((b, i) => (
+              <View key={b.id} style={[styles.cardRow, i < Math.min(bookings.length, 4) - 1 && styles.rowBorder]}>
+                <View style={[styles.rowIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+                  <Ionicons name={(BOOKING_KIND_ICON[b.kind] ?? 'calendar-outline') as any} size={20} color={COLORS.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{b.title}</Text>
+                  <Text style={styles.rowDetail} numberOfLines={1}>{b.subtitle} · {formatBookingWhen(b.when)}</Text>
+                </View>
+              </View>
+            ))
+          )}
         </View>
 
         {/* ===== Settings menu ===== */}

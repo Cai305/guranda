@@ -119,6 +119,127 @@ export class ProfileService {
     return { pillars, companion, badges };
   }
 
+  /**
+   * "My Bookings" — Profile's real cross-mini-app view of what the user has
+   * upcoming. Bookings live in 9 separate, mini-app-owned tables (Travel's
+   * four, Hair, Movie, Concert, Event, Carwash) with no shared parent table,
+   * so this fans out one filtered query per table and merges the results in
+   * app code rather than trying to force a single query across them.
+   */
+  async getMyBookings(userId: string) {
+    const now = new Date();
+    type BookingItem = { id: string; kind: string; title: string; subtitle: string; when: string | null; amount: number; status: string };
+
+    const [stays, cars, flights, packages, hair, movies, concerts, events, carwashes] = await Promise.all([
+      this.prisma.travelStayBooking.findMany({
+        where: { guestId: userId, status: { not: 'CANCELLED' }, checkIn: { gte: now } },
+        include: { stay: { select: { title: true, location: true } } },
+        orderBy: { checkIn: 'asc' },
+        take: 10,
+      }),
+      this.prisma.travelCarBooking.findMany({
+        where: { guestId: userId, status: { not: 'CANCELLED' }, pickupDate: { gte: now } },
+        include: { car: { select: { make: true, model: true, location: true } } },
+        orderBy: { pickupDate: 'asc' },
+        take: 10,
+      }),
+      this.prisma.travelFlightBooking.findMany({
+        where: { userId, status: { not: 'CANCELLED' }, flight: { departureTime: { gte: now } } },
+        include: { flight: { select: { airline: true, flightNumber: true, origin: true, destination: true, departureTime: true } } },
+        orderBy: { flight: { departureTime: 'asc' } },
+        take: 10,
+      }),
+      this.prisma.travelPackageBooking.findMany({
+        where: { userId, status: { not: 'CANCELLED' } },
+        include: { package: { select: { title: true, destination: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.hairBooking.findMany({
+        where: { customerId: userId, status: { notIn: ['CANCELLED', 'COMPLETED'] }, appointmentAt: { gte: now } },
+        include: { hairdresser: { select: { businessName: true } }, service: { select: { title: true } } },
+        orderBy: { appointmentAt: 'asc' },
+        take: 10,
+      }),
+      this.prisma.movieBooking.findMany({
+        where: { userId, status: { not: 'CANCELLED' }, showtime: { startsAt: { gte: now } } },
+        include: { showtime: { select: { startsAt: true, cinema: true, movie: { select: { title: true } } } } },
+        orderBy: { showtime: { startsAt: 'asc' } },
+        take: 10,
+      }),
+      this.prisma.concertBooking.findMany({
+        where: { userId, status: { not: 'CANCELLED' }, concert: { startsAt: { gte: now } } },
+        include: { concert: { select: { title: true, artist: true, venue: true, startsAt: true } } },
+        orderBy: { concert: { startsAt: 'asc' } },
+        take: 10,
+      }),
+      this.prisma.eventBooking.findMany({
+        where: { userId, status: { not: 'CANCELLED' }, event: { startsAt: { gte: now } } },
+        include: { event: { select: { title: true, venue: true, startsAt: true } } },
+        orderBy: { event: { startsAt: 'asc' } },
+        take: 10,
+      }),
+      this.prisma.carWashBooking.findMany({
+        where: { userId, status: { notIn: ['CANCELLED', 'COMPLETED'] }, scheduledFor: { gte: now } },
+        include: { carWash: { select: { name: true } }, service: { select: { name: true } } },
+        orderBy: { scheduledFor: 'asc' },
+        take: 10,
+      }),
+    ]);
+
+    const items: BookingItem[] = [
+      ...stays.map((b) => ({
+        id: b.id, kind: 'stay', title: b.stay.title, subtitle: b.stay.location,
+        when: b.checkIn.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...cars.map((b) => ({
+        id: b.id, kind: 'car', title: `${b.car.make} ${b.car.model}`, subtitle: b.car.location,
+        when: b.pickupDate.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...flights.map((b) => ({
+        id: b.id, kind: 'flight', title: `${b.flight.airline} ${b.flight.flightNumber}`,
+        subtitle: `${b.flight.origin} → ${b.flight.destination}`,
+        when: b.flight.departureTime.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...packages.map((b) => ({
+        id: b.id, kind: 'package', title: b.package.title, subtitle: b.package.destination,
+        when: null, amount: b.totalPrice, status: b.status,
+      })),
+      ...hair.map((b) => ({
+        id: b.id, kind: 'hair', title: b.service.title, subtitle: b.hairdresser.businessName,
+        when: b.appointmentAt.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...movies.map((b) => ({
+        id: b.id, kind: 'movie', title: b.showtime.movie.title, subtitle: b.showtime.cinema,
+        when: b.showtime.startsAt.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...concerts.map((b) => ({
+        id: b.id, kind: 'concert', title: `${b.concert.artist} — ${b.concert.title}`, subtitle: b.concert.venue,
+        when: b.concert.startsAt.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...events.map((b) => ({
+        id: b.id, kind: 'event', title: b.event.title, subtitle: b.event.venue,
+        when: b.event.startsAt.toISOString(), amount: b.totalPrice, status: b.status,
+      })),
+      ...carwashes.map((b) => ({
+        id: b.id, kind: 'carwash', title: b.service.name, subtitle: b.carWash.name,
+        when: b.scheduledFor ? b.scheduledFor.toISOString() : null, amount: b.totalAmount, status: b.status,
+      })),
+    ];
+
+    // Undated items (a package booking with no fixed date yet) sort after
+    // every dated one instead of before, so "what's coming up soonest" stays
+    // the natural reading order.
+    items.sort((a, b) => {
+      if (a.when === null && b.when === null) return 0;
+      if (a.when === null) return 1;
+      if (b.when === null) return -1;
+      return a.when.localeCompare(b.when);
+    });
+
+    return items.slice(0, 20);
+  }
+
   // Runs once a day so pillar cards can diff against "the value ~7 days
   // ago" — same pattern as the CCR/daily-challenge crons elsewhere.
   @Cron(CronExpression.EVERY_DAY_AT_1AM)

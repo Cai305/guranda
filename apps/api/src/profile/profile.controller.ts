@@ -19,4 +19,11 @@ export class ProfileController {
   async renameCompanion(@Request() req: any, @Body('name') name: string) {
     return this.profileService.renameCompanion(req.user.userId, name);
   }
+
+  // Real cross-mini-app "what have I got coming up" — the "My Bookings"
+  // zone on the redesigned Profile screen.
+  @Get('me/bookings')
+  async getMyBookings(@Request() req: any) {
+    return this.profileService.getMyBookings(req.user.userId);
+  }
 }
