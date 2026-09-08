@@ -16,7 +16,7 @@ import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import LiveStreamCard from '../components/LiveStreamCard';
 import VideoCard, { VideoMeta } from '../components/VideoCard';
-import { toLiveStream, enterLiveStream, RealLiveStream } from '../data/liveApi';
+import { toLiveStream, enterLiveStream, fetchLiveRooms, RealLiveStream } from '../data/liveApi';
 import { useEffectiveModules, openModule, LifeModule } from '../config/modules';
 
 const CHALLENGE_CATEGORIES = [
@@ -163,6 +163,17 @@ export default function ExploreScreen({ navigation }: any) {
   const challengesSkipRef = useRef(0);
   const CHALLENGES_PAGE_SIZE = 20;
 
+  // ── Live tab: the real, complete listing ────────────────────────────────
+  // /trending's `live` field is deliberately capped to the top 10 by viewer
+  // count (a curated highlight for the "All" stream's interleave) — the
+  // dedicated Live tab shouldn't inherit that cap. /live/rooms (the same
+  // endpoint LiveScreen.tsx's own "All" tag uses) returns every room that's
+  // actually live right now, no truncation (see live.service.ts's listLive
+  // comment: "Discovery reorders, doesn't truncate"). No cursor pagination
+  // needed — "how many are live right now" is already a natural, small bound.
+  const [liveRooms, setLiveRooms] = useState<RealLiveStream[]>([]);
+  const [liveRoomsLoading, setLiveRoomsLoading] = useState(false);
+
   const effectiveModules = useEffectiveModules();
   // Real "discoverable" set — apps not yet installed from the store, per the
   // same registry the Home rail and the Mini Apps store already use. No
@@ -174,8 +185,10 @@ export default function ExploreScreen({ navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      if (filter === 'All' || filter === 'Live') {
+      if (filter === 'All') {
         fetchTrending();
+      } else if (filter === 'Live') {
+        fetchLiveRoomsForExplore();
       } else if (filter === 'Videos') {
         fetchVideoFeed(true);
       } else if (filter === 'Posts') {
@@ -289,6 +302,17 @@ export default function ExploreScreen({ navigation }: any) {
       console.error(e);
     } finally {
       setAllLoadingMore(false);
+    }
+  };
+
+  const fetchLiveRoomsForExplore = async () => {
+    try {
+      setLiveRoomsLoading(true);
+      setLiveRooms(await fetchLiveRooms());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLiveRoomsLoading(false);
     }
   };
 
@@ -1185,9 +1209,9 @@ export default function ExploreScreen({ navigation }: any) {
     [challenges, searchLower],
   );
   const visibleLive = useMemo(
-    () => (searchLower ? (trending?.live ?? []).filter((l) => matchesSearch(l.title)) : (trending?.live ?? [])),
+    () => (searchLower ? liveRooms.filter((l) => matchesSearch(l.title)) : liveRooms),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trending, searchLower],
+    [liveRooms, searchLower],
   );
   const visibleVideos = useMemo(
     () => (searchLower ? videoFeed.filter((v) => matchesSearch(v.title)) : videoFeed),
@@ -1543,15 +1567,15 @@ export default function ExploreScreen({ navigation }: any) {
             <LiveStreamCard
               stream={item}
               size="grid"
-              onPress={(s) => enterLiveStream(s, user?.userId, navigation, trending?.live ?? [])}
+              onPress={(s) => enterLiveStream(s, user?.userId, navigation, liveRooms)}
             />
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          refreshing={trendingLoading}
-          onRefresh={fetchTrending}
+          refreshing={liveRoomsLoading}
+          onRefresh={fetchLiveRoomsForExplore}
           ListEmptyComponent={
-            !trendingLoading ? (
+            !liveRoomsLoading ? (
               <View style={styles.emptyState}>
                 <Ionicons name="radio-outline" size={48} color={COLORS.textMuted} />
                 <Text style={styles.emptyText}>Nothing live right now — check back soon.</Text>
