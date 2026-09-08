@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   Request,
   UseGuards,
   BadRequestException,
@@ -38,7 +39,46 @@ export class ChatController {
   @Get(':id/messages')
   async getChatMessages(@Param('id') chatId: string, @Request() req: any) {
     const userId = req.user.userId;
-    return this.chatService.getMessages(chatId, userId);
+    const messages = await this.chatService.getMessages(chatId, userId);
+    // Fire-and-forget — lets the OTHER participant's open thread flip their
+    // sent messages to "seen" live, instead of only on that thread's next
+    // fetch. Never blocks the response on it.
+    this.chatGateway.notifyRead(chatId, userId);
+    return messages;
+  }
+
+  @Get(':id/read-state')
+  async getReadState(@Param('id') chatId: string, @Request() req: any) {
+    return this.chatService.getReadState(chatId, req.user.userId);
+  }
+
+  @Get(':id/messages/search')
+  async searchMessages(
+    @Param('id') chatId: string,
+    @Request() req: any,
+    @Query('q') q: string,
+  ) {
+    return this.chatService.searchMessages(chatId, req.user.userId, q || '');
+  }
+
+  @Get(':id/pinned')
+  async getPinnedMessages(@Param('id') chatId: string, @Request() req: any) {
+    return this.chatService.getPinnedMessages(chatId, req.user.userId);
+  }
+
+  // Pass mutedUntil: null to unmute. An ISO date string mutes until then —
+  // the mobile client's "Mute forever" preset just sends a far-future date.
+  @Patch(':id/mute')
+  async setMuted(
+    @Param('id') chatId: string,
+    @Request() req: any,
+    @Body('mutedUntil') mutedUntil: string | null,
+  ) {
+    return this.chatService.setMuted(
+      chatId,
+      req.user.userId,
+      mutedUntil ? new Date(mutedUntil) : null,
+    );
   }
 
   // Sets the default wallpaper applied to every chat this user has —

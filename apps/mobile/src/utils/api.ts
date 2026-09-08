@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { startUpload, updateUploadProgress, markUploadFinishing, finishUpload, failUpload } from './uploadStatusStore';
-import { getCachedResponse, setCachedResponse } from './apiCache';
+import { getCachedEntry, setCachedResponse } from './apiCache';
 
 const LOCAL_API_BASE_URL = 'http://localhost:3001';
 const NGROK_API_BASE_URL = 'https://oppressed-vertical-semicolon.ngrok-free.dev';
@@ -41,23 +41,7 @@ export function setOnUnauthorized(callback: (() => void) | null) {
   onUnauthorized = callback;
 }
 
-export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  const method = (options.method || 'GET').toUpperCase();
-  const headersObj = (options.headers as Record<string, string>) || {};
-  const bypassCache = headersObj['Cache-Control'] === 'no-cache';
-
-  if (method === 'GET' && !bypassCache) {
-    const cachedData = await getCachedResponse(endpoint);
-    if (cachedData) {
-      return {
-        ok: true,
-        status: 200,
-        json: async () => cachedData,
-        text: async () => JSON.stringify(cachedData),
-      } as unknown as Response;
-    }
-  }
-
+async function fetchApiFromNetwork(endpoint: string, options: RequestInit, method: string, bypassCache: boolean): Promise<Response> {
   let token = null;
   let userId = null;
   if (Platform.OS === 'web') {
@@ -76,6 +60,10 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    // Harmless against localhost; required when API_BASE_URL is an ngrok
+    // tunnel — without it, ngrok's free-tier browser-warning interstitial
+    // (HTML, no CORS headers) answers every request instead of the real API.
+    'ngrok-skip-browser-warning': 'true',
     ...(options.headers as Record<string, string>),
   };
   // Cache-Control is only a signal to this function's own cache above — the
@@ -122,6 +110,36 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   }
 
   return response;
+}
+
+export async function fetchApi(endpoint: string, options: RequestInit = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headersObj = (options.headers as Record<string, string>) || {};
+  const bypassCache = headersObj['Cache-Control'] === 'no-cache';
+
+  if (method === 'GET' && !bypassCache) {
+    const entry = await getCachedEntry(endpoint);
+    if (entry) {
+      // Stale-while-revalidate: hand back what's already on disk instantly
+      // — a screen reading local data first should never sit on a spinner
+      // waiting for the network — and if it's aged past the freshness
+      // window, quietly refresh it in the background so the NEXT read
+      // (next focus, next pull-to-refresh) already has the newer data.
+      // Errors from the background refresh are swallowed here on purpose:
+      // the caller already got a valid response and isn't awaiting this.
+      if (entry.isStale) {
+        fetchApiFromNetwork(endpoint, options, method, bypassCache).catch(() => {});
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => entry.data,
+        text: async () => JSON.stringify(entry.data),
+      } as unknown as Response;
+    }
+  }
+
+  return fetchApiFromNetwork(endpoint, options, method, bypassCache);
 }
 
 // fetch() has no way to report upload progress — only XMLHttpRequest does
@@ -192,9 +210,14 @@ export async function uploadMedia(
 ): Promise<{ url: string, mediaType: 'AUDIO' }>;
 export async function uploadMedia(
   uri: string,
-  kind: 'image' | 'video' | 'audio',
+  kind: 'document',
+  fileInfo: { name: string; mimeType?: string },
+): Promise<{ url: string, mediaType: 'DOCUMENT' }>;
+export async function uploadMedia(
+  uri: string,
+  kind: 'image' | 'video' | 'audio' | 'document',
   fileInfo?: { name?: string; mimeType?: string },
-): Promise<{ url: string, mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO' }> {
+): Promise<{ url: string, mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' }> {
   let token: string | null = null;
   if (Platform.OS === 'web') {
     try { token = localStorage.getItem('userToken'); } catch {}
@@ -204,8 +227,9 @@ export async function uploadMedia(
 
   const isVideo = kind === 'video';
   const isAudio = kind === 'audio';
-  const name = fileInfo?.name ?? (isVideo ? 'upload.mp4' : isAudio ? 'upload.mp3' : 'upload.jpg');
-  const type = fileInfo?.mimeType ?? (isVideo ? 'video/mp4' : isAudio ? 'audio/mpeg' : 'image/jpeg');
+  const isDocument = kind === 'document';
+  const name = fileInfo?.name ?? (isVideo ? 'upload.mp4' : isAudio ? 'upload.mp3' : isDocument ? 'file' : 'upload.jpg');
+  const type = fileInfo?.mimeType ?? (isVideo ? 'video/mp4' : isAudio ? 'audio/mpeg' : isDocument ? 'application/octet-stream' : 'image/jpeg');
 
   const formData = new FormData();
   if (Platform.OS === 'web') {
@@ -216,7 +240,7 @@ export async function uploadMedia(
   }
 
   const uploadId = startUpload(
-    isVideo ? 'Uploading video…' : isAudio ? 'Uploading audio…' : 'Uploading image…',
+    isVideo ? 'Uploading video…' : isAudio ? 'Uploading audio…' : isDocument ? 'Uploading file…' : 'Uploading image…',
   );
   try {
     const data = await xhrUploadFormData(
@@ -228,7 +252,7 @@ export async function uploadMedia(
     );
     if (!data.url) throw new Error('Upload failed');
     const url = /^https?:\/\//.test(data.url) ? data.url : `${API_BASE_URL}${data.url}`;
-    const mediaType = data.mediaType === 'VIDEO' ? 'VIDEO' : data.mediaType === 'AUDIO' ? 'AUDIO' : 'IMAGE';
+    const mediaType = data.mediaType === 'VIDEO' ? 'VIDEO' : data.mediaType === 'AUDIO' ? 'AUDIO' : data.mediaType === 'DOCUMENT' ? 'DOCUMENT' : 'IMAGE';
     finishUpload(uploadId, 'Uploaded');
     return { url, mediaType };
   } catch (e) {

@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
+import { GRADIENTS } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchApi } from '../utils/api';
@@ -15,6 +16,7 @@ import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import LiveStreamCard from '../components/LiveStreamCard';
 import { toLiveStream, enterLiveStream, RealLiveStream } from '../data/liveApi';
+import { useEffectiveModules, openModule, LifeModule } from '../config/modules';
 
 const CHALLENGE_CATEGORIES = [
   'DANCE', 'COMEDY', 'FITNESS', 'GAMING', 'PHOTOGRAPHY', 'COOKING',
@@ -22,6 +24,8 @@ const CHALLENGE_CATEGORIES = [
 ];
 
 const FEED_PAGE_SIZE = 20;
+const FILTERS = ['All', 'Posts', 'Challenges', 'Live', 'Mini Apps'] as const;
+type ExploreFilter = typeof FILTERS[number];
 
 // Compact X-style relative time — "13h", "3d", "just now" — instead of a
 // full locale date string, matching the reference feed's density.
@@ -37,11 +41,61 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function timeRemaining(endAt: string): string {
+  const ms = new Date(endAt).getTime() - Date.now();
+  if (ms <= 0) return 'Ended';
+  const hrs = Math.floor(ms / 3_600_000);
+  if (hrs < 1) return `${Math.max(1, Math.floor(ms / 60_000))}m left`;
+  if (hrs < 24) return `${hrs}h left`;
+  return `${Math.floor(hrs / 24)}d left`;
+}
+
+// One momentum stream mixing everything real — posts, challenges, live
+// streams, mini apps — instead of fixed, siloed tabs. Interleaved in a
+// steady rotation so no single type can crowd the others out.
+type StreamItem =
+  | { kind: 'post'; key: string; data: PostDto }
+  | { kind: 'challenge'; key: string; data: ChallengeSummary }
+  | { kind: 'live'; key: string; data: RealLiveStream }
+  | { kind: 'miniapp'; key: string; data: LifeModule };
+
+function buildAllStream(
+  posts: PostDto[],
+  challenges: ChallengeSummary[],
+  live: RealLiveStream[],
+  miniApps: LifeModule[],
+): StreamItem[] {
+  const items: StreamItem[] = [];
+  let pi = 0, ci = 0, li = 0, ai = 0;
+  const cappedApps = miniApps.slice(0, 4);
+  const order: StreamItem['kind'][] = ['post', 'challenge', 'miniapp', 'live'];
+  let step = 0;
+  const remaining = () => pi < posts.length || ci < challenges.length || li < live.length || ai < cappedApps.length;
+  while (remaining()) {
+    const slot = order[step % order.length];
+    let placed = false;
+    if (slot === 'post' && pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; placed = true; }
+    else if (slot === 'challenge' && ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; placed = true; }
+    else if (slot === 'miniapp' && ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; placed = true; }
+    else if (slot === 'live' && li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; placed = true; }
+    if (!placed) {
+      // This slot's source ran dry — fill from whatever's left instead of
+      // stalling the loop, so no type gets stranded behind an empty one.
+      if (pi < posts.length) { items.push({ kind: 'post', key: `p-${posts[pi].id}`, data: posts[pi] }); pi++; }
+      else if (ci < challenges.length) { items.push({ kind: 'challenge', key: `c-${challenges[ci].id}`, data: challenges[ci] }); ci++; }
+      else if (li < live.length) { items.push({ kind: 'live', key: `l-${live[li].id}`, data: live[li] }); li++; }
+      else if (ai < cappedApps.length) { items.push({ kind: 'miniapp', key: `m-${cappedApps[ai].id}`, data: cappedApps[ai] }); ai++; }
+    }
+    step++;
+  }
+  return items;
+}
+
 export default function ExploreScreen({ navigation }: any) {
   const { user } = useAuth();
   const { socket } = useSocket();
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'feed' | 'challenges' | 'trending'>('feed');
+  const [filter, setFilter] = useState<ExploreFilter>('All');
   const [feedMode, setFeedMode] = useState<'forYou' | 'following'>('forYou');
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
@@ -53,6 +107,8 @@ export default function ExploreScreen({ navigation }: any) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [newPostCount, setNewPostCount] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   // The single post currently most-visible in the viewport — gates which
   // carousel (if any) is allowed to mount/play a video, so scrolled-off posts
   // never keep decoding video in the background.
@@ -63,23 +119,34 @@ export default function ExploreScreen({ navigation }: any) {
   // a real feed refetch (mode switch or pull-to-refresh), not on scroll.
   const viewedIds = useRef(new Set<string>());
 
+  const effectiveModules = useEffectiveModules();
+  // Real "discoverable" set — apps not yet installed from the store, per the
+  // same registry the Home rail and the Mini Apps store already use. No
+  // fabricated "new to you" signal beyond that real installable status.
+  const discoverableApps = useMemo(
+    () => effectiveModules.filter((m) => m.status === 'installable'),
+    [effectiveModules],
+  );
+
   useFocusEffect(
     useCallback(() => {
-      if (activeTab === 'feed') {
-        fetchFeed();
-      } else if (activeTab === 'challenges') {
-        fetchChallenges();
-      } else if (activeTab === 'trending') {
+      if (filter === 'All' || filter === 'Live') {
         fetchTrending();
+      } else if (filter === 'Posts') {
+        fetchFeed();
+      } else if (filter === 'Challenges') {
+        fetchChallenges();
       }
-    }, [activeTab, feedMode, challengeCategory])
+      // Mini Apps needs no fetch — the registry is already loaded client-side.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filter, feedMode, challengeCategory])
   );
 
   // Live "new posts" signal — X-style: never silently splice new items into
   // a feed the user is actively scrolled through, just surface a count and
   // let them opt into refreshing (see the banner in the feed's ListHeader).
   React.useEffect(() => {
-    if (!socket || activeTab !== 'feed') return;
+    if (!socket || filter !== 'Posts') return;
     const handler = (payload: { authorId: string }) => {
       if (payload.authorId === user?.userId) return; // own post — already visible via navigation-back refetch
       setNewPostCount((c) => c + 1);
@@ -88,7 +155,7 @@ export default function ExploreScreen({ navigation }: any) {
     return () => {
       socket.off('post_created', handler);
     };
-  }, [socket, activeTab, user?.userId]);
+  }, [socket, filter, user?.userId]);
 
   const fetchChallenges = async () => {
     try {
@@ -126,6 +193,10 @@ export default function ExploreScreen({ navigation }: any) {
     }
   };
 
+  const uploadTrend = (label?: string) => {
+    navigation.navigate('CreateStory', label ? { mode: 'trend', label } : { mode: 'trend' });
+  };
+
   // Trend stories come back with a flattened `author` (not the nested
   // `user` shape StoryViewerScreen's groups expect) — reshape into a single
   // one-story "group" so the existing full-screen viewer just works.
@@ -134,10 +205,6 @@ export default function ExploreScreen({ navigation }: any) {
       groups: [{ userId: story.userId, user: story.author, stories: [story] }],
       initialGroupIndex: 0,
     });
-  };
-
-  const uploadTrend = (label?: string) => {
-    navigation.navigate('CreateStory', label ? { mode: 'trend', label } : { mode: 'trend' });
   };
 
   // /posts (For You) reranks its raw pool by score before paginating, so it
@@ -177,7 +244,7 @@ export default function ExploreScreen({ navigation }: any) {
   };
 
   const loadMorePosts = async () => {
-    if (loadingMore || !hasMore || !cursorRef.current || activeTab !== 'feed') return;
+    if (loadingMore || !hasMore || !cursorRef.current || filter !== 'Posts') return;
     try {
       setLoadingMore(true);
       if (feedMode === 'following') {
@@ -227,9 +294,12 @@ export default function ExploreScreen({ navigation }: any) {
     // Most-visible item drives which post's video (if any) is allowed to
     // mount — picking viewableItems[0] rather than tracking a whole set
     // keeps at most one video decoding at a time, TikTok/Instagram-style.
-    setVisiblePostId(viewableItems[0]?.item?.id ?? null);
+    const first = viewableItems[0]?.item;
+    setVisiblePostId(first?.kind ? (first.kind === 'post' ? first.data.id : null) : (first?.id ?? null));
     for (const v of viewableItems) {
-      const postId = v.item?.id;
+      const raw = v.item;
+      const post: PostDto | undefined = raw?.kind === 'post' ? raw.data : (raw?.id && !raw.kind ? raw : undefined);
+      const postId = post?.id;
       if (!postId || viewedIds.current.has(postId)) continue;
       viewedIds.current.add(postId);
       fetchApi(`/posts/${postId}/view`, { method: 'POST' }).catch(() => {});
@@ -238,8 +308,7 @@ export default function ExploreScreen({ navigation }: any) {
 
   const handleLike = async (postId: string) => {
     try {
-      // Optimistic update
-      setPosts(prev => prev.map(p => {
+      const applyLike = (list: PostDto[]) => list.map(p => {
         if (p.id === postId) {
           const hasLiked = p.likes?.some(l => l.userId === user?.userId);
           return {
@@ -250,18 +319,19 @@ export default function ExploreScreen({ navigation }: any) {
           };
         }
         return p;
-      }));
-
+      });
+      setPosts(applyLike);
+      setTrending(prev => prev ? { ...prev, posts: applyLike(prev.posts) } : prev);
       await fetchApi(`/posts/${postId}/like`, { method: 'POST' });
     } catch (e) {
       console.error(e);
-      fetchFeed(); // revert on failure
+      if (filter === 'Posts') fetchFeed(); else fetchTrending();
     }
   };
 
   const handleRepost = async (postId: string) => {
     try {
-      setPosts(prev => prev.map(p => {
+      const applyRepost = (list: PostDto[]) => list.map(p => {
         if (p.id === postId) {
           const hasReposted = p.reposts?.some(r => r.userId === user?.userId);
           return {
@@ -272,24 +342,27 @@ export default function ExploreScreen({ navigation }: any) {
           };
         }
         return p;
-      }));
-
+      });
+      setPosts(applyRepost);
+      setTrending(prev => prev ? { ...prev, posts: applyRepost(prev.posts) } : prev);
       await fetchApi(`/posts/${postId}/repost`, { method: 'POST' });
     } catch (e) {
       console.error(e);
-      fetchFeed();
+      if (filter === 'Posts') fetchFeed(); else fetchTrending();
     }
   };
 
   const handleBookmark = async (postId: string) => {
     try {
-      setPosts(prev => prev.map(p => (
+      const applyBookmark = (list: PostDto[]) => list.map(p => (
         p.id === postId ? { ...p, isBookmarkedByMe: !p.isBookmarkedByMe } : p
-      )));
+      ));
+      setPosts(applyBookmark);
+      setTrending(prev => prev ? { ...prev, posts: applyBookmark(prev.posts) } : prev);
       await fetchApi(`/posts/${postId}/bookmark`, { method: 'POST' });
     } catch (e) {
       console.error(e);
-      fetchFeed();
+      if (filter === 'Posts') fetchFeed(); else fetchTrending();
     }
   };
 
@@ -303,83 +376,6 @@ export default function ExploreScreen({ navigation }: any) {
     }
   };
 
-  const renderChallenge = ({ item }: { item: ChallengeSummary }) => (
-    <ChallengeCard
-      challenge={item}
-      onPress={() => navigation.navigate('ChallengeDetail', { challengeId: item.id })}
-    />
-  );
-
-  const renderPost = ({ item }: { item: PostDto }) => {
-    const hasLiked = item.likes?.some(l => l.userId === user?.userId);
-    const hasReposted = item.reposts?.some(r => r.userId === user?.userId);
-    const isBookmarked = !!item.isBookmarkedByMe;
-    const displayName = item.author?.displayName || item.author?.username || 'User';
-    const openDetail = () => navigation.navigate('PostComments', { postId: item.id });
-    return (
-      <View style={styles.postCard}>
-        <TouchableOpacity activeOpacity={0.85} onPress={openDetail}>
-          <View style={styles.postHeader}>
-            <View style={styles.postAvatarCol}>
-              <ExpoImage
-                source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
-                style={styles.postAvatar}
-                cachePolicy="disk"
-                transition={100}
-              />
-            </View>
-            <View style={styles.postAuthorInfo}>
-              <View style={styles.postNameRow}>
-                <Text style={styles.postAuthorName} numberOfLines={1}>{displayName}</Text>
-                {item.author?.verified && (
-                  <Ionicons name="checkmark-circle" size={15} color={COLORS.primary} style={{ marginLeft: 3 }} />
-                )}
-              </View>
-              <Text style={styles.postTime} numberOfLines={1}>
-                {item.author?.username ? `@${item.author.username} · ` : ''}{timeAgo(item.createdAt as any)}
-              </Text>
-            </View>
-            {item.authorId !== user?.userId && !item.author?.isFollowedByMe && (
-              <TouchableOpacity style={styles.followBtn} onPress={() => handleFollow(item.authorId)}>
-                <Text style={styles.followBtnText}>Follow</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
-          {item.media?.length ? (
-            <View style={styles.postMediaWrap}>
-              <PostMediaCarousel media={item.media} active={item.id === visiblePostId} />
-            </View>
-          ) : null}
-        </TouchableOpacity>
-        <View style={styles.postActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('PostComments', { postId: item.id })}>
-            <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
-            <Text style={styles.actionText}>{item.comments?.length || 0}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleRepost(item.id)}>
-            <Ionicons name="repeat-outline" size={18} color={hasReposted ? '#10B981' : COLORS.textMuted} />
-            <Text style={[styles.actionText, hasReposted && { color: '#10B981' }]}>{item.reposts?.length || 0}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
-            <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={18} color={hasLiked ? '#F43F5E' : COLORS.textMuted} />
-            <Text style={[styles.actionText, hasLiked && { color: '#F43F5E' }]}>{item.likes?.length || 0}</Text>
-          </TouchableOpacity>
-          <View style={styles.actionButton}>
-            <Ionicons name="stats-chart-outline" size={16} color={COLORS.textMuted} />
-            <Text style={styles.actionText}>{item.views ?? 0}</Text>
-          </View>
-          <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleBookmark(item.id)}>
-            <Ionicons name={isBookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color={isBookmarked ? COLORS.gold : COLORS.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleShare(item)}>
-            <Ionicons name="share-outline" size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY } = theme;
 
@@ -391,36 +387,61 @@ export default function ExploreScreen({ navigation }: any) {
     header: {
       paddingHorizontal: 20,
       paddingTop: 10,
-      paddingBottom: 15,
+      paddingBottom: 4,
     },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    tabContainer: {
-      flexDirection: 'row',
-      marginTop: 15,
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      borderRadius: 8,
-      padding: 4,
-    },
-    tab: {
-      flex: 1,
-      paddingVertical: 8,
-      alignItems: 'center',
-      borderRadius: 6,
-    },
-    activeTab: {
-      backgroundColor: COLORS.surface,
-    },
-    tabText: {
-      ...TYPOGRAPHY.body2,
+    subtitle: {
       color: COLORS.textMuted,
+      fontSize: 13,
+      lineHeight: 18,
+      marginTop: 6,
+      marginBottom: 14,
     },
-    activeTabText: {
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.pill,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    searchInput: {
+      flex: 1,
       color: COLORS.text,
-      fontWeight: 'bold',
+      paddingVertical: 10,
+      fontSize: 14,
+    },
+    filterRow: {
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+      gap: 8,
+    },
+    filterChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: RADIUS.pill,
+      backgroundColor: COLORS.glass,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    filterChipActive: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.primary,
+    },
+    filterChipText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    filterChipTextActive: {
+      color: '#fff',
     },
     listContent: {
       paddingHorizontal: 20,
@@ -456,7 +477,6 @@ export default function ExploreScreen({ navigation }: any) {
       backgroundColor: COLORS.surface,
       padding: 16,
       borderRadius: 16,
-      marginBottom: 12,
     },
     postHeader: {
       flexDirection: 'row',
@@ -615,13 +635,178 @@ export default function ExploreScreen({ navigation }: any) {
       shadowRadius: 4,
     },
 
-    // ── Trends (Trending tab) ────────────────────────────────
+    // ── Challenge sub-tabs ──────────────────────────────────
+    challengeSubTabRow: {
+      flexDirection: 'row',
+      marginHorizontal: 20,
+      marginBottom: 14,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      padding: 4,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    challengeSubTab: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 9,
+      borderRadius: RADIUS.sm,
+    },
+    challengeSubTabActive: {
+      backgroundColor: COLORS.primary,
+    },
+    challengeSubTabText: {
+      color: COLORS.textMuted,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    challengeSubTabTextActive: {
+      color: '#fff',
+    },
+
+    // ── Featured "trending challenge" hero card, used in the All stream ──
+    heroCard: {
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      minHeight: 150,
+      padding: 16,
+      justifyContent: 'space-between',
+    },
+    heroBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(0,0,0,0.28)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+    },
+    heroBadgeText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
+    heroTitle: {
+      color: '#fff',
+      fontSize: 20,
+      fontWeight: '800',
+    },
+    heroSubtitle: {
+      color: 'rgba(255,255,255,0.75)',
+      fontSize: 12.5,
+      marginTop: 3,
+    },
+
+    // ── Mini-app discovery card, used in the All stream + Mini Apps filter ──
+    miniAppCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      padding: 14,
+    },
+    miniAppIcon: {
+      width: 46,
+      height: 46,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    miniAppInfo: {
+      flex: 1,
+    },
+    miniAppNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    miniAppName: {
+      color: COLORS.text,
+      fontSize: 14.5,
+      fontWeight: '700',
+    },
+    miniAppNewBadge: {
+      backgroundColor: 'rgba(52,211,153,0.14)',
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    miniAppNewBadgeText: {
+      color: '#34D399',
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
+    miniAppTagline: {
+      color: COLORS.textMuted,
+      fontSize: 12.5,
+      marginTop: 2,
+    },
+    miniAppTryBtn: {
+      backgroundColor: '#34D399',
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    miniAppTryBtnText: {
+      color: '#07070C',
+      fontSize: 12.5,
+      fontWeight: '800',
+    },
+
+    // ── Live card used in the All stream ──
+    liveHeroCard: {
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      minHeight: 140,
+      padding: 16,
+      justifyContent: 'space-between',
+    },
+    livePillRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 6,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: RADIUS.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+    },
+    liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#fff',
+    },
+    livePillText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '800',
+    },
+    liveTitle: {
+      color: '#fff',
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    liveSubtitle: {
+      color: 'rgba(255,255,255,0.8)',
+      fontSize: 12.5,
+      marginTop: 2,
+    },
+    miniAppGridRow: {
+      justifyContent: 'space-between',
+    },
+
+    // ── Trend strip — hashtag "of the day" stories, shown atop the All stream ──
     trendsHeaderRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      marginTop: 8,
       marginBottom: 10,
     },
     uploadTrendBtn: {
@@ -702,8 +887,7 @@ export default function ExploreScreen({ navigation }: any) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      marginHorizontal: 20,
-      marginBottom: 8,
+      marginBottom: 14,
       padding: 14,
       backgroundColor: COLORS.surface,
       borderRadius: RADIUS.md,
@@ -715,138 +899,228 @@ export default function ExploreScreen({ navigation }: any) {
       fontSize: 13,
       flex: 1,
     },
-
-    // ── Challenge sub-tabs ──────────────────────────────────
-    challengeSubTabRow: {
-      flexDirection: 'row',
-      marginHorizontal: 20,
-      marginBottom: 14,
-      backgroundColor: COLORS.surface,
-      borderRadius: RADIUS.md,
-      padding: 4,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    challengeSubTab: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 9,
-      borderRadius: RADIUS.sm,
-    },
-    challengeSubTabActive: {
-      backgroundColor: COLORS.primary,
-    },
-    challengeSubTabText: {
-      color: COLORS.textMuted,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    challengeSubTabTextActive: {
-      color: '#fff',
-    },
-
-    // ── Feed entry card (For You tap-to-open) ───────────────
-    feedEntryCard: {
-      marginHorizontal: 20,
-      borderRadius: RADIUS.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    feedEntryGradientWrap: {
-      backgroundColor: '#0F0A1E',
-      padding: 28,
-      alignItems: 'center',
-      gap: 10,
-      minHeight: 220,
-      justifyContent: 'center',
-    },
-    feedEntryIconRow: {
-      width: 80, height: 80, borderRadius: 40,
-      backgroundColor: COLORS.primary,
-      justifyContent: 'center', alignItems: 'center',
-      marginBottom: 6,
-    },
-    feedEntryTitle: {
-      color: '#fff',
-      fontSize: 20,
-      fontWeight: '800',
-    },
-    feedEntrySubtitle: {
-      color: 'rgba(255,255,255,0.6)',
-      fontSize: 13,
-      textAlign: 'center',
-      lineHeight: 19,
-    },
-    feedEntryBadgeRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginTop: 4,
-    },
-    feedEntryBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: 'rgba(139,92,246,0.3)',
-      borderRadius: 20,
-      paddingHorizontal: 12,
-      paddingVertical: 5,
-      borderWidth: 1,
-      borderColor: 'rgba(139,92,246,0.5)',
-    },
-    feedEntryBadgeText: {
-      color: '#fff',
-      fontSize: 11,
-      fontWeight: '700',
-    },
   }));
+
+  const searchLower = searchQuery.trim().toLowerCase();
+  const matchesSearch = (text: string | null | undefined) =>
+    !searchLower || (text ?? '').toLowerCase().includes(searchLower);
+
+  const allStream = useMemo(() => {
+    const items = buildAllStream(trending?.posts ?? [], trending?.challenges ?? [], trending?.live ?? [], discoverableApps);
+    if (!searchLower) return items;
+    return items.filter((item) => {
+      if (item.kind === 'post') return matchesSearch(item.data.content) || matchesSearch(item.data.author?.displayName);
+      if (item.kind === 'challenge') return matchesSearch(item.data.title);
+      if (item.kind === 'live') return matchesSearch(item.data.title);
+      return matchesSearch(item.data.name) || matchesSearch(item.data.tagline);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trending, discoverableApps, searchLower]);
+
+  const visiblePosts = useMemo(
+    () => (searchLower ? posts.filter((p) => matchesSearch(p.content) || matchesSearch(p.author?.displayName)) : posts),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [posts, searchLower],
+  );
+  const visibleChallenges = useMemo(
+    () => (searchLower ? challenges.filter((c) => matchesSearch(c.title)) : challenges),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [challenges, searchLower],
+  );
+  const visibleLive = useMemo(
+    () => (searchLower ? (trending?.live ?? []).filter((l) => matchesSearch(l.title)) : (trending?.live ?? [])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trending, searchLower],
+  );
+  const visibleApps = useMemo(
+    () => (searchLower ? discoverableApps.filter((m) => matchesSearch(m.name) || matchesSearch(m.tagline)) : discoverableApps),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [discoverableApps, searchLower],
+  );
+
+  const renderPost = (item: PostDto) => {
+    const hasLiked = item.likes?.some(l => l.userId === user?.userId);
+    const hasReposted = item.reposts?.some(r => r.userId === user?.userId);
+    const isBookmarked = !!item.isBookmarkedByMe;
+    const displayName = item.author?.displayName || item.author?.username || 'User';
+    const openDetail = () => navigation.navigate('PostComments', { postId: item.id });
+    return (
+      <View style={styles.postCard}>
+        <TouchableOpacity activeOpacity={0.85} onPress={openDetail}>
+          <View style={styles.postHeader}>
+            <View style={styles.postAvatarCol}>
+              <ExpoImage
+                source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
+                style={styles.postAvatar}
+                cachePolicy="disk"
+                transition={100}
+              />
+            </View>
+            <View style={styles.postAuthorInfo}>
+              <View style={styles.postNameRow}>
+                <Text style={styles.postAuthorName} numberOfLines={1}>{displayName}</Text>
+                {item.author?.verified && (
+                  <Ionicons name="checkmark-circle" size={15} color={COLORS.primary} style={{ marginLeft: 3 }} />
+                )}
+              </View>
+              <Text style={styles.postTime} numberOfLines={1}>
+                {item.author?.username ? `@${item.author.username} · ` : ''}{timeAgo(item.createdAt as any)}
+              </Text>
+            </View>
+            {item.authorId !== user?.userId && !item.author?.isFollowedByMe && (
+              <TouchableOpacity style={styles.followBtn} onPress={() => handleFollow(item.authorId)}>
+                <Text style={styles.followBtnText}>Follow</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {item.content ? <Text style={styles.postContent}>{item.content}</Text> : null}
+          {item.media?.length ? (
+            <View style={styles.postMediaWrap}>
+              <PostMediaCarousel media={item.media} active={item.id === visiblePostId} />
+            </View>
+          ) : null}
+        </TouchableOpacity>
+        <View style={styles.postActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('PostComments', { postId: item.id })}>
+            <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
+            <Text style={styles.actionText}>{item.comments?.length || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleRepost(item.id)}>
+            <Ionicons name="repeat-outline" size={18} color={hasReposted ? '#10B981' : COLORS.textMuted} />
+            <Text style={[styles.actionText, hasReposted && { color: '#10B981' }]}>{item.reposts?.length || 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+            <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={18} color={hasLiked ? '#F43F5E' : COLORS.textMuted} />
+            <Text style={[styles.actionText, hasLiked && { color: '#F43F5E' }]}>{item.likes?.length || 0}</Text>
+          </TouchableOpacity>
+          <View style={styles.actionButton}>
+            <Ionicons name="stats-chart-outline" size={16} color={COLORS.textMuted} />
+            <Text style={styles.actionText}>{item.views ?? 0}</Text>
+          </View>
+          <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleBookmark(item.id)}>
+            <Ionicons name={isBookmarked ? 'bookmark' : 'bookmark-outline'} size={18} color={isBookmarked ? COLORS.gold : COLORS.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButtonSolo} onPress={() => handleShare(item)}>
+            <Ionicons name="share-outline" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderHeroChallenge = (item: ChallengeSummary) => (
+    <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('ChallengeDetail', { challengeId: item.id })}>
+      <LinearGradient colors={GRADIENTS.aurora} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+        <View style={styles.heroBadge}>
+          <Text style={styles.heroBadgeText}>TRENDING CHALLENGE</Text>
+        </View>
+        <View>
+          <Text style={styles.heroTitle} numberOfLines={2}>#{item.title}</Text>
+          <Text style={styles.heroSubtitle}>{item._count?.entries ?? 0} entries · {timeRemaining(item.endAt)}</Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+
+  const renderHeroLive = (item: RealLiveStream) => (
+    <TouchableOpacity activeOpacity={0.9} onPress={() => enterLiveStream(item, user?.userId, navigation, trending?.live ?? [])}>
+      <LinearGradient colors={GRADIENTS.live} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.liveHeroCard}>
+        <View style={styles.livePillRow}>
+          <View style={styles.liveDot} />
+          <Text style={styles.livePillText}>LIVE</Text>
+        </View>
+        <View>
+          <Text style={styles.liveTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.liveSubtitle}>{item.viewers} watching</Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+
+  const renderMiniAppCard = (item: LifeModule) => (
+    <View style={styles.miniAppCard}>
+      <LinearGradient colors={item.gradient} style={styles.miniAppIcon}>
+        <Ionicons name={item.icon as any} size={22} color="#fff" />
+      </LinearGradient>
+      <View style={styles.miniAppInfo}>
+        <View style={styles.miniAppNameRow}>
+          <Text style={styles.miniAppName}>{item.name}</Text>
+          <View style={styles.miniAppNewBadge}>
+            <Text style={styles.miniAppNewBadgeText}>DISCOVER</Text>
+          </View>
+        </View>
+        <Text style={styles.miniAppTagline} numberOfLines={1}>{item.tagline}</Text>
+      </View>
+      <TouchableOpacity style={styles.miniAppTryBtn} onPress={() => openModule(navigation, item)}>
+        <Text style={styles.miniAppTryBtnText}>Try it</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderStreamItem = ({ item }: { item: StreamItem }) => {
+    if (item.kind === 'post') return renderPost(item.data);
+    if (item.kind === 'challenge') return renderHeroChallenge(item.data);
+    if (item.kind === 'live') return renderHeroLive(item.data);
+    return renderMiniAppCard(item.data);
+  };
+
+  const filterChips = (
+    <FlatList
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      data={FILTERS}
+      keyExtractor={(item) => item}
+      contentContainerStyle={styles.filterRow}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={[styles.filterChip, filter === item && styles.filterChipActive]}
+          onPress={() => setFilter(item)}
+        >
+          <Text style={[styles.filterChipText, filter === item && styles.filterChipTextActive]}>{item}</Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={TYPOGRAPHY.h2}>Explore</Text>
-          {activeTab === 'challenges' && (
-            <TouchableOpacity onPress={() => navigation.navigate('ChallengesLeaderboard')}>
-              <Ionicons name="trophy" size={22} color={COLORS.gold} />
+          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+            {filter === 'Challenges' && (
+              <TouchableOpacity onPress={() => navigation.navigate('ChallengesLeaderboard')}>
+                <Ionicons name="trophy" size={22} color={COLORS.gold} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => { setSearchOpen((v) => !v); if (searchOpen) setSearchQuery(''); }}>
+              <Ionicons name={searchOpen ? 'close' : 'search'} size={22} color={COLORS.text} />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'feed' && styles.activeTab]}
-            onPress={() => setActiveTab('feed')}
-          >
-            <Text style={[styles.tabText, activeTab === 'feed' && styles.activeTabText]}>Social Feed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'trending' && styles.activeTab]}
-            onPress={() => setActiveTab('trending')}
-          >
-            <Text style={[styles.tabText, activeTab === 'trending' && styles.activeTabText]}>Trending</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'challenges' && styles.activeTab]}
-            onPress={() => setActiveTab('challenges')}
-          >
-            <Text style={[styles.tabText, activeTab === 'challenges' && styles.activeTabText]}>Challenges</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.tab}
-            onPress={() => navigation.navigate('Discovery')}
-          >
-            <Text style={styles.tabText}>Discovery</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.subtitle}>
+          What's possible for you — posts, challenges, live streams and mini apps, ranked by what's moving right now.
+        </Text>
+        {searchOpen && (
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={16} color={COLORS.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search this list…"
+              placeholderTextColor={COLORS.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              autoCapitalize="none"
+            />
+          </View>
+        )}
       </View>
 
-      {activeTab === 'challenges' ? (
+      {filterChips}
+
+      {filter === 'Challenges' ? (
         <>
-          {/* ── Challenges sub-tab bar ── */}
           <View style={styles.challengeSubTabRow}>
             <TouchableOpacity
               style={[styles.challengeSubTab, challengeSubTab === 'feed' && styles.challengeSubTabActive]}
@@ -869,7 +1143,6 @@ export default function ExploreScreen({ navigation }: any) {
           </View>
 
           {challengeSubTab === 'feed' ? (
-            /* ── For You: navigate directly ── */
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14, paddingTop: 40 }}>
               <LinearGradient colors={['#8B5CF6', '#6366F1']} style={{ width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons name="play-circle" size={40} color="#fff" />
@@ -881,7 +1154,6 @@ export default function ExploreScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
           ) : (
-            /* ── Browse: category filter + grid ── */
             <>
               <FlatList
                 horizontal
@@ -901,9 +1173,11 @@ export default function ExploreScreen({ navigation }: any) {
                 )}
               />
               <FlatList
-                data={challenges}
+                data={visibleChallenges}
                 keyExtractor={(item) => item.id}
-                renderItem={renderChallenge}
+                renderItem={({ item }) => (
+                  <ChallengeCard challenge={item} onPress={() => navigation.navigate('ChallengeDetail', { challengeId: item.id })} />
+                )}
                 numColumns={2}
                 columnWrapperStyle={{ justifyContent: 'space-between' }}
                 contentContainerStyle={styles.listContent}
@@ -922,13 +1196,13 @@ export default function ExploreScreen({ navigation }: any) {
             </>
           )}
         </>
-      ) : activeTab === 'feed' ? (
+      ) : filter === 'Posts' ? (
         <FlatList
-          key="feed-flatlist"
+          key="posts-flatlist"
           ref={listRef}
-          data={posts}
+          data={visiblePosts}
           keyExtractor={(item) => item.id}
-          renderItem={renderPost}
+          renderItem={({ item }) => renderPost(item)}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshing={loading}
@@ -983,133 +1257,130 @@ export default function ExploreScreen({ navigation }: any) {
             ) : null
           }
         />
-      ) : activeTab === 'trending' ? (
+      ) : filter === 'Live' ? (
         <FlatList
-          key="trending-flatlist"
-          data={trending?.posts ?? []}
+          key="live-flatlist"
+          data={visibleLive}
           keyExtractor={(item) => item.id}
-          renderItem={renderPost}
+          numColumns={2}
+          columnWrapperStyle={styles.miniAppGridRow}
+          renderItem={({ item }) => (
+            <LiveStreamCard
+              stream={item}
+              size="grid"
+              onPress={(s) => enterLiveStream(s, user?.userId, navigation, trending?.live ?? [])}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshing={trendingLoading}
+          onRefresh={fetchTrending}
+          ListEmptyComponent={
+            !trendingLoading ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="radio-outline" size={48} color={COLORS.textMuted} />
+                <Text style={styles.emptyText}>Nothing live right now — check back soon.</Text>
+              </View>
+            ) : null
+          }
+        />
+      ) : filter === 'Mini Apps' ? (
+        <FlatList
+          key="miniapps-flatlist"
+          data={visibleApps}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => renderMiniAppCard(item)}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="apps-outline" size={48} color={COLORS.textMuted} />
+              <Text style={styles.emptyText}>You've already got everything installed — nice.</Text>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          key="all-flatlist"
+          data={allStream}
+          keyExtractor={(item) => item.key}
+          renderItem={renderStreamItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshing={trendingLoading}
           onRefresh={fetchTrending}
           ListHeaderComponent={
-            <>
-              <View style={styles.trendsHeaderRow}>
-                <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800' }}>✨ Trends</Text>
-                <TouchableOpacity style={styles.uploadTrendBtn} activeOpacity={0.85} onPress={() => uploadTrend()}>
-                  <Ionicons name="add" size={16} color={COLORS.surface} />
-                  <Text style={styles.uploadTrendBtnText}>Upload</Text>
-                </TouchableOpacity>
-              </View>
-              {!!trending?.trendLabels.length && (
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={trending.trendLabels}
-                  keyExtractor={(item) => item.label}
-                  contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 12 }}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.trendChip} activeOpacity={0.8} onPress={() => uploadTrend(item.label)}>
-                      <Text style={styles.trendChipText}>#{item.label}</Text>
-                      <Text style={styles.trendChipCount}>{item.count}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              )}
-              {trending?.trends.length ? (
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={trending.trends}
-                  keyExtractor={(item) => item.id}
-                  contentContainerStyle={{ paddingHorizontal: 20, gap: 12, marginBottom: 4 }}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.trendCard} activeOpacity={0.85} onPress={() => openTrendStory(item)}>
-                      {item.mediaUrl ? (
-                        <ExpoImage source={{ uri: item.mediaUrl }} style={styles.trendCardImage} contentFit="cover" />
-                      ) : (
-                        <View style={[styles.trendCardImage, styles.trendCardImageFallback]}>
-                          <Text numberOfLines={4} style={styles.trendCardFallbackText}>{item.textContent || '✨'}</Text>
-                        </View>
-                      )}
-                      <View style={styles.trendCardLabelChip}>
-                        <Text style={styles.trendCardLabelText}>#{item.label}</Text>
-                      </View>
-                      <Text style={styles.trendCardAuthor} numberOfLines={1}>{item.author?.displayName || item.author?.username}</Text>
-                    </TouchableOpacity>
-                  )}
-                  style={{ marginBottom: 8 }}
-                />
-              ) : (
-                !trendingLoading && (
-                  <TouchableOpacity style={styles.trendEmptyRow} activeOpacity={0.85} onPress={() => uploadTrend()}>
-                    <Ionicons name="sparkles-outline" size={18} color={COLORS.textMuted} />
-                    <Text style={styles.trendEmptyText}>No trends yet — be the first to post an OOTD, FOTD, or your own.</Text>
+            !searchLower ? (
+              <View>
+                <View style={styles.trendsHeaderRow}>
+                  <Text style={{ color: COLORS.text, fontSize: 15, fontWeight: '800' }}>✨ Trends</Text>
+                  <TouchableOpacity style={styles.uploadTrendBtn} activeOpacity={0.85} onPress={() => uploadTrend()}>
+                    <Ionicons name="add" size={16} color={COLORS.surface} />
+                    <Text style={styles.uploadTrendBtnText}>Upload</Text>
                   </TouchableOpacity>
-                )
-              )}
-              {!!trending?.live.length && (
-                <>
-                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 8, marginBottom: 10 }}>
-                    🔴 Live Now
-                  </Text>
+                </View>
+                {!!trending?.trendLabels.length && (
                   <FlatList
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    data={trending.live}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                    data={trending.trendLabels}
+                    keyExtractor={(item) => item.label}
+                    contentContainerStyle={{ gap: 8, marginBottom: 12 }}
                     renderItem={({ item }) => (
-                      <LiveStreamCard
-                        stream={item}
-                        size="compact"
-                        onPress={(s) => enterLiveStream(s, user?.userId, navigation, trending.live)}
-                      />
+                      <TouchableOpacity style={styles.trendChip} activeOpacity={0.8} onPress={() => uploadTrend(item.label)}>
+                        <Text style={styles.trendChipText}>#{item.label}</Text>
+                        <Text style={styles.trendChipCount}>{item.count}</Text>
+                      </TouchableOpacity>
                     )}
                   />
-                </>
-              )}
-              {!!trending?.challenges.length && (
-                <>
-                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 20, marginBottom: 10 }}>
-                    🏆 Trending Challenges
-                  </Text>
+                )}
+                {trending?.trends.length ? (
                   <FlatList
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    data={trending.challenges}
+                    data={trending.trends}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ paddingHorizontal: 20 }}
+                    contentContainerStyle={{ gap: 12, marginBottom: 4 }}
                     renderItem={({ item }) => (
-                      <ChallengeCard
-                        challenge={item}
-                        style={{ width: 170, marginRight: 12 }}
-                        onPress={() => navigation.navigate('ChallengeDetail', { challengeId: item.id })}
-                      />
+                      <TouchableOpacity style={styles.trendCard} activeOpacity={0.85} onPress={() => openTrendStory(item)}>
+                        {item.mediaUrl ? (
+                          <ExpoImage source={{ uri: item.mediaUrl }} style={styles.trendCardImage} contentFit="cover" />
+                        ) : (
+                          <View style={[styles.trendCardImage, styles.trendCardImageFallback]}>
+                            <Text numberOfLines={4} style={styles.trendCardFallbackText}>{item.textContent || '✨'}</Text>
+                          </View>
+                        )}
+                        <View style={styles.trendCardLabelChip}>
+                          <Text style={styles.trendCardLabelText}>#{item.label}</Text>
+                        </View>
+                        <Text style={styles.trendCardAuthor} numberOfLines={1}>{item.author?.displayName || item.author?.username}</Text>
+                      </TouchableOpacity>
                     )}
+                    style={{ marginBottom: 16 }}
                   />
-                </>
-              )}
-              {!!trending?.posts.length && (
-                <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginTop: 20, marginBottom: 4 }}>
-                  📈 Trending Posts
-                </Text>
-              )}
-            </>
+                ) : (
+                  !trendingLoading && (
+                    <TouchableOpacity style={styles.trendEmptyRow} activeOpacity={0.85} onPress={() => uploadTrend()}>
+                      <Ionicons name="sparkles-outline" size={18} color={COLORS.textMuted} />
+                      <Text style={styles.trendEmptyText}>No trends yet — be the first to post an OOTD, FOTD, or your own.</Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             !trendingLoading ? (
               <View style={styles.emptyState}>
-                <Ionicons name="flame-outline" size={48} color={COLORS.textMuted} />
-                <Text style={styles.emptyText}>Nothing trending yet — check back soon.</Text>
+                <Ionicons name="sparkles-outline" size={48} color={COLORS.textMuted} />
+                <Text style={styles.emptyText}>Nothing has momentum yet — check back soon.</Text>
               </View>
             ) : null
           }
         />
-      ) : null}
+      )}
 
-      {activeTab === 'feed' ? (
+      {(filter === 'All' || filter === 'Posts') ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 76 }]}
           activeOpacity={0.8}

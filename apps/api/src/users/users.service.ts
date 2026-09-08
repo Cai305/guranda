@@ -771,4 +771,24 @@ export class UsersService {
     ]);
     return { followerCount, followingCount, isFollowedByMe };
   }
+
+  // Reuses PlayerReport (gameId left null) rather than a new model — it's
+  // already the generic "flag a user for human review" primitive
+  // (LiveStreamReport is the same shape, scoped to a live room). Distinct
+  // from blocking: a report doesn't cut off contact, it just queues the
+  // account for review.
+  async reportUser(reporterId: string, reportedUserId: string, reason: string, details?: string) {
+    if (reporterId === reportedUserId) {
+      throw new BadRequestException('You cannot report yourself');
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id: reportedUserId },
+      select: { id: true },
+    });
+    if (!target) throw new BadRequestException('User not found');
+    await this.prisma.playerReport.create({
+      data: { reporterId, reportedUserId, reason, details, gameId: null },
+    });
+    return { ok: true };
+  }
 }

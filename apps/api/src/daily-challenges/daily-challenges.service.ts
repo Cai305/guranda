@@ -27,21 +27,32 @@ export class DailyChallengesService {
     return this.ensureTodayGenerated();
   }
 
-  /** Idempotent — safe to call lazily too, so today's challenges exist even if the app just booted mid-day. */
+  /**
+   * Idempotent — safe to call lazily too, so today's challenges exist even
+   * if the app just booted mid-day.
+   *
+   * Not an `upsert` on the compound unique key: Prisma rejects `null` inside
+   * a compound-unique `where` even when the column itself is nullable
+   * (`mode` is null for two of the three templates) — "Argument `mode` must
+   * not be null". `findFirst` has no such restriction on a plain `where`.
+   */
   async ensureTodayGenerated() {
     const activeDate = todayDateOnly();
     for (const t of TEMPLATES) {
-      await this.prisma.dailyChallenge.upsert({
-        where: { mode_activeDate_description: { mode: t.mode as any, activeDate, description: t.description } },
-        create: {
-          mode: t.mode as any,
-          description: t.description,
-          criteria: t.criteria as any,
-          rewardMasheleni: t.rewardMasheleni,
-          activeDate,
-        },
-        update: {},
+      const existing = await this.prisma.dailyChallenge.findFirst({
+        where: { mode: t.mode as any, activeDate, description: t.description },
       });
+      if (!existing) {
+        await this.prisma.dailyChallenge.create({
+          data: {
+            mode: t.mode as any,
+            description: t.description,
+            criteria: t.criteria as any,
+            rewardMasheleni: t.rewardMasheleni,
+            activeDate,
+          },
+        });
+      }
     }
     return this.prisma.dailyChallenge.findMany({ where: { activeDate } });
   }

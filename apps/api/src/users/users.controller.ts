@@ -20,6 +20,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { SavePushTokenDto } from './dto/push-token.dto';
 import { SaveLocationDto } from './dto/save-location.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ReportUserDto } from './dto/report-user.dto';
 
 // Scoped (not global — see docs/ARCHITECTURE_RECOMMENDATIONS.md #4) so this
 // doesn't affect the ~50 other controllers still using plain-interface
@@ -126,5 +127,18 @@ export class UsersController {
   @Get(':id/follow-stats')
   async followStats(@Request() req: any, @Param('id') id: string) {
     return this.usersService.getFollowStats(id, req.user.userId);
+  }
+
+  // Distinct from blocking (BlocksController's :id/block) — reporting flags
+  // the account for human review without cutting off contact, matching how
+  // LiveStreamReport/PlayerReport already work elsewhere in the app.
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/report')
+  async reportUser(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: ReportUserDto,
+  ) {
+    return this.usersService.reportUser(req.user.userId, id, body.reason, body.details);
   }
 }

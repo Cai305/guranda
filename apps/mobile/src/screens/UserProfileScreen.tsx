@@ -91,6 +91,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
   // relationship partner) Share this chat with partner.
   const [showActionTray, setShowActionTray] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
   const [relationshipPartner, setRelationshipPartner] = useState<any>(null);
   const [sharingChat, setSharingChat] = useState(false);
 
@@ -289,6 +290,46 @@ export default function UserProfileScreen({ route, navigation }: any) {
             }
           },
         },
+      ],
+    );
+  };
+
+  // Distinct from Block — flags the account for human review without
+  // cutting off contact. Reuses the reason set LiveStreamReport already
+  // established elsewhere in the app, rather than inventing a new one.
+  const handleReport = () => {
+    setShowActionTray(false);
+    const reasons: Array<{ label: string; value: string }> = [
+      { label: 'Harassment', value: 'harassment' },
+      { label: 'Inappropriate content', value: 'inappropriate_content' },
+      { label: 'Spam', value: 'spam' },
+      { label: 'Fake account', value: 'fake_account' },
+      { label: 'Other', value: 'other' },
+    ];
+    Alert.alert(
+      'Report User',
+      `Why are you reporting @${profile?.username || initialUsername}?`,
+      [
+        ...reasons.map((r) => ({
+          text: r.label,
+          onPress: async () => {
+            setReportBusy(true);
+            try {
+              const res = await fetchApi(`/users/${userId}/report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: r.value }),
+              });
+              if (!res.ok) throw new Error('Failed to report');
+              Alert.alert('Reported', 'Thanks — our team will review this.');
+            } catch {
+              Alert.alert('Error', 'Failed to submit this report. Please try again.');
+            } finally {
+              setReportBusy(false);
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
       ],
     );
   };
@@ -914,6 +955,14 @@ export default function UserProfileScreen({ route, navigation }: any) {
                 <Ionicons name="ban-outline" size={20} color={COLORS.error} />
               )}
               <Text style={[styles.trayItemText, { color: COLORS.error }]}>Block User</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.trayItem} onPress={handleReport} disabled={reportBusy}>
+              {reportBusy ? (
+                <ActivityIndicator color={COLORS.textMuted} size="small" />
+              ) : (
+                <Ionicons name="flag-outline" size={20} color={COLORS.text} />
+              )}
+              <Text style={styles.trayItemText}>Report User</Text>
             </TouchableOpacity>
             {relationshipPartner && (
               <TouchableOpacity style={styles.trayItem} onPress={handleShareWithPartner} disabled={sharingChat}>

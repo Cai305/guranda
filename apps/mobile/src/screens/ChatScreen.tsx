@@ -31,6 +31,9 @@ import EventMiniCard, { decodeEventCard } from '../components/cards/EventMiniCar
 import LocationMiniCard, { encodeLocationCard, decodeLocationCard } from '../components/cards/LocationMiniCard';
 import ContactMiniCard, { ContactCardData, encodeContactCard, decodeContactCard } from '../components/cards/ContactMiniCard';
 import ProfileMiniCard, { decodeProfileCard } from '../components/cards/ProfileMiniCard';
+import FileMiniCard, { FileCardData, encodeFileCard, decodeFileCard } from '../components/cards/FileMiniCard';
+import MediaViewerModal from '../components/MediaViewerModal';
+import * as DocumentPicker from 'expo-document-picker';
 import ChatWallpaperPicker from '../components/chat/ChatWallpaperPicker';
 import { findPreset, isPresetId } from '../config/chatWallpapers';
 import { searchContacts } from '../utils/deviceToolFulfillment';
@@ -50,17 +53,25 @@ function formatClockTime(date?: Date | string): string {
 // A message can carry media with no caption — Message.content is a required
 // non-null column, so "no text" is stored as '' rather than null; render
 // bubbles need to treat that as "media-only", not an empty text bubble.
-function MediaBubble({ url, mine }: { url: string; mine: boolean }) {
+function MediaBubble({ url, mine, onOpen }: { url: string; mine: boolean; onOpen: (url: string, isVideo: boolean) => void }) {
   const isVideo = isVideoUrl(url);
   const player = useVideoPlayer(isVideo ? url : null, p => { p.loop = false; });
 
   if (isAudioUrl(url)) return <VoiceMessageBubble uri={url} mine={mine} />;
   if (isVideo) {
     return (
-      <VideoView style={mediaBubbleStyles.mediaVideo} player={player} allowsPictureInPicture nativeControls />
+      <TouchableOpacity activeOpacity={0.9} onPress={() => onOpen(url, true)}>
+        <VideoView style={mediaBubbleStyles.mediaVideo} player={player} allowsPictureInPicture nativeControls />
+      </TouchableOpacity>
     );
   }
-  return <Image source={{ uri: url }} style={mediaBubbleStyles.mediaImage} resizeMode="cover" />;
+  // Available to whoever is viewing the message, not just the sender — the
+  // full-screen viewer is where Download/Share actually live.
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={() => onOpen(url, false)}>
+      <Image source={{ uri: url }} style={mediaBubbleStyles.mediaImage} resizeMode="cover" />
+    </TouchableOpacity>
+  );
 }
 
 const mediaBubbleStyles = StyleSheet.create({
@@ -87,6 +98,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [inputText, setInputText] = useState('');
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [viewerMedia, setViewerMedia] = useState<{ url: string; isVideo: boolean } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showVemojiPicker, setShowVemojiPicker] = useState(false);
@@ -114,6 +126,17 @@ export default function ChatScreen({ route, navigation }: any) {
   const [relationshipPartner, setRelationshipPartner] = useState<any>(null);
   const [chatShares, setChatShares] = useState<any[]>([]);
   const [shareBusy, setShareBusy] = useState(false);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
+  const [pinnedMessages, setPinnedMessages] = useState<ChatMessageDto[]>([]);
+  const [showPinnedList, setShowPinnedList] = useState(false);
+  const [mutedUntil, setMutedUntil] = useState<string | null>(route?.params?.mutedUntil ?? null);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ChatMessageDto[]>([]);
+  const [searching, setSearching] = useState(false);
+  const typingTimeoutRef = useRef<any>(null);
+  const flatListRef = useRef<FlatList>(null);
   const { socket, onlineUsers, activityLabels } = useSocket();
   const voiceRecorder = useVoiceRecorder();
   const { playSound } = useLiveSound();
@@ -132,6 +155,8 @@ export default function ChatScreen({ route, navigation }: any) {
       : isBusy
         ? ((targetUserId && activityLabels[targetUserId]) || 'busy')
         : formatLastSeen(targetProfile?.lastSeenAt ?? null);
+  const isMuted = !!mutedUntil && new Date(mutedUntil) > new Date();
+  const isDirectWithReadReceipt = !!targetUserId;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -202,18 +227,59 @@ export default function ChatScreen({ route, navigation }: any) {
       Alert.alert('Error', data.message || 'Something went wrong');
     };
 
+    const typingHandler = (data: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (data.chatId !== roomId || data.userId === user?.userId) return;
+      setPeerTyping(data.isTyping);
+    };
+
+    const readHandler = (data: { chatId: string; userId: string; readAt: string }) => {
+      if (data.chatId !== roomId || data.userId === user?.userId) return;
+      setOtherReadAt(data.readAt);
+    };
+
+    // Pin state is low-frequency — a refetch on the event is simpler and
+    // just as correct as hand-merging the pinned list in place.
+    const pinChangeHandler = (data: { chatId: string }) => {
+      if (data.chatId !== roomId) return;
+      fetchApi(`/chats/${roomId}/pinned`).then(r => (r.ok ? r.json() : [])).then(setPinnedMessages).catch(() => {});
+    };
+
     socket.on('new_message', messageHandler);
     socket.on('message_updated', updateHandler);
     socket.on('message_deleted', deleteHandler);
     socket.on('message_error', errorHandler);
+    socket.on('user_typing', typingHandler);
+    socket.on('messages_read', readHandler);
+    socket.on('message_pinned', pinChangeHandler);
+    socket.on('message_unpinned', pinChangeHandler);
 
     return () => {
       socket.off('new_message', messageHandler);
       socket.off('message_updated', updateHandler);
       socket.off('message_deleted', deleteHandler);
       socket.off('message_error', errorHandler);
+      socket.off('user_typing', typingHandler);
+      socket.off('messages_read', readHandler);
+      socket.off('message_pinned', pinChangeHandler);
+      socket.off('message_unpinned', pinChangeHandler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, roomId]);
+
+  // Initial paint — live updates for both come from the socket handlers
+  // above; this just seeds the state a freshly opened thread has none of yet.
+  useEffect(() => {
+    fetchApi(`/chats/${roomId}/pinned`)
+      .then(r => (r.ok ? r.json() : []))
+      .then(setPinnedMessages)
+      .catch(() => {});
+    if (targetUserId) {
+      fetchApi(`/chats/${roomId}/read-state`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => setOtherReadAt(d?.otherReadAt ?? null))
+        .catch(() => {});
+    }
+  }, [roomId, targetUserId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -236,8 +302,18 @@ export default function ChatScreen({ route, navigation }: any) {
   const pendingCallVideo = React.useRef(false);
 
   const startCall = (video: boolean) => {
-    if (!socket || !user?.userId || !targetUserId) return;
+    if (!socket || !user?.userId) return;
     pendingCallVideo.current = video;
+    if (roomType === 'GROUP') {
+      socket.emit('group_call_invite', {
+        callerId: user.userId,
+        callerName: user.displayName || user.username,
+        chatId: roomId,
+        video,
+      });
+      return;
+    }
+    if (!targetUserId) return;
     socket.emit('call_invite', {
       callerId: user.userId,
       callerName: user.displayName || user.username,
@@ -246,11 +322,10 @@ export default function ChatScreen({ route, navigation }: any) {
     });
   };
 
-  // Only DIRECT/Private chats (a real targetUserId) can be called — group
-  // calling isn't built yet. call_ringing is the server's ack once it's
-  // minted our token and pushed the ring to the other side; only then do we
+  // call_ringing/group_call_ringing is the server's ack once it's minted our
+  // token(s) and pushed the ring to the other side(s) — only then do we
   // actually navigate in (avoids a "calling" screen for a call that instantly
-  // failed, e.g. the other user being offline — see call_failed below).
+  // failed, e.g. the other user being offline — see *_failed below).
   useEffect(() => {
     if (!socket) return;
     const onRinging = (data: { callId: string; roomName: string; wsUrl: string; token: string; calleeAvatarUrl?: string | null }) => {
@@ -263,17 +338,55 @@ export default function ChatScreen({ route, navigation }: any) {
       });
     };
     const onFailed = (data: { reason: string }) => Alert.alert('Call failed', data.reason);
+    const onGroupRinging = (data: { callId: string; roomName: string; wsUrl: string; token: string }) => {
+      navigation.navigate('GroupCallScreen', {
+        ...data,
+        video: pendingCallVideo.current,
+        chatName: roomName,
+        isCaller: true,
+        userId: user?.userId,
+      });
+    };
+    const onGroupFailed = (data: { reason: string }) => Alert.alert('Call failed', data.reason);
     socket.on('call_ringing', onRinging);
     socket.on('call_failed', onFailed);
+    socket.on('group_call_ringing', onGroupRinging);
+    socket.on('group_call_failed', onGroupFailed);
     return () => {
       socket.off('call_ringing', onRinging);
       socket.off('call_failed', onFailed);
+      socket.off('group_call_ringing', onGroupRinging);
+      socket.off('group_call_failed', onGroupFailed);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, roomName]);
 
+  // Debounced: emits isTyping:true on every keystroke (cheap, ephemeral, no
+  // persistence) and auto-emits isTyping:false 2s after the last one, so a
+  // reader never gets stuck seeing "typing…" if the sender just walks away.
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+    if (!socket || !user?.userId) return;
+    socket.emit('typing', { chatId: roomId, userId: user.userId, isTyping: true });
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('typing', { chatId: roomId, userId: user.userId, isTyping: false });
+    }, 2000);
+  };
+
+  const stopTyping = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    if (socket && user?.userId) {
+      socket.emit('typing', { chatId: roomId, userId: user.userId, isTyping: false });
+    }
+  };
+
   const sendMessage = () => {
     if (!inputText.trim() || !socket || !user?.userId) return;
+    stopTyping();
 
     if (editingMessage) {
       socket.emit('edit_message', {
@@ -334,6 +447,30 @@ export default function ChatScreen({ route, navigation }: any) {
       setUploadingMedia(true);
       const uploaded = await uploadMedia(asset.uri, kind);
       sendMediaUrl(uploaded.url);
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message || 'Could not send that file. Please try again.');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const sendFileCard = (file: FileCardData) => {
+    if (!socket || !user?.userId) return;
+    const newMsg: ChatMessageDto = { chatId: roomId, senderId: user.userId, content: encodeFileCard(file), replyToId: replyingTo?.id };
+    socket.emit('send_message', newMsg);
+    setReplyingTo(null);
+  };
+
+  const pickAndSendDocument = async () => {
+    if (!socket || !user?.userId || uploadingMedia) return;
+    const result = await DocumentPicker.getDocumentAsync({ multiple: false, copyToCacheDirectory: true });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+
+    try {
+      setUploadingMedia(true);
+      const uploaded = await uploadMedia(asset.uri, 'document', { name: asset.name, mimeType: asset.mimeType ?? undefined });
+      sendFileCard({ url: uploaded.url, name: asset.name, size: asset.size ?? 0, mimeType: asset.mimeType ?? 'application/octet-stream' });
     } catch (e: any) {
       Alert.alert('Upload failed', e.message || 'Could not send that file. Please try again.');
     } finally {
@@ -595,6 +732,12 @@ export default function ChatScreen({ route, navigation }: any) {
       onPress: () => { setShowActionsTray(false); captureAndSendMedia(); },
     },
     {
+      key: 'document',
+      label: 'Document',
+      renderIcon: () => <Ionicons name="document-attach-outline" size={30} color={COLORS.textMuted} />,
+      onPress: () => { setShowActionsTray(false); pickAndSendDocument(); },
+    },
+    {
       key: 'shopping',
       label: 'Shopping',
       renderIcon: () => <Ionicons name="bag-handle-outline" size={30} color={COLORS.primary} />,
@@ -630,6 +773,18 @@ export default function ChatScreen({ route, navigation }: any) {
       renderIcon: () => <Ionicons name="image-outline" size={30} color="#A78BFA" />,
       onPress: () => { setShowActionsTray(false); setShowWallpaperPicker(true); },
     },
+    {
+      key: 'search',
+      label: 'Search',
+      renderIcon: () => <Ionicons name="search-outline" size={30} color={COLORS.textMuted} />,
+      onPress: () => { setShowActionsTray(false); setShowSearchModal(true); },
+    },
+    {
+      key: 'mute',
+      label: isMuted ? 'Unmute' : 'Mute',
+      renderIcon: () => <Ionicons name={isMuted ? 'notifications-off-outline' : 'notifications-outline'} size={30} color={isMuted ? COLORS.error : COLORS.textMuted} />,
+      onPress: () => { setShowActionsTray(false); toggleMute(); },
+    },
     // Only the real owner of a DIRECT chat can share it — same condition
     // the header icon used to gate on (see sharedByUserId above).
     ...(roomType === 'DIRECT' && !sharedByUserId
@@ -641,6 +796,60 @@ export default function ChatScreen({ route, navigation }: any) {
         }]
       : []),
   ];
+
+  const toggleMute = () => {
+    if (isMuted) {
+      fetchApi(`/chats/${roomId}/mute`, { method: 'PATCH', body: JSON.stringify({ mutedUntil: null }) })
+        .then(() => setMutedUntil(null))
+        .catch(() => Alert.alert('Error', 'Could not unmute this chat.'));
+      return;
+    }
+    const now = Date.now();
+    Alert.alert('Mute notifications', 'Messages still arrive — just no alerts.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: '8 hours', onPress: () => muteFor(new Date(now + 8 * 60 * 60 * 1000)) },
+      { text: '1 week', onPress: () => muteFor(new Date(now + 7 * 24 * 60 * 60 * 1000)) },
+      { text: 'Always', onPress: () => muteFor(new Date(now + 100 * 365 * 24 * 60 * 60 * 1000)) },
+    ]);
+  };
+
+  const muteFor = (until: Date) => {
+    fetchApi(`/chats/${roomId}/mute`, { method: 'PATCH', body: JSON.stringify({ mutedUntil: until.toISOString() }) })
+      .then(() => setMutedUntil(until.toISOString()))
+      .catch(() => Alert.alert('Error', 'Could not mute this chat.'));
+  };
+
+  const togglePinMessage = (message: ChatMessageDto) => {
+    if (!socket || !user?.userId || !message.id) return;
+    socket.emit(message.pinnedAt ? 'unpin_message' : 'pin_message', {
+      userId: user.userId,
+      messageId: message.id,
+    });
+  };
+
+  const runSearch = (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    fetchApi(`/chats/${roomId}/messages/search?q=${encodeURIComponent(text.trim())}`)
+      .then(r => (r.ok ? r.json() : []))
+      .then(setSearchResults)
+      .catch(() => setSearchResults([]))
+      .finally(() => setSearching(false));
+  };
+
+  const jumpToSearchResult = (message: ChatMessageDto) => {
+    setShowSearchModal(false);
+    const index = messages.findIndex(m => m.id === message.id);
+    if (index >= 0) {
+      flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.4 });
+    } else {
+      Alert.alert('Older message', 'This message is further back — scroll up to find it.');
+    }
+  };
 
   const sendVemoji = (type: VemojiType) => {
     if (!socket || !user?.userId) return;
@@ -815,6 +1024,7 @@ export default function ChatScreen({ route, navigation }: any) {
     const locationCard = item.content?.includes('__locationCard') ? decodeLocationCard(item.content) : null;
     const contactCard = item.content?.includes('__contactCard') ? decodeContactCard(item.content) : null;
     const profileCard = item.content?.includes('__profileCard') ? decodeProfileCard(item.content) : null;
+    const fileCard = item.content?.includes('__fileCard') ? decodeFileCard(item.content) : null;
 
     const replyPreviewText = item.replyTo
       ? (parseVemojiMessage(item.replyTo.content) ? '🔥 Vemoji' : (item.replyTo.content || (item.replyTo.mediaUrl ? '📎 Attachment' : '')))
@@ -850,6 +1060,17 @@ export default function ChatScreen({ route, navigation }: any) {
       return (
         <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
           <ProfileMiniCard profile={profileCard} navigation={navigation} />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
+
+    if (fileCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          <FileMiniCard file={fileCard} />
           <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
             {formatClockTime(item.createdAt)}
           </Text>
@@ -932,7 +1153,13 @@ export default function ChatScreen({ route, navigation }: any) {
           <CustomEmoji type={vemojiType} size={72} />
         ) : (
           <>
-            {item.mediaUrl && <MediaBubble url={item.mediaUrl} mine={isMe} />}
+            {item.mediaUrl && (
+              <MediaBubble
+                url={item.mediaUrl}
+                mine={isMe}
+                onOpen={(url, isVideo) => { if (!isAudioUrl(url)) setViewerMedia({ url, isVideo }); }}
+              />
+            )}
             {!!item.content && (
               <Text style={[styles.messageText, isAi && { color: COLORS.secondary }, item.mediaUrl && { marginTop: 6 }]}>
                 {item.content}
@@ -949,14 +1176,20 @@ export default function ChatScreen({ route, navigation }: any) {
           <Text style={[styles.metaTime, isMe && !stickerOnly && styles.metaTimeMine, stickerOnly && styles.metaTimeOnMedia]}>
             {formatClockTime(item.createdAt)}
           </Text>
-          {isMe && (
-            <Ionicons
-              name="checkmark-done"
-              size={14}
-              color={stickerOnly ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.75)'}
-              style={{ marginLeft: 3 }}
-            />
-          )}
+          {isMe && (() => {
+            // Group/public chats have no per-recipient read tracking today,
+            // so they keep the old unconditional double-check. A DIRECT chat
+            // now reflects the real otherReadAt — single check until seen.
+            const seen = !isDirectWithReadReceipt || (!!otherReadAt && !!item.createdAt && new Date(item.createdAt) <= new Date(otherReadAt));
+            return (
+              <Ionicons
+                name={seen ? 'checkmark-done' : 'checkmark'}
+                size={14}
+                color={isDirectWithReadReceipt && seen ? '#22D3EE' : (stickerOnly ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.75)')}
+                style={{ marginLeft: 3 }}
+              />
+            );
+          })()}
         </View>
       </TouchableOpacity>
     );
@@ -1308,6 +1541,27 @@ export default function ChatScreen({ route, navigation }: any) {
       padding: 4,
     },
 
+    pinnedBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      backgroundColor: COLORS.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: COLORS.border,
+    },
+    pinnedBarText: {
+      flex: 1,
+      color: COLORS.text,
+      fontSize: 12.5,
+    },
+    pinnedBarCount: {
+      color: COLORS.textMuted,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+
     // Message action sheet (Reply / Forward)
     sheetOverlay: {
       flex: 1,
@@ -1489,13 +1743,13 @@ export default function ChatScreen({ route, navigation }: any) {
                   {isOnline && <View style={styles.statusDot} />}
                   {isBusy && <View style={[styles.statusDot, { backgroundColor: '#F59E0B' }]} />}
                   <Text style={styles.statusText} numberOfLines={1}>
-                    {statusText}
+                    {peerTyping ? 'typing…' : statusText}
                   </Text>
                 </View>
               </View>
             </TouchableOpacity>
             <View style={styles.callButtons}>
-              {!!targetUserId && (
+              {(!!targetUserId || roomType === 'GROUP') && (
                 <>
                   <TouchableOpacity onPress={() => startCall(false)} style={styles.headerIconBtn}>
                     <Ionicons name="call" size={20} color={COLORS.text} />
@@ -1508,6 +1762,18 @@ export default function ChatScreen({ route, navigation }: any) {
             </View>
           </View>
 
+          {pinnedMessages.length > 0 && (
+            <TouchableOpacity style={styles.pinnedBar} onPress={() => setShowPinnedList(true)}>
+              <Ionicons name="pin" size={14} color={COLORS.primary} />
+              <Text style={styles.pinnedBarText} numberOfLines={1}>
+                {pinnedMessages[0].content || (pinnedMessages[0].mediaUrl ? 'Attachment' : 'Pinned message')}
+              </Text>
+              {pinnedMessages.length > 1 && (
+                <Text style={styles.pinnedBarCount}>+{pinnedMessages.length - 1}</Text>
+              )}
+            </TouchableOpacity>
+          )}
+
           {(() => {
             const preset = findPreset(wallpaperUrl);
             const list = messagesLoading ? (
@@ -1516,11 +1782,15 @@ export default function ChatScreen({ route, navigation }: any) {
               </View>
             ) : (
               <FlatList
+                ref={flatListRef}
                 data={messages}
                 keyExtractor={(item, index) => item.id || index.toString()}
                 renderItem={renderMessage}
                 contentContainerStyle={[styles.messageList, messages.length === 0 && { flex: 1 }]}
                 style={{ flex: 1 }}
+                onScrollToIndexFailed={() => {
+                  Alert.alert('Older message', 'This message is further back — scroll up to find it.');
+                }}
                 ListEmptyComponent={
                   <EmptyState
                     icon="chatbubble-ellipses-outline"
@@ -1596,7 +1866,7 @@ export default function ChatScreen({ route, navigation }: any) {
                   placeholder="Message"
                   placeholderTextColor={COLORS.textMuted}
                   value={inputText}
-                  onChangeText={setInputText}
+                  onChangeText={handleInputChange}
                   onSubmitEditing={sendMessage}
                   multiline
                 />
@@ -1645,6 +1915,12 @@ export default function ChatScreen({ route, navigation }: any) {
             chatId={roomId}
             currentValue={wallpaperUrl}
             onSaved={setWallpaperUrl}
+          />
+          <MediaViewerModal
+            visible={!!viewerMedia}
+            uri={viewerMedia?.url ?? null}
+            isVideo={!!viewerMedia?.isVideo}
+            onClose={() => setViewerMedia(null)}
           />
         </KeyboardAvoidingView>
       </View>
@@ -1702,6 +1978,17 @@ export default function ChatScreen({ route, navigation }: any) {
             >
               <Ionicons name="arrow-redo" size={20} color={COLORS.text} />
               <Text style={styles.actionSheetItemText}>Forward</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionSheetItem}
+              onPress={() => {
+                const msg = actionSheetMessage;
+                setActionSheetMessage(null);
+                if (msg) togglePinMessage(msg);
+              }}
+            >
+              <Ionicons name="pin" size={20} color={COLORS.text} />
+              <Text style={styles.actionSheetItemText}>{actionSheetMessage?.pinnedAt ? 'Unpin' : 'Pin'}</Text>
             </TouchableOpacity>
             {/* Edit/delete are only offered for a message this caller
                 actually owns — either it's really theirs (senderId), or
@@ -1961,6 +2248,85 @@ export default function ChatScreen({ route, navigation }: any) {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.forwardChatName} numberOfLines={1}>{c.name}</Text>
                         <Text style={styles.permissionDesc} numberOfLines={1}>{c.phoneNumbers[0]}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showPinnedList}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPinnedList(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={styles.forwardSheet}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>Pinned messages</Text>
+              <TouchableOpacity onPress={() => setShowPinnedList(false)}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {pinnedMessages.map((m) => (
+                <View key={m.id} style={styles.forwardChatRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.forwardChatName} numberOfLines={2}>
+                      {m.content || (m.mediaUrl ? 'Attachment' : '')}
+                    </Text>
+                    <Text style={styles.permissionDesc}>{formatClockTime(m.createdAt)}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => togglePinMessage(m)}>
+                    <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showSearchModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setShowSearchModal(false); setSearchQuery(''); setSearchResults([]); }}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={styles.forwardSheet}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>Search this chat</Text>
+              <TouchableOpacity onPress={() => { setShowSearchModal(false); setSearchQuery(''); setSearchResults([]); }}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.contactSearchInput}
+              placeholder="Search messages…"
+              placeholderTextColor={COLORS.textMuted}
+              value={searchQuery}
+              onChangeText={runSearch}
+              autoFocus
+            />
+            {searching ? (
+              <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />
+            ) : (
+              <ScrollView style={{ maxHeight: 320 }}>
+                {searchQuery.trim() !== '' && searchResults.length === 0 ? (
+                  <Text style={styles.forwardEmpty}>No messages found.</Text>
+                ) : (
+                  searchResults.map((m) => (
+                    <TouchableOpacity key={m.id} style={styles.forwardChatRow} onPress={() => jumpToSearchResult(m)}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.forwardChatName} numberOfLines={2}>
+                          {m.content || (m.mediaUrl ? 'Attachment' : '')}
+                        </Text>
+                        <Text style={styles.permissionDesc}>{formatClockTime(m.createdAt)}</Text>
                       </View>
                     </TouchableOpacity>
                   ))

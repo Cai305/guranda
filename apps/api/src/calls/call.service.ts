@@ -95,22 +95,113 @@ export class CallService {
     });
   }
 
+  // ── Group calling ────────────────────────────────────────────────────────
+  // Layered on top of everything above rather than reshaping it — the 1:1
+  // path (callerId/calleeId, maxParticipants: 2) is untouched. A group call
+  // uses the same Call row (calleeId left null, isGroup: true) plus a
+  // CallParticipant row per invitee, including the caller.
+
+  async createGroupCall(
+    callerId: string,
+    callerName: string,
+    participants: { id: string; name: string }[],
+  ) {
+    const roomName = `call-${randomUUID()}`;
+    await this.roomService.createRoom({
+      name: roomName,
+      emptyTimeout: 60,
+      maxParticipants: participants.length + 1,
+    });
+    const tokens = await Promise.all([
+      this.mintToken(roomName, callerId, callerName),
+      ...participants.map((p) => this.mintToken(roomName, p.id, p.name)),
+    ]);
+    const [callerToken, ...participantTokens] = tokens;
+    const tokenByUserId = new Map(participants.map((p, i) => [p.id, participantTokens[i]]));
+    return { roomName, wsUrl: this.wsUrl, callerToken, tokenByUserId };
+  }
+
+  recordGroupRinging(
+    callerId: string,
+    chatId: string,
+    type: 'voice' | 'video',
+    roomName: string,
+    participantUserIds: string[],
+  ) {
+    return this.prisma.call.create({
+      data: {
+        callerId,
+        chatId,
+        type,
+        status: 'ringing',
+        roomName,
+        isGroup: true,
+        participants: {
+          create: [
+            { userId: callerId, status: 'joined', joinedAt: new Date() },
+            ...participantUserIds.map((userId) => ({ userId, status: 'invited' as const })),
+          ],
+        },
+      },
+      include: { participants: true },
+    });
+  }
+
+  async setParticipantStatus(callId: string, userId: string, status: 'joined' | 'declined' | 'left' | 'missed') {
+    const data: { status: string; joinedAt?: Date; leftAt?: Date } = { status };
+    if (status === 'joined') data.joinedAt = new Date();
+    if (status === 'declined' || status === 'left' || status === 'missed') data.leftAt = new Date();
+    await this.prisma.callParticipant.updateMany({ where: { callId, userId }, data });
+  }
+
+  // Flips the Call row itself to 'ongoing' the first time anyone besides the
+  // caller actually joins — a group call's equivalent of markOngoing, since
+  // there's no single "the callee accepted" moment to hang that off of.
+  async markGroupConnectedIfNeeded(callId: string) {
+    const call = await this.prisma.call.findUnique({ where: { id: callId } });
+    if (call && !call.connectedAt) {
+      await this.prisma.call.update({
+        where: { id: callId },
+        data: { status: 'ongoing', connectedAt: new Date() },
+      });
+    }
+  }
+
   async getLog(userId: string, take = 30, cursor?: string) {
     const calls = await this.prisma.call.findMany({
-      where: { OR: [{ callerId: userId }, { calleeId: userId }] },
+      where: { OR: [{ callerId: userId }, { calleeId: userId }, { participants: { some: { userId } } }] },
       orderBy: { startedAt: 'desc' },
       take: Math.min(take, 50),
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         caller: { select: { id: true, username: true, profile: { select: { displayName: true, avatarUrl: true } } } },
         callee: { select: { id: true, username: true, profile: { select: { displayName: true, avatarUrl: true } } } },
+        chat: { select: { name: true } },
       },
     });
     return calls.map((c) => {
       const isOutgoing = c.callerId === userId;
-      const peer = isOutgoing ? c.callee : c.caller;
+      // A group call has no single "peer" — c.callee is always null for
+      // these — so the row names the chat instead of a person.
+      if (c.isGroup) {
+        return {
+          id: c.id,
+          isGroup: true,
+          peerId: null,
+          chatId: c.chatId,
+          peerName: c.chat?.name || 'Group call',
+          peerAvatarUrl: null,
+          type: c.type,
+          status: c.status,
+          direction: isOutgoing ? 'outgoing' : 'incoming',
+          startedAt: c.startedAt,
+          durationSeconds: c.durationSeconds,
+        };
+      }
+      const peer = isOutgoing ? c.callee! : c.caller;
       return {
         id: c.id,
+        isGroup: false,
         peerId: peer.id,
         peerName: peer.profile?.displayName || peer.username,
         peerAvatarUrl: peer.profile?.avatarUrl ?? null,

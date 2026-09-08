@@ -62,6 +62,7 @@ model User {
   blocksReceived               Block[]                    @relation("blocksReceived")
   callsMade                    Call[]                     @relation("callsMade")
   callsReceived                Call[]                     @relation("callsReceived")
+  callParticipations           CallParticipant[]          @relation("callParticipations")
   posts                        Post[]
   postLikes                    PostLike[]
   postReposts                  PostRepost[]
@@ -452,6 +453,7 @@ model Chat {
   members       ChatMember[]
   messages      Message[]
   shares        ChatShare[]
+  calls         Call[]
 }
 
 // A DIRECT chat the owner has explicitly opted to share with a relationship
@@ -504,6 +506,12 @@ model ChatMember {
   // their UserProfile.chatWallpaperUrl default for this one conversation.
   // null falls back to the global default.
   wallpaperUrl String?
+  // Null = not muted. A future timestamp = muted until then (push
+  // notifications for this chat are suppressed; the in-app Notification
+  // row is still created, so it's not lost, just silent). A far-future
+  // date (the mobile client's "Mute forever" preset) reads as muted
+  // indefinitely — no separate boolean needed.
+  mutedUntil   DateTime?
 
   @@unique([chatId, userId])
 }
@@ -533,6 +541,10 @@ model Message {
   // itself is overwritten in place; no edit-history table.
   editedAt       DateTime?
   deletedAt      DateTime?
+  // Set when a real chat member pins this message — null = not pinned.
+  // Multiple messages can be pinned at once (most-recently-pinned first),
+  // same model as Telegram rather than WhatsApp's single-pin limit.
+  pinnedAt       DateTime?
 
   @@index([replyToId])
 }
@@ -557,11 +569,18 @@ model Block {
 // pendingCalls Map) — gives calls a duration, a call log, and a durable
 // "missed call" record even if the recipient's socket never saw the ring.
 model Call {
-  id              String    @id @default(uuid())
-  callerId        String
-  caller          User      @relation("callsMade", fields: [callerId], references: [id])
-  calleeId        String
-  callee          User      @relation("callsReceived", fields: [calleeId], references: [id])
+  id       String  @id @default(uuid())
+  callerId String
+  caller   User    @relation("callsMade", fields: [callerId], references: [id])
+  // Null for a group call — there's no single "callee", see `participants`
+  // and `isGroup` below. Always set for the original 1:1 path, untouched.
+  calleeId String?
+  callee   User?   @relation("callsReceived", fields: [calleeId], references: [id])
+  // Set only for a group call — which GROUP chat it was started from, so a
+  // call started mid-conversation can be traced back to it.
+  chatId   String?
+  chat     Chat?   @relation(fields: [chatId], references: [id])
+  isGroup  Boolean @default(false)
   type            String // voice, video
   status          String // ringing, ongoing, completed, missed, declined
   roomName        String
@@ -569,9 +588,31 @@ model Call {
   connectedAt     DateTime?
   endedAt         DateTime?
   durationSeconds Int?
+  // Group calls only — every invited member's own join/leave state. Empty
+  // for a 1:1 call (callerId/calleeId already carry that whole story there).
+  participants    CallParticipant[]
 
   @@index([callerId])
   @@index([calleeId])
+  @@index([chatId])
+}
+
+// One row per person invited to a GROUP call — lets a group call have more
+// than the fixed two parties a bare Call row can express. The caller gets
+// a row too (status 'joined' from creation), so `participants` is always
+// the complete roster, caller included.
+model CallParticipant {
+  id        String    @id @default(uuid())
+  callId    String
+  call      Call      @relation(fields: [callId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation("callParticipations", fields: [userId], references: [id])
+  status    String    @default("invited") // invited, joined, declined, left, missed
+  invitedAt DateTime  @default(now())
+  joinedAt  DateTime?
+  leftAt    DateTime?
+
+  @@unique([callId, userId])
 }
 
 model Post {

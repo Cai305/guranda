@@ -165,6 +165,7 @@ export class ChatService {
           lastMessageAt: lastMessage ? lastMessage.createdAt : chat.createdAt,
           hasNewMessage: unreadCount > 0,
           unreadCount,
+          mutedUntil: m.mutedUntil,
         };
       }),
     );
@@ -192,6 +193,104 @@ export class ChatService {
         user: { select: { expoPushToken: true } },
       },
     });
+  }
+
+  // ── Mute ────────────────────────────────────────────────────────────────
+
+  async setMuted(chatId: string, userId: string, mutedUntil: Date | null) {
+    const membership = await this.prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId, userId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this chat');
+    }
+    await this.prisma.chatMember.update({
+      where: { chatId_userId: { chatId, userId } },
+      data: { mutedUntil },
+    });
+    return { chatId, mutedUntil };
+  }
+
+  // ── Pinned messages ─────────────────────────────────────────────────────
+  // Real members only — a delegate acting via ChatShare pins/unpins nothing
+  // (same restriction as who may create/manage a group), unlike edit/delete
+  // which a delegate can do to their own sent messages.
+
+  async pinMessage(callerId: string, messageId: string) {
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!message || message.deletedAt) throw new BadRequestException('Message not found');
+    const membership = await this.prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId: message.chatId, userId: callerId } },
+    });
+    if (!membership) throw new ForbiddenException('You are not a member of this chat');
+    const updated = await this.prisma.message.update({
+      where: { id: messageId },
+      data: { pinnedAt: new Date() },
+    });
+    return { id: updated.id, chatId: updated.chatId, pinnedAt: updated.pinnedAt };
+  }
+
+  async unpinMessage(callerId: string, messageId: string) {
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (!message) throw new BadRequestException('Message not found');
+    const membership = await this.prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId: message.chatId, userId: callerId } },
+    });
+    if (!membership) throw new ForbiddenException('You are not a member of this chat');
+    const updated = await this.prisma.message.update({
+      where: { id: messageId },
+      data: { pinnedAt: null },
+    });
+    return { id: updated.id, chatId: updated.chatId, pinnedAt: updated.pinnedAt };
+  }
+
+  async getPinnedMessages(chatId: string, callerId: string) {
+    await this.assertCanAccessChannel(chatId, callerId);
+    const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+    if (chat && (chat.type === 'DIRECT' || chat.type === 'GROUP')) {
+      await this.resolveSender(chatId, callerId, 'read');
+    }
+    const messages = await this.prisma.message.findMany({
+      where: { chatId, pinnedAt: { not: null }, deletedAt: null },
+      orderBy: { pinnedAt: 'desc' },
+    });
+    return messages;
+  }
+
+  // ── In-chat search ──────────────────────────────────────────────────────
+
+  async searchMessages(chatId: string, callerId: string, query: string) {
+    await this.assertCanAccessChannel(chatId, callerId);
+    const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+    if (chat && (chat.type === 'DIRECT' || chat.type === 'GROUP')) {
+      await this.resolveSender(chatId, callerId, 'read');
+    }
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    return this.prisma.message.findMany({
+      where: {
+        chatId,
+        deletedAt: null,
+        content: { contains: trimmed, mode: 'insensitive' },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  // ── Read receipts ───────────────────────────────────────────────────────
+  // DIRECT chats only — a "seen by everyone" indicator for a GROUP chat
+  // needs per-member fan-out the client doesn't render today, so this stays
+  // scoped to the 1:1 case, same scope as the double-checkmark UI it drives.
+
+  async getReadState(chatId: string, callerId: string) {
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      include: { members: true },
+    });
+    if (!chat || chat.type !== 'DIRECT') return { otherReadAt: null };
+    const other = chat.members.find((m) => m.userId !== callerId);
+    return { otherReadAt: other?.lastReadAt ?? null };
   }
 
   /** Delegates a chat is shared with, with enough data to push+in-app-notify them on their own device. */

@@ -12,6 +12,23 @@ import type { Request } from 'express';
 import { uploadToSupabase } from '../supabase.util';
 import { JwtAuthGuard } from '../auth/auth.guard';
 
+// Documents shareable in chat — a bounded allowlist rather than "any file",
+// so this endpoint can't become a general-purpose anonymous-ish blob host
+// for arbitrary/executable content just because the uploader is logged in.
+const ALLOWED_DOCUMENT_MIMETYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  'application/x-zip-compressed',
+]);
+
 // Was fully unauthenticated — anyone, with no account at all, could upload
 // arbitrary files (up to 50MB) to blob storage. Gated behind login now.
 @UseGuards(JwtAuthGuard)
@@ -35,11 +52,12 @@ export class UploadController {
         if (
           !file.mimetype.startsWith('image/') &&
           !file.mimetype.startsWith('video/') &&
-          !file.mimetype.startsWith('audio/')
+          !file.mimetype.startsWith('audio/') &&
+          !ALLOWED_DOCUMENT_MIMETYPES.has(file.mimetype)
         ) {
           return cb(
             new BadRequestException(
-              'Only image, video, or audio files allowed',
+              'Only image, video, audio, or common document files allowed',
             ),
             false,
           );
@@ -52,8 +70,10 @@ export class UploadController {
     if (!file) throw new BadRequestException('No file uploaded');
     const isVideo = file.mimetype.startsWith('video/');
     const isAudio = file.mimetype.startsWith('audio/');
-    const folder = isVideo ? 'videos' : isAudio ? 'audio' : 'images';
+    const isImage = file.mimetype.startsWith('image/');
+    const folder = isVideo ? 'videos' : isAudio ? 'audio' : isImage ? 'images' : 'documents';
     const url = await uploadToSupabase(folder, file);
-    return { url, mediaType: isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : 'IMAGE' };
+    const mediaType = isVideo ? 'VIDEO' : isAudio ? 'AUDIO' : isImage ? 'IMAGE' : 'DOCUMENT';
+    return { url, mediaType };
   }
 }

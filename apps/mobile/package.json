@@ -40,6 +40,7 @@
     "expo-media-library": "~56.0.10",
     "expo-notifications": "~56.0.22",
     "expo-secure-store": "~56.0.4",
+    "expo-sharing": "~56.0.26",
     "expo-speech": "~56.0.3",
     "expo-speech-recognition": "^56.0.1",
     "expo-splash-screen": "~56.0.14",

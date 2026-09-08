@@ -32,6 +32,26 @@ interface PendingCall {
   timeout: ReturnType<typeof setTimeout>;
 }
 
+interface PendingGroupCall {
+  callId: string;
+  callerId: string;
+  chatId: string;
+  roomName: string;
+  type: 'voice' | 'video';
+  // Ring timeout per still-ringing invitee — cleared the moment they
+  // join/decline, or fired after CALL_RING_TIMEOUT_MS to mark them missed.
+  ringTimeouts: Map<string, ReturnType<typeof setTimeout>>;
+  // Everyone actually in the LiveKit room right now, caller included the
+  // moment they create the call — the call ends when this hits empty.
+  connected: Set<string>;
+  // Everyone who was ever invited (caller included) — used to notify
+  // overlays app-wide when the whole call ends, not just active participants.
+  everyone: Set<string>;
+  // Flips true the first time anyone besides the caller actually joins —
+  // decides whether an empty call ends as 'completed' or 'missed'.
+  anyGuestJoined: boolean;
+}
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -50,6 +70,7 @@ export class ChatGateway implements OnGatewayDisconnect {
   // Ephemeral — a call is either ringing/active right now or it isn't, no
   // need to survive a server restart the way chat messages do.
   private pendingCalls = new Map<string, PendingCall>();
+  private groupCalls = new Map<string, PendingGroupCall>();
 
   constructor(
     private prisma: PrismaService,
@@ -95,6 +116,15 @@ export class ChatGateway implements OnGatewayDisconnect {
           this.cleanupCall(callId);
         }
       }
+
+      // Same idea for a group call — a dropped socket mid-call is exactly a
+      // group_call_leave (still-ringing) or a departure (already connected).
+      for (const [callId, groupCall] of this.groupCalls.entries()) {
+        if (groupCall.everyone.has(user.userId)) {
+          const reason = groupCall.connected.has(user.userId) ? 'left' : 'missed';
+          this.handleGroupParticipantGone(callId, user.userId, reason);
+        }
+      }
     }
   }
 
@@ -125,6 +155,40 @@ export class ChatGateway implements OnGatewayDisconnect {
     clearTimeout(call.timeout);
     this.pendingCalls.delete(callId);
     this.callService.endCall(call.roomName).catch(() => {});
+  }
+
+  // Shared by an explicit decline/leave and a mid-call disconnect — one
+  // person leaving the group call. Ends the whole call once nobody's left
+  // in it; otherwise just tells whoever remains.
+  private handleGroupParticipantGone(callId: string, userId: string, reason: 'left' | 'missed' | 'declined') {
+    const call = this.groupCalls.get(callId);
+    if (!call) return;
+    call.connected.delete(userId);
+    const timeout = call.ringTimeouts.get(userId);
+    if (timeout) {
+      clearTimeout(timeout);
+      call.ringTimeouts.delete(userId);
+    }
+    this.callService
+      .setParticipantStatus(callId, userId, reason)
+      .catch((e) => console.error('Failed to record group call participant status:', e));
+
+    if (call.connected.size === 0) {
+      for (const memberId of call.everyone) {
+        if (memberId !== userId) this.emitToUser(memberId, 'group_call_ended', { callId, reason: 'ended' });
+      }
+      this.callService
+        .markEnded(callId, call.anyGuestJoined ? 'completed' : 'missed')
+        .catch((e) => console.error('Failed to record group call end:', e));
+      this.callService.endCall(call.roomName).catch(() => {});
+      for (const t of call.ringTimeouts.values()) clearTimeout(t);
+      this.groupCalls.delete(callId);
+      return;
+    }
+
+    for (const memberId of call.connected) {
+      this.emitToUser(memberId, 'group_call_participant_left', { callId, userId, reason });
+    }
   }
 
   @SubscribeMessage('set_status')
@@ -190,6 +254,32 @@ export class ChatGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     client.join(data.chatId);
+  }
+
+  // Ephemeral, no persistence — same "just relay it" shape as call_reaction.
+  // client.to() (not this.server.to()) so the typer never gets their own
+  // event echoed back.
+  @SubscribeMessage('typing')
+  handleTyping(
+    @MessageBody() data: { chatId: string; userId: string; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.to(data.chatId).emit('user_typing', {
+      chatId: data.chatId,
+      userId: data.userId,
+      isTyping: data.isTyping,
+    });
+  }
+
+  // Called by ChatController.getChatMessages right after it marks the
+  // caller's own read position — lets the OTHER participant's open thread
+  // flip their sent messages to "seen" live, instead of only on next open.
+  notifyRead(chatId: string, userId: string) {
+    this.server.to(chatId).emit('messages_read', {
+      chatId,
+      userId,
+      readAt: new Date(),
+    });
   }
 
   @SubscribeMessage('send_message')
@@ -309,8 +399,12 @@ export class ChatGateway implements OnGatewayDisconnect {
       : content || (mediaUrl ? '📎 Sent an attachment' : '');
 
     for (const member of members) {
+      // Muted: still recorded as an in-app Notification (nothing is lost),
+      // just no push alert/sound — same convention as every other
+      // mute-a-thread feature.
+      const isMuted = !!member.mutedUntil && member.mutedUntil > new Date();
       const token = member.user.expoPushToken;
-      if (token) {
+      if (token && !isMuted) {
         await sendPushNotification(token, senderName, body, {
           type: 'chat_message',
           chatId,
@@ -373,6 +467,36 @@ export class ChatGateway implements OnGatewayDisconnect {
         chatId: undefined,
         message: e?.message || 'Failed to delete message',
       });
+    }
+  }
+
+  // ── Pinned messages ──────────────────────────────────────────────────────
+  // Same shape as edit_message/delete_message: a socket round-trip so both
+  // participants' threads update the pinned bar live, not just on refresh.
+
+  @SubscribeMessage('pin_message')
+  async handlePinMessage(
+    @MessageBody() data: { userId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const result = await this.chatService.pinMessage(data.userId, data.messageId);
+      this.server.to(result.chatId).emit('message_pinned', result);
+    } catch (e: any) {
+      client.emit('message_error', { message: e?.message || 'Failed to pin message' });
+    }
+  }
+
+  @SubscribeMessage('unpin_message')
+  async handleUnpinMessage(
+    @MessageBody() data: { userId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const result = await this.chatService.unpinMessage(data.userId, data.messageId);
+      this.server.to(result.chatId).emit('message_unpinned', result);
+    } catch (e: any) {
+      client.emit('message_error', { message: e?.message || 'Failed to unpin message' });
     }
   }
 
@@ -577,19 +701,191 @@ export class ChatGateway implements OnGatewayDisconnect {
   // same signaling socket, not persisted anywhere. Only valid once the call
   // has actually been accepted (pendingCalls keeps the entry, with
   // accepted:true, for the call's whole duration — see cleanupCall).
+  // Also checks groupCalls so the same reaction tray works in a group call —
+  // broadcast to every connected participant except whoever sent it.
   @SubscribeMessage('call_reaction')
   handleCallReaction(
     @MessageBody() data: { callId: string; type: VemojiType },
     @ConnectedSocket() client: Socket,
   ) {
-    const call = this.pendingCalls.get(data.callId);
-    if (!call || !call.accepted) return;
     const requester = this.connectedUsers.get(client.id)?.userId;
     if (!requester) return;
-    const otherId = requester === call.callerId ? call.calleeId : call.callerId;
-    this.emitToUser(otherId, 'call_reaction', {
-      callId: data.callId,
-      type: data.type,
+
+    const call = this.pendingCalls.get(data.callId);
+    if (call && call.accepted) {
+      const otherId = requester === call.callerId ? call.calleeId : call.callerId;
+      this.emitToUser(otherId, 'call_reaction', { callId: data.callId, type: data.type });
+      return;
+    }
+
+    const groupCall = this.groupCalls.get(data.callId);
+    if (groupCall && groupCall.connected.has(requester)) {
+      for (const memberId of groupCall.connected) {
+        if (memberId !== requester) this.emitToUser(memberId, 'call_reaction', { callId: data.callId, type: data.type });
+      }
+    }
+  }
+
+  // ── Group calling ────────────────────────────────────────────────────────
+  // A GROUP chat's equivalent of the 1:1 flow above — same socket, same
+  // Call persistence layer (extended with CallParticipant, see call.service),
+  // but rings every other member of the chat instead of one target user, and
+  // the call stays alive until the last connected participant leaves rather
+  // than ending the moment any one person hangs up.
+
+  @SubscribeMessage('group_call_invite')
+  async handleGroupCallInvite(
+    @MessageBody()
+    data: { callerId: string; callerName: string; chatId: string; video: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const chat = await this.prisma.chat.findUnique({ where: { id: data.chatId } });
+    if (!chat || chat.type !== 'GROUP') {
+      client.emit('group_call_failed', { reason: 'Group calling is only available in group chats.' });
+      return;
+    }
+    const membership = await this.prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId: data.chatId, userId: data.callerId } },
     });
+    if (!membership) {
+      client.emit('group_call_failed', { reason: 'You are not a member of this chat.' });
+      return;
+    }
+
+    const members = await this.prisma.chatMember.findMany({
+      where: { chatId: data.chatId, userId: { not: data.callerId } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            expoPushToken: true,
+            profile: { select: { displayName: true } },
+          },
+        },
+      },
+    });
+
+    // Same block check as a 1:1 invite, applied per member — a blocked pair
+    // is silently skipped rather than failing the whole call for everyone
+    // else in the chat.
+    const invitable: { id: string; name: string; pushToken: string | null }[] = [];
+    for (const m of members) {
+      if (await this.blocks.isBlockedEitherDirection(data.callerId, m.userId)) continue;
+      invitable.push({
+        id: m.userId,
+        name: m.user.profile?.displayName || m.user.username,
+        pushToken: m.user.expoPushToken,
+      });
+    }
+    if (invitable.length === 0) {
+      client.emit('group_call_failed', { reason: 'No one else can be reached in this chat right now.' });
+      return;
+    }
+
+    let roomName: string, wsUrl: string, callerToken: string, tokenByUserId: Map<string, string>;
+    try {
+      ({ roomName, wsUrl, callerToken, tokenByUserId } = await this.callService.createGroupCall(
+        data.callerId,
+        data.callerName,
+        invitable.map((m) => ({ id: m.id, name: m.name })),
+      ));
+    } catch (e) {
+      console.error('group_call_invite: failed to create LiveKit room:', e);
+      client.emit('group_call_failed', {
+        reason: 'Could not start the call right now. Please try again shortly.',
+      });
+      return;
+    }
+
+    const callRecord = await this.callService.recordGroupRinging(
+      data.callerId,
+      data.chatId,
+      data.video ? 'video' : 'voice',
+      roomName,
+      invitable.map((m) => m.id),
+    );
+    const callId = callRecord.id;
+
+    const groupCall: PendingGroupCall = {
+      callId,
+      callerId: data.callerId,
+      chatId: data.chatId,
+      roomName,
+      type: data.video ? 'video' : 'voice',
+      ringTimeouts: new Map(),
+      connected: new Set([data.callerId]),
+      everyone: new Set([data.callerId, ...invitable.map((m) => m.id)]),
+      anyGuestJoined: false,
+    };
+    this.groupCalls.set(callId, groupCall);
+
+    for (const m of invitable) {
+      groupCall.ringTimeouts.set(
+        m.id,
+        setTimeout(() => this.handleGroupParticipantGone(callId, m.id, 'missed'), CALL_RING_TIMEOUT_MS),
+      );
+      this.emitToUser(m.id, 'group_call_incoming', {
+        callId,
+        roomName,
+        wsUrl,
+        token: tokenByUserId.get(m.id),
+        callerId: data.callerId,
+        callerName: data.callerName,
+        chatId: data.chatId,
+        chatName: chat.name,
+        video: data.video,
+      });
+      if (m.pushToken) {
+        sendPushNotification(
+          m.pushToken,
+          `Incoming group ${data.video ? 'video' : 'voice'} call`,
+          `${data.callerName} started a call in ${chat.name || 'a group chat'}`,
+          { type: 'incoming_group_call', callId, chatId: data.chatId, video: data.video },
+        ).catch((e) => console.error('Failed to push group-call notification:', e));
+      }
+    }
+
+    client.emit('group_call_ringing', { callId, roomName, wsUrl, token: callerToken });
+  }
+
+  @SubscribeMessage('group_call_join')
+  async handleGroupCallJoin(@MessageBody() data: { callId: string; userId: string }) {
+    const call = this.groupCalls.get(data.callId);
+    if (!call) return;
+    const timeout = call.ringTimeouts.get(data.userId);
+    if (timeout) {
+      clearTimeout(timeout);
+      call.ringTimeouts.delete(data.userId);
+    }
+    call.connected.add(data.userId);
+    if (data.userId !== call.callerId) call.anyGuestJoined = true;
+    this.callService
+      .setParticipantStatus(data.callId, data.userId, 'joined')
+      .catch((e) => console.error('Failed to record group call join:', e));
+    this.callService
+      .markGroupConnectedIfNeeded(data.callId)
+      .catch((e) => console.error('Failed to mark group call connected:', e));
+
+    const name = await this.chatService.getDisplayName(data.userId);
+    for (const memberId of call.connected) {
+      if (memberId !== data.userId) {
+        this.emitToUser(memberId, 'group_call_participant_joined', { callId: data.callId, userId: data.userId, userName: name });
+      }
+    }
+  }
+
+  @SubscribeMessage('group_call_decline')
+  handleGroupCallDecline(@MessageBody() data: { callId: string; userId: string }) {
+    this.handleGroupParticipantGone(data.callId, data.userId, 'declined');
+  }
+
+  // Covers both an explicit hangup and the caller leaving early — either
+  // way the call keeps going for whoever's still connected (see
+  // handleGroupParticipantGone), unlike the 1:1 path where either side
+  // hanging up always ends the whole call.
+  @SubscribeMessage('group_call_leave')
+  handleGroupCallLeave(@MessageBody() data: { callId: string; userId: string }) {
+    this.handleGroupParticipantGone(data.callId, data.userId, 'left');
   }
 }

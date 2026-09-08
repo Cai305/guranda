@@ -63,6 +63,7 @@ export interface ChatMessageDto {
   createdAt?: Date;
   editedAt?: Date;
   deletedAt?: Date;
+  pinnedAt?: Date;
 }
 
 // Guranda's custom hand-drawn emoji set ("Vemoji"), rendered as SVGs on

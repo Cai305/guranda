@@ -12,7 +12,9 @@ import EmptyState from '../../components/EmptyState';
 
 interface CallLogEntry {
   id: string;
-  peerId: string;
+  isGroup: boolean;
+  peerId: string | null;
+  chatId?: string | null;
   peerName: string;
   peerAvatarUrl: string | null;
   type: 'voice' | 'video';
@@ -66,6 +68,17 @@ export default function CallLogScreen({ navigation }: any) {
 
   const callBack = (entry: CallLogEntry, video: boolean) => {
     if (!socket || !user?.userId) return;
+    if (entry.isGroup) {
+      if (!entry.chatId) return;
+      socket.emit('group_call_invite', {
+        callerId: user.userId,
+        callerName: user.displayName || user.username,
+        chatId: entry.chatId,
+        video,
+      });
+      return;
+    }
+    if (!entry.peerId) return;
     socket.emit('call_invite', {
       callerId: user.userId,
       callerName: user.displayName || user.username,

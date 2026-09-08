@@ -64,6 +64,7 @@ import AiTourScreen from '../screens/ai/AiTourScreen';
 import McpApprovalsScreen from '../screens/ai/McpApprovalsScreen';
 import CompanionChatScreen from '../screens/ai/CompanionChatScreen';
 import CallScreen from '../screens/calls/CallScreen';
+import GroupCallScreen from '../screens/calls/GroupCallScreen';
 import CallLogScreen from '../screens/calls/CallLogScreen';
 import MoonBaseScreen from '../screens/moonbase/MoonBaseScreen';
 import MoonRoomScreen from '../screens/moonbase/MoonRoomScreen';
@@ -229,6 +230,7 @@ export default function RootNavigator() {
           <Stack.Screen name="McpApprovals" component={McpApprovalsScreen} />
           <Stack.Screen name="CompanionChat" component={CompanionChatScreen} />
           <Stack.Screen name="CallScreen" component={CallScreen} options={{ presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="GroupCallScreen" component={GroupCallScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="CallLog" component={CallLogScreen} />
           <Stack.Screen name="MoonBase" component={MoonBaseScreen} />
           <Stack.Screen name="MoonRoom" component={MoonRoomScreen} />

@@ -307,6 +307,7 @@ export default function ChatListScreen({ navigation }: any) {
           // "share this chat" action from the delegate's own view (only
           // the real owner can share/unshare it).
           sharedByUserId: item.sharedByUserId,
+          mutedUntil: item.mutedUntil,
         });
       }}
     >
@@ -360,7 +361,12 @@ export default function ChatListScreen({ navigation }: any) {
       </View>
 
       <View style={styles.chatInfo}>
-        <Text style={styles.chatName}>{item.name}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <Text style={styles.chatName}>{item.name}</Text>
+          {!!item.mutedUntil && new Date(item.mutedUntil) > new Date() && (
+            <Ionicons name="notifications-off-outline" size={13} color={COLORS.textMuted} />
+          )}
+        </View>
         <Text style={styles.chatType} numberOfLines={1}>
           {item.type === 'COMMUNITY'
             ? `${item.memberCount} members`
