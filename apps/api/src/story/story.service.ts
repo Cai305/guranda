@@ -11,6 +11,14 @@ import { FriendsService } from '../friends/friends.service';
 // is authoritative; the client only displays this for UX.
 const CCR_RATE = 0.58;
 
+// Badge utility (product decision, 2026-09) — CCR_CREATOR badge holders
+// (earned by receiving their own first CCR payout) pay less to support
+// other creators' stories. Same standing-discount pattern as
+// GiftsService.myGiftDiscount and CardsTournamentsService's Card Shark
+// discount: the CREATOR still receives the full CCR_RATE — only the
+// interactor's debit is discounted, the platform absorbs the difference.
+const CCR_CREATOR_DISCOUNT_RATE = 0.15;
+
 const USER_SELECT = { id: true, username: true, profile: true } as const;
 
 // Flattens the nested `profile: {displayName, avatarUrl, ...}` Prisma include
@@ -230,6 +238,15 @@ export class StoryService {
     });
   }
 
+  // Surfaced separately from chargeInteraction() so the story UI can show
+  // "15% off with your CCR Creator badge" before the interaction happens.
+  async myCcrDiscount(userId: string) {
+    const owned = await this.prisma.userBadge.findFirst({
+      where: { userId, badge: { code: 'CCR_CREATOR' } },
+    });
+    return { active: !!owned, rate: CCR_CREATOR_DISCOUNT_RATE, standardRate: CCR_RATE };
+  }
+
   async getMyStats(userId: string) {
     const [storyCount, likesReceived, commentsReceived, ranksReceived, myStoryIds] =
       await Promise.all([
@@ -263,9 +280,15 @@ export class StoryService {
     });
     if (!story) throw new NotFoundException('Story not found');
 
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    const [wallet, hasDiscountBadge] = await Promise.all([
+      this.prisma.wallet.findUnique({ where: { userId } }),
+      this.prisma.userBadge.findFirst({ where: { userId, badge: { code: 'CCR_CREATOR' } } }),
+    ]);
     if (!wallet) throw new BadRequestException('Wallet not found');
-    if (Number(wallet.balanceMasheleni) < CCR_RATE) {
+    const payerRate = hasDiscountBadge
+      ? Math.round(CCR_RATE * (1 - CCR_CREATOR_DISCOUNT_RATE) * 100) / 100
+      : CCR_RATE;
+    if (Number(wallet.balanceMasheleni) < payerRate) {
       throw new BadRequestException(
         `Not enough Rand — balance is R${wallet.balanceMasheleni}`,
       );
@@ -277,7 +300,7 @@ export class StoryService {
     if (!creatorWallet)
       throw new BadRequestException("Creator's wallet not found");
 
-    return { story, wallet, creatorWallet };
+    return { story, wallet, creatorWallet, payerRate };
   }
 
   async like(storyId: string, userId: string) {
@@ -286,7 +309,7 @@ export class StoryService {
     });
     if (existing) throw new BadRequestException('Already liked');
 
-    const { wallet, creatorWallet } = await this.chargeInteraction(
+    const { wallet, creatorWallet, payerRate } = await this.chargeInteraction(
       storyId,
       userId,
     );
@@ -294,11 +317,13 @@ export class StoryService {
     const [, , , like] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { id: wallet.id },
-        data: { balanceMasheleni: { decrement: CCR_RATE } },
+        data: { balanceMasheleni: { decrement: payerRate } },
       }),
       // Creator's share accrues into pendingCreatorFunds, not spendable
       // balance — the weekly payout batch (CreatorFundsService) moves it
-      // into balanceMasheleni in one lump sum.
+      // into balanceMasheleni in one lump sum. Always the full CCR_RATE,
+      // regardless of the payer's badge discount — the creator is never
+      // the one who pays for that discount, the platform is.
       this.prisma.wallet.update({
         where: { id: creatorWallet.id },
         data: { pendingCreatorFunds: { increment: CCR_RATE } },
@@ -307,7 +332,7 @@ export class StoryService {
         data: [
           {
             walletId: wallet.id,
-            amount: -CCR_RATE,
+            amount: -payerRate,
             type: 'STORY_LIKE',
             status: 'SUCCESS',
           },
@@ -333,7 +358,7 @@ export class StoryService {
     });
     if (existing) throw new BadRequestException('Already commented');
 
-    const { wallet, creatorWallet } = await this.chargeInteraction(
+    const { wallet, creatorWallet, payerRate } = await this.chargeInteraction(
       storyId,
       userId,
     );
@@ -341,7 +366,7 @@ export class StoryService {
     const [, , , comment] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { id: wallet.id },
-        data: { balanceMasheleni: { decrement: CCR_RATE } },
+        data: { balanceMasheleni: { decrement: payerRate } },
       }),
       this.prisma.wallet.update({
         where: { id: creatorWallet.id },
@@ -351,7 +376,7 @@ export class StoryService {
         data: [
           {
             walletId: wallet.id,
-            amount: -CCR_RATE,
+            amount: -payerRate,
             type: 'STORY_COMMENT',
             status: 'SUCCESS',
           },
@@ -380,7 +405,7 @@ export class StoryService {
     });
     if (existing) throw new BadRequestException('Already ranked');
 
-    const { wallet, creatorWallet } = await this.chargeInteraction(
+    const { wallet, creatorWallet, payerRate } = await this.chargeInteraction(
       storyId,
       userId,
     );
@@ -388,7 +413,7 @@ export class StoryService {
     const [, , , rank] = await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { id: wallet.id },
-        data: { balanceMasheleni: { decrement: CCR_RATE } },
+        data: { balanceMasheleni: { decrement: payerRate } },
       }),
       this.prisma.wallet.update({
         where: { id: creatorWallet.id },
@@ -398,7 +423,7 @@ export class StoryService {
         data: [
           {
             walletId: wallet.id,
-            amount: -CCR_RATE,
+            amount: -payerRate,
             type: 'STORY_RANK',
             status: 'SUCCESS',
           },

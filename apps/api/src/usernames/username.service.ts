@@ -14,6 +14,16 @@ import {
 
 const MINT_PRICE_MSH = 50;
 
+// Badge utility (product decision, 2026-09) — challenge-active members get
+// a standing discount on minting an extra username. Two tiers, same
+// "hold more than one, use the most prestigious" convention as
+// GiftsService.myGiftDiscount. Century Club (100 challenges) > Challenge
+// Champion (10 challenges) since it's the harder-earned badge.
+const USERNAME_MINT_DISCOUNTS: { code: string; rate: number }[] = [
+  { code: 'CENTURY_CLUB', rate: 0.25 },
+  { code: 'CHALLENGE_CHAMPION', rate: 0.1 },
+];
+
 // Guranda Username Marketplace: mirrors marketplace.service.ts's fixed/auction
 // listing pattern (and its exact wallet-transfer block) almost verbatim,
 // plus the reputation-snapshot mechanic that makes an established handle's
@@ -48,27 +58,41 @@ export class UsernameService {
     return { available: true };
   }
 
+  // Surfaced separately so the mint UI can show "25% off with your Century
+  // Club badge" before the user commits.
+  async myMintDiscount(userId: string) {
+    const owned = await this.prisma.userBadge.findMany({
+      where: { userId, badge: { code: { in: USERNAME_MINT_DISCOUNTS.map((d) => d.code) } } },
+      include: { badge: true },
+    });
+    const ownedCodes = new Set(owned.map((o) => o.badge.code));
+    const best = USERNAME_MINT_DISCOUNTS.find((d) => ownedCodes.has(d.code)) ?? null;
+    return { active: !!best, rate: best?.rate ?? 0, badgeCode: best?.code ?? null, standardPrice: MINT_PRICE_MSH };
+  }
+
   /** Mint path for extra usernames beyond the one free registration claim. */
   async claimAdditional(userId: string, rawLabel: string) {
     const label = await assertUsernameClaimable(this.prisma, rawLabel);
+    const { rate } = await this.myMintDiscount(userId);
+    const price = Math.round(MINT_PRICE_MSH * (1 - rate) * 100) / 100;
     return this.prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       if (!wallet) throw new BadRequestException('Wallet not found');
-      if (Number(wallet.balanceMasheleni) < MINT_PRICE_MSH) {
+      if (Number(wallet.balanceMasheleni) < price) {
         throw new BadRequestException(
-          `Not enough Rand — minting a username costs R${MINT_PRICE_MSH}`,
+          `Not enough Rand — minting a username costs R${price}`,
         );
       }
       await tx.wallet.update({
         where: { id: wallet.id },
-        data: { balanceMasheleni: { decrement: MINT_PRICE_MSH } },
+        data: { balanceMasheleni: { decrement: price } },
       });
       await tx.transaction.create({
         data: {
           walletId: wallet.id,
           type: 'PAYMENT',
           status: 'SUCCESS',
-          amount: -MINT_PRICE_MSH,
+          amount: -price,
         },
       });
       return tx.username.create({

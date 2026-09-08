@@ -62,6 +62,11 @@ export class StoryController {
     return this.storyService.getMyStats(req.user.userId);
   }
 
+  @Get('mine/ccr-discount')
+  async myCcrDiscount(@Request() req: any) {
+    return this.storyService.myCcrDiscount(req.user.userId);
+  }
+
   @Get(':id/viewers')
   async viewers(@Param('id') id: string, @Request() req: any) {
     return this.storyService.getStoryViewers(id, req.user.userId);

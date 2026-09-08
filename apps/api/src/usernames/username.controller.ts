@@ -47,6 +47,12 @@ export class UsernameController {
     return this.usernameService.claimAdditional(req.user.userId, body.label);
   }
 
+  @Get('mine/mint-discount')
+  @UseGuards(JwtAuthGuard)
+  myMintDiscount(@Request() req: any) {
+    return this.usernameService.myMintDiscount(req.user.userId);
+  }
+
   @Post(':id/activate')
   @UseGuards(JwtAuthGuard)
   activate(@Request() req: any, @Param('id') id: string) {

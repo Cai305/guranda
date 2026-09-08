@@ -18,6 +18,11 @@ export class CardsTournamentsController {
     return this.tournaments.getTournament(id);
   }
 
+  @Get('mine/discount')
+  async myDiscount(@Request() req: any) {
+    return this.tournaments.myEntryFeeDiscount(req.user.userId);
+  }
+
   @Post()
   async create(
     @Request() req: any,

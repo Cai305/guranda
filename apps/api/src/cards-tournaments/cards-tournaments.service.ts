@@ -19,6 +19,14 @@ function shuffled<T>(arr: T[]): T[] {
   return copy;
 }
 
+// Badge utility (product decision, 2026-09: "give more badges utility" —
+// beyond the existing gift-send discount, tie real perks to real badges).
+// Same pattern as GiftsService.myGiftDiscount/GIFT_DISCOUNT_BADGE_CODES —
+// a standing discount, not a coupon. prizePool is set independently at
+// tournament creation (never derived from entries × entryFee), so
+// discounting what one player pays never touches the announced prize.
+export const CARD_SHARK_DISCOUNT_RATE = 0.15;
+
 @Injectable()
 export class CardsTournamentsService {
   constructor(
@@ -26,6 +34,20 @@ export class CardsTournamentsService {
     @Inject(forwardRef(() => CardsService)) private cards: CardsService,
     private notifications: NotificationsService,
   ) {}
+
+  private async cardSharkDiscount(userId: string): Promise<number> {
+    const owned = await this.prisma.userBadge.findFirst({
+      where: { userId, badge: { code: 'CARD_SHARK' } },
+    });
+    return owned ? CARD_SHARK_DISCOUNT_RATE : 0;
+  }
+
+  // Surfaced separately from register() so the tournament list/detail UI
+  // can show "15% off with your Card Shark badge" before the player commits.
+  async myEntryFeeDiscount(userId: string) {
+    const rate = await this.cardSharkDiscount(userId);
+    return { active: rate > 0, rate };
+  }
 
   async createTournament(
     createdById: string,
@@ -66,17 +88,19 @@ export class CardsTournamentsService {
     if (tournament.entries.some((e) => e.userId === userId)) throw new BadRequestException('Already registered');
 
     if (tournament.entryFee > 0) {
+      const discount = await this.cardSharkDiscount(userId);
+      const fee = Math.round(tournament.entryFee * (1 - discount) * 100) / 100;
       const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
-      if (!wallet || Number(wallet.balanceMasheleni) < tournament.entryFee) {
+      if (!wallet || Number(wallet.balanceMasheleni) < fee) {
         throw new BadRequestException('Not enough Rand for the entry fee');
       }
       await this.prisma.$transaction([
         this.prisma.wallet.update({
           where: { id: wallet.id },
-          data: { balanceMasheleni: { decrement: tournament.entryFee } },
+          data: { balanceMasheleni: { decrement: fee } },
         }),
         this.prisma.transaction.create({
-          data: { walletId: wallet.id, type: 'PAYMENT', status: 'SUCCESS', amount: -tournament.entryFee },
+          data: { walletId: wallet.id, type: 'PAYMENT', status: 'SUCCESS', amount: -fee },
         }),
       ]);
     }
