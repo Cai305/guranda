@@ -3,6 +3,14 @@ import { PrismaService } from '../prisma.service';
 import { WalletsService } from './wallets.service';
 import { EventBusService } from '../events/event-bus.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ChatService } from '../chat/chat.service';
+import { ChatGateway } from '../chat/chat.gateway';
+
+// Mirrors PAYMENT_REQUEST_CARD_TAG in
+// apps/mobile/src/components/cards/PaymentRequestMiniCard.tsx — the API
+// only ever WRITES this shape, the mobile client decodes/renders it (same
+// split as MONEY_CARD_TAG in wallets.service.ts).
+const PAYMENT_REQUEST_CARD_TAG = '__paymentRequestCard';
 
 /**
  * Phase 2 (Financial Engine) per docs/18 §25 and docs/19 §7: "wrap, don't
@@ -27,6 +35,8 @@ export class FinancialEngineService {
     private wallets: WalletsService,
     private eventBus: EventBusService,
     private notifications: NotificationsService,
+    private chatService: ChatService,
+    private chatGateway: ChatGateway,
   ) {}
 
   getBalance(userId: string) {
@@ -80,10 +90,15 @@ export class FinancialEngineService {
       throw new BadRequestException('Invalid amount');
     }
 
-    const payer = await this.prisma.user.findUnique({
+    // Username first, then a raw user id — same "chat only has a userId
+    // handy" reasoning as sendMasheleni's destination resolution.
+    const payer = (await this.prisma.user.findUnique({
       where: { username: payerDestination.replace(/^@/, '') },
       select: { id: true, username: true, profile: { select: { displayName: true } } },
-    });
+    })) ?? (await this.prisma.user.findUnique({
+      where: { id: payerDestination },
+      select: { id: true, username: true, profile: { select: { displayName: true } } },
+    }));
     if (!payer) {
       throw new NotFoundException('User not found — use a Guranda username');
     }
@@ -117,6 +132,50 @@ export class FinancialEngineService {
       { paymentRequestId: request.id, amount: value, requesterId },
     );
 
+    // Inline "X is requesting Ry from you" card in their chat, mirroring
+    // sendMasheleni's notifyTransfer — best-effort, never lets a chat/DM
+    // hiccup (e.g. a block between the two) undo the request that already
+    // committed above.
+    this.postRequestCard(request.id, requesterId, requesterName, payer.id, value, memo).catch((e) =>
+      console.error('payment request chat-card failed:', e?.message),
+    );
+
+    return request;
+  }
+
+  private async postRequestCard(
+    paymentRequestId: string,
+    requesterId: string,
+    requesterName: string,
+    payerId: string,
+    amount: number,
+    memo: string | undefined,
+  ): Promise<void> {
+    const chat = await this.chatService.createDirectChat(requesterId, payerId);
+    this.chatGateway.joinUserSockets(requesterId, chat.id);
+    this.chatGateway.joinUserSockets(payerId, chat.id);
+
+    const content = JSON.stringify({
+      [PAYMENT_REQUEST_CARD_TAG]: true,
+      paymentRequestId,
+      amount,
+      memo: memo ?? null,
+      requesterId,
+      requesterName,
+      payerId,
+      requestedAt: new Date().toISOString(),
+    });
+    const savedMessage = await this.chatService.sendMessage(requesterId, chat.id, content);
+    this.chatGateway.broadcastNewMessage(chat.id, savedMessage);
+  }
+
+  /** Single-request lookup for the chat card — only the requester or payer may read it. */
+  async getPaymentRequest(id: string, userId: string) {
+    const request = await this.prisma.paymentRequest.findUnique({ where: { id } });
+    if (!request) throw new NotFoundException('Payment request not found');
+    if (request.requesterId !== userId && request.payerId !== userId) {
+      throw new ForbiddenException('Not your payment request');
+    }
     return request;
   }
 

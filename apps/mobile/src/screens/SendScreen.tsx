@@ -235,13 +235,17 @@ export default function SendScreen({ navigation }: any) {
       if (!res.ok) throw new Error(data.message || 'Transfer failed');
 
       if (data.success) {
+        // No on-chain settlement happens on this path today (see
+        // wallets.service.ts's module comment) — the Rand ledger balance is
+        // the real source of truth, so there's no genuine txHash to show.
+        // A receipt for this also now shows up in the recipient's chat.
         Alert.alert(
           'Transfer Complete! ✅',
-          `Sent ${formatCurrency(Number(amount))} to ${destination.substring(0, 12)}...\n\nTx Hash: ${data.txHash?.substring(0, 20)}...`,
+          `Sent ${formatCurrency(Number(amount))} to ${destination.substring(0, 12)}...\n\nA receipt was posted to your chat with them.`,
           [{ text: 'Back to Wallet', onPress: () => navigation.goBack() }],
         );
       } else {
-        Alert.alert('Transfer Failed', 'The XRPL transaction did not succeed. Please try again.');
+        Alert.alert('Transfer Failed', 'Please try again.');
       }
     } catch (e: any) {
       Alert.alert('Error', e.message);

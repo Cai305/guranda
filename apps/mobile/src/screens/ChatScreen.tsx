@@ -34,6 +34,8 @@ import LocationMiniCard, { encodeLocationCard, decodeLocationCard } from '../com
 import ContactMiniCard, { ContactCardData, encodeContactCard, decodeContactCard } from '../components/cards/ContactMiniCard';
 import ProfileMiniCard, { decodeProfileCard } from '../components/cards/ProfileMiniCard';
 import FileMiniCard, { FileCardData, encodeFileCard, decodeFileCard } from '../components/cards/FileMiniCard';
+import MoneyMiniCard, { decodeMoneyCard } from '../components/cards/MoneyMiniCard';
+import PaymentRequestMiniCard, { decodePaymentRequestCard } from '../components/cards/PaymentRequestMiniCard';
 import MediaViewerModal from '../components/MediaViewerModal';
 import * as DocumentPicker from 'expo-document-picker';
 import ChatWallpaperPicker from '../components/chat/ChatWallpaperPicker';
@@ -128,6 +130,10 @@ export default function ChatScreen({ route, navigation }: any) {
   const [forwarding, setForwarding] = useState(false);
   const [showLocationSheet, setShowLocationSheet] = useState(false);
   const [sharingLocation, setSharingLocation] = useState(false);
+  const [showMoneySheet, setShowMoneySheet] = useState<'send' | 'request' | null>(null);
+  const [moneyAmount, setMoneyAmount] = useState('');
+  const [moneyMemo, setMoneyMemo] = useState('');
+  const [moneyBusy, setMoneyBusy] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [contactQuery, setContactQuery] = useState('');
   const [contactResults, setContactResults] = useState<ContactCardData[]>([]);
@@ -597,6 +603,41 @@ export default function ChatScreen({ route, navigation }: any) {
 
   useEffect(() => () => { if (liveTickRef.current) clearInterval(liveTickRef.current.interval); }, []);
 
+  // Send/Request money — unlike location/contact cards, these don't emit a
+  // socket message directly: the API creates the real Transaction/
+  // PaymentRequest row AND posts+broadcasts the __moneyCard/
+  // __paymentRequestCard message itself (see wallets.service.ts's
+  // notifyTransfer / financial-engine.service.ts's postRequestCard), so
+  // this screen just calls the endpoint and lets the broadcast land like
+  // any other incoming message.
+  const submitMoneyAction = async () => {
+    if (!targetUserId || moneyBusy) return;
+    const value = parseFloat(moneyAmount);
+    if (!(value > 0)) {
+      Alert.alert('Enter a valid amount');
+      return;
+    }
+    setMoneyBusy(true);
+    try {
+      const isSend = showMoneySheet === 'send';
+      const res = await fetchApi(isSend ? '/wallets/send' : '/wallets/requests', {
+        method: 'POST',
+        body: JSON.stringify(
+          isSend
+            ? { destination: targetUserId, amount: moneyAmount.trim() }
+            : { destination: targetUserId, amount: moneyAmount.trim(), memo: moneyMemo.trim() || undefined },
+        ),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Could not complete this');
+      setShowMoneySheet(null);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Please try again.');
+    } finally {
+      setMoneyBusy(false);
+    }
+  };
+
   const shareLocation = async (durationMinutes: number | null) => {
     if (!socket || !user?.userId || sharingLocation) return;
     setSharingLocation(true);
@@ -785,6 +826,24 @@ export default function ChatScreen({ route, navigation }: any) {
       renderIcon: () => <Ionicons name="person-outline" size={30} color="#F59E0B" />,
       onPress: () => { setShowActionsTray(false); openContactPicker(); },
     },
+    // Only in a real DIRECT chat with a resolvable partner — a group/public
+    // room has no single clear payer/recipient.
+    ...(roomType === 'DIRECT' && targetUserId
+      ? [
+          {
+            key: 'sendMoney',
+            label: 'Send Money',
+            renderIcon: () => <Ionicons name="arrow-up-circle-outline" size={30} color="#22c55e" />,
+            onPress: () => { closeOtherPickers(); setMoneyAmount(''); setMoneyMemo(''); setShowMoneySheet('send'); },
+          },
+          {
+            key: 'requestMoney',
+            label: 'Request Money',
+            renderIcon: () => <Ionicons name="cash-outline" size={30} color="#F59E0B" />,
+            onPress: () => { closeOtherPickers(); setMoneyAmount(''); setMoneyMemo(''); setShowMoneySheet('request'); },
+          },
+        ]
+      : []),
     {
       key: 'wallpaper',
       label: 'Wallpaper',
@@ -1043,6 +1102,8 @@ export default function ChatScreen({ route, navigation }: any) {
     const contactCard = item.content?.includes('__contactCard') ? decodeContactCard(item.content) : null;
     const profileCard = item.content?.includes('__profileCard') ? decodeProfileCard(item.content) : null;
     const fileCard = item.content?.includes('__fileCard') ? decodeFileCard(item.content) : null;
+    const moneyCard = item.content?.includes('__moneyCard') ? decodeMoneyCard(item.content) : null;
+    const paymentRequestCard = item.content?.includes('__paymentRequestCard') ? decodePaymentRequestCard(item.content) : null;
 
     const replyPreviewText = item.replyTo
       ? (parseVemojiMessage(item.replyTo.content) ? '🔥 Vemoji' : (item.replyTo.content || (item.replyTo.mediaUrl ? '📎 Attachment' : '')))
@@ -1089,6 +1150,28 @@ export default function ChatScreen({ route, navigation }: any) {
       return (
         <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
           <FileMiniCard file={fileCard} />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
+
+    if (moneyCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          <MoneyMiniCard money={moneyCard} isSender={isMe} />
+          <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
+            {formatClockTime(item.createdAt)}
+          </Text>
+        </View>
+      );
+    }
+
+    if (paymentRequestCard) {
+      return (
+        <View style={[styles.productBubbleWrap, isMe ? styles.productBubbleMe : styles.productBubbleThem]}>
+          <PaymentRequestMiniCard request={paymentRequestCard} />
           <Text style={[styles.metaTime, { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 4 }]}>
             {formatClockTime(item.createdAt)}
           </Text>
@@ -2226,6 +2309,67 @@ export default function ChatScreen({ route, navigation }: any) {
                 ))}
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showMoneySheet !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMoneySheet(null)}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={styles.forwardSheet}>
+            <View style={styles.forwardHeader}>
+              <Text style={styles.forwardTitle}>{showMoneySheet === 'send' ? 'Send money' : 'Request money'}</Text>
+              <TouchableOpacity onPress={() => setShowMoneySheet(null)}>
+                <Ionicons name="close" size={22} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14 }}>
+                <Text style={{ color: COLORS.textMuted, fontSize: 20, fontWeight: '700' }}>R</Text>
+                <TextInput
+                  value={moneyAmount}
+                  onChangeText={setMoneyAmount}
+                  placeholder="0.00"
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                  style={{ flex: 1, color: COLORS.text, fontSize: 20, fontWeight: '700', paddingVertical: 14 }}
+                />
+              </View>
+              {showMoneySheet === 'request' ? (
+                <TextInput
+                  value={moneyMemo}
+                  onChangeText={setMoneyMemo}
+                  placeholder="What's it for? (optional)"
+                  placeholderTextColor={COLORS.textMuted}
+                  style={{ backgroundColor: COLORS.surfaceElevated, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, color: COLORS.text, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 }}
+                  maxLength={100}
+                />
+              ) : null}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: showMoneySheet === 'send' ? '#22c55e' : '#F59E0B',
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  paddingVertical: 14,
+                  opacity: moneyBusy ? 0.6 : 1,
+                }}
+                onPress={submitMoneyAction}
+                disabled={moneyBusy}
+              >
+                {moneyBusy ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                    {showMoneySheet === 'send' ? 'Send' : 'Request'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

@@ -87,7 +87,7 @@ export default function HairBookingScreen({ route, navigation }: any) {
         'Booking Confirmed',
         `Your appointment at ${profile.businessName} is booked for tomorrow at 10:00 AM.`,
         [
-          { text: 'View Appointments', onPress: () => navigation.navigate('Dashboard') },
+          { text: 'View Appointments', onPress: () => navigation.navigate('MyHairBookings') },
           { text: 'Done', onPress: () => navigation.popToTop() } // Or back to HairHome
         ]
       );

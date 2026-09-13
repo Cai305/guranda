@@ -110,7 +110,11 @@ export default function AiSetupScreen({ navigation }: any) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Dashboard');
+      // 'Dashboard' is also the name of the unrelated business/creator
+      // dashboard registered on the root stack (see RootNavigator.tsx) —
+      // 'Main' is the actual tab navigator/home feed, same target
+      // AiTourScreen's equivalent finish action already uses.
+      navigation.navigate('Main');
     }
   };
 

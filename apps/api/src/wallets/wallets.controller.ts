@@ -102,6 +102,7 @@ export class WalletsController {
     return this.walletsService.getContentEarningsBreakdown(req.user.userId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('requests')
   async requestPayment(@Request() req: any, @Body() body: RequestPaymentDto) {
     return this.financialEngine.requestPayment(
@@ -115,6 +116,11 @@ export class WalletsController {
   @Get('requests')
   async listPaymentRequests(@Request() req: any) {
     return this.financialEngine.listPaymentRequests(req.user.userId);
+  }
+
+  @Get('requests/:id')
+  async getPaymentRequest(@Param('id') id: string, @Request() req: any) {
+    return this.financialEngine.getPaymentRequest(id, req.user.userId);
   }
 
   @Post('requests/:id/respond')

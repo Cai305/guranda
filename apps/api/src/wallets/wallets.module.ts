@@ -13,9 +13,10 @@ import { ProfileModule } from '../profile/profile.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BlocksModule } from '../blocks/blocks.module';
 import { FriendsModule } from '../friends/friends.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
-  imports: [VerificationModule, AdminModule, EventsModule, ProfileModule, NotificationsModule, BlocksModule, FriendsModule],
+  imports: [VerificationModule, AdminModule, EventsModule, ProfileModule, NotificationsModule, BlocksModule, FriendsModule, ChatModule],
   controllers: [WalletsController, AdminDepositsController],
   providers: [WalletsService, FinancialEngineService, WalletAiToolsProvider],
   exports: [WalletsService, FinancialEngineService],

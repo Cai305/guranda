@@ -375,6 +375,33 @@ export class ChatGateway implements OnGatewayDisconnect {
     }
   }
 
+  /**
+   * Broadcasts an already-persisted message (created via ChatService.sendMessage
+   * outside the normal socket handler — e.g. WalletsService posting a money-sent
+   * card) to everyone currently in the chat room, so it appears live without a
+   * refresh. Deliberately does NOT call notifyChatMembers: that method's push/
+   * in-app notification text is the raw message content, which is wrong for a
+   * structured card payload (a `__moneyCard`-tagged JSON blob) — callers that
+   * need a notification should send their own via NotificationsService with
+   * proper human-readable wording instead.
+   */
+  broadcastNewMessage(chatId: string, message: {
+    id: string; chatId: string; senderId: string; content: string;
+    mediaUrl?: string | null; replyToId?: string | null; replyTo?: any; createdAt: Date;
+  }) {
+    const responseDto: ChatMessageDto = {
+      id: message.id,
+      chatId: message.chatId,
+      senderId: message.senderId,
+      content: message.content,
+      mediaUrl: message.mediaUrl || undefined,
+      replyToId: message.replyToId || undefined,
+      replyTo: message.replyTo,
+      createdAt: message.createdAt,
+    };
+    this.server.to(chatId).emit('new_message', responseDto);
+  }
+
   private async notifyChatMembers(
     chatId: string,
     senderId: string,

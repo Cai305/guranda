@@ -10,7 +10,15 @@ import { EventBusService } from '../events/event-bus.service';
 import { BadgeService } from '../profile/badge.service';
 import { BlocksService } from '../blocks/blocks.service';
 import { FriendsService } from '../friends/friends.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ChatService } from '../chat/chat.service';
+import { ChatGateway } from '../chat/chat.gateway';
 import { haversineKm, bearingDeg } from '../common/geo';
+
+// Mirrors MONEY_CARD_TAG in apps/mobile/src/components/cards/MoneyMiniCard.tsx —
+// keep both in sync if this ever changes; the API only ever writes this
+// shape, the mobile client is what decodes it.
+const MONEY_CARD_TAG = '__moneyCard';
 
 // AirPay ("send like AirDrop") reuses the same lat/lng each device already
 // syncs every few minutes via POST /users/location (see AuthContext's
@@ -54,6 +62,9 @@ export class WalletsService {
     private badgeService: BadgeService,
     private blocksService: BlocksService,
     private friendsService: FriendsService,
+    private notificationsService: NotificationsService,
+    private chatService: ChatService,
+    private chatGateway: ChatGateway,
   ) {}
 
   /**
@@ -254,7 +265,10 @@ export class WalletsService {
       );
     }
 
-    // Resolve the recipient: xrpl address first, then username
+    // Resolve the recipient: xrpl address, then username, then a raw user
+    // id — the last one exists for callers that only have a userId in scope
+    // (e.g. sending to a chat partner via ChatScreen's `targetUserId`, which
+    // has no username handy without an extra lookup of its own).
     let recipientWallet = await this.prisma.wallet.findFirst({
       where: { xrplAddress: destination },
     });
@@ -264,6 +278,13 @@ export class WalletsService {
         include: { wallet: true },
       });
       recipientWallet = byUsername?.wallet ?? null;
+    }
+    if (!recipientWallet) {
+      const byUserId = await this.prisma.user.findUnique({
+        where: { id: destination },
+        include: { wallet: true },
+      });
+      recipientWallet = byUserId?.wallet ?? null;
     }
     if (!recipientWallet) {
       throw new BadRequestException(
@@ -308,7 +329,58 @@ export class WalletsService {
       ),
     ]);
 
+    // Notification + an inline "You sent Rx to Y" card in their chat — both
+    // best-effort: the transfer above already succeeded and committed, so a
+    // failure here (e.g. the recipient blocked the sender, cutting off new
+    // DIRECT messages) must never surface as a failed payment.
+    this.notifyTransfer(senderUserId, recipientWallet.userId, value, transaction.id).catch((e) =>
+      console.error('wallet transfer notify/chat-card failed:', e?.message),
+    );
+
     return { success: true, transaction };
+  }
+
+  private async notifyTransfer(
+    senderUserId: string,
+    recipientUserId: string,
+    amount: number,
+    transactionId: string,
+  ): Promise<void> {
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderUserId },
+      select: { username: true, profile: { select: { displayName: true, avatarUrl: true } } },
+    });
+    const senderName = sender?.profile?.displayName || sender?.username || 'Someone';
+    const amountLabel = amount.toFixed(2);
+
+    await this.notificationsService.create(
+      recipientUserId,
+      'wallet.transfer.received',
+      'Money received',
+      `${senderName} sent you R${amountLabel}`,
+      { amount, senderId: senderUserId, transactionId },
+    );
+
+    const chat = await this.chatService.createDirectChat(senderUserId, recipientUserId);
+    // Both sides need to be in the socket room immediately, same reasoning
+    // as chat.controller.ts's createDirectChat endpoint — otherwise whichever
+    // side doesn't already have this chat open misses realtime delivery of
+    // the card below until their next reconnect.
+    this.chatGateway.joinUserSockets(senderUserId, chat.id);
+    this.chatGateway.joinUserSockets(recipientUserId, chat.id);
+
+    const content = JSON.stringify({
+      [MONEY_CARD_TAG]: true,
+      amount,
+      senderId: senderUserId,
+      senderName,
+      senderAvatarUrl: sender?.profile?.avatarUrl ?? null,
+      recipientId: recipientUserId,
+      transactionId,
+      sentAt: new Date().toISOString(),
+    });
+    const savedMessage = await this.chatService.sendMessage(senderUserId, chat.id, content);
+    this.chatGateway.broadcastNewMessage(chat.id, savedMessage);
   }
 
   /**
