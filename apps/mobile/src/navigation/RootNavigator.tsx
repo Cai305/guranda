@@ -54,6 +54,17 @@ import DiscoverScreen from '../screens/discover/DiscoverScreen';
 import VideoPlayerScreen from '../screens/discover/VideoPlayerScreen';
 import ImmersiveFeedScreen from '../screens/discover/ImmersiveFeedScreen';
 import VideoUploadScreen from '../screens/discover/VideoUploadScreen';
+import SongPickerScreen from '../screens/SongPickerScreen';
+import CreateLipSyncScreen from '../screens/CreateLipSyncScreen';
+import PerformanceRecordScreen from '../screens/PerformanceRecordScreen';
+import PerformanceOffsetEditScreen from '../screens/PerformanceOffsetEditScreen';
+import PerformancePreviewScreen from '../screens/PerformancePreviewScreen';
+import PerformanceDraftsScreen from '../screens/PerformanceDraftsScreen';
+import CreateHubScreen from '../screens/CreateHubScreen';
+import MultiClipCaptureScreen from '../screens/MultiClipCaptureScreen';
+import VideoEditorScreen from '../screens/VideoEditorScreen';
+import RenderStatusScreen from '../screens/RenderStatusScreen';
+import TemplatesScreen from '../screens/TemplatesScreen';
 import WatchLaterScreen from '../screens/discover/WatchLaterScreen';
 import PlaylistsScreen from '../screens/discover/PlaylistsScreen';
 import PlaylistDetailScreen from '../screens/discover/PlaylistDetailScreen';
@@ -146,6 +157,15 @@ import HairBookingScreen from '../screens/hub/hair/HairBookingScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import AchievementsScreen from '../screens/AchievementsScreen';
 import UserPostsScreen from '../screens/UserPostsScreen';
+import FeatureBuilderScreen from '../screens/features/FeatureBuilderScreen';
+import FeatureWorkshopScreen from '../screens/features/FeatureWorkshopScreen';
+import FeatureMarketplaceScreen from '../screens/features/FeatureMarketplaceScreen';
+import FeatureDetailScreen from '../screens/features/FeatureDetailScreen';
+import BlueprintMarketplaceScreen from '../screens/features/BlueprintMarketplaceScreen';
+import BlueprintDetailScreen from '../screens/features/BlueprintDetailScreen';
+import MyFranchisesScreen from '../screens/franchises/MyFranchisesScreen';
+import CreateFranchiseScreen from '../screens/franchises/CreateFranchiseScreen';
+import FranchiseStaffScreen from '../screens/franchises/FranchiseStaffScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -226,6 +246,17 @@ export default function RootNavigator() {
           <Stack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
           <Stack.Screen name="ImmersiveFeed" component={ImmersiveFeedScreen} />
           <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
+          <Stack.Screen name="SongPicker" component={SongPickerScreen} />
+          <Stack.Screen name="CreateLipSync" component={CreateLipSyncScreen} />
+          <Stack.Screen name="PerformanceRecord" component={PerformanceRecordScreen} />
+          <Stack.Screen name="PerformanceOffsetEdit" component={PerformanceOffsetEditScreen} />
+          <Stack.Screen name="PerformancePreview" component={PerformancePreviewScreen} />
+          <Stack.Screen name="PerformanceDrafts" component={PerformanceDraftsScreen} />
+          <Stack.Screen name="CreateHub" component={CreateHubScreen} />
+          <Stack.Screen name="MultiClipCapture" component={MultiClipCaptureScreen} />
+          <Stack.Screen name="VideoEditor" component={VideoEditorScreen} />
+          <Stack.Screen name="RenderStatus" component={RenderStatusScreen} />
+          <Stack.Screen name="Templates" component={TemplatesScreen} />
           <Stack.Screen name="WatchLater" component={WatchLaterScreen} />
           <Stack.Screen name="MyPlaylists" component={PlaylistsScreen} />
           <Stack.Screen name="PlaylistDetail" component={PlaylistDetailScreen} />
@@ -318,6 +349,15 @@ export default function RootNavigator() {
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="UserPosts" component={UserPostsScreen} />
           <Stack.Screen name="Achievements" component={AchievementsScreen} />
+          <Stack.Screen name="FeatureBuilder" component={FeatureBuilderScreen} />
+          <Stack.Screen name="FeatureWorkshop" component={FeatureWorkshopScreen} />
+          <Stack.Screen name="FeatureMarketplace" component={FeatureMarketplaceScreen} />
+          <Stack.Screen name="FeatureDetail" component={FeatureDetailScreen} />
+          <Stack.Screen name="BlueprintMarketplace" component={BlueprintMarketplaceScreen} />
+          <Stack.Screen name="BlueprintDetail" component={BlueprintDetailScreen} />
+          <Stack.Screen name="MyFranchises" component={MyFranchisesScreen} />
+          <Stack.Screen name="CreateFranchise" component={CreateFranchiseScreen} />
+          <Stack.Screen name="FranchiseStaff" component={FranchiseStaffScreen} />
         </>
       )}
     </Stack.Navigator>

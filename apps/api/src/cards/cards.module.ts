@@ -2,7 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { CardsController } from './cards.controller';
 import { CardsService } from './cards.service';
 import { CardsGateway } from './cards.gateway';
-import { PrismaService } from '../prisma.service';
 import { CardsAiToolsProvider } from './cards-ai-tools.provider';
 import { CardsFinishHooksProvider } from './cards-finish-hooks.provider';
 import { ToolRegistryModule } from '../tool-registry/tool-registry.module';
@@ -24,7 +23,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     NotificationsModule,
   ],
   controllers: [CardsController],
-  providers: [CardsService, CardsGateway, PrismaService, CardsAiToolsProvider, CardsFinishHooksProvider],
+  providers: [CardsService, CardsGateway, CardsAiToolsProvider, CardsFinishHooksProvider],
   exports: [CardsService],
 })
 export class CardsModule {}

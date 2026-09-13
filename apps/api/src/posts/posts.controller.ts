@@ -83,6 +83,27 @@ export class PostsController {
     );
   }
 
+  // Phase 8 "publish once, fan out": creates a real Guranda post and,
+  // when alsoTelegram is set, also sends the same text through the user's
+  // connected Telegram bot to their configured default chat — see
+  // PostsService.publishEverywhere's doc comment. A dedicated endpoint
+  // (rather than round-tripping through the generic Blueprint-run
+  // endpoint) because the mobile composer toggle shouldn't need to know a
+  // BlueprintVersion id or resolve the user's chat_id itself — the same
+  // underlying posts.create/telegram.sendMessage tool-registry actions run
+  // either way.
+  @Post('publish-everywhere')
+  publishEverywhere(
+    @Request() req: any,
+    @Body() body: {
+      content: string;
+      media?: { url: string; type: string; thumbnailUrl?: string }[];
+      alsoTelegram?: boolean;
+    },
+  ) {
+    return this.postsService.publishEverywhere(req.user.userId, body.content, body.media, !!body.alsoTelegram);
+  }
+
   @Post(':id/like')
   likePost(@Request() req: any, @Param('id') postId: string) {
     return this.postsService.likePost(req.user.userId, postId);

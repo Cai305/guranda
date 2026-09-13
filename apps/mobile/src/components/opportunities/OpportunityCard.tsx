@@ -68,7 +68,12 @@ export default function OpportunityCard({ item, onPress }: { item: OpportunityCa
       <LinearGradient colors={look.gradient} style={styles.cover}>
         <Ionicons name={look.icon} size={42} color="rgba(255,255,255,0.55)" />
         <View style={styles.badge}>
-          <Ionicons name={isMission ? 'people' : 'flash'} size={12} color="#fff" />
+          {/* Phase 7 — a franchise-location campaign (e.g. "KFC Makhado") gets
+              a storefront icon instead of the generic sponsored bolt, so it
+              never reads as the same thing as the parent brand's own global
+              campaign — item.subtitle is already the location's own label
+              in this case (see OpportunitiesService.getFeed). */}
+          <Ionicons name={isMission ? 'people' : item.franchiseLabel ? 'storefront' : 'flash'} size={12} color="#fff" />
           <Text style={styles.badgeText}>{item.subtitle}</Text>
         </View>
       </LinearGradient>

@@ -93,3 +93,92 @@ export async function generateVideoThumbnail(videoUri: string): Promise<string |
     }
   }
 }
+
+/**
+ * Web filmstrip: seeks one hidden <video> element to `count` evenly-spaced
+ * times across the clip and captures each as its own canvas frame — a real
+ * per-position frame, not one thumbnail stretched across the whole clip's
+ * timeline width (which is what a single generateVideoThumbnail() call
+ * would look like if reused for a multi-frame strip).
+ */
+function extractFilmstripWeb(uri: string, count: number, durationSec: number): Promise<string[]> {
+  return new Promise((resolve) => {
+    const frames: string[] = [];
+    try {
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.preload = 'auto';
+      video.muted = true;
+      video.playsInline = true;
+      const canvas = document.createElement('canvas');
+      let i = 0;
+
+      const finish = () => { video.removeAttribute('src'); video.load(); resolve(frames); };
+      const captureNext = () => {
+        if (i >= count) return finish();
+        const t = durationSec > 0 ? (durationSec * (i + 0.5)) / count : 0;
+        video.currentTime = Math.min(Math.max(t, 0.05), Math.max(durationSec - 0.05, 0.05));
+      };
+
+      video.onloadedmetadata = () => {
+        canvas.width = 90;
+        canvas.height = Math.round((video.videoHeight / (video.videoWidth || 1)) * 90) || 160;
+        captureNext();
+      };
+      video.onseeked = () => {
+        try {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL('image/jpeg', 0.6));
+          }
+        } catch {
+          // skip this frame, keep going
+        }
+        i += 1;
+        captureNext();
+      };
+      video.onerror = finish;
+      video.src = uri;
+    } catch {
+      resolve(frames);
+    }
+  });
+}
+
+/**
+ * Native filmstrip: expo-video-thumbnails supports an arbitrary `time`, so
+ * this just calls it `count` times at evenly-spaced offsets — no separate
+ * native filmstrip API needed.
+ */
+async function extractFilmstripNative(uri: string, count: number, durationMs: number): Promise<string[]> {
+  try {
+    const VideoThumbnails = await import('expo-video-thumbnails');
+    const frames: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const t = durationMs > 0 ? Math.round((durationMs * (i + 0.5)) / count) : 100;
+      try {
+        const { uri: thumbUri } = await VideoThumbnails.getThumbnailAsync(uri, { time: Math.max(t, 50), quality: 0.5 });
+        frames.push(thumbUri);
+      } catch {
+        // skip this frame, keep going
+      }
+    }
+    return frames;
+  } catch (e) {
+    console.warn('extractFilmstripNative failed:', e);
+    return [];
+  }
+}
+
+/**
+ * Local-only filmstrip frames for a clip's timeline segment — never
+ * uploaded (these are purely a client-side editing aid), unlike
+ * generateVideoThumbnail's single poster frame.
+ */
+export async function generateFilmstrip(videoUri: string, count: number, durationMs: number): Promise<string[]> {
+  if (count <= 0) return [];
+  return Platform.OS === 'web'
+    ? extractFilmstripWeb(videoUri, count, durationMs / 1000)
+    : extractFilmstripNative(videoUri, count, durationMs);
+}

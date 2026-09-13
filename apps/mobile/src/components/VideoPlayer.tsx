@@ -16,6 +16,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEvent, useEventListener } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 
@@ -44,6 +45,16 @@ const CONTROLS_HIDE_DELAY = 3000;
 const DOUBLE_TAP_WINDOW = 300;
 const SEEK_STEP = 10;
 const AUTOPLAY_COUNTDOWN = 5;
+// Press-and-hold fast-forward/rewind — right holds into real 2x playback
+// (expo-video decodes that smoothly, same rate the settings sheet already
+// offers); left can't do the same trick — hardware decoders don't support
+// negative/reverse playback rates — so "rewind" is simulated as a small
+// backward seek on a fast repeating timer, which reads as continuous
+// rewind even though it's really a rapid stepped seek.
+const HOLD_THRESHOLD_MS = 300; // how long a press must last before it's a hold, not a tap
+const HOLD_FORWARD_RATE = 2;
+const HOLD_REWIND_STEP_SECONDS = 0.5;
+const HOLD_REWIND_INTERVAL_MS = 150;
 
 function fmtTime(rawSeconds: number): string {
   const seconds = !isFinite(rawSeconds) || rawSeconds < 0 ? 0 : rawSeconds;
@@ -161,6 +172,31 @@ export default function VideoPlayer({
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
+  // Landscape while fullscreen, native only — the app itself is locked to
+  // portrait (app.json), so without this a fullscreen long-form video would
+  // never actually rotate no matter how the device is held. Reacts to
+  // `isFullscreen` rather than living inside toggleFullscreen() directly so
+  // it stays correct even when fullscreen is entered/exited by the native
+  // player chrome itself (onFullscreenEnter/Exit below), not just this
+  // component's own button. Always unlocks back to portrait on the way out,
+  // including on unmount, so leaving this screen never strands the rest of
+  // the app sideways.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    if (isFullscreen) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    }
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+    };
+  }, []);
+
   const toggleFullscreen = useCallback(async () => {
     try {
       if (Platform.OS === 'web') {
@@ -264,6 +300,14 @@ export default function VideoPlayer({
   const lastTapRef = useRef<{ time: number; zone: 'left' | 'center' | 'right' } | null>(null);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const zoneForX = useCallback(
+    (x: number): 'left' | 'center' | 'right' => {
+      const w = overlayWidth || 1;
+      return x < w / 3 ? 'left' : x > (w * 2) / 3 ? 'right' : 'center';
+    },
+    [overlayWidth]
+  );
+
   useEffect(
     () => () => {
       if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
@@ -273,8 +317,7 @@ export default function VideoPlayer({
 
   const handleTap = useCallback(
     (x: number) => {
-      const w = overlayWidth || 1;
-      const zone: 'left' | 'center' | 'right' = x < w / 3 ? 'left' : x > (w * 2) / 3 ? 'right' : 'center';
+      const zone = zoneForX(x);
 
       if (zone === 'center') {
         if (tapTimeoutRef.current) {
@@ -312,7 +355,94 @@ export default function VideoPlayer({
         toggleControls();
       }, DOUBLE_TAP_WINDOW);
     },
-    [overlayWidth, doSeek, triggerRipple, toggleControls]
+    [zoneForX, doSeek, triggerRipple, toggleControls]
+  );
+
+  // --- Press-and-hold fast-forward / rewind ----------------------------------
+  // Held on the right: real 2x playback (expo-video decodes that smoothly —
+  // the same rate the settings sheet already offers). Held on the left:
+  // hardware decoders don't support negative/reverse rates, so "rewind" is
+  // simulated as a small backward seek on a fast repeating timer instead —
+  // it reads as continuous rewind even though each step is really a jump.
+  // A press only becomes a hold after HOLD_THRESHOLD_MS; released sooner, it
+  // falls straight through to the existing tap/double-tap handling above,
+  // completely unchanged.
+  const [holdMode, setHoldMode] = useState<'left' | 'right' | null>(null);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rateBeforeHoldRef = useRef(1);
+  const holdActiveRef = useRef(false);
+
+  const stopHold = useCallback(() => {
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    if (holdActiveRef.current) {
+      player.playbackRate = rateBeforeHoldRef.current;
+    }
+    holdActiveRef.current = false;
+    setHoldMode(null);
+  }, [player]);
+
+  const startHold = useCallback(
+    (zone: 'left' | 'right') => {
+      holdActiveRef.current = true;
+      setHoldMode(zone);
+      showControls();
+      rateBeforeHoldRef.current = player.playbackRate;
+      if (zone === 'right') {
+        player.playbackRate = HOLD_FORWARD_RATE;
+      } else {
+        holdIntervalRef.current = setInterval(() => {
+          player.seekBy(-HOLD_REWIND_STEP_SECONDS);
+        }, HOLD_REWIND_INTERVAL_MS);
+      }
+    },
+    [player, showControls]
+  );
+
+  useEffect(
+    () => () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    },
+    []
+  );
+
+  const handlePressIn = useCallback(
+    (x: number) => {
+      const zone = zoneForX(x);
+      // Always arm the pending-tap timer, even in the center zone — a quick
+      // release checks this timer to know it was a tap (see handlePressOut).
+      // Only the timer's own callback skips starting a hold for 'center',
+      // so holding the center zone still does nothing special.
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = setTimeout(() => {
+        holdTimerRef.current = null;
+        if (zone !== 'center') startHold(zone);
+      }, HOLD_THRESHOLD_MS);
+    },
+    [zoneForX, startHold]
+  );
+
+  const handlePressOut = useCallback(
+    (x: number) => {
+      if (holdTimerRef.current) {
+        // Released before the hold threshold fired — a real tap, not a
+        // hold. Cancel the pending hold timer and run the normal
+        // tap/double-tap logic exactly as before.
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+        handleTap(x);
+        return;
+      }
+      if (holdActiveRef.current) {
+        // A hold gesture consumes the press — it never also counts as a tap.
+        stopHold();
+      }
+    },
+    [handleTap, stopHold]
   );
 
   // --- Scrub bar (drag to seek) ----------------------------------------------
@@ -455,7 +585,8 @@ export default function VideoPlayer({
         style={StyleSheet.absoluteFill}
         pointerEvents={ended ? 'none' : 'auto'}
         onLayout={(e) => setOverlayWidth(e.nativeEvent.layout.width)}
-        onPress={(e) => handleTap(e.nativeEvent.locationX)}
+        onPressIn={(e) => handlePressIn(e.nativeEvent.locationX)}
+        onPressOut={(e) => handlePressOut(e.nativeEvent.locationX)}
       />
 
       {isLoading ? (
@@ -473,6 +604,15 @@ export default function VideoPlayer({
         <Text style={styles.rippleText}>+{SEEK_STEP}</Text>
         <Ionicons name="play-forward" size={22} color="#fff" />
       </Animated.View>
+
+      {/* Hold-to-rewind/fast-forward indicator */}
+      {holdMode ? (
+        <View style={[styles.holdBadge, holdMode === 'left' ? styles.holdBadgeLeft : styles.holdBadgeRight]} pointerEvents="none">
+          {holdMode === 'left' && <Ionicons name="play-back" size={18} color="#fff" />}
+          <Text style={styles.holdBadgeText}>{holdMode === 'right' ? `${HOLD_FORWARD_RATE}x` : 'Rewind'}</Text>
+          {holdMode === 'right' && <Ionicons name="play-forward" size={18} color="#fff" />}
+        </View>
+      ) : null}
 
       {/* Controls overlay */}
       <Animated.View
@@ -663,6 +803,20 @@ const styles = StyleSheet.create({
   rippleLeft: { left: 0 },
   rippleRight: { right: 0 },
   rippleText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  holdBadge: {
+    position: 'absolute',
+    top: '42%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  holdBadgeLeft: { left: 24 },
+  holdBadgeRight: { right: 24 },
+  holdBadgeText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   topGradient: {
     position: 'absolute',
     top: 0,

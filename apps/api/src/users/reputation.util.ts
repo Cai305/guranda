@@ -27,6 +27,14 @@ export function levelLadder(): { level: string; min: number }[] {
   return LEVEL_THRESHOLDS.map((t) => ({ ...t }));
 }
 
+// Ladder position for audience-targeting comparisons (Campaign.targetMinReputationLevel
+// and similar gates) — shared by OpportunitiesService and CampaignsService so both
+// compare a viewer's level against a target the same way.
+export function levelRank(level: string | null | undefined): number {
+  if (!level) return -1;
+  return LEVEL_THRESHOLDS.findIndex((t) => t.level === level);
+}
+
 // For the Rank pillar's "240 points to Micro" narration — null once at the
 // top tier (Mega Influencer has no next level).
 export function nextLevelThreshold(

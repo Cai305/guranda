@@ -348,6 +348,17 @@ export class UsernameService {
       // shape as the outgoing-username freeze in activate() above.
       const buyerLive = await this.usersService.computeLiveActivity(buyerId);
 
+      // Phase 7 — Franchise isolation guarantee, additive: if this alias is
+      // a franchise location, the OUTGOING owner's staff roster must not
+      // carry over to whoever buys it — a new owner re-invites their own
+      // staff. Real security boundary, done inside the same atomic
+      // transaction as the ownership change itself. No-op for every
+      // ordinary personal alias (nothing to revoke).
+      await tx.franchiseStaff.updateMany({
+        where: { franchiseUsernameId: usernameId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
       return tx.username.update({
         where: { id: usernameId },
         data: {
@@ -498,6 +509,13 @@ export class UsernameService {
         const buyerLive = await this.usersService.computeLiveActivity(
           username.currentBidderId!,
         );
+
+        // Same franchise-staff revocation-on-transfer as buyNow() — see the
+        // comment there. No-op for an ordinary personal alias.
+        await tx.franchiseStaff.updateMany({
+          where: { franchiseUsernameId: username.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
 
         await tx.username.update({
           where: { id: username.id },

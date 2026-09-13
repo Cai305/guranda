@@ -8,6 +8,10 @@ import DepositScreen from '../screens/DepositScreen';
 import RequestMoneyScreen from '../screens/RequestMoneyScreen';
 import PaymentRequestsScreen from '../screens/PaymentRequestsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import AirPayScreen from '../screens/AirPayScreen';
+import PayShapScreen from '../screens/PayShapScreen';
+import PayShapLinkScreen from '../screens/PayShapLinkScreen';
+import PayShapAirPayScreen from '../screens/PayShapAirPayScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +24,10 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="Send" component={SendScreen} />
       <Stack.Screen name="Deposit" component={DepositScreen} />
       <Stack.Screen name="RequestMoney" component={RequestMoneyScreen} />
+      <Stack.Screen name="AirPay" component={AirPayScreen} />
+      <Stack.Screen name="PayShap" component={PayShapScreen} />
+      <Stack.Screen name="PayShapLink" component={PayShapLinkScreen} />
+      <Stack.Screen name="PayShapAirPay" component={PayShapAirPayScreen} />
       <Stack.Screen name="PaymentRequests" component={PaymentRequestsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>

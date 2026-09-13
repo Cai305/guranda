@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert, Switch } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,29 @@ export default function CreatePostScreen({ navigation, route }: any) {
   // must survive navigating away to MediaEditor and back without resetting
   // (this screen instance stays mounted the whole time, just backgrounded).
   const editingIndexRef = useRef<number | null>(null);
+
+  // Phase 8 "publish everywhere": the toggle is only ever shown/enabled
+  // when the user has a REAL connected Telegram bot AND a real default
+  // publish chat_id already configured (see ConnectedAppsScreen.tsx) — a
+  // bot can't message a chat it's never heard from, so there is no honest
+  // way to offer this toggle without that already set up. Never shown
+  // disabled-but-tappable, which would silently fail on submit.
+  const [telegramReady, setTelegramReady] = useState(false);
+  const [alsoTelegram, setAlsoTelegram] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchApi('/integrations');
+        if (!res.ok) return;
+        const items = await res.json();
+        const telegram = items.find((i: any) => i.provider === 'telegram');
+        setTelegramReady(!!telegram?.connected && !!telegram?.telegramDefaultChatId);
+      } catch {
+        // Honest no-op — toggle just stays hidden, same as "not connected".
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (route?.params?.prefilledImageUri) {
@@ -160,6 +183,22 @@ export default function CreatePostScreen({ navigation, route }: any) {
       ...TYPOGRAPHY.body2,
       color: COLORS.secondary,
     },
+    telegramToggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: 10,
+    },
+    telegramToggleLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    telegramToggleText: {
+      ...TYPOGRAPHY.body2,
+      color: COLORS.text,
+    },
   }));
 
   const pickMedia = async () => {
@@ -212,12 +251,27 @@ export default function CreatePostScreen({ navigation, route }: any) {
         }));
       }
 
-      const res = await fetchApi('/posts', {
+      const useFanOut = telegramReady && alsoTelegram;
+      const res = await fetchApi(useFanOut ? '/posts/publish-everywhere' : '/posts', {
         method: 'POST',
-        body: JSON.stringify({ content: content.trim(), media }),
+        body: JSON.stringify(
+          useFanOut
+            ? { content: content.trim(), media, alsoTelegram: true }
+            : { content: content.trim(), media },
+        ),
       });
 
       if (res.ok) {
+        if (useFanOut) {
+          const data = await res.json();
+          // Honest reporting: the Guranda post always succeeds here (a
+          // non-ok response is handled below) — Telegram is best-effort on
+          // top, so a real failure there (no chat configured, permission
+          // not granted, Telegram API error) is surfaced, never swallowed.
+          if (data?.telegram?.attempted && !data.telegram.sent) {
+            Alert.alert('Posted, but Telegram failed', data.telegram.error || 'Could not send to Telegram.');
+          }
+        }
         navigation.goBack();
       } else {
         Alert.alert('Error', 'Could not create post. Please try again.');
@@ -297,6 +351,21 @@ export default function CreatePostScreen({ navigation, route }: any) {
               </TouchableOpacity>
             )}
           </ScrollView>
+        )}
+
+        {telegramReady && (
+          <View style={styles.telegramToggleRow}>
+            <View style={styles.telegramToggleLeft}>
+              <Ionicons name="paper-plane-outline" size={18} color={COLORS.secondary} />
+              <Text style={styles.telegramToggleText}>Also post to Telegram</Text>
+            </View>
+            <Switch
+              value={alsoTelegram}
+              onValueChange={setAlsoTelegram}
+              trackColor={{ false: COLORS.border, true: COLORS.primary }}
+              thumbColor="#FFF"
+            />
+          </View>
         )}
 
         <View style={styles.toolbar}>

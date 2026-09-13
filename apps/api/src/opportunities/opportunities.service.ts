@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ChallengesService } from '../challenges/challenges.service';
-import { getDisplayedReputation, levelLadder } from '../users/reputation.util';
+import { getDisplayedReputation, levelRank } from '../users/reputation.util';
 
 const CAMPAIGN_SUBTITLE: Record<string, string> = {
   BUSINESS: 'Sponsored',
@@ -10,13 +10,6 @@ const CAMPAIGN_SUBTITLE: Record<string, string> = {
   CREATOR_PROMO: 'Creator Promo',
   REVIEWER_RECOMMENDATION: 'Recommended',
 };
-
-function levelRank(level: string | null | undefined): number {
-  if (!level) return -1;
-  const ladder = levelLadder();
-  const idx = ladder.findIndex((t) => t.level === level);
-  return idx === -1 ? -1 : idx;
-}
 
 // Aggregates the two very different "things to do for a reward" surfaces —
 // business Campaigns (paid, contract-like) and community Challenges
@@ -37,7 +30,7 @@ export class OpportunitiesService {
     const [campaigns, missions] = await Promise.all([
       this.prisma.campaign.findMany({
         where: { status: 'ACTIVE', endAt: { gt: new Date() } },
-        include: { createdByBusiness: true },
+        include: { createdByBusiness: true, franchiseUsername: { select: { id: true, label: true } } },
         orderBy: { createdAt: 'desc' },
         take: 8,
       }),
@@ -56,13 +49,19 @@ export class OpportunitiesService {
       origin: 'campaign' as const,
       type: c.type,
       title: c.title,
-      subtitle: CAMPAIGN_SUBTITLE[c.type] ?? 'Campaign',
+      // A franchise-location campaign's subtitle is its own location label
+      // (e.g. "KFC Makhado") instead of the generic per-type subtitle, so
+      // it never reads as the same thing as the parent brand's own global
+      // campaign — per the directive's "clearly understand whether an
+      // offer is global brand or franchise-specific" requirement.
+      subtitle: c.franchiseUsername?.label ?? (CAMPAIGN_SUBTITLE[c.type] ?? 'Campaign'),
       rewardLabel: c.rewardLabel,
       estimatedMinutes: c.estimatedMinutes,
       actionLabel: c.actionLabel,
       actionRoute: c.actionRoute,
       coverImageUrl: c.coverImageUrl,
       sponsorLabel: c.createdByBusiness?.name ?? null,
+      franchiseLabel: c.franchiseUsername?.label ?? null,
     }));
 
     const missionCards = missions.map((m) => ({

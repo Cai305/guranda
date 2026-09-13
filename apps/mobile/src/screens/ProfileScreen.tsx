@@ -208,6 +208,8 @@ export default function ProfileScreen({ navigation }: any) {
       items: [
         { icon: 'sparkles-outline', label: 'AI Access & Permissions', onPress: () => navigation.navigate('AiAccess') },
         { icon: 'bulb-outline', label: 'AI Memory', onPress: () => navigation.navigate('AiMemory') },
+        { icon: 'construct-outline', label: 'Feature Builder', onPress: () => navigation.navigate('FeatureBuilder') },
+        { icon: 'storefront-outline', label: 'Browse Marketplace', onPress: () => navigation.navigate('FeatureMarketplace') },
         { icon: 'shield-checkmark-outline', label: 'External Approvals', onPress: () => navigation.navigate('McpApprovals') },
         { icon: 'link-outline', label: 'External Apps', onPress: () => navigation.navigate('ConnectedApps') },
       ],

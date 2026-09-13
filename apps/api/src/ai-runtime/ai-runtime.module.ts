@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
 import { ContextManagerService } from './context-manager.service';
 import { ActionExecutorService } from './action-executor.service';
 import { AgentRuntimeService } from './agent-runtime.service';
@@ -11,13 +10,13 @@ import { WidgetActionResolverService } from './widget-action-resolver.service';
 import { InteractionEngineService } from './interaction-engine.service';
 import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
 import { CapabilitiesModule } from '../capabilities/capabilities.module';
+import { AutomationGatewayModule } from '../automation-gateway/automation-gateway.module';
 
 import { orchestratorToolsProvider } from './orchestrator-tools.provider';
 
 @Module({
-  imports: [FeatureFlagsModule, CapabilitiesModule],
+  imports: [FeatureFlagsModule, CapabilitiesModule, AutomationGatewayModule],
   providers: [
-    PrismaService,
     ContextManagerService,
     ActionExecutorService,
     AgentRuntimeService,

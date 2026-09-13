@@ -4,6 +4,7 @@ import { ContextManagerService } from './context-manager.service';
 import { CapabilityGrantService } from '../capabilities/capability-grant.service';
 import { ToolRegistryService } from '../tool-registry/tool-registry.service';
 import { ToolDefinition } from '../tool-registry/tool-registry.types';
+import { AutomationGatewayService } from '../automation-gateway/automation-gateway.service';
 
 function makePrismaMock() {
   const logs = new Map<string, any>();
@@ -89,6 +90,10 @@ describe('ActionExecutorService', () => {
       registry,
       contextManager,
       new CapabilityGrantService(prisma as any),
+      // None of this suite's tools use executesVia: 'n8n', so the gateway
+      // itself is never actually called — a jest stub just needs to satisfy
+      // the constructor's dependency.
+      { trigger: jest.fn() } as unknown as AutomationGatewayService,
     );
   });
 

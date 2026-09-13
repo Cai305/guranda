@@ -7,6 +7,7 @@ import {
   Query,
   Req,
   Res,
+  Body,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
@@ -54,9 +55,93 @@ export class IntegrationsController {
   @UseGuards(JwtAuthGuard)
   @Delete(':provider')
   async disconnect(@Req() req: Request, @Param('provider') provider: string) {
+    const userId = (req as any).user.userId;
+    // Telegram and WhatsApp aren't OAuth2 (see oauth-providers.ts /
+    // adapters/telegram.adapter.ts / adapters/whatsapp.adapter.ts) so
+    // neither is ever a key in OAUTH_PROVIDERS — assertValidProvider would
+    // reject them even though both are perfectly real, disconnectable
+    // providers stored in the same ExternalIntegration table.
+    if (provider === 'telegram' || provider === 'whatsapp') {
+      await this.integrations.disconnect(userId, provider);
+      return { disconnected: true };
+    }
     assertValidProvider(provider);
-    await this.integrations.disconnect((req as any).user.userId, provider);
+    await this.integrations.disconnect(userId, provider);
     return { disconnected: true };
+  }
+
+  // Telegram's connect flow: the user pastes a bot token obtained from
+  // @BotFather directly (no system-browser redirect, no client id/secret —
+  // see adapters/telegram.adapter.ts). This calls Telegram's real getMe
+  // endpoint before saving anything, so a bad token fails here with
+  // Telegram's own rejection reason rather than saving silently.
+  @UseGuards(JwtAuthGuard)
+  @Post('telegram/connect')
+  async connectTelegram(@Req() req: Request, @Body() body: { botToken?: string }) {
+    if (!body?.botToken) {
+      throw new BadRequestException('botToken is required.');
+    }
+    const result = await this.integrations.connectTelegram((req as any).user.userId, body.botToken);
+    return { connected: true, username: result.username };
+  }
+
+  // WhatsApp's connect flow: the user pastes a permanent system-user access
+  // token + phone_number_id obtained directly from Meta Business Manager
+  // (no system-browser redirect, no app-level client id/secret — see
+  // adapters/whatsapp.adapter.ts). This calls the Cloud API's real
+  // phone-number-metadata endpoint before saving anything, so a bad/fake
+  // pair fails here with Meta's own rejection reason rather than saving
+  // silently.
+  @UseGuards(JwtAuthGuard)
+  @Post('whatsapp/connect')
+  async connectWhatsApp(@Req() req: Request, @Body() body: { accessToken?: string; phoneNumberId?: string }) {
+    if (!body?.accessToken || !body?.phoneNumberId) {
+      throw new BadRequestException('accessToken and phoneNumberId are both required.');
+    }
+    const result = await this.integrations.connectWhatsApp(
+      (req as any).user.userId,
+      body.accessToken,
+      body.phoneNumberId,
+    );
+    return { connected: true, displayPhoneNumber: result.displayPhoneNumber };
+  }
+
+  // Live bot identity check (real getMe call) — used by the mobile
+  // Connected Apps card's "Verify" action so it can show real, current bot
+  // identity rather than only replaying the label saved at connect time.
+  @UseGuards(JwtAuthGuard)
+  @Get('telegram/me')
+  async telegramMe(@Req() req: Request) {
+    const identity = await this.integrations.getTelegramIdentity((req as any).user.userId);
+    if (!identity) {
+      throw new BadRequestException('Telegram is not connected.');
+    }
+    return identity;
+  }
+
+  // On-demand "recent activity" refresh, in addition to the background poll
+  // (telegram-poll.service.ts) that turns new messages into real Guranda
+  // Notification rows. Read-only against Telegram's own unconfirmed-update
+  // queue — never advances the stored offset (see
+  // IntegrationsService.getTelegramRecentUpdates).
+  @UseGuards(JwtAuthGuard)
+  @Get('telegram/updates')
+  async telegramUpdates(@Req() req: Request) {
+    return this.integrations.getTelegramRecentUpdates((req as any).user.userId);
+  }
+
+  // Phase 8: the user picks ONE real chat_id (from their own real
+  // getUpdates() results, surfaced in ConnectedAppsScreen's "Recent
+  // activity" list) to become the target for the "publish everywhere"
+  // fan-out. See IntegrationsService.setTelegramDefaultChatId's doc
+  // comment for why this can't be inferred automatically.
+  @UseGuards(JwtAuthGuard)
+  @Post('telegram/default-chat')
+  async setTelegramDefaultChat(@Req() req: Request, @Body() body: { chatId?: number }) {
+    if (body?.chatId === undefined || body?.chatId === null) {
+      throw new BadRequestException('chatId is required.');
+    }
+    return this.integrations.setTelegramDefaultChatId((req as any).user.userId, Number(body.chatId));
   }
 
   // Hit directly by the provider's redirect from the SYSTEM browser, not

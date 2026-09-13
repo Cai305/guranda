@@ -66,6 +66,21 @@ export class WalletsController {
     );
   }
 
+  // AirPay's radar polls this as the user drags the radius control — a
+  // plain GET, not throttled like /send, since it never moves money.
+  @Get('airpay/nearby')
+  async getAirPayNearby(
+    @Request() req: any,
+    @Query('radiusMeters') radiusMeters?: string,
+    @Query('contactsOnly') contactsOnly?: string,
+  ) {
+    return this.walletsService.getNearbyForAirPay(
+      req.user.userId,
+      radiusMeters ? Number(radiusMeters) : 50,
+      contactsOnly === 'true',
+    );
+  }
+
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('deposit')
   async requestDeposit(@Request() req: any, @Body() body: RequestDepositDto) {

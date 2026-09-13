@@ -24,6 +24,8 @@ import { useLiveSound, LIVE_SOUND_DURATION_MS } from '../live/useLiveSound';
 import { fetchApi, uploadMedia } from '../utils/api';
 import { formatLastSeen } from '../utils/format';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import { useCachedChatMedia } from '../hooks/useCachedChatMedia';
+import { evictChatMedia } from '../utils/mediaCache';
 import MiniAppProductPicker from '../components/MiniAppProductPicker';
 import MiniAppEventPicker from '../components/MiniAppEventPicker';
 import ProductMiniCard, { ProductCardData } from '../components/cards/ProductMiniCard';
@@ -53,9 +55,17 @@ function formatClockTime(date?: Date | string): string {
 // A message can carry media with no caption — Message.content is a required
 // non-null column, so "no text" is stored as '' rather than null; render
 // bubbles need to treat that as "media-only", not an empty text bubble.
+//
+// Chat attachments go through the persistent (no-TTL) media cache, not the
+// 24h Discovery one — a photo someone sent you should keep working offline
+// for as long as the message exists, not silently age out overnight. The
+// original remote `url` still drives isVideo/isAudio detection and the
+// full-screen viewer (onOpen) — only the bubble's own render source swaps
+// to the cached local file once useCachedChatMedia resolves it.
 function MediaBubble({ url, mine, onOpen }: { url: string; mine: boolean; onOpen: (url: string, isVideo: boolean) => void }) {
   const isVideo = isVideoUrl(url);
-  const player = useVideoPlayer(isVideo ? url : null, p => { p.loop = false; });
+  const cachedUrl = useCachedChatMedia(url);
+  const player = useVideoPlayer(isVideo ? (cachedUrl ?? url) : null, p => { p.loop = false; });
 
   if (isAudioUrl(url)) return <VoiceMessageBubble uri={url} mine={mine} />;
   if (isVideo) {
@@ -69,7 +79,7 @@ function MediaBubble({ url, mine, onOpen }: { url: string; mine: boolean; onOpen
   // full-screen viewer is where Download/Share actually live.
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={() => onOpen(url, false)}>
-      <Image source={{ uri: url }} style={mediaBubbleStyles.mediaImage} resizeMode="cover" />
+      <Image source={{ uri: cachedUrl ?? url }} style={mediaBubbleStyles.mediaImage} resizeMode="cover" />
     </TouchableOpacity>
   );
 }
@@ -219,7 +229,15 @@ export default function ChatScreen({ route, navigation }: any) {
     };
     const deleteHandler = (data: { id: string; chatId: string; deletedAt: string }) => {
       if (data.chatId !== roomId) return;
-      setMessages((prev) => prev.map((m) => (m.id === data.id ? { ...m, deletedAt: data.deletedAt } as any : m)));
+      setMessages((prev) => {
+        // Deleting a message is exactly the trigger that should also drop
+        // its attachment from the persistent chat media cache — otherwise
+        // a deleted photo/video would keep sitting on disk indefinitely
+        // (the whole point of that cache having no TTL of its own).
+        const deleted = prev.find((m) => m.id === data.id);
+        if (deleted?.mediaUrl) evictChatMedia(deleted.mediaUrl).catch(() => {});
+        return prev.map((m) => (m.id === data.id ? { ...m, deletedAt: data.deletedAt } as any : m));
+      });
     };
 
     const errorHandler = (data: { chatId?: string; message: string }) => {

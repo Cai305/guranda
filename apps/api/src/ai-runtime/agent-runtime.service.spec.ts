@@ -8,6 +8,7 @@ import { ToolDefinition } from '../tool-registry/tool-registry.types';
 import { FakeLlmAdapter } from './test/fake-llm-adapter';
 import { RuntimeTurnResult } from './llm-adapter.interface';
 import { WidgetActionResolverService } from './widget-action-resolver.service';
+import { AutomationGatewayService } from '../automation-gateway/automation-gateway.service';
 
 function makePrismaMock(agentPermissions: Record<string, boolean>) {
   const logs = new Map<string, any>();
@@ -64,7 +65,15 @@ function buildRuntime(
   const registry = new ToolRegistryService();
   registry.registerMany(tools);
   const contextManager = new ContextManagerService(prisma);
-  const executor = new ActionExecutorService(prisma, registry, contextManager, new CapabilityGrantService(prisma));
+  const executor = new ActionExecutorService(
+    prisma,
+    registry,
+    contextManager,
+    new CapabilityGrantService(prisma),
+    // No test tool in this suite uses executesVia: 'n8n' — a stub satisfies
+    // the constructor without the gateway ever actually being called.
+    { trigger: jest.fn() } as unknown as AutomationGatewayService,
+  );
   const llm = new FakeLlmAdapter(script);
   const conversationHistory = new ConversationHistoryService(prisma);
   const widgetActionResolver = new WidgetActionResolverService(prisma);

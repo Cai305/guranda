@@ -27,6 +27,7 @@ export class StoryController {
       backgroundColor?: string;
       musicUrl?: string;
       musicTitle?: string;
+      songId?: string;
       label?: string;
       stickers?: any[];
       visibility?: 'PUBLIC' | 'CONTACTS';

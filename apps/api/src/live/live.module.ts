@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { LiveService } from './live.service';
 import { LiveController } from './live.controller';
 import { LiveGateway } from './live.gateway';
-import { PrismaService } from '../prisma.service';
 import { ShoppingModule } from '../shopping/shopping.module';
 import { EatModule } from '../eat/eat.module';
 import { ChatModule } from '../chat/chat.module';
@@ -18,7 +17,7 @@ import { AchievementsModule } from '../achievements/achievements.module';
 @Module({
   imports: [ShoppingModule, EatModule, ChatModule, RankingModule, ChessModule, FriendsModule, ProfileModule, RideModule, NotificationsModule, AchievementsModule],
   controllers: [LiveController],
-  providers: [LiveService, LiveGateway, PrismaService, LiveAiToolsProvider],
+  providers: [LiveService, LiveGateway, LiveAiToolsProvider],
   exports: [LiveGateway, LiveService],
 })
 export class LiveModule {}

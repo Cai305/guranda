@@ -5,6 +5,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './prisma.module';
 import { StripSensitiveInterceptor } from './common/strip-sensitive.interceptor';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
@@ -54,6 +55,7 @@ import { ToolRegistryModule } from './tool-registry/tool-registry.module';
 import { McpModule } from './mcp/mcp.module';
 import { CarFindModule } from './carfind/carfind.module';
 import { UsernamesModule } from './usernames/usernames.module';
+import { FranchisesModule } from './franchises/franchises.module';
 import { RankingModule } from './ranking/ranking.module';
 import { AdsModule } from './ads/ads.module';
 import { GifModule } from './gif/gif.module';
@@ -80,10 +82,21 @@ import { VotingModule } from './voting/voting.module';
 import { DeviceModule } from './device/device.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { BlocksModule } from './blocks/blocks.module';
+import { PayShapModule } from './payshap/payshap.module';
+import { SongsModule } from './songs/songs.module';
+import { PerformancesModule } from './performances/performances.module';
+import { VideoTemplatesModule } from './video-templates/video-templates.module';
+import { VideoProjectsModule } from './video-projects/video-projects.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { WidgetRegistryModule } from './widget-registry/widget-registry.module';
+import { FeaturesModule } from './features/features.module';
+import { BlueprintsModule } from './blueprints/blueprints.module';
+import { ConnectorsModule } from './connectors/connectors.module';
+import { AutomationGatewayModule } from './automation-gateway/automation-gateway.module';
 
 @Module({
   imports: [
+    PrismaModule,
     ScheduleModule.forRoot(),
     // Global in-memory cache with a 60-second default TTL and a maximum of 500
     // entries. Swap the store option for 'ioredis' to move to Redis with zero
@@ -164,6 +177,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     ProfileModule,
     TrendingModule,
     BusinessInsightsModule,
+    FranchisesModule,
     CampaignsModule,
     AnnouncementsModule,
     OpportunitiesModule,
@@ -172,7 +186,17 @@ import { ReviewsModule } from './reviews/reviews.module';
     DeviceModule,
     IntegrationsModule,
     BlocksModule,
+    PayShapModule,
+    SongsModule,
+    PerformancesModule,
+    VideoTemplatesModule,
+    VideoProjectsModule,
     ReviewsModule,
+    WidgetRegistryModule,
+    FeaturesModule,
+    BlueprintsModule,
+    ConnectorsModule,
+    AutomationGatewayModule,
   ],
   controllers: [AppController],
   providers: [

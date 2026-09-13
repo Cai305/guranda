@@ -67,6 +67,15 @@ export class CreateCampaignDto {
   @IsString({ each: true })
   targetCategories?: string[];
 
+  // Phase 7 — Franchise tenancy. Omitted/undefined = the existing global
+  // business-wide campaign behaviour, completely unchanged. Set = this
+  // campaign is scoped to ONE franchise-location Username (e.g. "KFC
+  // Makhado" vs the global "KFC" campaign) — validated in
+  // CampaignsService.create() via FranchisesService.canActAsAlias.
+  @IsOptional()
+  @IsString()
+  franchiseUsernameId?: string;
+
   @IsDateString()
   startAt: string;
 

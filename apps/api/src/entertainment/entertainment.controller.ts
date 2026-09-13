@@ -63,8 +63,15 @@ export class EntertainmentController {
   listEvents(
     @Query('category') category?: string,
     @Query('city') city?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
   ) {
-    return this.entertainmentService.listEvents({ category, city });
+    return this.entertainmentService.listEvents({
+      category,
+      city,
+      take: take ? Number(take) : undefined,
+      skip: skip ? Number(skip) : undefined,
+    });
   }
 
   // Literal routes before ':id' — otherwise Nest matches 'mine' as an :id.

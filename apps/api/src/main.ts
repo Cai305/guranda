@@ -4,6 +4,11 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Without this, Nest never runs OnModuleDestroy (PrismaService.$disconnect())
+  // on SIGTERM/SIGINT — every `nest start --watch` hot-reload during dev then
+  // leaves its old process's Postgres connections open until the OS reaps
+  // them, which is what exhausted max_connections repeatedly today.
+  app.enableShutdownHooks();
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],

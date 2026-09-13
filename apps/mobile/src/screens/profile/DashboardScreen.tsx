@@ -477,6 +477,22 @@ export default function DashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
 
+        {/* My Franchises — entry point to the Phase 7 franchise-tenancy
+            dashboard (root brand alias + franchise-location aliases with
+            their own staff/campaigns). Always visible — the screen itself
+            handles "not a verified business yet" / "no root alias yet" /
+            full hierarchy as three real states, never a fake stub. */}
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('MyFranchises')} style={dash.card}>
+          <View style={dash.cardHeaderRow}>
+            <Ionicons name="storefront" size={16} color="#CA8A04" />
+            <Text style={dash.cardTitle}>My Franchises</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+            <Text style={{ color: COLORS.textMuted, fontSize: 12.5, flex: 1 }}>Manage your brand alias & franchise locations</Text>
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+          </View>
+        </TouchableOpacity>
+
         {/* Business Reputation — product decision (2026-09): real customer
             ratings combined with a completion-rate reliability signal,
             across every mini-app with a real seller/host (Eat, Shopping,

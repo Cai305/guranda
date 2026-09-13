@@ -133,7 +133,7 @@ export class EntertainmentService {
   // ── Live Events (comedy, theatre, sports, festivals) ────────────────────
   // Open, any-user-hosted (like Eat/Shopping) — organizerId is null for the
   // platform-curated/seeded events, set for user-created ones.
-  async listEvents(filter?: { category?: string; city?: string }) {
+  async listEvents(filter?: { category?: string; city?: string; take?: number; skip?: number }) {
     return this.prisma.eventListing.findMany({
       where: {
         ticketsAvailable: { gt: 0 },
@@ -144,6 +144,8 @@ export class EntertainmentService {
           : {}),
       },
       orderBy: { startsAt: 'asc' },
+      take: filter?.take,
+      skip: filter?.skip,
     });
   }
 

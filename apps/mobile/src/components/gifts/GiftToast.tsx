@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text } from 'react-native';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { DURATION, EASING, EXIT_RATIO } from '../../theme/motion';
 
 interface Props {
   icon: string;
@@ -21,11 +22,12 @@ export default function GiftToast({ icon, label, senderName, nonce }: Props) {
     translateY.setValue(-10);
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: DURATION.standard, easing: EASING.standard, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: DURATION.standard, easing: EASING.standard, useNativeDriver: true }),
       ]),
       Animated.delay(2200),
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      // Exits are lighter/quicker than entrances — see theme/motion.ts.
+      Animated.timing(opacity, { toValue: 0, duration: Math.round(DURATION.standard * EXIT_RATIO), easing: EASING.in, useNativeDriver: true }),
     ]).start();
   }, [nonce]);
 

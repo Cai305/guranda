@@ -93,18 +93,41 @@ async function getOrCreateKey(): Promise<AESEncryptionKey> {
 }
 
 async function encryptString(plaintext: string): Promise<string> {
-  const key = await getOrCreateKey();
   const bytes = new TextEncoderImpl().encode(plaintext);
+  return encryptBytes(bytes);
+}
+
+async function decryptString(combinedBase64: string): Promise<string | null> {
+  const bytes = await decryptBytes(combinedBase64);
+  if (!bytes) return null;
+  try {
+    return new TextDecoderImpl().decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Encrypts raw bytes with the same install-specific hardware-backed key as
+ * every string entry in this store, returning a combined (nonce+ciphertext+
+ * tag) base64 blob safe to write to disk as-is. Exported for mediaCache.ts —
+ * image/video bytes are encrypted+decrypted directly rather than round-
+ * tripped through JSON/string storage, but they still belong to the exact
+ * same "only this install can ever decrypt this" key model as everything
+ * else in this file, so this shares that key instead of minting a second one.
+ */
+export async function encryptBytes(bytes: Uint8Array): Promise<string> {
+  const key = await getOrCreateKey();
   const sealed = await aesEncryptAsync(bytes, key);
   return sealed.combined('base64');
 }
 
-async function decryptString(combinedBase64: string): Promise<string | null> {
+/** Inverse of encryptBytes. Returns null on any decrypt failure — always a safe cache miss, never a crash. */
+export async function decryptBytes(combinedBase64: string): Promise<Uint8Array | null> {
   try {
     const key = await getOrCreateKey();
     const sealed = AESSealedData.fromCombined(combinedBase64);
-    const bytes = (await aesDecryptAsync(sealed, key, { output: 'bytes' })) as Uint8Array;
-    return new TextDecoderImpl().decode(bytes);
+    return (await aesDecryptAsync(sealed, key, { output: 'bytes' })) as Uint8Array;
   } catch {
     // Wrong/rotated key, corrupted entry, or a value written before this
     // store existed — always a safe-to-refetch cache miss, never a crash.

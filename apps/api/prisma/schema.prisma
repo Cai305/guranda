@@ -60,6 +60,13 @@ model User {
   chatSharesAsDelegate         ChatShare[]                @relation("chatShareDelegate")
   blocksMade                   Block[]                    @relation("blocksMade")
   blocksReceived               Block[]                    @relation("blocksReceived")
+  payshapProfile               PayShapProfile?
+  songsUploaded                Song[]                     @relation("songsUploaded")
+  performancesCreated          Performance[]              @relation("performancesCreated")
+  performanceLikes             PerformanceLike[]
+  performanceComments          PerformanceComment[]
+  videoProjectsCreated         VideoProject[]             @relation("videoProjectsCreated")
+  videoTemplatesCreated        VideoTemplate[]            @relation("videoTemplatesCreated")
   callsMade                    Call[]                     @relation("callsMade")
   callsReceived                Call[]                     @relation("callsReceived")
   callParticipations           CallParticipant[]          @relation("callParticipations")
@@ -210,10 +217,29 @@ model User {
   relationshipsAsUserB         Relationship[]             @relation("relationshipUserB")
   notifications                Notification[]
   campaignsCreated             Campaign[]
+  campaignImpressions          CampaignImpression[]
   merchantsOwned               Merchant[]                 @relation("merchantsOwned")
   merchantStaffRoles           MerchantStaff[]
   scanToPaySessions            ShoppingSession[]          @relation("scanToPaySessions")
   scanToPayTransactions        ScanToPayTransaction[]     @relation("scanToPayTransactions")
+  featuresCreated              Feature[]                  @relation("featuresCreated")
+  featureInstallations         FeatureInstallation[]      @relation("featureInstallations")
+  blueprintsCreated            Blueprint[]                @relation("blueprintsCreated")
+  blueprintRuns                BlueprintRun[]             @relation("blueprintRuns")
+  workflowExecutions           WorkflowExecution[]        @relation("workflowExecutions")
+  // Phase 4 — Feature & Blueprint Marketplace (see FeaturePurchase/
+  // BlueprintPurchase/FeatureSubscription/FeatureReview/BlueprintReview
+  // doc comments near the Feature/Blueprint models below).
+  featurePurchasesBought       FeaturePurchase[]          @relation("featurePurchaseBuyer")
+  featurePurchasesSold         FeaturePurchase[]          @relation("featurePurchaseSeller")
+  featureSubscriptions         FeatureSubscription[]      @relation("featureSubscriptions")
+  featureReviews               FeatureReview[]            @relation("featureReviews")
+  blueprintPurchasesBought     BlueprintPurchase[]        @relation("blueprintPurchaseBuyer")
+  blueprintPurchasesSold       BlueprintPurchase[]        @relation("blueprintPurchaseSeller")
+  blueprintReviews             BlueprintReview[]          @relation("blueprintReviews")
+  // Phase 7 — Franchise tenancy. Rows where I hold (possibly-revoked) staff
+  // access on someone else's franchise-location Username — see FranchiseStaff.
+  franchiseStaffMemberships    FranchiseStaff[]           @relation("franchiseStaffMemberships")
 }
 
 model UserProfile {
@@ -417,9 +443,15 @@ model Transaction {
   wallet    Wallet   @relation(fields: [walletId], references: [id])
   txHash    String?
   amount    Decimal
-  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT, VIDEO_REWARD_FUND, VIDEO_REWARD_PAYOUT, SCAN_TO_PAY_PAYOUT
+  type      String // SEND, RECEIVE, PAYMENT, DEPOSIT, STORY_LIKE, STORY_COMMENT, STORY_RANK, STORY_ITEM_SALE, EAT_ORDER_PAYOUT, SHOPPING_ORDER_PAYOUT, VIDEO_REWARD_FUND, VIDEO_REWARD_PAYOUT, SCAN_TO_PAY_PAYOUT, FEATURE_PURCHASE, BLUEPRINT_PURCHASE
   status    String // PENDING, SUCCESS, FAILED
   timestamp DateTime @default(now())
+
+  // Phase 4 Marketplace — set only on the buyer-side debit Transaction row
+  // a Feature/Blueprint purchase produced (the seller-side credit row has
+  // no back-reference; the purchase record itself carries both user ids).
+  featurePurchase   FeaturePurchase?
+  blueprintPurchase BlueprintPurchase?
 
   @@index([walletId, timestamp])
 }
@@ -500,14 +532,14 @@ model ChatShare {
 }
 
 model ChatMember {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   chatId       String
-  chat         Chat     @relation(fields: [chatId], references: [id])
+  chat         Chat      @relation(fields: [chatId], references: [id])
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  role         String   @default("MEMBER") // ADMIN, MOD, MEMBER
-  joinedAt     DateTime @default(now())
-  lastReadAt   DateTime @default(now())
+  user         User      @relation(fields: [userId], references: [id])
+  role         String    @default("MEMBER") // ADMIN, MOD, MEMBER
+  joinedAt     DateTime  @default(now())
+  lastReadAt   DateTime  @default(now())
   // Per-chat wallpaper override, this member only — takes precedence over
   // their UserProfile.chatWallpaperUrl default for this one conversation.
   // null falls back to the global default.
@@ -571,26 +603,43 @@ model Block {
   @@unique([blockerId, blockedId])
 }
 
+// A user's PayShap proxy number and the real-world banks it resolves to.
+// Guranda still settles every transfer on its own Masheleni ledger (there is
+// no live BankservAfrica PayShap integration) — linkedBankIds/primaryBankId
+// are the payee's *declared* real-world banks, shown to whoever pays this
+// number so they can pick one, same as PayShap itself lets a payer choose
+// when a proxy resolves to more than one linked account.
+model PayShapProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  number        String   @unique
+  linkedBankIds String[] @default([])
+  primaryBankId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 // Persists what was previously purely ephemeral (chat.gateway.ts's in-memory
 // pendingCalls Map) — gives calls a duration, a call log, and a durable
 // "missed call" record even if the recipient's socket never saw the ring.
 model Call {
-  id       String  @id @default(uuid())
-  callerId String
-  caller   User    @relation("callsMade", fields: [callerId], references: [id])
+  id              String            @id @default(uuid())
+  callerId        String
+  caller          User              @relation("callsMade", fields: [callerId], references: [id])
   // Null for a group call — there's no single "callee", see `participants`
   // and `isGroup` below. Always set for the original 1:1 path, untouched.
-  calleeId String?
-  callee   User?   @relation("callsReceived", fields: [calleeId], references: [id])
+  calleeId        String?
+  callee          User?             @relation("callsReceived", fields: [calleeId], references: [id])
   // Set only for a group call — which GROUP chat it was started from, so a
   // call started mid-conversation can be traced back to it.
-  chatId   String?
-  chat     Chat?   @relation(fields: [chatId], references: [id])
-  isGroup  Boolean @default(false)
+  chatId          String?
+  chat            Chat?             @relation(fields: [chatId], references: [id])
+  isGroup         Boolean           @default(false)
   type            String // voice, video
   status          String // ringing, ongoing, completed, missed, declined
   roomName        String
-  startedAt       DateTime  @default(now())
+  startedAt       DateTime          @default(now())
   connectedAt     DateTime?
   endedAt         DateTime?
   durationSeconds Int?
@@ -1727,16 +1776,38 @@ model PendingMcpAction {
 // rest — these are real credentials to a third-party account, not app-scoped
 // secrets. Bare userId (no relation), matching AiReminder — operational table.
 model ExternalIntegration {
-  id                   String    @id @default(uuid())
-  userId               String
-  provider             String // 'google_calendar' | 'github' | 'slack'
-  accessToken          String
-  refreshToken         String?
-  expiresAt            DateTime?
-  scope                String?
-  externalAccountLabel String? // e.g. connected email or workspace name, for display
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                    String    @id @default(uuid())
+  userId                String
+  provider              String // 'google_calendar' | 'github' | 'slack' | 'youtube' | 'tiktok' | 'x' | 'linkedin' | 'facebook' | 'telegram' | 'whatsapp'
+  accessToken           String
+  refreshToken          String?
+  expiresAt             DateTime?
+  scope                 String?
+  externalAccountLabel  String? // e.g. connected email or workspace name, for display
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  // Telegram-only: last Bot API update_id this integration has confirmed to
+  // Telegram (via getUpdates' `offset`). Null until the first successful
+  // poll. See telegram-poll.service.ts — without this, every poll would
+  // re-fetch and re-notify the same already-seen messages forever.
+  telegramLastUpdateId  Int?
+  // Telegram-only (Phase 8): the chat_id "publish everywhere" fan-out
+  // (posts + Telegram) sends into. A bot can't message a user who has
+  // never started a chat with it (Bot API platform constraint — see
+  // telegram-ai-tools.provider.ts), so this can't be inferred automatically;
+  // the user picks it once from their real getUpdates() results (see
+  // ConnectedAppsScreen.tsx) via POST /integrations/telegram/default-chat.
+  // Null until they do — callers must treat null as "not configured yet",
+  // never fall back to a guessed chat_id.
+  telegramDefaultChatId Int?
+
+  // WhatsApp-only: the Cloud API phone_number_id paired with the accessToken
+  // above (reused for the system-user access token itself, same reuse
+  // pattern as Telegram's bot token — see adapters/whatsapp.adapter.ts and
+  // IntegrationsService.connectWhatsApp). A WhatsApp send requires BOTH
+  // pieces together, unlike every OAuth provider above where accessToken
+  // alone is sufficient.
+  whatsappPhoneNumberId String?
 
   @@unique([userId, provider])
 }
@@ -1865,6 +1936,12 @@ model Story {
   backgroundColor String?
   musicUrl        String?
   musicTitle      String?
+  // Set only when the music above was picked from the Guranda song catalog
+  // rather than a raw device file — lets the catalog track "used on N
+  // statuses" and lets the viewer tap through to the sound. musicUrl/
+  // musicTitle stay the source of truth for playback either way.
+  songId          String?
+  song            Song?           @relation(fields: [songId], references: [id])
   stickers        Json?
   // Freeform, uppercase-normalized "of the Day" tag (e.g. "OOTD", "COTD").
   // null = general story. Non-null makes it eligible for the labeled/trending
@@ -1903,6 +1980,231 @@ model StoryView {
 
   @@unique([storyId, viewerId])
   @@index([storyId])
+}
+
+// ── Music / Lip-Sync ────────────────────────────────────────────
+// A Song is a "sound" people can attach to a Status (Story.songId, alongside
+// its existing free-text musicUrl/musicTitle) or perform to in a Performance.
+// Two ways a track lands in the catalog: an artist uploads their own (source
+// ARTIST_UPLOAD, uploadedById set), or it's a starter/open-library sound
+// (source OPEN_LIBRARY, uploadedById null) — there is no licensed
+// commercial-music catalog behind this; OPEN_LIBRARY only ever holds tracks
+// Guranda actually has the right to host.
+enum SongSource {
+  ARTIST_UPLOAD
+  OPEN_LIBRARY
+}
+
+model Song {
+  id              String     @id @default(uuid())
+  title           String
+  artistName      String
+  audioUrl        String
+  coverUrl        String?
+  durationSeconds Int
+  source          SongSource @default(ARTIST_UPLOAD)
+  uploadedById    String?
+  uploadedBy      User?      @relation("songsUploaded", fields: [uploadedById], references: [id])
+  // How many times this sound has been used on a Status or a Performance —
+  // bumped at use-time, not derived on read, so a "trending sounds" sort
+  // doesn't need to COUNT across two tables on every request.
+  useCount        Int        @default(0)
+  createdAt       DateTime   @default(now())
+
+  statuses       Story[]
+  performances   Performance[]
+  videoProjects  VideoProject[]
+  videoTemplates VideoTemplate[]
+
+  @@index([source])
+}
+
+enum PerformanceMode {
+  // Song plays aloud while recording; the recorded clip's own audio is
+  // discarded and the video is always played back muted, laid under the
+  // real song track — same pairing every "use this sound" duet feature
+  // uses, and needs no server-side audio mixing.
+  SONG_SYNC
+  // Song plays aloud while recording (headphones recommended); the
+  // recorded clip's own captured audio (voice, plus any speaker bleed if
+  // no headphones) is kept AS-IS and played back unmuted — no mixing
+  // happens, so this is a genuine one-take capture, not a produced mix.
+  KARAOKE
+  // No song plays during recording — silent capture first, then the song
+  // is attached afterward with a chosen start offset (offsetMs) against
+  // the (muted) video's own timeline.
+  ADD_AFTER
+  // Produced by the video-editor pipeline (VideoProject -> ffmpeg render):
+  // trim/speed/text/filters/music/voice-effect are already baked into
+  // videoUrl's own audio+video streams server-side, so playback is always
+  // "play the file as-is, unmuted" — never a separate song player, even
+  // when songId is set (it's attached only for attribution/useCount).
+  EDITED
+}
+
+enum PerformanceStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Performance {
+  id           String            @id @default(uuid())
+  userId       String
+  user         User              @relation("performancesCreated", fields: [userId], references: [id])
+  // Optional as of EDITED mode: a plain video-editor clip may carry no
+  // music at all. Still required in practice for SONG_SYNC/KARAOKE/
+  // ADD_AFTER (enforced in the service layer, not the schema, since only
+  // EDITED can legitimately have it null).
+  songId       String?
+  song         Song?             @relation(fields: [songId], references: [id])
+  mode         PerformanceMode
+  videoUrl     String
+  thumbnailUrl String?
+  // ADD_AFTER only — milliseconds into the song where playback should
+  // start relative to the video's own t=0. Unused (0) for the other two
+  // modes, which are always in sync by construction.
+  offsetMs     Int               @default(0)
+  caption      String?
+  status       PerformanceStatus @default(DRAFT)
+  publishedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  // Duet/Stitch: this performance was made in response to `sourcePerformance`
+  // (server rendered them together — side-by-side for DUET, sequential for
+  // STITCH). Null for an original, non-response performance.
+  sourcePerformanceId String?
+  sourcePerformance   Performance?  @relation("duetStitchSource", fields: [sourcePerformanceId], references: [id])
+  responses           Performance[] @relation("duetStitchSource")
+  compositionMode     String? // null | "DUET" | "STITCH"
+
+  // Reverse side of VideoProject.resultPerformanceId (1:1) — set only for
+  // EDITED performances produced by the editor's render pipeline.
+  project           VideoProject?  @relation("videoProjectResult")
+  // Reverse side of VideoProject.sourcePerformanceId — other people's
+  // in-progress duet/stitch projects responding to this performance
+  // (distinct from `responses`, which are already-published Performances).
+  sourceForProjects VideoProject[] @relation("duetStitchSourceProject")
+
+  likes    PerformanceLike[]
+  comments PerformanceComment[]
+
+  @@index([status, publishedAt])
+  @@index([userId])
+}
+
+model PerformanceLike {
+  id            String      @id @default(uuid())
+  performanceId String
+  performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@unique([performanceId, userId])
+}
+
+model PerformanceComment {
+  id            String      @id @default(uuid())
+  performanceId String
+  performance   Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  text          String
+  createdAt     DateTime    @default(now())
+
+  @@index([performanceId])
+}
+
+enum VideoProjectStatus {
+  DRAFT
+  RENDERING
+  READY
+  FAILED
+}
+
+// The "CapCut-style" editor's project state: an edit PLAN the client builds
+// (clips + trims/speed/overlays, chosen music/filter/voice-effect), rendered
+// into a real composited video server-side via ffmpeg (video-render.service)
+// rather than in real time on-device — this app is Expo-managed with no
+// custom native build, so there's no on-device video-compositing engine to
+// scrub against; the client edits a plan and the server bakes it.
+model VideoProject {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation("videoProjectsCreated", fields: [userId], references: [id])
+
+  status       VideoProjectStatus @default(DRAFT)
+  errorMessage String?
+
+  // Ordered clip array, each already uploaded by the client before being
+  // added here: [{ id, sourceUrl, sourceType: "RECORDED"|"LIBRARY",
+  // trimStartMs, trimEndMs, speed, overlays: [{ imageUrl, xNorm, yNorm,
+  // widthNorm, startMs, endMs }] }]. Overlays are always pre-rendered
+  // transparent PNGs uploaded by the client (text is drawn with a real RN
+  // <Text> + captured via react-native-view-shot, same technique
+  // MediaEditorScreen already uses) — this keeps the server-side ffmpeg
+  // pipeline to a plain image `overlay` filter with no font/drawtext
+  // dependency at all.
+  clips Json @default("[]")
+
+  musicSongId   String?
+  musicSong     Song?   @relation(fields: [musicSongId], references: [id])
+  musicOffsetMs Int     @default(0)
+  musicVolume   Float   @default(1.0)
+
+  // null | "chipmunk" | "deep" | "robot" | "echo" — applied to the
+  // captured/original audio track only, never to the mixed-in music.
+  voiceEffect  String?
+  // Mirrors MediaEditorScreen's FILTER_PRESETS keys (original/vivid/bw/
+  // warm/cool/fade) so the same named look means the same thing whether
+  // it's touching a photo or a video; mapped to an analogous ffmpeg filter
+  // chain server-side (see video-render.service's FFMPEG_FILTER_PRESETS).
+  filterPreset String?
+  caption      String?
+
+  templateId String?
+  template   VideoTemplate? @relation(fields: [templateId], references: [id])
+
+  // Duet/Stitch: render this project's clip(s) together with an existing
+  // performance — side-by-side (DUET) or sequential (STITCH).
+  sourcePerformanceId String?
+  sourcePerformance   Performance? @relation("duetStitchSourceProject", fields: [sourcePerformanceId], references: [id])
+  compositionMode     String? // null | "DUET" | "STITCH"
+
+  resultPerformanceId String?      @unique
+  resultPerformance   Performance? @relation("videoProjectResult", fields: [resultPerformanceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+// A starter combo (filter + music + caption placeholder text) other users
+// can apply to their own clip(s) — never carries someone else's finished
+// video, just the recipe. No fabricated/licensed content is seeded here;
+// musicSongId (if any) must point at a real catalog Song.
+model VideoTemplate {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  thumbnailUrl String?
+  filterPreset String?
+  musicSongId  String?
+  musicSong    Song?    @relation(fields: [musicSongId], references: [id])
+  // Seed overlays applied to a new project started from this template:
+  // [{ text, x, y, fontSize, color, startMs, endMs }] — rendered client-side
+  // into real overlay PNGs the same way a user-authored overlay is, not
+  // interpreted server-side.
+  textPresets  Json?
+  clipCount    Int      @default(1)
+  useCount     Int      @default(0)
+  createdById  String?
+  createdBy    User?    @relation("videoTemplatesCreated", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+
+  projects VideoProject[]
 }
 
 // ── Property module ────────────────────────────────────────────
@@ -2019,6 +2321,11 @@ model Business {
   sponsorships  ChallengeSponsorship[]
   campaigns     Campaign[]
   announcements Announcement[]
+  // Phase 7 — Franchise tenancy. Every Username row this Business owns the
+  // hierarchy for: the root brand alias AND every franchise-location alias
+  // beneath it (both carry businessId; parentUsernameId is what
+  // distinguishes root from location — see Username below).
+  usernames     Username[]
 }
 
 model Certificate {
@@ -2153,6 +2460,10 @@ enum UsernameAcquiredVia {
   MARKETPLACE_BUY
   AUCTION_WIN
   ADMIN_SEED
+  // Phase 7 — a verified business owner minting a franchise-location alias
+  // directly beneath their own brand alias. Free (no MINT_PRICE charge) —
+  // this is tenancy setup, not a marketplace claim.
+  FRANCHISE_GRANT
 }
 
 // A username is a permanent, ownable, tradeable asset — distinct from
@@ -2192,8 +2503,48 @@ model Username {
 
   bids UsernameBid[]
 
+  // Phase 7 — Franchise tenancy. Null on every ordinary personal alias.
+  // Set together: businessId is the owning Business for BOTH the root brand
+  // alias (parentUsernameId null) and every franchise-location alias beneath
+  // it (parentUsernameId pointing at that root). A location alias's
+  // businessId must equal its parent's businessId — enforced in
+  // FranchisesService, not the DB (see FranchisesService.createFranchiseAlias).
+  parentUsernameId   String?
+  parent             Username?        @relation("usernameFranchiseHierarchy", fields: [parentUsernameId], references: [id])
+  children           Username[]       @relation("usernameFranchiseHierarchy")
+  businessId         String?
+  business           Business?        @relation(fields: [businessId], references: [id])
+  staffRoster        FranchiseStaff[] @relation("franchiseStaffRoster")
+  franchiseCampaigns Campaign[]       @relation("campaignFranchiseUsername")
+
   @@index([ownerId])
   @@index([saleStatus])
+  @@index([businessId])
+  @@index([parentUsernameId])
+}
+
+// A user's scoped access to ONE franchise-location Username — not full
+// ownership. A MANAGER can invite/revoke STAFF on that same location; a
+// STAFF member can act on behalf of the location (posts/campaigns — see
+// FranchisesService.canActAsAlias) but can't manage staff. Soft-revoke via
+// revokedAt, matching FeatureInstallation.uninstalledAt's convention. On a
+// successful Username ownership transfer, every FranchiseStaff row for the
+// transferred alias is revoked as part of that same transaction — a new
+// owner never inherits the previous owner's staff (see
+// UsernameService.buyNow / settleAuction).
+model FranchiseStaff {
+  id                  String    @id @default(uuid())
+  franchiseUsernameId String
+  franchiseUsername   Username  @relation("franchiseStaffRoster", fields: [franchiseUsernameId], references: [id])
+  userId              String
+  user                User      @relation("franchiseStaffMemberships", fields: [userId], references: [id])
+  role                String // MANAGER, STAFF
+  invitedByUserId     String
+  createdAt           DateTime  @default(now())
+  revokedAt           DateTime?
+
+  @@index([franchiseUsernameId, revokedAt])
+  @@index([userId, revokedAt])
 }
 
 model UsernameBid {
@@ -3994,6 +4345,14 @@ model Campaign {
   // whose wallet is debited on approval.
   createdByBusinessId      String?
   createdByBusiness        Business?      @relation(fields: [createdByBusinessId], references: [id])
+  // Phase 7 — Franchise tenancy. Null (the default, unchanged behaviour) =
+  // this is the parent brand's own global/business-wide campaign. Set = this
+  // campaign is scoped to ONE franchise-location Username specifically (e.g.
+  // "KFC Makhado" vs the global "KFC" campaign) — see
+  // FranchisesService.canActAsAlias, which CampaignsService.create()
+  // consults before allowing this to be set.
+  franchiseUsernameId      String?
+  franchiseUsername        Username?      @relation("campaignFranchiseUsername", fields: [franchiseUsernameId], references: [id])
   startAt                  DateTime
   endAt                    DateTime
   impressions              Int            @default(0)
@@ -4001,10 +4360,28 @@ model Campaign {
   completions              Int            @default(0)
   createdAt                DateTime       @default(now())
 
-  metricsSnapshots CampaignMetricsSnapshot[]
+  metricsSnapshots  CampaignMetricsSnapshot[]
+  viewerImpressions CampaignImpression[]
 
   @@index([status, type])
   @@index([status, endAt])
+  @@index([franchiseUsernameId])
+}
+
+// Per-viewer ad exposure log. Campaign.impressions above is a single global
+// counter (used for the advertiser's own analytics) — it can't answer "has
+// THIS viewer already seen this ad today," which is what real frequency
+// capping needs. CampaignsService.getFeed consults this to cap how many
+// times one viewer is served the same campaign in a rolling window.
+model CampaignImpression {
+  id         String   @id @default(uuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seenAt     DateTime @default(now())
+
+  @@index([userId, campaignId, seenAt])
 }
 
 // Daily snapshot for campaign analytics — identical shape/cadence to
@@ -4243,4 +4620,451 @@ model ScanToPayTransaction {
   @@index([merchantId, createdAt])
   @@index([customerId, createdAt])
   @@index([sessionId])
+}
+
+// ============================================================
+// Guranda Engine — Phase 1 substrate (docs/16_Product_Vision_Master.md /
+// docs/17_Product_Audit_And_Mapping.md "digital operating system"
+// architecture). The Action Registry (ToolRegistryService) and Widget
+// Registry (WidgetRegistryService) already exist as in-memory registries
+// seeded from the 44+ *-ai-tools.provider.ts files — these models are the
+// DATABASE-backed layer on top: composable Features (named bundles of
+// existing tool-registry actions + widgets) and Blueprints (saved
+// deterministic multi-step workflows over those same actions). Execution
+// (actually running a Blueprint's steps, or installing/purchasing a
+// Feature) is explicitly Phase 2+ — these models only support real
+// create/list/get today; see FeaturesModule/BlueprintsModule.
+// ============================================================
+
+enum FeatureStatus {
+  DRAFT
+  TESTING
+  PUBLISHED
+  PRIVATE
+  UNLISTED
+  DEPRECATED
+  ARCHIVED
+}
+
+enum FeaturePricingType {
+  FREE
+  PAID
+  SUBSCRIPTION
+}
+
+// Shared by Feature and Blueprint — both are marketplace-listable entities
+// with the same "who can see this" concept, so one enum instead of two
+// near-identical ones.
+enum MarketplaceVisibility {
+  PRIVATE
+  SHARED
+  PUBLIC
+  ORGANIZATION
+  MARKETPLACE
+}
+
+// A Feature's own lifecycle is a subset of FeatureStatus (Features fold
+// PRIVATE/UNLISTED into `status` since MarketplaceVisibility is a separate
+// field there too — see Feature.status comment). Blueprints keep those two
+// concerns cleanly split: `status` is pure lifecycle, `visibility` (below)
+// is who-can-see.
+enum BlueprintStatus {
+  DRAFT
+  TESTING
+  PUBLISHED
+  DEPRECATED
+  ARCHIVED
+}
+
+enum BlueprintRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum WorkflowExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// Phase: n8n hybrid orchestration gateway. One row per real
+// AutomationGatewayService.trigger() call — a tool whose ToolDefinition sets
+// executesVia: 'n8n' (see tool-registry.types.ts) is routed through here
+// instead of ActionExecutorService calling tool.handler() directly. This is
+// deliberately a SEPARATE audit trail from ToolExecutionLog: ToolExecutionLog
+// is the general "every tool call, native or not" log every tool already
+// gets; WorkflowExecution additionally tracks the real n8n round-trip
+// (webhook URL target, idempotency, n8n-specific COMPLETED/FAILED result) for
+// the handful of tools that go external. Both are written for the same call.
+model WorkflowExecution {
+  id             String                  @id @default(uuid())
+  // Matches the tool name that triggered this (e.g. "telegram.sendMessage"),
+  // not a separate workflow-id namespace — keeps the audit row traceable
+  // straight back to the ToolDefinition without a lookup table.
+  workflowKey    String
+  userId         String
+  user           User                    @relation("workflowExecutions", fields: [userId], references: [id])
+  // What was actually POSTed to n8n, MINUS any real secret (e.g. a Telegram
+  // bot token is redacted to "[redacted]" here before this row is written —
+  // see AutomationGatewayService.redactPayload). The real secret still goes
+  // out over the wire to n8n; it must never be persisted at rest.
+  triggerPayload Json
+  status         WorkflowExecutionStatus @default(PENDING)
+  // n8n's normalized success payload (the `result` field of its { ok, result }
+  // response) when status is COMPLETED.
+  result         Json?
+  // Set on FAILED — either the external platform's own honest rejection
+  // reason (n8n reached, target platform said no) or a gateway-reachability
+  // message (n8n itself couldn't be reached/timed out) — the two are worded
+  // differently so a caller can tell which failure mode occurred from the
+  // text alone (see AutomationGatewayService.trigger).
+  errorMessage   String?
+  // Caller-supplied de-duplication key (see AutomationGatewayService.trigger)
+  // — a repeat trigger() call with the same key returns the existing
+  // non-FAILED row instead of re-hitting n8n. Null for callers that don't
+  // supply one.
+  idempotencyKey String?                 @unique
+  startedAt      DateTime                @default(now())
+  completedAt    DateTime?
+
+  @@index([userId, workflowKey])
+  @@index([userId, status])
+}
+
+enum ConnectorCategory {
+  SOCIAL
+  RIDE
+  MEDIA
+  PRODUCTIVITY
+  MESSAGING
+}
+
+enum ConnectorAuthType {
+  OAUTH2
+  API_KEY
+  NONE
+}
+
+// A named, composable bundle of existing tool-registry actions + widgets —
+// the unit a future Feature Builder / Marketplace deals in. Composes
+// EXISTING ToolDefinition actions (see apps/api/src/tool-registry) and
+// WidgetDefinition widgets (see apps/api/src/widget-registry) by name; it
+// does not define new capability of its own. FeatureVersion.actionNames /
+// widgetIds are validated at creation time against those two registries —
+// a Feature can never reference an action or widget that doesn't really
+// exist.
+model Feature {
+  id               String                @id @default(uuid())
+  name             String
+  description      String
+  createdByUserId  String
+  createdByUser    User                  @relation("featuresCreated", fields: [createdByUserId], references: [id])
+  // Lifecycle. Intentionally includes PRIVATE/UNLISTED alongside the
+  // publish-pipeline states (DRAFT/TESTING/PUBLISHED/DEPRECATED/ARCHIVED) —
+  // this mirrors how LifeModule status is expressed in
+  // apps/mobile/src/config/modules.ts today, so a future merge of the two
+  // systems doesn't need a translation layer.
+  status           FeatureStatus         @default(DRAFT)
+  visibility       MarketplaceVisibility @default(PRIVATE)
+  category         String
+  icon             String
+  // [start, end] hex pair — same shape as LifeModule.gradient in
+  // apps/mobile/src/config/modules.ts (GRADIENTS.*), stored as an array
+  // since Prisma has no fixed-length tuple type.
+  gradientColors   String[]              @default([])
+  pricingType      FeaturePricingType    @default(FREE)
+  price            Float                 @default(0)
+  currentVersionId String?               @unique
+  currentVersion   FeatureVersion?       @relation("featureCurrentVersion", fields: [currentVersionId], references: [id])
+  versions         FeatureVersion[]      @relation("featureVersions")
+  installations    FeatureInstallation[]
+  purchases        FeaturePurchase[]
+  subscriptions    FeatureSubscription[]
+  reviews          FeatureReview[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @default(now()) @updatedAt
+
+  @@index([status, visibility])
+  @@index([createdByUserId])
+}
+
+// One immutable snapshot of what a Feature composes. Never mutated after
+// creation — a new set of actions/widgets is always a new version, so
+// installed users (FeatureInstallation.versionId) keep working against
+// exactly what they installed even after the Feature's author publishes
+// changes.
+model FeatureVersion {
+  id                  String   @id @default(uuid())
+  featureId           String
+  feature             Feature  @relation("featureVersions", fields: [featureId], references: [id])
+  versionLabel        String
+  // Dot-namespaced ToolDefinition.name values this Feature composes (e.g.
+  // "ride.request", "wallet.pay") — every entry validated against
+  // ToolRegistryService.hasTool() at creation time (see
+  // FeaturesService.createVersion), never persisted otherwise.
+  actionNames         String[] @default([])
+  // WidgetDefinition.id values (== renderAs) this Feature's actions can
+  // produce — validated against WidgetRegistryService at creation time.
+  widgetIds           String[] @default([])
+  // ToolDefinition.permissionKey values a user must grant before this
+  // Feature's actions can run — surfaced to the install/consent UI later.
+  permissionsRequired String[] @default([])
+  changelog           String?
+  createdAt           DateTime @default(now())
+
+  featureAsCurrent Feature?              @relation("featureCurrentVersion")
+  installations    FeatureInstallation[]
+
+  @@index([featureId, createdAt])
+}
+
+// One user's install of one specific Feature version. Uninstalling never
+// deletes the row (uninstalledAt set instead) so install history/analytics
+// survive — same soft-delete convention as Block/ChallengeEntry elsewhere
+// in this schema.
+model FeatureInstallation {
+  id            String         @id @default(uuid())
+  featureId     String
+  feature       Feature        @relation(fields: [featureId], references: [id])
+  userId        String
+  user          User           @relation("featureInstallations", fields: [userId], references: [id])
+  versionId     String
+  version       FeatureVersion @relation(fields: [versionId], references: [id])
+  installedAt   DateTime       @default(now())
+  uninstalledAt DateTime?
+
+  @@index([userId, uninstalledAt])
+  @@index([featureId])
+}
+
+// ============================================================
+// Phase 4 — Feature & Blueprint Marketplace. Real money-on-approval,
+// atomic wallet transaction, real Transaction audit row — same pattern as
+// CampaignsService.approve() / UsernameService.buyNow() (see those for the
+// precedent this mirrors). See FeatureMarketplaceService /
+// BlueprintMarketplaceService for the writers of these rows.
+// ============================================================
+
+enum FeatureSubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+// One buyer's purchase of one Feature — the money side of installing a
+// PAID Feature. Mirrors UsernameSale's buyer/seller/price shape but also
+// pins the real Transaction row the atomic wallet debit produced.
+// refundedAt is nullable and set (never deleted) if a future refund flow
+// lands — no refund flow ships in this phase.
+model FeaturePurchase {
+  id            String       @id @default(uuid())
+  featureId     String
+  feature       Feature      @relation(fields: [featureId], references: [id])
+  buyerUserId   String
+  buyer         User         @relation("featurePurchaseBuyer", fields: [buyerUserId], references: [id])
+  sellerUserId  String
+  seller        User         @relation("featurePurchaseSeller", fields: [sellerUserId], references: [id])
+  pricePaid     Float
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  purchasedAt   DateTime     @default(now())
+  refundedAt    DateTime?
+
+  @@index([buyerUserId])
+  @@index([featureId])
+}
+
+// Entitlement tracker for a SUBSCRIPTION-priced Feature. Access-time expiry
+// check only (periodEnd, checked by FeatureMarketplaceService at
+// access-time) — no real recurring-charge cron/scheduler in this phase,
+// that's legitimately out of scope.
+model FeatureSubscription {
+  id             String                    @id @default(uuid())
+  featureId      String
+  feature        Feature                   @relation(fields: [featureId], references: [id])
+  userId         String
+  user           User                      @relation("featureSubscriptions", fields: [userId], references: [id])
+  status         FeatureSubscriptionStatus @default(ACTIVE)
+  pricePerPeriod Float
+  periodStart    DateTime                  @default(now())
+  periodEnd      DateTime
+  autoRenew      Boolean                   @default(true)
+  createdAt      DateTime                  @default(now())
+
+  @@index([userId, status])
+  @@index([featureId])
+}
+
+// One user's rating/review of a Feature — creation is gated on a real
+// FeatureInstallation row existing for (featureId, userId), enforced in
+// FeatureMarketplaceService.review, never at the schema level. One review
+// per user per Feature.
+model FeatureReview {
+  id        String   @id @default(uuid())
+  featureId String
+  feature   Feature  @relation(fields: [featureId], references: [id])
+  userId    String
+  user      User     @relation("featureReviews", fields: [userId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([featureId, userId])
+  @@index([featureId])
+}
+
+// A saved, deterministic multi-step workflow over tool-registry actions —
+// "run these N actions in order, with these inputs" — as opposed to a
+// Feature, which just bundles actions/widgets for the AI to call
+// ad-hoc. `requiredFeatureIds` lets a Blueprint depend on one or more
+// Features for the actions/widgets it needs, but a Blueprint MAY reference
+// base tool-registry actions directly with no Feature dependency at all
+// (requiredFeatureIds: []) — Features are a convenience grouping, not a
+// hard prerequisite for every action a Blueprint step can call.
+model Blueprint {
+  id                 String                @id @default(uuid())
+  name               String
+  description        String
+  createdByUserId    String
+  createdByUser      User                  @relation("blueprintsCreated", fields: [createdByUserId], references: [id])
+  visibility         MarketplaceVisibility @default(PRIVATE)
+  status             BlueprintStatus       @default(DRAFT)
+  // Feature.id values this Blueprint depends on. May be empty — a
+  // Blueprint that only calls base tool-registry actions needs no Feature
+  // at all. Not a Prisma relation (no join table) since a Blueprint step
+  // references actions by name, not a Feature's whole action set — this
+  // is declarative "what this depends on", checked at run time (Phase 2),
+  // not a referential-integrity relation.
+  requiredFeatureIds String[]              @default([])
+  // Same pricing shape as Feature (reuses FeaturePricingType rather than a
+  // duplicate enum) — SUBSCRIPTION is accepted by the type but
+  // BlueprintMarketplaceService only implements FREE/PAID purchase today;
+  // see that service's purchase() doc comment.
+  pricingType        FeaturePricingType    @default(FREE)
+  price              Float                 @default(0)
+  versions           BlueprintVersion[]
+  runs               BlueprintRun[]
+  purchases          BlueprintPurchase[]
+  reviews            BlueprintReview[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @default(now()) @updatedAt
+
+  @@index([status, visibility])
+  @@index([createdByUserId])
+}
+
+// One immutable snapshot of a Blueprint's steps. Never mutated after
+// creation, same reasoning as FeatureVersion — a BlueprintRun always
+// pins a specific versionId so a run started against v1 keeps executing
+// v1's steps even if the author publishes v2 mid-run.
+model BlueprintVersion {
+  id           String    @id @default(uuid())
+  blueprintId  String
+  blueprint    Blueprint @relation(fields: [blueprintId], references: [id])
+  versionLabel String
+  // Ordered array of { actionName: string; inputTemplate: Record<string,
+  // unknown> } — inputTemplate values may contain "{{variable}}"
+  // placeholders resolved against BlueprintRun.variables at execution time
+  // (Phase 2). Each actionName is validated against
+  // ToolRegistryService.hasTool() at creation time (see
+  // BlueprintsService.createVersion), same as FeatureVersion.actionNames —
+  // no reference to a non-existent action can ever be saved.
+  steps        Json
+  changelog    String?
+  createdAt    DateTime  @default(now())
+
+  runs BlueprintRun[]
+
+  @@index([blueprintId, createdAt])
+}
+
+// One execution of one BlueprintVersion. Created in Phase 1 only as a
+// resting data shape — no service writes rows here yet; actually running a
+// Blueprint's steps against real tool-registry actions is Phase 2's
+// BlueprintExecutorService, which will populate stepResults as each step
+// completes.
+model BlueprintRun {
+  id           String             @id @default(uuid())
+  blueprintId  String
+  blueprint    Blueprint          @relation(fields: [blueprintId], references: [id])
+  versionId    String
+  version      BlueprintVersion   @relation(fields: [versionId], references: [id])
+  userId       String
+  user         User               @relation("blueprintRuns", fields: [userId], references: [id])
+  // Actual values substituted for this run's {{variable}} placeholders.
+  variables    Json
+  status       BlueprintRunStatus @default(PENDING)
+  // Per-step execution result, ordered same as BlueprintVersion.steps —
+  // { actionName, status, output?, error? }[] — for the eventual Workshop
+  // step-inspector UI.
+  stepResults  Json               @default("[]")
+  startedAt    DateTime           @default(now())
+  completedAt  DateTime?
+  errorMessage String?
+
+  @@index([blueprintId, userId])
+  @@index([userId, status])
+}
+
+// One buyer's purchase of one Blueprint — grants the buyer the ability to
+// call BlueprintExecutionService.runBlueprint on that Blueprint's versions
+// (see runBlueprint's authorization check), the same way FeaturePurchase
+// grants install rights on a Feature. Mirrors FeaturePurchase's shape
+// exactly.
+model BlueprintPurchase {
+  id            String       @id @default(uuid())
+  blueprintId   String
+  blueprint     Blueprint    @relation(fields: [blueprintId], references: [id])
+  buyerUserId   String
+  buyer         User         @relation("blueprintPurchaseBuyer", fields: [buyerUserId], references: [id])
+  sellerUserId  String
+  seller        User         @relation("blueprintPurchaseSeller", fields: [sellerUserId], references: [id])
+  pricePaid     Float
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  purchasedAt   DateTime     @default(now())
+  refundedAt    DateTime?
+
+  @@index([buyerUserId])
+  @@index([blueprintId])
+}
+
+// One user's rating/review of a Blueprint — gated on the reviewer owning
+// the Blueprint or holding a real BlueprintPurchase, enforced in
+// BlueprintMarketplaceService.review. One review per user per Blueprint.
+model BlueprintReview {
+  id          String    @id @default(uuid())
+  blueprintId String
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id])
+  userId      String
+  user        User      @relation("blueprintReviews", fields: [userId], references: [id])
+  rating      Int
+  comment     String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([blueprintId, userId])
+  @@index([blueprintId])
+}
+
+// A known external platform Guranda could connect to (OAuth-based or
+// API-key-based). Rows are seeded/upserted at boot by ConnectorsService —
+// see apps/api/src/connectors/connectors.service.ts — from a fixed list
+// that mirrors apps/api/src/integrations/oauth-providers.ts's 3 real,
+// working providers PLUS the platforms product direction names as future
+// connectors with no credentials configured yet. isConfigured is computed
+// from real env-var presence for the 3 working providers and is hardcoded
+// false for every other row — never faked as connected.
+model ConnectorProvider {
+  id           String            @id @default(uuid())
+  key          String            @unique
+  displayName  String
+  category     ConnectorCategory
+  authType     ConnectorAuthType
+  isConfigured Boolean           @default(false)
+  docsUrl      String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @default(now()) @updatedAt
 }

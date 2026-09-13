@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { View, Text, FlatList, TouchableOpacity, Share, ActivityIndicator, TextInput, Alert, Modal, Platform } from 'react-native';
+import CachedImage from '../components/CachedImage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
@@ -9,16 +9,20 @@ import { GRADIENTS } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fetchApi } from '../utils/api';
-import { PostDto } from '@mxit2/types';
+import { PostDto, CampaignDto } from '@mxit2/types';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import ChallengeCard, { ChallengeSummary } from '../components/ChallengeCard';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import LiveStreamCard from '../components/LiveStreamCard';
 import VideoCard, { VideoMeta } from '../components/VideoCard';
+import EventMiniCard, { EventCardData } from '../components/cards/EventMiniCard';
 import { toLiveStream, enterLiveStream, fetchLiveRooms, RealLiveStream } from '../data/liveApi';
 import { useEffectiveModules, openModule, LifeModule } from '../config/modules';
-import { StreamItem, buildAllStream, fetchMorePosts, fetchMoreChallenges, fetchMoreVideos, fetchMoreLive } from '../data/exploreStream';
+import {
+  StreamItem, StatusItem, PerformanceItem, buildAllStream, fetchMorePosts, fetchMoreChallenges, fetchMoreVideos,
+  fetchMoreLive, fetchMoreStatuses, fetchMoreEvents, fetchMoreAds, fetchMorePerformances,
+} from '../data/exploreStream';
 
 const CHALLENGE_CATEGORIES = [
   'DANCE', 'COMEDY', 'FITNESS', 'GAMING', 'PHOTOGRAPHY', 'COOKING',
@@ -52,6 +56,198 @@ function timeRemaining(endAt: string): string {
   return `${Math.floor(hrs / 24)}d left`;
 }
 
+// FlatList's onEndReached never fires on web here — confirmed live: scrolled
+// a real device-width viewport all the way to a measured distanceFromBottom
+// of exactly 0 on both the "All" and "Posts" lists, with no pagination
+// request ever going out. Tried the RN-standard fix first — a manual
+// onScroll handler reading nativeEvent.contentSize/layoutMeasurement — and
+// that ALSO never fired the load, which points at those synthetic
+// measurements themselves being unreliable on react-native-web (the same
+// underlying layout-measurement gap onEndReached depends on), not just
+// onEndReached's own threshold math. This hook sidesteps RN's synthetic
+// layer entirely: react-native-web's ScrollView exposes the real underlying
+// DOM node via the documented `getScrollableNode()` imperative method
+// (vendor/react-native/FlatList/index.js forwards straight to it), so a
+// plain native 'scroll' listener on that node reads real, always-current
+// scrollTop/scrollHeight/clientHeight — the same values a direct DOM
+// inspection confirmed were trustworthy while diagnosing this. Native
+// platforms are untouched (this is a no-op there) since onEndReached
+// already works fine on iOS/Android.
+const NEAR_BOTTOM_PX = 600;
+function useWebNearBottomScroll(enabled: boolean, ref: React.RefObject<any>, onNearBottom: () => void) {
+  const onNearBottomRef = useRef(onNearBottom);
+  onNearBottomRef.current = onNearBottom;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !enabled) return;
+    let node: any = null;
+    let cancelled = false;
+    let rafId: number | undefined;
+    const handleScroll = () => {
+      if (!node) return;
+      if (node.scrollTop + node.clientHeight >= node.scrollHeight - NEAR_BOTTOM_PX) {
+        onNearBottomRef.current();
+      }
+    };
+    const attach = () => {
+      if (cancelled) return;
+      node = ref.current?.getScrollableNode?.();
+      if (!node) { rafId = requestAnimationFrame(attach); return; }
+      node.addEventListener('scroll', handleScroll, { passive: true });
+    };
+    attach();
+    return () => {
+      cancelled = true;
+      if (rafId !== undefined) cancelAnimationFrame(rafId);
+      node?.removeEventListener('scroll', handleScroll);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, ref]);
+}
+
+// Status/story row — the "who has stories" ring UX doesn't fit a mixed
+// vertical stream, so this reads as a compact card instead: avatar in a
+// colored ring (dim once viewed, matching TopBar/ChatListScreen's own
+// viewed-vs-unviewed ring convention), tap opens the same real
+// StoryViewerScreen the rest of the app uses.
+function StatusStreamCard({ status, onPress }: { status: StatusItem; onPress: () => void }) {
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    card: {
+      flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12,
+      backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.border, padding: 12,
+    },
+    ring: {
+      width: 52, height: 52, borderRadius: 26, borderWidth: 2,
+      borderColor: status.viewedByMe ? COLORS.border : COLORS.primary,
+      alignItems: 'center' as const, justifyContent: 'center' as const, overflow: 'hidden' as const,
+      backgroundColor: (status.backgroundColor || COLORS.primary) + '33',
+    },
+    avatarImg: { width: '100%' as const, height: '100%' as const },
+    avatarText: { color: COLORS.text, fontWeight: '800' as const, fontSize: 18 },
+    info: { flex: 1 },
+    name: { color: COLORS.text, fontWeight: '800' as const, fontSize: 14.5 },
+    preview: { color: COLORS.textMuted, fontSize: 12.5, marginTop: 2 },
+    badge: {
+      backgroundColor: 'rgba(139,92,246,0.12)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)',
+    },
+    badgeText: { color: COLORS.primary, fontWeight: '700' as const, fontSize: 11 },
+  }));
+  const displayName = status.author.displayName || status.author.username || 'User';
+  return (
+    <TouchableOpacity activeOpacity={0.85} style={styles.card} onPress={onPress}>
+      <View style={styles.ring}>
+        {status.author.avatarUrl ? (
+          <CachedImage source={{ uri: status.author.avatarUrl }} style={styles.avatarImg} contentFit="cover" />
+        ) : (
+          <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
+        )}
+      </View>
+      <View style={styles.info}>
+        <Text style={styles.name}>{displayName}</Text>
+        <Text style={styles.preview} numberOfLines={1}>
+          {status.textContent || (status.mediaUrl ? 'Photo status' : 'Status update')}
+        </Text>
+      </View>
+      <View style={styles.badge}><Text style={styles.badgeText}>STATUS</Text></View>
+    </TouchableOpacity>
+  );
+}
+
+// A "Sync" post in the All list — same row-card family as StatusStreamCard
+// (thumbnail + name + one-line preview + a kind badge) since a performance
+// is much closer to "a status you tap into" than a full video-grid tile.
+function PerformanceStreamCard({ performance, onPress }: { performance: PerformanceItem; onPress: () => void }) {
+  const { theme } = useTheme();
+  const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
+    card: {
+      flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12,
+      backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
+      borderWidth: 1, borderColor: COLORS.border, padding: 12,
+    },
+    thumb: {
+      width: 52, height: 52, borderRadius: RADIUS.md, overflow: 'hidden' as const,
+      backgroundColor: COLORS.surfaceElevated, alignItems: 'center' as const, justifyContent: 'center' as const,
+    },
+    thumbImg: { width: '100%' as const, height: '100%' as const },
+    info: { flex: 1 },
+    name: { color: COLORS.text, fontWeight: '800' as const, fontSize: 14.5 },
+    preview: { color: COLORS.textMuted, fontSize: 12.5, marginTop: 2 },
+    badge: {
+      backgroundColor: 'rgba(139,92,246,0.12)', borderRadius: RADIUS.pill,
+      paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)',
+    },
+    badgeText: { color: COLORS.primary, fontWeight: '700' as const, fontSize: 11 },
+  }));
+  return (
+    <TouchableOpacity activeOpacity={0.85} style={styles.card} onPress={onPress}>
+      <View style={styles.thumb}>
+        {performance.thumbnailUrl ? (
+          <CachedImage source={{ uri: performance.thumbnailUrl }} style={styles.thumbImg} contentFit="cover" />
+        ) : (
+          <Ionicons name="mic" size={20} color={theme.COLORS.textMuted} />
+        )}
+      </View>
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={1}>{performance.caption || performance.song?.title || 'Edited clip'}</Text>
+        {performance.song ? (
+          <Text style={styles.preview} numberOfLines={1}>♫ {performance.song.title} — {performance.song.artistName}</Text>
+        ) : (
+          <Text style={styles.preview} numberOfLines={1}>Edited with music, text &amp; effects</Text>
+        )}
+      </View>
+      <View style={styles.badge}><Text style={styles.badgeText}>SYNC</Text></View>
+    </TouchableOpacity>
+  );
+}
+
+// Sponsored/platform Campaign card — same hero-banner family as
+// renderHeroChallenge/renderHeroLive (gradient block, pill badge, title +
+// subtitle) so it reads as "one more kind of hero card", not a bolted-on ad
+// unit. Impression is logged once per campaign per screen visit the moment
+// this mounts (it only mounts once its FlatList row actually renders); the
+// click is real too — POST /campaigns/:id/click before following actionRoute.
+function AdStreamCard({ campaign, navigation, onImpression }: { campaign: CampaignDto; navigation: any; onImpression: (id: string) => void }) {
+  const styles = useThemedStyles(({ RADIUS }) => ({
+    card: { borderRadius: RADIUS.lg, overflow: 'hidden' as const, minHeight: 150, padding: 16, justifyContent: 'space-between' as const },
+    badge: { alignSelf: 'flex-start' as const, backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: RADIUS.pill, paddingHorizontal: 12, paddingVertical: 5 },
+    badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' as const, letterSpacing: 0.3 },
+    title: { color: '#fff', fontSize: 20, fontWeight: '800' as const },
+    subtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12.5, marginTop: 3 },
+    ctaRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, marginTop: 12 },
+    ctaText: { color: '#fff', fontWeight: '700' as const, fontSize: 13 },
+  }));
+
+  useEffect(() => {
+    onImpression(campaign.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaign.id]);
+
+  const badgeLabel = campaign.type === 'PLATFORM_UPDATE' ? 'PLATFORM UPDATE' : campaign.createdByBusinessId ? 'SPONSORED' : 'PROMOTED';
+
+  const handlePress = () => {
+    fetchApi(`/campaigns/${campaign.id}/click`, { method: 'POST' }).catch(() => {});
+    const route = campaign.actionRoute;
+    if (route?.name) navigation.navigate(route.name, route.params);
+  };
+
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={handlePress}>
+      <LinearGradient colors={GRADIENTS.golden} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
+        <View style={styles.badge}><Text style={styles.badgeText}>{badgeLabel}</Text></View>
+        <View>
+          <Text style={styles.title} numberOfLines={2}>{campaign.title}</Text>
+          <Text style={styles.subtitle} numberOfLines={2}>{campaign.description}</Text>
+          <View style={styles.ctaRow}>
+            <Text style={styles.ctaText}>{campaign.actionLabel}</Text>
+            <Ionicons name="arrow-forward" size={14} color="#fff" />
+          </View>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
 export default function ExploreScreen({ navigation }: any) {
   const { user } = useAuth();
   const { socket } = useSocket();
@@ -77,6 +273,8 @@ export default function ExploreScreen({ navigation }: any) {
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
   const cursorRef = useRef<string | null>(null);
   const listRef = useRef<FlatList<PostDto>>(null);
+  const allListRef = useRef<FlatList<StreamItem>>(null);
+  const challengesListRef = useRef<FlatList<ChallengeSummary>>(null);
   // Dedupes view-impression calls per post per screen visit — reset only on
   // a real feed refetch (mode switch or pull-to-refresh), not on scroll.
   const viewedIds = useRef(new Set<string>());
@@ -84,8 +282,8 @@ export default function ExploreScreen({ navigation }: any) {
   // ── "All" stream's own infinite scroll ──────────────────────────────────
   // The initial All stream is a curated round-robin from /trending's fixed
   // snapshot (top ~15 posts, ~10 challenges/live/videos) — a real but finite
-  // page. buildAllStream's SLOT_PATTERN reports back *which* types actually
-  // ran dry while laying out the current stream (allStreamExhaustedRef,
+  // page. buildAllStream's weighted-round-robin mix reports back *which*
+  // types actually ran dry while laying out the current stream (allStreamExhaustedRef,
   // set below); loadMoreAll only bothers fetching more of those, each from
   // its own real paginated source, each independent of the type-specific
   // tabs' own cursors so switching tabs never cross-contaminates them:
@@ -117,9 +315,36 @@ export default function ExploreScreen({ navigation }: any) {
   const [allLiveHasMore, setAllLiveHasMore] = useState(true);
   const allSeenLiveIds = useRef<Set<string>>(new Set());
 
+  // Status/events/ads have no separate "curated trending snapshot" the way
+  // posts/challenges/videos/live do — they start empty and are seeded by
+  // the same continuation fetchers loadMoreAll otherwise only uses for
+  // "more", fired once alongside fetchTrending (see fetchTrending below).
+  const [allStatuses, setAllStatuses] = useState<StatusItem[]>([]);
+  const [allStatusesHasMore, setAllStatusesHasMore] = useState(true);
+  const allSeenStatusIds = useRef<Set<string>>(new Set());
+
+  const [allEvents, setAllEvents] = useState<EventCardData[]>([]);
+  const [allEventsHasMore, setAllEventsHasMore] = useState(true);
+  const allEventsSkipRef = useRef(0);
+  const allSeenEventIds = useRef<Set<string>>(new Set());
+
+  const [allAds, setAllAds] = useState<CampaignDto[]>([]);
+  const [allAdsHasMore, setAllAdsHasMore] = useState(true);
+  const allAdsCursorRef = useRef<string | null>(null);
+  const allSeenAdIds = useRef<Set<string>>(new Set());
+
+  const [allPerformances, setAllPerformances] = useState<PerformanceItem[]>([]);
+  const [allPerformancesHasMore, setAllPerformancesHasMore] = useState(true);
+  const allPerformancesCursorRef = useRef<string | null>(null);
+  const allSeenPerformanceIds = useRef<Set<string>>(new Set());
+  // An ad's impression is logged once per card per screen visit, the
+  // instant it enters the mixed stream — same one-shot dedupe pattern as
+  // viewedIds above, just scoped to campaign ids instead of post ids.
+  const impressedAdIds = useRef<Set<string>>(new Set());
+
   const [allLoadingMore, setAllLoadingMore] = useState(false);
   // Populated after every allStream recompute (see the useEffect near the
-  // allStream useMemo) — read by loadMoreAll to decide which of the 4
+  // allStream useMemo) — read by loadMoreAll to decide which of the 8
   // sources above are actually worth fetching more of right now.
   const allStreamExhaustedRef = useRef<Set<StreamItem['kind']>>(new Set());
 
@@ -254,6 +479,27 @@ export default function ExploreScreen({ navigation }: any) {
         allSeenLiveIds.current = new Set((data.live as any[]).map((l) => l.id));
         setAllExtraLive([]);
         setAllLiveHasMore(true);
+        // Status/events/ads have no curated slice inside /trending — reset
+        // their own state and pull an initial page from each real source in
+        // parallel, so the very first render of the "All" stream already
+        // has a chance to mix them in rather than only after the user
+        // scrolls near the bottom.
+        allSeenStatusIds.current = new Set();
+        setAllStatuses([]);
+        setAllStatusesHasMore(true);
+        allSeenEventIds.current = new Set();
+        allEventsSkipRef.current = 0;
+        setAllEvents([]);
+        setAllEventsHasMore(true);
+        allSeenAdIds.current = new Set();
+        allAdsCursorRef.current = null;
+        setAllAds([]);
+        setAllAdsHasMore(true);
+        allSeenPerformanceIds.current = new Set();
+        allPerformancesCursorRef.current = null;
+        setAllPerformances([]);
+        setAllPerformancesHasMore(true);
+        await Promise.all([loadMoreStatusesForAll(), loadMoreEventsForAll(), loadMoreAdsForAll(), loadMorePerformancesForAll()]);
       }
     } catch (e) {
       console.error(e);
@@ -289,6 +535,33 @@ export default function ExploreScreen({ navigation }: any) {
     setAllLiveHasMore(items.length > 0);
   };
 
+  const loadMoreStatusesForAll = async () => {
+    const { items } = await fetchMoreStatuses(allSeenStatusIds.current);
+    setAllStatuses((prev) => [...prev, ...items]);
+    setAllStatusesHasMore(items.length > 0);
+  };
+
+  const loadMoreEventsForAll = async () => {
+    const { items, nextSkip, hasMore } = await fetchMoreEvents(allEventsSkipRef.current, allSeenEventIds.current);
+    allEventsSkipRef.current = nextSkip;
+    setAllEvents((prev) => [...prev, ...items]);
+    setAllEventsHasMore(hasMore);
+  };
+
+  const loadMoreAdsForAll = async () => {
+    const { items, nextCursor } = await fetchMoreAds(allAdsCursorRef.current, allSeenAdIds.current);
+    setAllAds((prev) => [...prev, ...items]);
+    allAdsCursorRef.current = nextCursor;
+    setAllAdsHasMore(nextCursor !== null);
+  };
+
+  const loadMorePerformancesForAll = async () => {
+    const { items, nextCursor } = await fetchMorePerformances(allPerformancesCursorRef.current, allSeenPerformanceIds.current);
+    setAllPerformances((prev) => [...prev, ...items]);
+    allPerformancesCursorRef.current = nextCursor;
+    setAllPerformancesHasMore(nextCursor !== null);
+  };
+
   const loadMoreAll = async () => {
     if (filter !== 'All' || allLoadingMore) return;
     const exhausted = allStreamExhaustedRef.current;
@@ -297,6 +570,10 @@ export default function ExploreScreen({ navigation }: any) {
     if (exhausted.has('challenge') && allChallengesHasMore) jobs.push(loadMoreChallengesForAll());
     if (exhausted.has('video') && allVideosHasMore) jobs.push(loadMoreVideosForAll());
     if (exhausted.has('live') && allLiveHasMore) jobs.push(loadMoreLiveForAll());
+    if (exhausted.has('status') && allStatusesHasMore) jobs.push(loadMoreStatusesForAll());
+    if (exhausted.has('event') && allEventsHasMore) jobs.push(loadMoreEventsForAll());
+    if (exhausted.has('ad') && allAdsHasMore) jobs.push(loadMoreAdsForAll());
+    if (exhausted.has('performance') && allPerformancesHasMore) jobs.push(loadMorePerformancesForAll());
     if (jobs.length === 0) return;
     try {
       setAllLoadingMore(true);
@@ -402,6 +679,13 @@ export default function ExploreScreen({ navigation }: any) {
     fetchFeed();
   };
 
+  // Real DOM-level scroll-to-bottom detection for web — see
+  // useWebNearBottomScroll's own comment above for why this exists
+  // alongside (not instead of) each list's onEndReached prop.
+  useWebNearBottomScroll(filter === 'All', allListRef, loadMoreAll);
+  useWebNearBottomScroll(filter === 'Posts', listRef, loadMorePosts);
+  useWebNearBottomScroll(filter === 'Challenges' && challengeSubTab === 'browse', challengesListRef, loadMoreChallenges);
+
   const handleFollow = async (authorId: string) => {
     try {
       setPosts(prev => prev.map(p => (
@@ -448,6 +732,12 @@ export default function ExploreScreen({ navigation }: any) {
       });
       setPosts(applyLike);
       setTrending(prev => prev ? { ...prev, posts: applyLike(prev.posts) } : prev);
+      // The "All" tab's own infinite-scroll continuation posts (loaded past
+      // the initial /trending snapshot) live in this separate array — a like
+      // on one of those never touches `trending.posts`, so without this the
+      // request still succeeds server-side while the card on screen never
+      // shows it (and a confused re-tap silently un-likes it instead).
+      setAllExtraPosts(applyLike);
       await fetchApi(`/posts/${postId}/like`, { method: 'POST' });
     } catch (e) {
       console.error(e);
@@ -471,6 +761,7 @@ export default function ExploreScreen({ navigation }: any) {
       });
       setPosts(applyRepost);
       setTrending(prev => prev ? { ...prev, posts: applyRepost(prev.posts) } : prev);
+      setAllExtraPosts(applyRepost);
       await fetchApi(`/posts/${postId}/repost`, { method: 'POST' });
     } catch (e) {
       console.error(e);
@@ -485,6 +776,7 @@ export default function ExploreScreen({ navigation }: any) {
       ));
       setPosts(applyBookmark);
       setTrending(prev => prev ? { ...prev, posts: applyBookmark(prev.posts) } : prev);
+      setAllExtraPosts(applyBookmark);
       await fetchApi(`/posts/${postId}/bookmark`, { method: 'POST' });
     } catch (e) {
       console.error(e);
@@ -772,6 +1064,17 @@ export default function ExploreScreen({ navigation }: any) {
     actionText: {
       color: COLORS.textMuted,
       fontSize: 13,
+    },
+    loadMoreFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 20,
+    },
+    loadMoreFooterText: {
+      color: COLORS.textMuted,
+      fontSize: 12.5,
     },
     emptyState: {
       alignItems: 'center',
@@ -1145,7 +1448,7 @@ export default function ExploreScreen({ navigation }: any) {
 
   // Extras feed straight into buildAllStream alongside the trending base,
   // not appended after it — so as more challenges/videos/live load in while
-  // scrolling, SLOT_PATTERN interleaves them properly through the stream
+  // scrolling, the weighted round-robin interleaves them properly through the stream
   // instead of dumping them as an unmixed tail of whatever ran out last.
   const allStreamResult = useMemo(
     () => buildAllStream(
@@ -1154,8 +1457,12 @@ export default function ExploreScreen({ navigation }: any) {
       [...(trending?.live ?? []), ...allExtraLive],
       [...(trending?.videos ?? []), ...allExtraVideos],
       discoverableApps,
+      allStatuses,
+      allEvents,
+      allAds,
+      allPerformances,
     ),
-    [trending, discoverableApps, allExtraPosts, allExtraChallenges, allExtraLive, allExtraVideos],
+    [trending, discoverableApps, allExtraPosts, allExtraChallenges, allExtraLive, allExtraVideos, allStatuses, allEvents, allAds, allPerformances],
   );
 
   // Runs after render (not during buildAllStream's own memo) so loadMoreAll
@@ -1173,6 +1480,10 @@ export default function ExploreScreen({ navigation }: any) {
       if (item.kind === 'challenge') return matchesSearch(item.data.title);
       if (item.kind === 'live') return matchesSearch(item.data.title);
       if (item.kind === 'video') return matchesSearch(item.data.title);
+      if (item.kind === 'status') return matchesSearch(item.data.textContent) || matchesSearch(item.data.author.displayName) || matchesSearch(item.data.author.username);
+      if (item.kind === 'event') return matchesSearch(item.data.title) || matchesSearch(item.data.venue) || matchesSearch(item.data.city);
+      if (item.kind === 'ad') return matchesSearch(item.data.title) || matchesSearch(item.data.description);
+      if (item.kind === 'performance') return matchesSearch(item.data.caption) || matchesSearch(item.data.song?.title) || matchesSearch(item.data.song?.artistName) || matchesSearch(item.data.user.displayName);
       return matchesSearch(item.data.name) || matchesSearch(item.data.tagline);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1210,10 +1521,9 @@ export default function ExploreScreen({ navigation }: any) {
         <TouchableOpacity activeOpacity={0.85} onPress={openDetail}>
           <View style={styles.postHeader}>
             <View style={styles.postAvatarCol}>
-              <ExpoImage
+              <CachedImage
                 source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${displayName}` }}
                 style={styles.postAvatar}
-                cachePolicy="disk"
                 transition={100}
               />
             </View>
@@ -1327,11 +1637,40 @@ export default function ExploreScreen({ navigation }: any) {
   // start, when opened from the "Videos" chip with no specific tap).
   const openImmersive = (initialKey?: string) => navigation.navigate('ImmersiveFeed', { items: allStream, initialKey });
 
+  // Same reshape openTrendStory (above) uses — StoryViewerScreen expects a
+  // `{userId, user, stories}` group; a status/story tapped from the mixed
+  // stream is always a single-story "group" of one.
+  const openStatusStory = (status: StatusItem) => {
+    navigation.navigate('StoryViewer', {
+      groups: [{ userId: status.author.id, user: status.author, stories: [status] }],
+      initialGroupIndex: 0,
+    });
+  };
+
+  const trackAdImpression = (campaignId: string) => {
+    if (impressedAdIds.current.has(campaignId)) return;
+    impressedAdIds.current.add(campaignId);
+    fetchApi(`/campaigns/${campaignId}/impression`, { method: 'POST' }).catch(() => {});
+  };
+
+  // fullWidth so it stretches edge-to-edge and picks up the same theme
+  // surface/border tokens as every other card in the stream — the default
+  // EventMiniCard is a fixed 240-300px chat-bubble size (built for
+  // ChatScreen's message attachments), which read as a small floating
+  // island centered in the middle of a full-width list.
+  const renderEventCard = (item: EventCardData) => (
+    <EventMiniCard event={item} navigation={navigation} canBook fullWidth />
+  );
+
   const renderStreamItem = ({ item }: { item: StreamItem }) => {
     if (item.kind === 'post') return renderPost(item.data);
     if (item.kind === 'challenge') return renderHeroChallenge(item.data);
     if (item.kind === 'live') return renderHeroLive(item.data);
     if (item.kind === 'video') return <VideoCard video={item.data} onPress={() => openImmersive(item.key)} />;
+    if (item.kind === 'status') return <StatusStreamCard status={item.data} onPress={() => openStatusStory(item.data)} />;
+    if (item.kind === 'event') return renderEventCard(item.data);
+    if (item.kind === 'ad') return <AdStreamCard campaign={item.data} navigation={navigation} onImpression={trackAdImpression} />;
+    if (item.kind === 'performance') return <PerformanceStreamCard performance={item.data} onPress={() => openImmersive(item.key)} />;
     return renderMiniAppCard(item.data);
   };
 
@@ -1457,10 +1796,16 @@ export default function ExploreScreen({ navigation }: any) {
                 showsVerticalScrollIndicator={false}
                 refreshing={loading}
                 onRefresh={fetchChallenges}
+                ref={challengesListRef}
                 onEndReached={loadMoreChallenges}
                 onEndReachedThreshold={2.5}
                 ListFooterComponent={
-                  challengesLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
+                  challengesLoadingMore ? (
+                    <View style={styles.loadMoreFooter}>
+                      <ActivityIndicator color={COLORS.primary} />
+                      <Text style={styles.loadMoreFooterText}>Loading more…</Text>
+                    </View>
+                  ) : null
                 }
                 ListEmptyComponent={
                   !loading ? (
@@ -1520,7 +1865,12 @@ export default function ExploreScreen({ navigation }: any) {
             </>
           }
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
+            loadingMore ? (
+              <View style={styles.loadMoreFooter}>
+                <ActivityIndicator color={COLORS.primary} />
+                <Text style={styles.loadMoreFooterText}>Loading more…</Text>
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             !loading ? (
@@ -1587,10 +1937,16 @@ export default function ExploreScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
           refreshing={trendingLoading}
           onRefresh={fetchTrending}
+          ref={allListRef}
           onEndReached={loadMoreAll}
           onEndReachedThreshold={2.5}
           ListFooterComponent={
-            allLoadingMore ? <ActivityIndicator style={{ paddingVertical: 20 }} color={COLORS.primary} /> : null
+            allLoadingMore ? (
+              <View style={styles.loadMoreFooter}>
+                <ActivityIndicator color={COLORS.primary} />
+                <Text style={styles.loadMoreFooterText}>Loading more…</Text>
+              </View>
+            ) : null
           }
           ListHeaderComponent={
             !searchLower ? (
@@ -1629,7 +1985,7 @@ export default function ExploreScreen({ navigation }: any) {
                     renderItem={({ item }) => (
                       <TouchableOpacity style={styles.trendCard} activeOpacity={0.85} onPress={() => openTrendStory(item)}>
                         {item.mediaUrl ? (
-                          <ExpoImage source={{ uri: item.mediaUrl }} style={styles.trendCardImage} contentFit="cover" />
+                          <CachedImage source={{ uri: item.mediaUrl }} style={styles.trendCardImage} contentFit="cover" />
                         ) : (
                           <View style={[styles.trendCardImage, styles.trendCardImageFallback]}>
                             <Text numberOfLines={4} style={styles.trendCardFallbackText}>{item.textContent || '✨'}</Text>
@@ -1688,6 +2044,8 @@ export default function ExploreScreen({ navigation }: any) {
               { icon: 'create-outline', color: '#6366F1', label: 'Post', hint: 'Text, photos or a short video', onPress: () => navigation.navigate('CreatePost') },
               { icon: 'play-circle-outline', color: '#EF4444', label: 'Long Video', hint: 'Upload to Discovery — over 45 seconds', onPress: () => navigation.navigate('VideoUpload') },
               { icon: 'sparkles-outline', color: '#EC4899', label: 'Trend / Story', hint: '24-hour story, tag it to a trend', onPress: () => uploadTrend() },
+              { icon: 'mic-outline', color: '#8B5CF6', label: 'Sync', hint: 'Pick a song and perform to it', onPress: () => navigation.navigate('CreateLipSync') },
+              { icon: 'videocam-outline', color: '#EC4899', label: 'Create', hint: 'Record or edit a video with music, text & effects', onPress: () => navigation.navigate('CreateHub') },
               { icon: 'radio-outline', color: '#F43F5E', label: 'Go Live', hint: 'Start a live stream right now', onPress: () => navigation.navigate('GoLive') },
               { icon: 'trophy-outline', color: '#F59E0B', label: 'Enter a Challenge', hint: 'Pick a challenge to submit an entry', onPress: () => { setFilter('Challenges'); setChallengeSubTab('browse'); } },
             ].map((opt) => (

@@ -74,11 +74,21 @@ export default function WebAlertHost() {
         <View style={styles.card}>
           <Text style={styles.title}>{alertItem.title}</Text>
           {!!alertItem.message && <Text style={styles.message}>{alertItem.message}</Text>}
-          <View style={styles.buttonRow}>
+          {/* iOS/Android's real Alert.alert lays 2 buttons side by side but
+              stacks 3+ into a vertical list — a row of `flex: 1` buttons
+              with 5-6 long labels (a report menu's Spam/Harassment/Nudity
+              or sexual content/Violence/Misinformation/Cancel) has no room
+              to fit and wraps into overlapping garbage. Match native's own
+              breakpoint instead of always forcing a single row. */}
+          <View style={alertItem.buttons.length > 2 ? styles.buttonColumn : styles.buttonRow}>
             {alertItem.buttons.map((button, i) => (
               <TouchableOpacity
                 key={i}
-                style={[styles.button, i > 0 && styles.buttonDivider]}
+                style={
+                  alertItem.buttons.length > 2
+                    ? [styles.buttonStacked, i > 0 && styles.buttonDividerTop]
+                    : [styles.button, i > 0 && styles.buttonDivider]
+                }
                 onPress={() => handlePress(button)}
               >
                 <Text
@@ -126,6 +136,13 @@ const styles = StyleSheet.create({
   },
   button: { flex: 1, paddingVertical: 14, alignItems: 'center' },
   buttonDivider: { borderLeftWidth: 1, borderLeftColor: COLORS.glassBorder },
+  buttonColumn: {
+    marginTop: SPACING.lg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.glassBorder,
+  },
+  buttonStacked: { paddingVertical: 14, alignItems: 'center' },
+  buttonDividerTop: { borderTopWidth: 1, borderTopColor: COLORS.glassBorder },
   buttonText: { color: COLORS.primary, fontWeight: '700', fontSize: 14.5 },
   destructiveText: { color: COLORS.error },
   cancelText: { color: COLORS.textMuted, fontWeight: '600' },

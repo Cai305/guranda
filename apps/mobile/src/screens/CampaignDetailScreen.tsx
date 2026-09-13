@@ -23,6 +23,7 @@ const CAMPAIGN_LOOK: Record<string, { gradient: [string, string]; icon: keyof ty
 export default function CampaignDetailScreen({ navigation, route }: any) {
   const { campaignId } = route.params;
   const [campaign, setCampaign] = useState<(CampaignDto & { createdByBusiness?: { name: string } | null }) | null>(null);
+  const isFranchiseScoped = !!campaign?.franchiseUsername;
   const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
   const { COLORS } = theme;
@@ -56,6 +57,7 @@ export default function CampaignDetailScreen({ navigation, route }: any) {
       paddingHorizontal: 10, paddingVertical: 4, marginBottom: SPACING.sm,
     },
     badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    franchiseBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(217,119,6,0.55)' },
     heroTitle: { ...TYPOGRAPHY.h2, color: '#fff', textAlign: 'center' },
     heroSponsor: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4 },
     card: {
@@ -120,9 +122,23 @@ export default function CampaignDetailScreen({ navigation, route }: any) {
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{look.label}</Text>
           </View>
+          {/* Phase 7 — clear "franchise location" vs "global brand" framing,
+              so a viewer never confuses a "KFC Makhado" offer with KFC's
+              own platform-wide campaign. Only renders when the campaign is
+              actually franchise-scoped (franchiseUsername set); every
+              existing global campaign renders exactly as before. */}
+          {isFranchiseScoped && (
+            <View style={[styles.badge, styles.franchiseBadge]}>
+              <Ionicons name="storefront" size={11} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.badgeText}>{campaign.franchiseUsername!.label} · Franchise Location</Text>
+            </View>
+          )}
           <Text style={styles.heroTitle}>{campaign.title}</Text>
           {!!campaign.createdByBusiness?.name && (
-            <Text style={styles.heroSponsor}>by {campaign.createdByBusiness.name}</Text>
+            <Text style={styles.heroSponsor}>
+              by {campaign.createdByBusiness.name}
+              {isFranchiseScoped ? ` (${campaign.franchiseUsername!.label})` : ' · Global'}
+            </Text>
           )}
         </LinearGradient>
 

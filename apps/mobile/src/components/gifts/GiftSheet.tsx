@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
 import { formatCurrency } from '../../utils/format';
+import Sheet from '../Sheet';
 
 export interface GiftCatalogItem {
   key: string;
@@ -32,31 +33,11 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
   const [error, setError] = useState<string | null>(null);
   const [discount, setDiscount] = useState<{ active: boolean; rate: number; badgeName: string | null } | null>(null);
   const styles = useThemedStyles(({ COLORS, TYPOGRAPHY, RADIUS, SPACING }) => ({
-    backdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.55)',
-      justifyContent: 'flex-end',
-    },
-    sheet: {
-      backgroundColor: '#150A2E',
-      borderTopLeftRadius: RADIUS.xl,
-      borderTopRightRadius: RADIUS.xl,
-      padding: SPACING.lg,
-      paddingBottom: SPACING.xxl,
-      borderWidth: 1,
-      borderColor: COLORS.glassBorder,
-      maxHeight: '80%',
+    sheetContent: {
+      paddingHorizontal: SPACING.lg,
     },
     scroll: {
       maxHeight: 420,
-    },
-    handle: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: COLORS.glassBorder,
-      alignSelf: 'center',
-      marginBottom: SPACING.md,
     },
     title: { ...TYPOGRAPHY.h3, textAlign: 'center' },
     subtitle: { ...TYPOGRAPHY.caption, textAlign: 'center', marginTop: 4, marginBottom: SPACING.lg },
@@ -147,10 +128,8 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.sheet} onPress={() => {}}>
-          <View style={styles.handle} />
+    <Sheet visible={visible} onClose={onClose} style={{ backgroundColor: '#150A2E' }}>
+      <View style={styles.sheetContent}>
           <Text style={styles.title}>Send a gift to {recipientName}</Text>
           <Text style={styles.subtitle}>
             {discount?.active
@@ -203,8 +182,7 @@ export default function GiftSheet({ visible, onClose, recipientId, recipientName
             <Ionicons name="close" size={16} color={COLORS.textMuted} />
             <Text style={styles.closeText}>Cancel</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+      </View>
+    </Sheet>
   );
 }

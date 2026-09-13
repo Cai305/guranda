@@ -189,12 +189,55 @@ export interface CampaignDto {
   targetCategories: string[];
   createdByUserId: string;
   createdByBusinessId?: string | null;
+  // Phase 7 — Franchise tenancy. Null = the existing global/business-wide
+  // campaign (unchanged). Set = scoped to ONE franchise-location Username —
+  // franchiseUsername carries its label for the "KFC Makhado" vs "KFC"
+  // distinction shown on cards/detail.
+  franchiseUsernameId?: string | null;
+  franchiseUsername?: { id: string; label: string } | null;
   startAt: Date;
   endAt: Date;
   impressions: number;
   clicks: number;
   completions: number;
   createdAt: Date;
+}
+
+// ============================================================
+// Franchise tenancy (Phase 7) — a verified Business can own a root brand
+// Username plus N franchise-location Usernames beneath it, each with its
+// own scoped staff roster. See apps/api/src/franchises/franchises.service.ts.
+// ============================================================
+
+export type FranchiseStaffRole = 'MANAGER' | 'STAFF';
+
+export interface FranchiseStaffDto {
+  id: string;
+  franchiseUsernameId: string;
+  userId: string;
+  role: FranchiseStaffRole;
+  invitedByUserId: string;
+  createdAt: Date;
+  revokedAt?: Date | null;
+  user?: { id: string; username: string; profile?: { displayName?: string | null; avatarUrl?: string | null } | null };
+}
+
+// A single Username row, seen through the franchise lens — carries the
+// franchise-specific fields alongside the fields every Username already has.
+export interface FranchiseUsernameDto {
+  id: string;
+  label: string;
+  ownerId: string;
+  parentUsernameId?: string | null;
+  businessId?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  staffRoster?: FranchiseStaffDto[];
+}
+
+export interface FranchiseHierarchyDto {
+  parent: FranchiseUsernameDto | null;
+  children: FranchiseUsernameDto[];
 }
 
 // Unified card shape the mobile OpportunitiesCarousel renders — one entry
@@ -214,6 +257,10 @@ export interface OpportunityCardDto {
   actionRoute: CampaignActionRoute;
   coverImageUrl?: string | null;
   sponsorLabel?: string | null;
+  // Phase 7 — Franchise tenancy. Set only for a franchise-location-scoped
+  // Campaign (e.g. "KFC Makhado") — null/undefined for the parent brand's
+  // own global campaign, so the mobile card can badge the two distinctly.
+  franchiseLabel?: string | null;
 }
 
 export interface FollowStatsDto {
@@ -779,4 +826,331 @@ export const ORDINAL_WORDS: Record<string, number> = {
   sixth: 5, seventh: 6, eighth: 7, ninth: 8, tenth: 9,
   last: -1, // resolved against itemCount at call time, not a fixed index
 };
+
+// ============================================================
+// Guranda Engine — Phase 1 substrate (docs/16_Product_Vision_Master.md /
+// docs/17_Product_Audit_And_Mapping.md "digital operating system"
+// architecture). Mirrors apps/api/prisma/schema.prisma's Feature/
+// Blueprint/ConnectorProvider models exactly — string literal unions here
+// match the Prisma enum member names 1:1 so a value from the API needs no
+// translation on the client. See apps/api/src/features, apps/api/src/
+// blueprints, apps/api/src/connectors, apps/api/src/widget-registry, and
+// apps/api/src/tool-registry/tool-registry.controller.ts (GET /tools) for
+// the producers of these shapes.
+// ============================================================
+
+export type FeatureStatus = 'DRAFT' | 'TESTING' | 'PUBLISHED' | 'PRIVATE' | 'UNLISTED' | 'DEPRECATED' | 'ARCHIVED';
+export type FeaturePricingType = 'FREE' | 'PAID' | 'SUBSCRIPTION';
+export type MarketplaceVisibility = 'PRIVATE' | 'SHARED' | 'PUBLIC' | 'ORGANIZATION' | 'MARKETPLACE';
+export type BlueprintStatus = 'DRAFT' | 'TESTING' | 'PUBLISHED' | 'DEPRECATED' | 'ARCHIVED';
+export type BlueprintRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type ConnectorCategory = 'SOCIAL' | 'RIDE' | 'MEDIA' | 'PRODUCTIVITY' | 'MESSAGING';
+export type ConnectorAuthType = 'OAUTH2' | 'API_KEY' | 'NONE';
+
+export interface FeatureDto {
+  id: string;
+  name: string;
+  description: string;
+  createdByUserId: string;
+  status: FeatureStatus;
+  visibility: MarketplaceVisibility;
+  category: string;
+  icon: string;
+  gradientColors: string[];
+  pricingType: FeaturePricingType;
+  price: number;
+  currentVersionId?: string | null;
+  currentVersion?: FeatureVersionDto | null;
+  versions?: FeatureVersionDto[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FeatureVersionDto {
+  id: string;
+  featureId: string;
+  versionLabel: string;
+  /** Dot-namespaced ToolDefinition.name values this Feature composes, e.g. "ride.request". */
+  actionNames: string[];
+  /** WidgetDefinition.id values (== renderAs) this Feature's actions can produce. */
+  widgetIds: string[];
+  permissionsRequired: string[];
+  changelog?: string | null;
+  createdAt: Date;
+}
+
+export interface FeatureInstallationDto {
+  id: string;
+  featureId: string;
+  userId: string;
+  versionId: string;
+  installedAt: Date;
+  uninstalledAt?: Date | null;
+}
+
+export interface BlueprintDto {
+  id: string;
+  name: string;
+  description: string;
+  createdByUserId: string;
+  visibility: MarketplaceVisibility;
+  status: BlueprintStatus;
+  /** Feature.id values this Blueprint depends on — may be empty. */
+  requiredFeatureIds: string[];
+  /** Reuses FeaturePricingType — SUBSCRIPTION is not implemented for Blueprints yet (see BlueprintMarketplaceService.purchase). */
+  pricingType: FeaturePricingType;
+  price: number;
+  versions?: BlueprintVersionDto[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BlueprintStep {
+  actionName: string;
+  /** May contain "{{variable}}" placeholders resolved against BlueprintRun.variables at execution time (Phase 2). */
+  inputTemplate: Record<string, unknown>;
+}
+
+export interface BlueprintVersionDto {
+  id: string;
+  blueprintId: string;
+  versionLabel: string;
+  steps: BlueprintStep[];
+  changelog?: string | null;
+  createdAt: Date;
+}
+
+/** POST /blueprints/versions/:versionId/run request body — mirrors RunBlueprintDto (apps/api/src/blueprints/dto/run-blueprint.dto.ts) exactly. */
+export interface RunBlueprintRequestDto {
+  variables: Record<string, string | number>;
+}
+
+export interface BlueprintRunDto {
+  id: string;
+  blueprintId: string;
+  versionId: string;
+  userId: string;
+  variables: Record<string, unknown>;
+  status: BlueprintRunStatus;
+  stepResults: Array<{ actionName: string; status: string; output?: unknown; error?: string }>;
+  startedAt: Date;
+  completedAt?: Date | null;
+  errorMessage?: string | null;
+}
+
+export interface ConnectorProviderDto {
+  id: string;
+  key: string;
+  displayName: string;
+  category: ConnectorCategory;
+  authType: ConnectorAuthType;
+  /** True only when real, working credentials exist today — never faked as connected. */
+  isConfigured: boolean;
+  docsUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Serializable projection of ToolDefinition (apps/api/src/tool-registry/
+// tool-registry.types.ts) returned by GET /tools — drops the `handler` /
+// `describeAction` / `describeResult` functions, which can't cross the
+// wire, and keeps everything else as-is.
+export interface ToolRegistryEntryDto {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  permissionKey: string;
+  legacyAliases?: string[];
+  sensitive: boolean;
+  module: string;
+  defaultGranted: boolean;
+  renderAs?: string;
+  backgroundCapable?: boolean;
+  requiresCapabilityGrant?: boolean;
+}
+
+// Mirrors apps/api/src/widget-registry/widget-registry.types.ts's
+// WidgetDefinition — returned by GET /widgets.
+export interface WidgetRegistryEntryDto {
+  id: string;
+  renderAs: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+
+// ============================================================
+// Feature Builder (Phase 3) — AI-assisted generation of a Feature draft
+// from a natural-language request, plus the Feature Workshop's real
+// step-by-step sandbox test runner. See apps/api/src/features/
+// feature-builder.service.ts and apps/api/src/blueprints/
+// blueprint-execution.service.ts (runSteps) for the producers of these
+// shapes. Nothing here is auto-published — a draft only ever becomes a
+// real Feature via POST /features/builder/save-draft, which reuses
+// FeaturesService's own Phase 1 validation.
+// ============================================================
+
+export interface GenerateFeatureDraftDto {
+  description: string;
+}
+
+/** One action the AI selected for a draft — real ToolRegistryEntryDto fields, not just a bare name, so the Workshop UI can show why it was picked and what input it expects. */
+export interface FeatureDraftActionDto {
+  actionName: string;
+  description: string;
+  permissionKey: string;
+  sensitive: boolean;
+  renderAs?: string | null;
+  inputSchema: Record<string, unknown>;
+}
+
+export interface FeatureDraftDto {
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  /** Ordered — the sequence the actions should run in. */
+  actions: FeatureDraftActionDto[];
+  widgetIds: string[];
+  /** Derived server-side from actions[].permissionKey — never taken from the model directly. */
+  permissionsRequired: string[];
+  /** Honest gaps: either the model's own "I can't do X" notes, or an action/widget it named that didn't exist and was dropped. Empty when the request is fully achievable today. */
+  unachievableNotes: string[];
+}
+
+export interface SaveFeatureDraftDto {
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  gradientColors?: string[];
+  actionNames: string[];
+  widgetIds?: string[];
+  permissionsRequired?: string[];
+}
+
+/**
+ * Per-step test input for POST /features/builder/test-run, aligned by
+ * array index with `actionNames` (testInput[i] is the input object for
+ * actionNames[i]; a shorter array leaves trailing steps with `{}`).
+ */
+export interface FeatureTestRunRequestDto {
+  actionNames: string[];
+  testInput?: Record<string, unknown>[];
+  variables?: Record<string, string | number>;
+}
+
+export interface FeatureTestRunStepDto {
+  actionName: string;
+  status: 'success' | 'failed';
+  output?: unknown;
+  error?: string;
+  durationMs: number;
+}
+
+export interface FeatureTestRunResultDto {
+  steps: FeatureTestRunStepDto[];
+  overallStatus: 'success' | 'failed';
+}
+
+// ============================================================
+// Feature & Blueprint Marketplace (Phase 4). Real money through the same
+// internal wallet ledger every other paid flow in this codebase uses — see
+// apps/api/src/features/feature-marketplace.service.ts and apps/api/src/
+// blueprints/blueprint-marketplace.service.ts for the producers of these
+// shapes. No external payment processor, nothing mocked.
+// ============================================================
+
+export type FeatureSubscriptionStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED';
+
+export interface FeaturePurchaseDto {
+  id: string;
+  featureId: string;
+  buyerUserId: string;
+  sellerUserId: string;
+  pricePaid: number;
+  transactionId?: string | null;
+  purchasedAt: Date;
+  refundedAt?: Date | null;
+}
+
+export interface FeatureSubscriptionDto {
+  id: string;
+  featureId: string;
+  userId: string;
+  status: FeatureSubscriptionStatus;
+  pricePerPeriod: number;
+  periodStart: Date;
+  periodEnd: Date;
+  autoRenew: boolean;
+  createdAt: Date;
+}
+
+export interface FeatureReviewDto {
+  id: string;
+  featureId: string;
+  userId: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: Date;
+  /** Present when the review is returned as part of a stats bundle (see FeatureWithStatsDto), never on a bare create response. */
+  user?: { id: string; username: string };
+}
+
+export interface FeatureStatsDto {
+  averageRating: number;
+  reviewCount: number;
+  installCount: number;
+  purchaseCount: number;
+}
+
+/** GET /features/:id's shape — the plain FeatureDto plus real, live-computed stats and the latest reviews. */
+export interface FeatureWithStatsDto extends FeatureDto {
+  createdByUser?: { id: string; username: string };
+  stats: FeatureStatsDto;
+  reviews: FeatureReviewDto[];
+}
+
+export interface ReviewFeatureRequestDto {
+  rating: number;
+  comment?: string;
+}
+
+export interface BlueprintPurchaseDto {
+  id: string;
+  blueprintId: string;
+  buyerUserId: string;
+  sellerUserId: string;
+  pricePaid: number;
+  transactionId?: string | null;
+  purchasedAt: Date;
+  refundedAt?: Date | null;
+}
+
+export interface BlueprintReviewDto {
+  id: string;
+  blueprintId: string;
+  userId: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: Date;
+  user?: { id: string; username: string };
+}
+
+export interface BlueprintStatsDto {
+  averageRating: number;
+  reviewCount: number;
+  purchaseCount: number;
+}
+
+/** GET /blueprints/:id's shape — the plain BlueprintDto plus real, live-computed stats and the latest reviews. */
+export interface BlueprintWithStatsDto extends BlueprintDto {
+  createdByUser?: { id: string; username: string };
+  stats: BlueprintStatsDto;
+  reviews: BlueprintReviewDto[];
+}
+
+export interface ReviewBlueprintRequestDto {
+  rating: number;
+  comment?: string;
+}
 

@@ -41,10 +41,31 @@ const OPTIONAL_FEATURES: Record<string, string> = {
   LIVEKIT_API_KEY: 'Live/calls will run on insecure self-hosted-dev LiveKit credentials',
   ROUTESTACK_API_KEY: 'AI-agent travel search will be unavailable',
   ADMIN_API_KEY: 'the admin ops dashboard will be unreachable',
-  INTEGRATIONS_ENCRYPTION_KEY: 'connecting Google Calendar/GitHub/Slack will be unavailable',
+  INTEGRATIONS_ENCRYPTION_KEY: 'connecting Google Calendar/GitHub/Slack/YouTube/TikTok/X/LinkedIn/Facebook/Telegram/WhatsApp will be unavailable',
   GOOGLE_CALENDAR_CLIENT_ID: 'connecting Google Calendar will be unavailable',
   GITHUB_CLIENT_ID: 'connecting GitHub will be unavailable',
   SLACK_CLIENT_ID: 'connecting Slack will be unavailable',
+  // Phase 5 connector scaffolding (apps/api/src/integrations/oauth-providers.ts
+  // + adapters/) — real OAuth2 config/adapter code exists for all 4 of these,
+  // but Guranda has no real developer app registered with any of them yet,
+  // so they're unset here on purpose. Each one only lights up (isConfigured:
+  // true on GET /connectors, "Connect" enabled in the app) once someone adds
+  // the real client id/secret to Render — no code changes needed at that point.
+  YOUTUBE_CLIENT_ID: 'connecting YouTube will be unavailable — get one at https://console.cloud.google.com/apis/credentials (enable the YouTube Data API v3)',
+  TIKTOK_CLIENT_ID: 'connecting TikTok will be unavailable — get one at https://developers.tiktok.com/',
+  X_CLIENT_ID: 'connecting X (Twitter) will be unavailable — get one at https://developer.x.com/en/portal/dashboard',
+  LINKEDIN_CLIENT_ID: 'connecting LinkedIn will be unavailable — get one at https://www.linkedin.com/developers/apps',
+  // Facebook Login (Meta Graph API) — same posture as the 5 above: real
+  // OAuth2 config/code exists (apps/api/src/integrations/oauth-providers.ts),
+  // but Guranda has no real Meta developer app registered yet.
+  FACEBOOK_CLIENT_ID: 'connecting Facebook will be unavailable — get one at https://developers.facebook.com/apps/ (create an app, add the "Facebook Login" product)',
+  // Telegram and WhatsApp are NOT OAuth2 (see adapters/telegram.adapter.ts
+  // and adapters/whatsapp.adapter.ts) so there's no TELEGRAM_CLIENT_ID or
+  // WHATSAPP_CLIENT_ID here — each user supplies their own credentials
+  // directly: a Telegram bot token from @BotFather (send it /newbot), or a
+  // WhatsApp system-user access token + phone_number_id from Meta Business
+  // Manager (business.facebook.com) — and pastes them into Guranda
+  // directly. Nothing to configure at the app level for either.
 };
 
 function validateEnv(): void {

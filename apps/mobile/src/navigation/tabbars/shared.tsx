@@ -3,11 +3,12 @@ import { Animated, Easing, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import ReanimatedView, { runOnJS, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useAiOrb } from '../../context/AiOrbContext';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeTokens } from '../../theme/themes';
+import { SPRING, useReducedMotion } from '../../theme/motion';
 
 // Shared across every bottom-bar style variant (see config/tabBarStyles.ts)
 // so route filtering, icon choice, and the AI trigger gesture stay
@@ -44,21 +45,50 @@ interface RouteIconProps {
 // every other tab keeps its Ionicons glyph. Centralized here so all 5
 // tab-bar styles (Orb/Classic/Pill/Compact/Dock) render it identically
 // instead of each hardcoding <Ionicons name={ROUTE_ICONS[route.name]}>.
+//
+// Wrapped in a small spring "pop" on the transition into focus (a tab
+// becoming active is an arrival, so it gets a brief overshoot — the one
+// place in this app's default motion vocabulary that reaches for it,
+// versus the restrained scale-only transitions used elsewhere) — this
+// single component change reaches every screen, since some tab bar is
+// mounted on all of them. Color still swaps instantly (callers already
+// resolve `color` via their own isFocused ternary); only scale animates,
+// to keep this a small, contained change rather than a prop-signature
+// refactor across all 5 tab-bar variants.
 export function RouteIcon({ routeName, size, color, focused }: RouteIconProps) {
   const { user } = useAuth();
+  const reducedMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const wasFocused = useRef(focused);
+
+  useEffect(() => {
+    if (focused && !wasFocused.current && !reducedMotion) {
+      scale.value = withSequence(withSpring(1.22, SPRING.snappy), withSpring(1, SPRING.snappy));
+    }
+    wasFocused.current = focused;
+  }, [focused, reducedMotion, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   if (routeName === 'Profile') {
     const uri = user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${user?.username || 'lifeos'}`;
     return (
-      <Image
-        source={{ uri }}
-        style={{
-          width: size, height: size, borderRadius: size / 2,
-          borderWidth: focused ? 1.5 : 0, borderColor: color,
-        }}
-      />
+      <ReanimatedView.View style={animatedStyle}>
+        <Image
+          source={{ uri }}
+          style={{
+            width: size, height: size, borderRadius: size / 2,
+            borderWidth: focused ? 1.5 : 0, borderColor: color,
+          }}
+        />
+      </ReanimatedView.View>
     );
   }
-  return <Ionicons name={ROUTE_ICONS[routeName] ?? 'ellipse-outline'} size={size} color={color} />;
+  return (
+    <ReanimatedView.View style={animatedStyle}>
+      <Ionicons name={ROUTE_ICONS[routeName] ?? 'ellipse-outline'} size={size} color={color} />
+    </ReanimatedView.View>
+  );
 }
 
 // Tabs backed by their own stack navigator (see BottomTabNavigator.tsx) —

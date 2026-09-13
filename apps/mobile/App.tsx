@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, DarkTheme, getStateFromPath as defaultGetStateFromPath } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,6 +22,8 @@ import IncomingCallOverlay from './src/components/calls/IncomingCallOverlay';
 import UploadStatusOverlay from './src/components/UploadStatusOverlay';
 import ContextualNewsOverlay from './src/context/ContextualNewsOverlay';
 import WebAlertHost from './src/utils/webAlertPolyfill';
+import ToastHost from './src/components/Toast';
+import { pruneExpiredMedia } from './src/utils/mediaCache';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -71,6 +73,11 @@ const linking = {
 
 function AppContent() {
   const { theme } = useTheme();
+  // One sweep per cold start is enough — getCachedUri's own per-read check
+  // already handles correctness (an expired entry is never served even if
+  // this hasn't run yet); this is purely reclaiming disk space from entries
+  // that were cached but never requested again.
+  useEffect(() => { pruneExpiredMedia(); }, []);
   return (
     <AuthProvider>
       <FeatureFlagsProvider>
@@ -105,6 +112,7 @@ function AppContent() {
           <UploadStatusOverlay />
           <ContextualNewsOverlay />
           <WebAlertHost />
+          <ToastHost />
         </SocketProvider>
         </ShoppingCartProvider>
         </CartProvider>

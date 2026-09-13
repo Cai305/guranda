@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { FriendsService } from '../friends/friends.service';
+import { SongsService } from '../songs/songs.service';
 
 // CCR = "creator support rate" — the flat Rand cost of each paid interaction
 // (like/comment/rank) on a labeled story, paid straight to its author. Server
@@ -35,6 +36,7 @@ export class StoryService {
   constructor(
     private prisma: PrismaService,
     private friends: FriendsService,
+    private songsService: SongsService,
   ) {}
 
   async createStory(
@@ -45,6 +47,11 @@ export class StoryService {
       backgroundColor?: string;
       musicUrl?: string;
       musicTitle?: string;
+      // Set when the music above came from the Guranda song catalog
+      // (SongPickerScreen) rather than a raw device file — musicUrl/
+      // musicTitle are still what actually plays, this just links back to
+      // the catalog row so its useCount reflects real usage.
+      songId?: string;
       label?: string;
       stickers?: any[];
       visibility?: 'PUBLIC' | 'CONTACTS';
@@ -63,7 +70,7 @@ export class StoryService {
       );
     }
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    return this.prisma.story.create({
+    const story = await this.prisma.story.create({
       data: {
         userId,
         textContent: dto.textContent,
@@ -71,6 +78,7 @@ export class StoryService {
         backgroundColor: dto.backgroundColor,
         musicUrl: dto.musicUrl,
         musicTitle: dto.musicTitle,
+        songId: dto.songId,
         stickers: dto.stickers ?? undefined,
         label: dto.label ? dto.label.trim().toUpperCase() : null,
         visibility,
@@ -87,6 +95,8 @@ export class StoryService {
       },
       include: { user: { select: USER_SELECT }, items: true },
     });
+    if (dto.songId) await this.songsService.recordUse(dto.songId);
+    return story;
   }
 
   async getFeed(userId: string) {

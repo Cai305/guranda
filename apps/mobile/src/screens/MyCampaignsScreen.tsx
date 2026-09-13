@@ -49,6 +49,12 @@ export default function MyCampaignsScreen({ navigation }: any) {
     statusPill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: RADIUS.pill },
     statusText: { color: '#fff', fontSize: 10, fontWeight: '800' },
     metaText: { color: COLORS.textMuted, fontSize: 12, marginTop: 6 },
+    franchiseTag: {
+      flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
+      marginTop: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill,
+      backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)',
+    },
+    franchiseTagText: { color: '#F59E0B', fontSize: 10.5, fontWeight: '700' },
     empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, paddingTop: 100 },
     emptyText: { color: COLORS.textMuted, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
     createBtn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 },
@@ -92,6 +98,15 @@ export default function MyCampaignsScreen({ navigation }: any) {
                 </View>
               </View>
               <Text style={styles.metaText}>{item.rewardLabel} · {item.impressions} impressions · {item.clicks} clicks</Text>
+              {/* Phase 7 — franchise-scoped campaigns are tagged with their
+                  location so this list never reads as "the same campaign"
+                  as the brand's own global one. */}
+              {!!item.franchiseUsername && (
+                <View style={styles.franchiseTag}>
+                  <Ionicons name="storefront-outline" size={11} color="#F59E0B" />
+                  <Text style={styles.franchiseTagText}>{item.franchiseUsername.label}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           )}
         />

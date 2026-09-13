@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GiftsController } from './gifts.controller';
 import { GiftsService } from './gifts.service';
-import { PrismaService } from '../prisma.service';
 import { VerificationModule } from '../verification/verification.module';
 import { LiveModule } from '../live/live.module';
 import { WalletsModule } from '../wallets/wallets.module';
@@ -12,7 +11,7 @@ import { AchievementsModule } from '../achievements/achievements.module';
 @Module({
   imports: [VerificationModule, LiveModule, WalletsModule, NotificationsModule, AchievementsModule],
   controllers: [GiftsController],
-  providers: [GiftsService, PrismaService, GiftsAiToolsProvider],
+  providers: [GiftsService, GiftsAiToolsProvider],
   exports: [GiftsService],
 })
 export class GiftsModule {}

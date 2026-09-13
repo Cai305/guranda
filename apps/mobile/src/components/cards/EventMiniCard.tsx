@@ -63,6 +63,12 @@ interface Props {
   navigation?: any;
   /** If false, only shows "View Event" — no booking actions (e.g. sent by the other side) */
   canBook?: boolean;
+  /** Explore's mixed stream: every other card (post/challenge/live/ad/
+   * mini-app) stretches to the full list width using theme surface/border
+   * tokens. The default below is still the fixed 240-300px chat-bubble
+   * size this card was originally built for (ChatScreen sends it as a
+   * message attachment) — leave this false there. */
+  fullWidth?: boolean;
 }
 
 export default function EventMiniCard({
@@ -71,6 +77,7 @@ export default function EventMiniCard({
   chatTargetName,
   navigation,
   canBook = true,
+  fullWidth = false,
 }: Props) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -82,13 +89,16 @@ export default function EventMiniCard({
 
   const styles = useThemedStyles(({ COLORS, RADIUS }) => ({
     card: {
-      backgroundColor: 'rgba(15,15,25,0.97)',
+      // Previously a hardcoded near-black rgba regardless of theme — wrong
+      // on every non-dark theme (light/black/purple all define their own
+      // COLORS.surface/border). Using the tokens matches every other
+      // Explore card and actually adapts when the user switches theme.
+      backgroundColor: COLORS.surface,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
-      borderColor: 'rgba(139,92,246,0.25)',
+      borderColor: COLORS.border,
       overflow: 'hidden',
-      minWidth: 240,
-      maxWidth: 300,
+      ...(fullWidth ? { width: '100%' as const } : { minWidth: 240, maxWidth: 300 }),
     },
     poster: {
       width: '100%',
@@ -184,7 +194,7 @@ export default function EventMiniCard({
     },
     divider: {
       height: 1,
-      backgroundColor: 'rgba(255,255,255,0.07)',
+      backgroundColor: COLORS.border,
       marginHorizontal: 12,
     },
     actions: {

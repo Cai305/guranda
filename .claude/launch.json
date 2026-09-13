@@ -58,6 +58,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "C:\\Users\\USER\\Desktop\\thuma", "run", "dev", "--", "-p", "3050"],
       "port": 3050
+    },
+    {
+      "name": "corelink-webapp",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:\\Users\\USER\\Desktop\\fiberStore\\webapp", "run", "dev", "--", "-p", "3060"],
+      "port": 3060
     }
   ]
 }

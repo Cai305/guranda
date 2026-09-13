@@ -11,6 +11,8 @@ import { BadgeService } from '../profile/badge.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BlocksService } from '../blocks/blocks.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { ActionExecutorService } from '../ai-runtime/action-executor.service';
+import { IntegrationsService } from '../integrations/integrations.service';
 
 export type PostMediaInput = { url: string; type: string; thumbnailUrl?: string };
 
@@ -59,6 +61,31 @@ function toPostAuthor(author: any) {
   };
 }
 
+// Reassembles a flat, createdAt-ordered comment list (each row carrying its
+// own parentId) into a real tree of unbounded depth. Flat-fetch-then-
+// reassemble instead of a nested Prisma `include` because a nested include
+// can only express a fixed number of levels — this handles a reply chain of
+// any length with one query. createdAt ASC guarantees every comment is
+// visited after its own parent (you can't reply to a comment that doesn't
+// exist yet), so a single pass is enough — no second sort/recursion pass
+// needed to resolve parent-before-child ordering.
+function buildCommentTree(flat: any[]): any[] {
+  const byId = new Map<string, any>();
+  const roots: any[] = [];
+  for (const c of flat) {
+    byId.set(c.id, { ...c, author: toPostAuthor(c.author), replies: [] });
+  }
+  for (const c of flat) {
+    const node = byId.get(c.id);
+    if (c.parentId && byId.has(c.parentId)) {
+      byId.get(c.parentId).replies.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
 @Injectable()
 export class PostsService {
   constructor(
@@ -71,6 +98,8 @@ export class PostsService {
     private notifications: NotificationsService,
     private blocks: BlocksService,
     private achievements: AchievementsService,
+    private actionExecutor: ActionExecutorService,
+    private integrations: IntegrationsService,
   ) {}
 
   // TEMPORARY (see schema.prisma note on Post.mediaUrl/mediaType): copies
@@ -136,6 +165,73 @@ export class PostsService {
     this.badgeService.tryMintScarce(userId, 'OG_CREATOR').catch(() => {});
     this.achievements.evaluatePlatformAchievementsForUser(userId).catch(() => {});
     return { ...post, author: toPostAuthor(post.author) };
+  }
+
+  // Phase 8: "publish once, fan out" — write one Guranda status post AND,
+  // optionally, send the same text through the user's connected Telegram
+  // bot. Deliberately calls the SAME tool-registry actions
+  // (posts.create/telegram.sendMessage) that the seeded "Publish Status
+  // Everywhere" Blueprint (see BlueprintsService/BlueprintExecutionService)
+  // and the Feature Builder compose, via the real ActionExecutorService —
+  // not a second hand-rolled path — so permission checks and audit logging
+  // behave identically whether this runs from the composer toggle, a
+  // Blueprint run, or the AI itself. `approved: true` here is the user's
+  // own explicit tap of the toggle + Post button, the same reasoning
+  // BlueprintExecutionService.executeOneStep uses for a Blueprint run.
+  //
+  // The Guranda post always goes out, toggle or not — Telegram is a
+  // best-effort add-on layered on top, and its own failure (no default
+  // chat configured, permission not granted, Telegram API error) is
+  // reported honestly in the response rather than rolling back the post
+  // or silently swallowing the error.
+  async publishEverywhere(
+    userId: string,
+    content: string,
+    media: PostMediaInput[] | undefined,
+    alsoTelegram: boolean,
+  ): Promise<{ post: any; telegram: { attempted: boolean; sent: boolean; error?: string } }> {
+    const postInput: Record<string, unknown> = { content };
+    if (media?.[0]?.url) {
+      postInput.mediaUrl = media[0].url;
+      postInput.mediaType = media[0].type;
+    }
+
+    const postResult = await this.actionExecutor.execute(userId, 'posts.create', postInput, true);
+    if (postResult.status !== 'executed' || postResult.success === false) {
+      throw new BadRequestException(postResult.resultText || 'Could not create the post.');
+    }
+    // posts.create's handler is this.createPost itself, which already
+    // returns the fully-flattened { ...post, author: toPostAuthor(...) }
+    // shape — postResult.result must not be re-wrapped.
+    const post = postResult.result;
+
+    const telegram: { attempted: boolean; sent: boolean; error?: string } = {
+      attempted: false,
+      sent: false,
+    };
+
+    if (alsoTelegram) {
+      telegram.attempted = true;
+      const chatId = await this.integrations.getTelegramDefaultChatId(userId);
+      if (!chatId) {
+        telegram.error =
+          'No default Telegram chat is configured yet — open External Apps > Telegram, check Recent Activity, and set a default chat.';
+      } else {
+        const tgResult = await this.actionExecutor.execute(
+          userId,
+          'telegram.sendMessage',
+          { chatId: String(chatId), text: content },
+          true,
+        );
+        if (tgResult.status === 'executed' && tgResult.success !== false) {
+          telegram.sent = true;
+        } else {
+          telegram.error = tgResult.resultText || 'Failed to send to Telegram.';
+        }
+      }
+    }
+
+    return { post, telegram };
   }
 
   // Shared by both feed variants — resolves the viewer's private bookmark
@@ -260,7 +356,7 @@ export class PostsService {
   // ContentRankingService.scoreItem rather than an extension of it, since
   // that service also backs the personalized feed and live-room listing and
   // shouldn't change behavior there.
-  async getTrendingPosts(take = 15) {
+  async getTrendingPosts(take = 15, viewerId?: string) {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const posts = await this.prisma.post.findMany({
       where: { createdAt: { gte: since } },
@@ -292,7 +388,7 @@ export class PostsService {
       .slice(0, take)
       .map((s) => s.post);
 
-    return this.hydrate(scored);
+    return this.hydrate(scored, viewerId);
   }
 
   // Following tab — plain reverse-chronological, not the "For You" ranking
@@ -326,10 +422,13 @@ export class PostsService {
     return this.hydrate(posts, viewerId);
   }
 
-  // Single-post detail view — the full thread: post + top-level comments,
-  // each with one level of nested replies (matches how the client renders
-  // threads; a reply-to-a-reply still attaches to its immediate parent
-  // server-side, it just isn't fetched further than one level deep here).
+  // Single-post detail view — the full thread: post + every comment at any
+  // depth. Comments are fetched FLAT (one query, no nesting limit) and
+  // reassembled into a real tree in buildCommentTree below — a reply-to-a-
+  // reply-to-a-reply (arbitrary depth) now actually reaches the client,
+  // where a fixed-depth Prisma `include: { replies: { include: { replies:
+  // ... } } } }` would have needed one extra nesting level hardcoded per
+  // depth and still hit a wall eventually.
   async getPost(id: string, viewerId?: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
@@ -339,16 +438,8 @@ export class PostsService {
         likes: true,
         reposts: true,
         comments: {
-          where: { parentId: null },
           orderBy: { createdAt: 'asc' },
-          include: {
-            author: { select: AUTHOR_SELECT },
-            likes: true,
-            replies: {
-              orderBy: { createdAt: 'asc' },
-              include: { author: { select: AUTHOR_SELECT }, likes: true },
-            },
-          },
+          include: { author: { select: AUTHOR_SELECT }, likes: true },
         },
       },
     });
@@ -373,11 +464,7 @@ export class PostsService {
       ...post,
       author: { ...toPostAuthor(post.author), isFollowedByMe },
       isBookmarkedByMe,
-      comments: post.comments.map((c: any) => ({
-        ...c,
-        author: toPostAuthor(c.author),
-        replies: c.replies.map((r: any) => ({ ...r, author: toPostAuthor(r.author) })),
-      })),
+      comments: buildCommentTree(post.comments),
     };
   }
 
@@ -517,9 +604,10 @@ export class PostsService {
       if (!parent || parent.postId !== postId) {
         throw new BadRequestException('Invalid parent comment');
       }
-      // Replies attach to their immediate parent even if that parent is
-      // itself a reply — getPost() just doesn't fetch past one level deep,
-      // it's not a schema limit.
+      // Replies attach to their immediate parent no matter how deep that
+      // parent already is — a reply-to-a-reply-to-a-reply is just another
+      // row pointing at its own immediate parentId. getPost()'s
+      // buildCommentTree reassembles the full chain, however deep it goes.
     }
     const comment = await this.prisma.comment.create({
       data: { authorId: userId, postId, content, parentId: parentId ?? null },
@@ -535,7 +623,7 @@ export class PostsService {
       );
     }
     const { post: _post, ...rest } = comment;
-    return { ...rest, author: toPostAuthor(comment.author) };
+    return { ...rest, author: toPostAuthor(comment.author), likes: [], replies: [] };
   }
 
   async likeComment(userId: string, commentId: string) {

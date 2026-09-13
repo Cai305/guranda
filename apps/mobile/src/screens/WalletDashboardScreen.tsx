@@ -216,6 +216,14 @@ export default function WalletDashboardScreen({ navigation }: any) {
               <Ionicons name="qr-code-outline" size={14} color="#FFF" />
               <Text style={styles.heroBtnText}>Scan</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('AirPay')}>
+              <Ionicons name="radio-outline" size={14} color="#FFF" />
+              <Text style={styles.heroBtnText}>AirPay</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.heroBtn} onPress={() => navigation.navigate('PayShap')}>
+              <Ionicons name="business-outline" size={14} color="#FFF" />
+              <Text style={styles.heroBtnText}>PayShap</Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 

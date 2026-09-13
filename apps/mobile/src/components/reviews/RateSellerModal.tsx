@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { fetchApi } from '../../utils/api';
+import Dialog from '../Dialog';
 
 type TransactionType = 'eat_order' | 'shopping_order' | 'hair_booking' | 'carwash_booking' | 'travel_stay' | 'travel_car';
 
@@ -28,7 +29,6 @@ export default function RateSellerModal({ visible, title, transactionType, trans
   const [submitting, setSubmitting] = useState(false);
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING }) => ({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: SPACING.lg },
     card: {
       backgroundColor: COLORS.surfaceElevated, borderRadius: RADIUS.lg, padding: SPACING.lg,
       borderWidth: 1, borderColor: COLORS.glassBorder,
@@ -75,9 +75,8 @@ export default function RateSellerModal({ visible, title, transactionType, trans
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+    <Dialog visible={visible} onClose={onClose}>
+      <TouchableOpacity activeOpacity={1} onPress={() => {}}>
           <View style={styles.card}>
             <View style={styles.headerRow}>
               <Text style={styles.title}>Rate {title}</Text>
@@ -105,8 +104,7 @@ export default function RateSellerModal({ visible, title, transactionType, trans
               {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit Review</Text>}
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
       </TouchableOpacity>
-    </Modal>
+    </Dialog>
   );
 }

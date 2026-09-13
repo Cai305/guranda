@@ -8,6 +8,19 @@ import { PrismaService } from '../prisma.service';
 import { VerificationService } from '../verification/verification.service';
 import { EventBusService } from '../events/event-bus.service';
 import { BadgeService } from '../profile/badge.service';
+import { BlocksService } from '../blocks/blocks.service';
+import { FriendsService } from '../friends/friends.service';
+import { haversineKm, bearingDeg } from '../common/geo';
+
+// AirPay ("send like AirDrop") reuses the same lat/lng each device already
+// syncs every few minutes via POST /users/location (see AuthContext's
+// syncLocation) — no separate proximity/BLE stack yet. A location is only
+// treated as "nearby-worthy" if it's this fresh, so someone who closed the
+// app an hour ago doesn't linger in someone else's radar.
+const AIRPAY_LOCATION_FRESHNESS_MS = 30 * 60 * 1000;
+const AIRPAY_MIN_RADIUS_M = 5;
+const AIRPAY_MAX_RADIUS_M = 2000;
+const AIRPAY_RESULT_LIMIT = 30;
 
 // Content Contribution Remuneration pays out once a month, on the 14th, at
 // midnight — this must stay in sync with the @Cron expression on
@@ -39,7 +52,93 @@ export class WalletsService {
     private verificationService: VerificationService,
     private eventBus: EventBusService,
     private badgeService: BadgeService,
+    private blocksService: BlocksService,
+    private friendsService: FriendsService,
   ) {}
+
+  /**
+   * People currently near the caller, for the AirPay radar. Distance comes
+   * from each user's last-synced GPS fix (see the module-level comment) —
+   * `needsLocation: true` means the caller has no fresh-enough fix of their
+   * own yet, so the screen should prompt for location instead of showing an
+   * empty radar. `contactsOnly` restricts results to accepted friends, same
+   * relationship `getFriendIds` already gates CONTACTS-visibility stories
+   * with.
+   */
+  async getNearbyForAirPay(userId: string, radiusMeters: number, contactsOnly: boolean) {
+    const safeRadius = Math.max(
+      AIRPAY_MIN_RADIUS_M,
+      Math.min(AIRPAY_MAX_RADIUS_M, Number(radiusMeters) || 50),
+    );
+    const freshCutoff = new Date(Date.now() - AIRPAY_LOCATION_FRESHNESS_MS);
+
+    const me = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { locationLat: true, locationLng: true, locationUpdatedAt: true },
+    });
+    if (
+      me?.locationLat == null ||
+      me?.locationLng == null ||
+      !me.locationUpdatedAt ||
+      me.locationUpdatedAt < freshCutoff
+    ) {
+      return { needsLocation: true, radiusMeters: safeRadius, people: [] };
+    }
+
+    const blocked = await this.blocksService.getBlockedEitherDirection(userId);
+    const friendIds = contactsOnly ? await this.friendsService.getFriendIds(userId) : null;
+
+    const candidates = await this.prisma.user.findMany({
+      where: {
+        id: { not: userId },
+        locationLat: { not: null },
+        locationLng: { not: null },
+        locationUpdatedAt: { gte: freshCutoff },
+      },
+      select: {
+        id: true,
+        username: true,
+        locationLat: true,
+        locationLng: true,
+        profile: { select: { displayName: true, avatarUrl: true } },
+      },
+      take: 500, // same "scan then filter" shape as ride.service.ts's getNearbyOnlineDrivers
+    });
+
+    const people = candidates
+      .filter((c) => !blocked.has(c.id))
+      .filter((c) => !friendIds || friendIds.has(c.id))
+      .map((c) => ({
+        c,
+        distanceMeters: Math.round(
+          haversineKm(
+            me.locationLat as number,
+            me.locationLng as number,
+            c.locationLat as number,
+            c.locationLng as number,
+          ) * 1000,
+        ),
+        bearingDeg: bearingDeg(
+          me.locationLat as number,
+          me.locationLng as number,
+          c.locationLat as number,
+          c.locationLng as number,
+        ),
+      }))
+      .filter((entry) => entry.distanceMeters <= safeRadius)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, AIRPAY_RESULT_LIMIT)
+      .map(({ c, distanceMeters, bearingDeg: bearing }) => ({
+        id: c.id,
+        username: c.username,
+        displayName: c.profile?.displayName ?? c.username,
+        avatarUrl: c.profile?.avatarUrl ?? null,
+        distanceMeters,
+        bearingDeg: bearing,
+      }));
+
+    return { needsLocation: false, radiusMeters: safeRadius, people };
+  }
 
   async getMyWallet(userId: string) {
     const wallet = await this.prisma.wallet.findUnique({

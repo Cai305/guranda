@@ -55,6 +55,31 @@ export interface ToolDefinition {
    * grant check has a real caller instead of being dead code.
    */
   requiresCapabilityGrant?: boolean;
+  /**
+   * Opt-in: how ActionExecutorService actually runs this tool. Absent/'native'
+   * (every existing tool today) means the current behavior — call
+   * tool.handler(ctx, input) directly, in-process. 'n8n' means
+   * ActionExecutorService instead calls AutomationGatewayService.trigger()
+   * with this tool's name/input and never invokes tool.handler at all — the
+   * real external call happens inside the n8n workflow. Permission check /
+   * sensitive-approval gate / ToolExecutionLog audit write are unaffected
+   * either way; only the "actually run it" step branches (see
+   * action-executor.service.ts's runAndRecord). First real user:
+   * telegram.sendMessage (see integrations/telegram-ai-tools.provider.ts).
+   */
+  executesVia?: 'native' | 'n8n';
+  /**
+   * Only consulted when executesVia === 'n8n'. Builds the actual payload
+   * POSTed to the n8n webhook — kept separate from the AI/Blueprint-facing
+   * `input` (validated against inputSchema, visible to the LLM) because the
+   * real gateway payload sometimes needs a real secret (e.g. a decrypted
+   * bot token) that must never be part of a tool's public inputSchema or
+   * ever shown to the LLM. Defaults to using `input` unchanged when absent.
+   * See telegram-ai-tools.provider.ts's sendMessage tool for the first real
+   * use (merges the user's decrypted Telegram bot token into
+   * {botToken, chatId, text} before it reaches AutomationGatewayService).
+   */
+  buildGatewayPayload?: (ctx: ToolContext, input: any) => Promise<any>;
 }
 
 export interface ToolListFilter {

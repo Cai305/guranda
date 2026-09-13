@@ -25,7 +25,7 @@ export class TrendingService {
 
   async getTrendingFeed(userId?: string) {
     const [posts, challenges, liveCandidates, trends, trendLabels, videosPool] = await Promise.all([
-      this.postsService.getTrendingPosts(15),
+      this.postsService.getTrendingPosts(15, userId),
       this.challengesService.getTrendingChallenges(10),
       this.liveService.getTrendingLive(20),
       this.storyService.getLabeledFeed(),

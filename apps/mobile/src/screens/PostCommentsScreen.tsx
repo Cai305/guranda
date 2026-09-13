@@ -12,6 +12,41 @@ import PostMediaCarousel from '../components/PostMediaCarousel';
 import PlatformWidget from '../components/widgets/PlatformWidget';
 import { decodePlatformWidget } from '../components/widgets/platformWidget';
 
+// ── Recursive comment-tree helpers ──────────────────────────────────────
+// Comments now nest to any depth (see posts.service.ts's buildCommentTree) —
+// these walk the whole tree instead of assuming one flat level of replies.
+function updateCommentTree(comments: CommentDto[], targetId: string, updater: (c: CommentDto) => CommentDto): CommentDto[] {
+  return comments.map((c) => {
+    if (c.id === targetId) return updater(c);
+    if (c.replies?.length) return { ...c, replies: updateCommentTree(c.replies, targetId, updater) };
+    return c;
+  });
+}
+
+function addReplyToTree(comments: CommentDto[], parentId: string, reply: CommentDto): CommentDto[] {
+  return comments.map((c) => {
+    if (c.id === parentId) return { ...c, replies: [...(c.replies ?? []), reply] };
+    if (c.replies?.length) return { ...c, replies: addReplyToTree(c.replies, parentId, reply) };
+    return c;
+  });
+}
+
+function countDescendants(c: CommentDto): number {
+  return (c.replies ?? []).reduce((sum, r) => sum + 1 + countDescendants(r), 0);
+}
+
+// Depth-cycled accent palette for the thread ribbon — six distinct hues
+// instead of one flat gray indent line, so the eye can tell "which branch
+// am I in" at a glance in a genuinely deep thread. Cycles rather than fades
+// so depth 7 reads exactly as distinctly as depth 1, not as a smear.
+const THREAD_COLORS = ['#8B5CF6', '#14B8A6', '#F59E0B', '#F43F5E', '#38BDF8', '#84CC16'];
+const threadColor = (depth: number) => THREAD_COLORS[(depth - 1) % THREAD_COLORS.length];
+// Reply nesting itself has no limit — only the ribbon's drawn width does.
+// One full color cycle's worth of bars is plenty to establish "this is a
+// deep thread"; past that, the 🧵 depth badge (shown from depth 4) carries
+// the actual number instead of the row eating more horizontal space.
+const MAX_RIBBON_BARS = THREAD_COLORS.length;
+
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -35,6 +70,15 @@ export default function PostCommentsScreen({ route, navigation }: any) {
   const [content, setContent] = useState('');
   const [replyTarget, setReplyTarget] = useState<{ id: string; name: string } | null>(null);
   const [posting, setPosting] = useState(false);
+  // Collapsed sub-threads — a genuinely unbounded tree needs a way to fold
+  // a branch back up, same idea as folding a file tree. Nothing is
+  // collapsed by default; this only ever grows by explicit tap.
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const toggleCollapsed = (id: string) => setCollapsedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   const fetchPost = useCallback(async () => {
     try {
@@ -54,6 +98,10 @@ export default function PostCommentsScreen({ route, navigation }: any) {
   const hasLiked = post?.likes?.some(l => l.userId === user?.userId);
   const hasReposted = post?.reposts?.some(r => r.userId === user?.userId);
   const isBookmarked = !!post?.isBookmarkedByMe;
+  // Top-level comments plus every reply at any depth — comments now nest
+  // arbitrarily deep, so a flat `.length` on the top-level array alone
+  // would undercount a thread that's mostly replies.
+  const totalCommentCount = (post?.comments ?? []).reduce((sum, c) => sum + 1 + countDescendants(c), 0);
 
   const handleLike = async () => {
     if (!post) return;
@@ -87,9 +135,8 @@ export default function PostCommentsScreen({ route, navigation }: any) {
 
   const handleLikeComment = async (commentId: string) => {
     setPost(prev => {
-      if (!prev) return prev;
+      if (!prev?.comments) return prev;
       const toggle = (c: CommentDto): CommentDto => {
-        if (c.id !== commentId) return c;
         const has = c.likes?.some(l => l.userId === user?.userId);
         return {
           ...c,
@@ -98,10 +145,7 @@ export default function PostCommentsScreen({ route, navigation }: any) {
             : [...(c.likes ?? []), { id: 'tmp', userId: user?.userId as string }],
         };
       };
-      return {
-        ...prev,
-        comments: prev.comments?.map(c => (c.id === commentId ? toggle(c) : { ...c, replies: c.replies?.map(r => (r.id === commentId ? toggle(r) : r)) })),
-      };
+      return { ...prev, comments: updateCommentTree(prev.comments, commentId, toggle) };
     });
     await fetchApi(`/posts/comments/${commentId}/like`, { method: 'POST' }).catch(() => fetchPost());
   };
@@ -136,16 +180,13 @@ export default function PostCommentsScreen({ route, navigation }: any) {
         body: JSON.stringify({ content: content.trim(), parentId: replyTarget?.id }),
       });
       if (res.ok) {
-        const newComment: CommentDto = await res.json();
+        const newComment: CommentDto = { ...(await res.json()), replies: [] };
         setPost(prev => {
           if (!prev) return prev;
           if (replyTarget) {
-            return {
-              ...prev,
-              comments: prev.comments?.map(c => (c.id === replyTarget.id ? { ...c, replies: [...(c.replies ?? []), newComment] } : c)),
-            };
+            return { ...prev, comments: addReplyToTree(prev.comments ?? [], replyTarget.id, newComment) };
           }
-          return { ...prev, comments: [...(prev.comments ?? []), { ...newComment, replies: [] }] };
+          return { ...prev, comments: [...(prev.comments ?? []), newComment] };
         });
         setContent('');
         setReplyTarget(null);
@@ -156,41 +197,95 @@ export default function PostCommentsScreen({ route, navigation }: any) {
     setPosting(false);
   };
 
-  const renderCommentRow = (item: CommentDto, isReply: boolean) => {
+  // "Signal Threads" — the comment tree's own visual identity, distinct from
+  // the single-gray-indent-line convention most feeds copy from each other.
+  // Every depth level gets its own color from THREAD_COLORS, drawn as a
+  // vertical ribbon bar to the left of the row (one bar per ancestor level,
+  // so depth 3 shows 3 colored bars) with the bar for THIS reply's own
+  // immediate parent capped with a small rounded "elbow" hook into the
+  // avatar — a visual "this reply attaches here" cue lines-only threads
+  // don't give you. The avatar itself picks up a ring in that same color,
+  // tying the two together at a glance. Recurses to any depth — there is no
+  // hardcoded stopping point, only the optional per-branch collapse toggle.
+  const renderCommentRow = (item: CommentDto, depth: number): React.ReactElement => {
     const liked = item.likes?.some(l => l.userId === user?.userId);
     const name = item.author?.displayName || item.author?.username || 'User';
     const widget = decodePlatformWidget(item.content);
+    const myColor = depth > 0 ? threadColor(depth) : undefined;
+    const replies = item.replies ?? [];
+    const collapsed = collapsedIds.has(item.id);
+    const totalDescendants = countDescendants(item);
+
     return (
-      <View key={item.id} style={[styles.commentItem, isReply && styles.replyItem]}>
-        <View style={styles.commentAvatarCol}>
-          <Image
-            source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${name}` }}
-            style={styles.commentAvatar}
-          />
-        </View>
-        <View style={styles.commentContent}>
-          <View style={styles.commentHeaderRow}>
-            <Text style={styles.authorName} numberOfLines={1}>{name}</Text>
-            {item.author?.verified && <Ionicons name="checkmark-circle" size={13} color={COLORS.primary} style={{ marginLeft: 3 }} />}
-            <Text style={styles.time}>· {timeAgo(item.createdAt as any)}</Text>
+      <View key={item.id}>
+        <View style={styles.commentItem}>
+          {depth > 0 && (
+            <View style={styles.ribbon}>
+              {/* Reply depth itself is unbounded (see MAX_RIBBON_BARS'
+                  comment below), but the ribbon's WIDTH caps out so a truly
+                  deep thread never squeezes content off-screen — the
+                  avatar ring and 🧵 depth badge still track the real depth
+                  past that point, so nothing about how deep you are is lost,
+                  it just stops costing more horizontal space to show it. */}
+              {Array.from({ length: Math.min(depth, MAX_RIBBON_BARS) }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.ribbonBar,
+                    { backgroundColor: threadColor(i + 1) },
+                    i === Math.min(depth, MAX_RIBBON_BARS) - 1 && styles.ribbonBarElbow,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+          <View style={styles.commentAvatarCol}>
+            <Image
+              source={{ uri: item.author?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/png?seed=${name}` }}
+              style={[styles.commentAvatar, myColor ? { borderColor: myColor, borderWidth: 2 } : null]}
+            />
           </View>
-          {widget ? <PlatformWidget widget={widget} navigation={navigation} compact /> : <Text style={styles.text}>{item.content}</Text>}
-          <View style={styles.commentActions}>
-            <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleLikeComment(item.id)}>
-              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={15} color={liked ? '#F43F5E' : COLORS.textMuted} />
-              {!!item.likes?.length && <Text style={[styles.commentActionText, liked && { color: '#F43F5E' }]}>{item.likes.length}</Text>}
-            </TouchableOpacity>
-            {!isReply && (
+          <View style={styles.commentContent}>
+            <View style={styles.commentHeaderRow}>
+              <Text style={styles.authorName} numberOfLines={1}>{name}</Text>
+              {item.author?.verified && <Ionicons name="checkmark-circle" size={13} color={COLORS.primary} style={{ marginLeft: 3 }} />}
+              <Text style={styles.time}>· {timeAgo(item.createdAt as any)}</Text>
+              {depth >= 4 && (
+                <View style={[styles.deepBadge, { borderColor: myColor }]}>
+                  <Text style={styles.deepBadgeText}>🧵 {depth}</Text>
+                </View>
+              )}
+            </View>
+            {widget ? <PlatformWidget widget={widget} navigation={navigation} compact /> : <Text style={styles.text}>{item.content}</Text>}
+            <View style={styles.commentActions}>
+              <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleLikeComment(item.id)}>
+                <Ionicons name={liked ? 'heart' : 'heart-outline'} size={15} color={liked ? '#F43F5E' : COLORS.textMuted} />
+                {!!item.likes?.length && <Text style={[styles.commentActionText, liked && { color: '#F43F5E' }]}>{item.likes.length}</Text>}
+              </TouchableOpacity>
               <TouchableOpacity style={styles.commentActionBtn} onPress={() => setReplyTarget({ id: item.id, name })}>
                 <Ionicons name="chatbubble-outline" size={14} color={COLORS.textMuted} />
                 <Text style={styles.commentActionText}>Reply</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleReportComment(item.id)}>
+                <Ionicons name="flag-outline" size={14} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {totalDescendants > 0 && (
+              <TouchableOpacity
+                style={[styles.collapseToggle, { borderColor: (myColor ?? THREAD_COLORS[0]) + '55', backgroundColor: (myColor ?? THREAD_COLORS[0]) + '1A' }]}
+                onPress={() => toggleCollapsed(item.id)}
+              >
+                <Ionicons name={collapsed ? 'chevron-forward' : 'chevron-down'} size={13} color={myColor ?? THREAD_COLORS[0]} />
+                <Text style={[styles.collapseToggleText, { color: myColor ?? THREAD_COLORS[0] }]}>
+                  {collapsed
+                    ? `Show ${totalDescendants} ${totalDescendants === 1 ? 'reply' : 'replies'}`
+                    : 'Collapse thread'}
+                </Text>
+              </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.commentActionBtn} onPress={() => handleReportComment(item.id)}>
-              <Ionicons name="flag-outline" size={14} color={COLORS.textMuted} />
-            </TouchableOpacity>
           </View>
         </View>
+        {!collapsed && replies.map((r) => renderCommentRow(r, depth + 1))}
       </View>
     );
   };
@@ -243,12 +338,7 @@ export default function PostCommentsScreen({ route, navigation }: any) {
         <FlatList
           data={post.comments ?? []}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View>
-              {renderCommentRow(item, false)}
-              {(item.replies ?? []).map(r => renderCommentRow(r, true))}
-            </View>
-          )}
+          renderItem={({ item }) => renderCommentRow(item, 0)}
           contentContainerStyle={styles.listContent}
           refreshing={loading}
           onRefresh={fetchPost}
@@ -280,7 +370,7 @@ export default function PostCommentsScreen({ route, navigation }: any) {
               <View style={styles.postActions}>
                 <View style={styles.actionButton}>
                   <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
-                  <Text style={styles.actionText}>{post.comments?.length || 0}</Text>
+                  <Text style={styles.actionText}>{totalCommentCount}</Text>
                 </View>
                 <TouchableOpacity style={styles.actionButton} onPress={handleRepost}>
                   <Ionicons name="repeat-outline" size={18} color={hasReposted ? '#10B981' : COLORS.textMuted} />
@@ -457,8 +547,55 @@ function createStyles({ COLORS, TYPOGRAPHY, RADIUS }: ThemeTokens) {
     paddingHorizontal: 16,
     paddingTop: 14,
   },
-  replyItem: {
-    paddingLeft: 16 + 44 * 0.6,
+  // ── "Signal Threads" connector ribbon ──────────────────────────────────
+  ribbon: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 5,
+    marginRight: 8,
+  },
+  ribbonBar: {
+    width: 3,
+    borderRadius: 2,
+    opacity: 0.85,
+  },
+  // The bar belonging to this reply's own immediate parent gets a rounded
+  // foot instead of a flush-square end — a small "this is where I attach"
+  // hook, cheap to do with just a border-radius tweak rather than an
+  // absolutely-positioned elbow curve.
+  ribbonBarElbow: {
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+  },
+  deepBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  deepBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  // A distinct pill (not another plain icon+text action) so "this thread
+  // has more underneath, tap to fold it" reads as its own control rather
+  // than blending into the like/reply/flag row above it.
+  collapseToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  collapseToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   commentAvatarCol: {
     width: '14%',

@@ -11,6 +11,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { fetchApi, uploadImage, uploadMedia } from '../utils/api';
+import { PickedSong } from './SongPickerScreen';
 
 const BG_COLORS = [
   ['#7C3AED', '#4F46E5'],
@@ -70,6 +71,10 @@ export default function CreateStoryScreen({ navigation, route }: any) {
   const [musicUri, setMusicUri] = useState<string | null>(null);
   const [musicName, setMusicName] = useState<string | null>(null);
   const [musicMimeType, setMusicMimeType] = useState<string | null>(null);
+  // Set instead of the three above when the music came from the Guranda
+  // catalog (SongPickerScreen) rather than a device file — already has a
+  // real hosted URL, so publish() skips uploading it and just links songId.
+  const [catalogSong, setCatalogSong] = useState<PickedSong | null>(null);
 
   const [stickers, setStickers] = useState<PlacedSticker[]>([]);
   const previewSize = useRef({ width: 1, height: 1 });
@@ -305,6 +310,17 @@ export default function CreateStoryScreen({ navigation, route }: any) {
     }
   }, [route?.params?.editedImageUri]);
 
+  useEffect(() => {
+    if (route?.params?.pickedSong) {
+      const song: PickedSong = route.params.pickedSong;
+      setCatalogSong(song);
+      setMusicUri(null);
+      setMusicMimeType(null);
+      setMusicName(`${song.title} — ${song.artistName}`);
+      navigation.setParams({ pickedSong: undefined });
+    }
+  }, [route?.params?.pickedSong]);
+
   const editPhoto = () => {
     if (!mediaUri) return;
     navigation.navigate('MediaEditor', {
@@ -320,9 +336,21 @@ export default function CreateStoryScreen({ navigation, route }: any) {
     const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
     if (result.canceled) return;
     const asset = result.assets[0];
+    setCatalogSong(null);
     setMusicUri(asset.uri);
     setMusicName(asset.name);
     setMusicMimeType(asset.mimeType ?? null);
+  };
+
+  const pickFromCatalog = () => {
+    navigation.navigate('SongPicker', { returnScreen: 'CreateStory', returnParamKey: 'pickedSong' });
+  };
+
+  const clearMusic = () => {
+    setMusicUri(null);
+    setMusicName(null);
+    setMusicMimeType(null);
+    setCatalogSong(null);
   };
 
   const addSticker = (emoji: string) => {
@@ -359,7 +387,9 @@ export default function CreateStoryScreen({ navigation, route }: any) {
       if (mediaUri) mediaUrl = await uploadImage(mediaUri);
 
       let uploadedMusicUrl: string | undefined;
-      if (musicUri) {
+      if (catalogSong) {
+        uploadedMusicUrl = catalogSong.audioUrl;
+      } else if (musicUri) {
         const { url } = await uploadMedia(musicUri, 'audio', {
           name: musicName ?? undefined,
           mimeType: musicMimeType ?? undefined,
@@ -375,6 +405,7 @@ export default function CreateStoryScreen({ navigation, route }: any) {
           backgroundColor: JSON.stringify(BG_COLORS[selectedBg]),
           musicUrl: uploadedMusicUrl,
           musicTitle: musicName ?? undefined,
+          songId: catalogSong?.id,
           label: !isStatusMode && postType === 'ofTheDay' ? label.trim() : undefined,
           visibility: isStatusMode ? 'CONTACTS' : 'PUBLIC',
           stickers: stickers.map(s => ({
@@ -602,17 +633,32 @@ export default function CreateStoryScreen({ navigation, route }: any) {
         {/* Music picker */}
         <View style={styles.section}>
           <Text style={styles.label}>Music</Text>
-          <TouchableOpacity style={styles.photoBtn} onPress={pickMusic}>
-            <View style={styles.photoRow}>
-              <Ionicons name="musical-notes-outline" size={22} color={COLORS.secondary} />
-              <Text style={styles.photoBtnText} numberOfLines={1}>{musicName ?? 'Add a song from your device'}</Text>
-              {musicName && (
-                <TouchableOpacity onPress={() => { setMusicUri(null); setMusicName(null); setMusicMimeType(null); }}>
+          {musicName ? (
+            <View style={styles.photoBtn}>
+              <View style={styles.photoRow}>
+                <Ionicons name="musical-notes-outline" size={22} color={COLORS.secondary} />
+                <Text style={styles.photoBtnText} numberOfLines={1}>{musicName}</Text>
+                <TouchableOpacity onPress={clearMusic}>
                   <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
                 </TouchableOpacity>
-              )}
+              </View>
             </View>
-          </TouchableOpacity>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity style={[styles.photoBtn, { flex: 1 }]} onPress={pickFromCatalog}>
+                <View style={styles.photoRow}>
+                  <Ionicons name="library-outline" size={20} color={COLORS.secondary} />
+                  <Text style={styles.photoBtnText}>Pick a song</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.photoBtn, { flex: 1 }]} onPress={pickMusic}>
+                <View style={styles.photoRow}>
+                  <Ionicons name="folder-outline" size={20} color={COLORS.secondary} />
+                  <Text style={styles.photoBtnText}>From device</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Stickers */}

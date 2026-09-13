@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform, AppState } from 'react-native';
 import { API_BASE_URL, setOnUnauthorized } from '../utils/api';
 import { clearApiCache } from '../utils/apiCache';
+import { clearMediaCache, clearChatMediaCache } from '../utils/mediaCache';
 import { syncPushToken, registerNotificationResponseHandler } from '../utils/pushNotifications';
 import { registerIntegrationsDeepLinkHandler } from '../utils/integrationsDeepLink';
 import { registerCommunityDeepLinkHandler } from '../utils/communityDeepLink';
@@ -150,6 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await deleteStorageItemAsync('userToken');
     await deleteStorageItemAsync('userData');
     await clearApiCache();
+    clearMediaCache().catch(() => {});
+    clearChatMediaCache().catch(() => {});
     rideSocket.disconnect();
   };
 

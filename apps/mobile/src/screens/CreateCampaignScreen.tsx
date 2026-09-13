@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,9 +38,40 @@ export default function CreateCampaignScreen({ navigation }: any) {
   const [actionLabel, setActionLabel] = useState('');
   const [destinationIndex, setDestinationIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  // Phase 7 — Franchise scope picker. null = Global (existing, unchanged
+  // behaviour). Options are every location the caller can actually act as
+  // (their own franchise locations as owner, plus any location they're
+  // active staff on) — never a raw text field, so an unauthorized
+  // franchiseUsernameId can't even be typed in.
+  const [franchiseScope, setFranchiseScope] = useState<{ id: string; label: string } | null>(null);
+  const [franchiseOptions, setFranchiseOptions] = useState<{ id: string; label: string }[]>([]);
   const { theme } = useTheme();
   const { COLORS, TYPOGRAPHY, SPACING } = theme;
   const isBudgeted = BUDGETED_TYPES.includes(type);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const bizRes = await fetchApi('/franchises/my-business');
+        const bizData = bizRes.ok ? await bizRes.json() : { business: null };
+        const owned: { id: string; label: string }[] = [];
+        if (bizData.business) {
+          const hierRes = await fetchApi(`/franchises/business/${bizData.business.id}/hierarchy`);
+          const hier = hierRes.ok ? await hierRes.json() : { children: [] };
+          for (const c of hier.children ?? []) owned.push({ id: c.id, label: c.label });
+        }
+        const staffRes = await fetchApi('/franchises/my-staff-memberships');
+        const staffData = staffRes.ok ? await staffRes.json() : [];
+        const staffed: { id: string; label: string }[] = Array.isArray(staffData)
+          ? staffData.map((s: any) => ({ id: s.franchiseUsername.id, label: s.franchiseUsername.label }))
+          : [];
+        const merged = [...owned, ...staffed].filter((o, i, arr) => arr.findIndex((x) => x.id === o.id) === i);
+        setFranchiseOptions(merged);
+      } catch {
+        // No franchise access — Global-only, same as before this phase.
+      }
+    })();
+  }, []);
 
   const styles = useThemedStyles(({ COLORS, RADIUS, SPACING, TYPOGRAPHY }) => ({
     root: { flex: 1, backgroundColor: COLORS.background },
@@ -101,6 +132,7 @@ export default function CreateCampaignScreen({ navigation }: any) {
           budget: isBudgeted ? Number(budget) : undefined,
           targetMinReputationLevel,
           targetCategories,
+          franchiseUsernameId: franchiseScope?.id,
           startAt: now.toISOString(),
           endAt: endAt.toISOString(),
         }),
@@ -132,6 +164,23 @@ export default function CreateCampaignScreen({ navigation }: any) {
         <Text style={styles.hint}>
           Propose a campaign for the Opportunities carousel. An admin reviews it, and — for Business/Mini App Launch types — your budget is charged from your wallet once approved.
         </Text>
+
+        {franchiseOptions.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>Scope</Text>
+            <Text style={styles.hint}>Global reaches everyone under your brand. A location scopes this campaign to just that franchise — shown to users as e.g. "{franchiseOptions[0].label}" instead of your global brand.</Text>
+            <View style={styles.chipRow}>
+              <TouchableOpacity style={[styles.chip, !franchiseScope && styles.chipActive]} onPress={() => setFranchiseScope(null)}>
+                <Text style={[styles.chipText, !franchiseScope && styles.chipTextActive]}>Global</Text>
+              </TouchableOpacity>
+              {franchiseOptions.map((o) => (
+                <TouchableOpacity key={o.id} style={[styles.chip, franchiseScope?.id === o.id && styles.chipActive]} onPress={() => setFranchiseScope(o)}>
+                  <Text style={[styles.chipText, franchiseScope?.id === o.id && styles.chipTextActive]}>{o.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionLabel}>Type</Text>
         <View style={styles.chipRow}>

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Request, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Request, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -19,7 +19,12 @@ export class CampaignsController {
     return this.campaigns.listMine(req.user.userId);
   }
 
-  // Must come after 'mine' so Nest doesn't treat 'mine' as an :id.
+  // Must come after 'mine' so Nest doesn't treat 'mine'/'feed' as an :id.
+  @Get('feed')
+  feed(@Request() req: any, @Query('take') take?: string, @Query('cursor') cursor?: string) {
+    return this.campaigns.getFeed(req.user.userId, take ? Number(take) : undefined, cursor);
+  }
+
   @Get(':id')
   detail(@Param('id') id: string) {
     return this.campaigns.getById(id);
@@ -28,6 +33,11 @@ export class CampaignsController {
   @Post(':id/click')
   trackClick(@Param('id') id: string) {
     return this.campaigns.trackClick(id);
+  }
+
+  @Post(':id/impression')
+  trackImpression(@Param('id') id: string, @Request() req: any) {
+    return this.campaigns.trackImpression(id, req.user.userId);
   }
 
   @Post(':id/complete')
